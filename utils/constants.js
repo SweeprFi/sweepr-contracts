@@ -149,6 +149,11 @@ const libraries = {
     1: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
     5: '0x05Df6C772A563FfB37fD3E04C1A279Fb30228621',
     42161: '',
+  },
+  glp_reward_router: {
+    1: '',
+    5: '',
+    42161: '0xB95DB5B167D75e6d04227CfFFA61069348d271F5',
   }
 }
 
