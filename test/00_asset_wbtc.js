@@ -20,7 +20,7 @@ contract("WBTC Asset - Local", async function () {
             addresses.sweep,
             addresses.usdc,
             addresses.wbtc,
-            addresses.oracle_wbtc_usdc,
+            addresses.oracle_wbtc_usd,
             addresses.uniswap_amm,
             BORROWER
         );

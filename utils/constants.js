@@ -153,21 +153,26 @@ const libraries = {
 }
 
 const chainlink_oracle = {
-  comp_usdc: {
+  comp_usd: {
     1: '0xdbd020CAeF83eFd542f4De03e3cF0C28A4428bd5',
     5: '',
     42161: '0xe7C53FFd03Eb6ceF7d208bC4C13446c76d1E5884',
   },
-  weth_usdc: {
-    1: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', // ETH - USDC
-    5: '0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e', // ETH - USDC
+  weth_usd: {
+    1: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', // ETH - USD
+    5: '0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e', // ETH - USD
     42161: '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612',
   },
-  wbtc_usdc: {
-    1: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c', // BTC - USDC
-    5: '0xA39434A63A52E749F02807ae27335515BA4b07F7', // BTC - USDC
+  wbtc_usd: {
+    1: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c', // BTC - USD
+    5: '0xA39434A63A52E749F02807ae27335515BA4b07F7', // BTC - USD
     42161: '0xd0C7101eACbB49F3deCcCc166d238410D6D46d57',
   },
+  usdc_usd: {
+    1: '0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6',
+    5: '0xAb5c49580294Aff77670F839ea425f5b78ab3Ae7',
+    42161: '0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3'
+  }
 }
 
 const contracts = {

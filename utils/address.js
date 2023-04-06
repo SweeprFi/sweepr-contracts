@@ -49,9 +49,10 @@ const addresses = {
   comp_control: libraries.comp_control[chainId],
 
   // Oracles - ChainLink
-  oracle_comp_usdc: chainlink_oracle.comp_usdc[chainId],
-  oracle_weth_usdc: chainlink_oracle.weth_usdc[chainId],
-  oracle_wbtc_usdc: chainlink_oracle.wbtc_usdc[chainId],
+  oracle_comp_usd: chainlink_oracle.comp_usd[chainId],
+  oracle_weth_usd: chainlink_oracle.weth_usd[chainId],
+  oracle_wbtc_usd: chainlink_oracle.wbtc_usd[chainId],
+  oracle_usdc_usd: chainlink_oracle.usdc_usd[chainId],
   
   // Periphery Contracts
   governance: contracts.governance[chainId],

@@ -15,12 +15,8 @@ contract('Uniswap Oracle - Local', async () => {
         oracle = await Oracle.connect(admin).deploy(
             addresses.sweep,
             addresses.uniswap_pool,
+            addresses.oracle_usdc_usd
         );
-
-        Sweep = await ethers.getContractFactory("SweepDollarCoin");
-        sweep = await Sweep.attach(addresses.sweep);
-
-        await sweep.connect(admin).setUniswapOracle(oracle.address);
     });
 
     it('fetches data from the oracle and toggles the tokens', async () => {
