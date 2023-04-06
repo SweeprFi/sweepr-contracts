@@ -7,7 +7,7 @@ It also contains the Stabilizer's implementation.
 
 ```
 git clone https://github.com/SweeprFi/sweepr-contracts.git
-cd sweep-coin
+cd sweepr-contracts
 cp .env.example .env
 npm install
 ```
