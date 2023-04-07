@@ -7,7 +7,7 @@ async function main() {
   const sweep = addresses.sweep;
   const usdc = addresses.usdc;
   const wbtc = addresses.wbtc;
-  const oracle = addresses.oracle_wbtc_usdc;
+  const oracle = addresses.oracle_wbtc_usd;
   const uniswap_amm = addresses.uniswap_amm;
   const borrower = addresses.borrower;
 

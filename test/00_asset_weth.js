@@ -21,7 +21,7 @@ contract("WETH Asset - Local", async function () {
             addresses.sweep,
             addresses.usdc,
             addresses.weth,
-            addresses.oracle_weth_usdc,
+            addresses.oracle_weth_usd,
             addresses.uniswap_amm,
             BORROWER
         );

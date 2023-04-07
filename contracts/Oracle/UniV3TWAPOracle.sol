@@ -18,6 +18,7 @@ import '../Utils/Uniswap/V3/libraries/FullMath.sol';
 import '../Utils/Uniswap/V3/libraries/FixedPoint128.sol';
 import "../Common/Owned.sol";
 import "../Common/ERC20/IERC20Metadata.sol";
+import "../Oracle/AggregatorV3Interface.sol";
 
 contract UniV3TWAPOracle is Owned {
     using SafeMath for uint256;
@@ -30,14 +31,17 @@ contract UniV3TWAPOracle is Owned {
     // AggregatorV3Interface stuff
     string public description = "Uniswap Oracle";
     uint256 public version = 1;
+    AggregatorV3Interface private immutable oracle;
 
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
         address _sweep_address, 
-        address _pool_address
+        address _pool_address,
+        address _oracle_address
     ) Owned(_sweep_address) {
         _setUniswapPool(_pool_address);
+        oracle = AggregatorV3Interface(_oracle_address);
     }
 
     /* ========== VIEWS ========== */
@@ -115,13 +119,16 @@ contract UniV3TWAPOracle is Owned {
      */
     function getPrice() public view returns (uint256 amount_out) {
         (uint160 sqrtRatioX96, , , , , , ) = pool.slot0();
+        (, int256 price, , , ) = oracle.latestRoundData();
 
-        amount_out = getQuote(
+        uint256 quote = getQuote(
             sqrtRatioX96,
             uint128(10**pricing_token.decimals()),
             address(pricing_token),
             address(base_token)
         );
+
+        amount_out = (quote * uint256(price)) / (10 ** (oracle.decimals()));
     }
 
     /**
