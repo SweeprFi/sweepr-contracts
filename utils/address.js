@@ -47,6 +47,7 @@ const addresses = {
   aaveV3_pool: libraries.aaveV3_pool[chainId],
   uniV3Positions: libraries.uniswapV3_positions[chainId],
   comp_control: libraries.comp_control[chainId],
+  glp_reward_router: libraries.glp_reward_router[chainId],
 
   // Oracles - ChainLink
   oracle_comp_usdc: chainlink_oracle.comp_usdc[chainId],
