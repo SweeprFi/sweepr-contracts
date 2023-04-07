@@ -26,10 +26,6 @@ contract GlpAsset is Stabilizer {
     AggregatorV3Interface private immutable oracle;
     IERC20Metadata public reward_token;
 
-    // Constants
-    uint256 private constant GLP_PRECISION = 10 ** 18;
-    uint256 private constant PRICE_PRECISION = 10 ** 30;
-
     // Events
     event Collected(address reward, uint256 amount);
 
@@ -117,16 +113,12 @@ contract GlpAsset is Stabilizer {
      * @notice Withdraw Rewards from GMX.
      */
     function collect() public onlyBorrower notFrozen {
-        feeGlpTracker.claim(address(this));
-        reward_token.transfer(
-            msg.sender,
-            reward_token.balanceOf(address(this))
-        );
-
         emit Collected(
             address(reward_token),
-            reward_token.balanceOf(address(this))
+            feeGlpTracker.claimable(address(this))
         );
+
+        feeGlpTracker.claim(msg.sender);
     }
 
     /**
@@ -134,7 +126,7 @@ contract GlpAsset is Stabilizer {
      */
     function liquidate() external {
         collect();
-        
+
         _liquidate(address(stakedGlpTracker));
     }
 
@@ -154,7 +146,7 @@ contract GlpAsset is Stabilizer {
 
     function _divest(uint256 _usdx_amount) internal override {
         collect();
-        
+
         uint256 glp_price = getGlpPrice(false);
         uint256 glp_balance = stakedGlpTracker.balanceOf(address(this));
         uint256 glp_amount = (_usdx_amount *
@@ -176,6 +168,6 @@ contract GlpAsset is Stabilizer {
     function getGlpPrice(bool _maximise) internal view returns (uint256) {
         uint256 price = glpManager.getPrice(_maximise); // True: maximum, False: minimum
 
-        return (price * 10 ** usdx.decimals()) / PRICE_PRECISION;
+        return (price * 10 ** usdx.decimals()) / glpManager.PRICE_PRECISION();
     }
 }

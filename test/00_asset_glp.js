@@ -73,8 +73,8 @@ contract('GLP Asset - Local', async () => {
             await asset.connect(user).invest(depositAmount);
             expect(await asset.assetValue()).to.above(ZERO);
 
-            // Delay 100 days
-            await network.provider.send("evm_increaseTime", [8640000]);
+            // Delay 5 days
+            await network.provider.send("evm_increaseTime", [432000]);
             await network.provider.send("evm_mine");
 
             // Collect Reward
@@ -85,6 +85,7 @@ contract('GLP Asset - Local', async () => {
             // Divest usdx
             await expect(asset.connect(guest).divest(divestAmount)).to.be.revertedWithCustomError(asset, 'OnlyBorrower');
             await asset.connect(user).divest(divestAmount);
+            expect(await asset.assetValue()).to.equal(ZERO);
         });
     });
 });

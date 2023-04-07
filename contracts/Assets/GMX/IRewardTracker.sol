@@ -10,5 +10,5 @@ interface IRewardTracker {
 
     function balanceOf(address account) external view returns (uint256);
 
-    function claim(address receiver) external view returns (uint256);
+    function claim(address receiver) external returns (uint256);
 }
