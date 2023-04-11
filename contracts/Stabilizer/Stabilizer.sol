@@ -671,6 +671,8 @@ contract Stabilizer {
         call_amount = (call_amount > _sweep_amount)
             ? call_amount - _sweep_amount : 0;
 
+        if(call_amount == 0) call_time = 0;
+        
         uint256 spread_amount = accruedFee();
         spread_date = block.timestamp;
 
