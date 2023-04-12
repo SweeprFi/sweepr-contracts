@@ -392,8 +392,7 @@ contract Stabilizer {
 
         (, uint256 sweep_balance) = _balances();
 
-        if (spread_amount > sweep_balance)
-            revert SpreadNotEnough();
+        if (spread_amount > sweep_balance) revert SpreadNotEnough();
 
         if (spread_amount > 0) {
             TransferHelper.safeTransfer(
@@ -418,7 +417,8 @@ contract Stabilizer {
         uint256 missing_usdx;
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
 
-        call_time = block.timestamp + call_delay;
+        if (call_delay > 0) call_time = block.timestamp + call_delay;
+
         call_amount = _min(_sweep_amount, sweep_borrowed);
 
         if (sweep_balance < call_amount) {
@@ -446,7 +446,7 @@ contract Stabilizer {
             _borrow(_sweep_amount);
             uint256 usdx_amount = _sell(_sweep_amount, 0);
             _invest(usdx_amount, 0);
-            
+
             emit AutoInvested(_sweep_amount);
         }
     }
@@ -669,10 +669,11 @@ contract Stabilizer {
         if (_sweep_amount == 0) revert NotEnoughBalance();
 
         call_amount = (call_amount > _sweep_amount)
-            ? call_amount - _sweep_amount : 0;
+            ? call_amount - _sweep_amount
+            : 0;
 
-        if(call_amount == 0) call_time = 0;
-        
+        if (call_delay > 0 && call_amount == 0) call_time = 0;
+
         uint256 spread_amount = accruedFee();
         spread_date = block.timestamp;
 
