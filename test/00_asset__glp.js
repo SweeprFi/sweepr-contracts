@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
+const { time } = require('@openzeppelin/test-helpers');
 const { addresses, chainId } = require("../utils/address");
 
 contract('GLP Asset - Local', async () => {
@@ -13,16 +14,21 @@ contract('GLP Asset - Local', async () => {
 
     before(async () => {
         [guest, lzEndpoint] = await ethers.getSigners();
+        BORROWER = addresses.multisig;
 
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
         sweep = await Proxy.deployed();
+        await sweep.setTreasury(addresses.treasury);
 
         ERC20 = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
         usdx = await ERC20.attach(addresses.usdc);
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdx.address);
+        amm = await Uniswap.deploy(sweep.address);
+
+        USDOracle = await ethers.getContractFactory("AggregatorMock");
+        usdOracle = await USDOracle.deploy();
 
         Asset = await ethers.getContractFactory("GlpAsset");
         asset = await Asset.deploy(
@@ -32,22 +38,13 @@ contract('GLP Asset - Local', async () => {
             addresses.glp_reward_router,
             addresses.oracle_weth_usd,
             amm.address,
-            addresses.multisig
+            addresses.multisig,
+            usdOracle.address
         );
 
         reward_token_address = await asset.reward_token();
         reward_token = await ERC20.attach(reward_token_address);
-
-        BORROWER = addresses.multisig;
-        await sendEth(BORROWER);
     });
-
-    async function sendEth(account) {
-        await hre.network.provider.request({
-            method: "hardhat_setBalance",
-            params: [account, ethers.utils.parseEther('15').toHexString()]
-        });
-    }
 
     // impersonate accounts
     async function impersonate(account) {
@@ -69,13 +66,15 @@ contract('GLP Asset - Local', async () => {
             await impersonate(BORROWER);
             // Invest usdx
             expect(await asset.assetValue()).to.equal(ZERO);
-            await expect(asset.connect(guest).invest(depositAmount)).to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+            await expect(asset.connect(guest).invest(depositAmount))
+                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
             await asset.connect(user).invest(depositAmount);
+
             expect(await asset.assetValue()).to.above(ZERO);
 
             // Delay 5 days
-            await network.provider.send("evm_increaseTime", [432000]);
-            await network.provider.send("evm_mine");
+            await time.increase(432000);
+            await time.advanceBlock();
 
             // Collect Reward
             expect(await reward_token.balanceOf(user.address)).to.equal(ZERO);
@@ -83,8 +82,10 @@ contract('GLP Asset - Local', async () => {
             expect(await reward_token.balanceOf(user.address)).to.above(ZERO);
 
             // Divest usdx
-            await expect(asset.connect(guest).divest(divestAmount)).to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+            await expect(asset.connect(guest).divest(divestAmount))
+                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
             await asset.connect(user).divest(divestAmount);
+
             expect(await asset.assetValue()).to.equal(ZERO);
         });
     });

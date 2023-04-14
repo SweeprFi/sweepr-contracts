@@ -37,8 +37,11 @@ contract('Balancer - Repayment Calls', async () => {
     const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
     sweep = await Proxy.deployed();
 
+    USDOracle = await ethers.getContractFactory("AggregatorMock");
+    usdOracle = await USDOracle.deploy();
+
     balancer = await Balancer.deploy(sweep.address, USDC_ADDRESS);
-    amm = await Uniswap.deploy(sweep.address, USDC_ADDRESS);
+    amm = await Uniswap.deploy(sweep.address);
     assets = await Promise.all(
       Array(4).fill().map(async () => {
         return await StabilizerAave.deploy(
@@ -48,7 +51,8 @@ contract('Balancer - Repayment Calls', async () => {
           addresses.aave_usdc,
           addresses.aaveV3_pool,
           amm.address,
-          BORROWER
+          BORROWER,
+          usdOracle.address
         );
       })
     );

@@ -14,6 +14,9 @@ contract("WBTC Asset - Local", async function () {
         usdc = await Token.attach(addresses.usdc);
         wbtc = await Token.attach(addresses.wbtc);
 
+        USDOracle = await ethers.getContractFactory("AggregatorMock");
+        usdOracle = await USDOracle.deploy();
+
         WBTCAsset = await ethers.getContractFactory("TokenAsset");
         wbtc_asset = await WBTCAsset.deploy(
             'WBTC Asset',
@@ -22,7 +25,8 @@ contract("WBTC Asset - Local", async function () {
             addresses.wbtc,
             addresses.oracle_wbtc_usd,
             addresses.uniswap_amm,
-            BORROWER
+            BORROWER,
+            usdOracle.address
         );
     });
 

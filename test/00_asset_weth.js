@@ -15,6 +15,9 @@ contract("WETH Asset - Local", async function () {
         usdc = await Token.attach(addresses.usdc);
         weth = await Token.attach(addresses.weth);
 
+        USDOracle = await ethers.getContractFactory("AggregatorMock");
+        usdOracle = await USDOracle.deploy();
+
         WETHAsset = await ethers.getContractFactory("TokenAsset");
         weth_asset = await WETHAsset.deploy(
             'WETH Asset',
@@ -23,7 +26,8 @@ contract("WETH Asset - Local", async function () {
             addresses.weth,
             addresses.oracle_weth_usd,
             addresses.uniswap_amm,
-            BORROWER
+            BORROWER,
+            usdOracle.address
         );
     });
 

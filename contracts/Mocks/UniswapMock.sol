@@ -5,11 +5,9 @@ import "../Sweep/ISweep.sol";
 
 contract UniswapMock {
     ISweep private SWEEP;
-    ERC20 private USDC;
 
-    constructor(address _sweep, address _usdc) {
+    constructor(address _sweep) {
         SWEEP = ISweep(_sweep);
-        USDC = ERC20(_usdc);
     }
 
     function buySweep(
@@ -20,7 +18,6 @@ contract UniswapMock {
         sweep_amount = swapExactInput(
             _collateral_address,
             address(SWEEP),
-            3000,
             _collateral_amount,
             _amountOutMin
         );
@@ -34,7 +31,6 @@ contract UniswapMock {
         collateral_amount = swapExactInput(
             address(SWEEP),
             _collateral_address,
-            3000,
             _sweep_amount,
             _amountOutMin
         );
@@ -43,23 +39,19 @@ contract UniswapMock {
     function swapExactInput(
         address _tokenA,
         address _tokenB,
-        uint24 _fee,
         uint256 _amount,
         uint256 _amount_out_min
     ) public returns (uint256 result) {
-        _fee;
-        _tokenB;
         _amount_out_min;
 
         uint256 price = SWEEP.target_price();
         ERC20(_tokenA).transferFrom(msg.sender, address(this), _amount);
 
-        if (_tokenA == address(SWEEP)) {
-            result = ((_amount * price) * (1e6 - _fee)) / 1e18 / 1e6;
-            USDC.transfer(msg.sender, result);
+        if (ERC20(_tokenA).decimals() == 18) {
+            result = ((_amount * price) * (1e6 - 3000)) / 1e18 / 1e6;
         } else {
-            result = (((_amount * 1e18) / price) * (1e6 - _fee)) / 1e6;
-            SWEEP.transfer(msg.sender, result);
+            result = (((_amount * 1e18) / price) * (1e6 - 3000)) / 1e6;
         }
+        ERC20(_tokenB).transfer(msg.sender, result);
     }
 }

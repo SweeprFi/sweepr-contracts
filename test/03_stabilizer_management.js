@@ -23,7 +23,10 @@ contract("Stabilizer - Management Functions", async function () {
     usdx = await Token.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdx.address);
+    amm = await Uniswap.deploy(sweep.address);
+
+    USDOracle = await ethers.getContractFactory("AggregatorMock");
+    usdOracle = await USDOracle.deploy();
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
     // ------------- Initialize context -------------
@@ -33,7 +36,8 @@ contract("Stabilizer - Management Functions", async function () {
       usdx.address,
       wallet.address,
       amm.address,
-      owner.address
+      owner.address,
+      usdOracle.address
     );
 
     await usdx.connect(borrower).approve(offChainAsset.address, 10000e6);

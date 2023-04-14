@@ -22,7 +22,10 @@ contract("Off-Chain Asset - Local", async function (accounts) {
         sweep = await Proxy.deployed();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdx.address);
+        amm = await Uniswap.deploy(sweep.address);
+
+        USDOracle = await ethers.getContractFactory("AggregatorMock");
+        usdOracle = await USDOracle.deploy();
 
         OffChainAsset = await ethers.getContractFactory("OffChainAsset");
         asset = await OffChainAsset.deploy(
@@ -31,7 +34,8 @@ contract("Off-Chain Asset - Local", async function (accounts) {
             addresses.usdc,
             WALLET,
             amm.address,
-            BORROWER
+            BORROWER,
+            usdOracle.address
         );
     });
 

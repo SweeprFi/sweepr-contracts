@@ -3,41 +3,62 @@ const { expect } = require("chai");
 const { addresses } = require("../utils/address");
 
 contract('Aave V3 Asset - Local', async () => {
-    // Variables
-    usdxAmount = 1000e6;
-    sweepAmount = ethers.utils.parseUnits("1000", 18);
-    maxBorrow = ethers.utils.parseUnits("100", 18);
-    depositAmount = 10e6;
-    minEquityRatio = 10e4; // 10%
-    mintAmount = ethers.utils.parseUnits("50", 18);
-    spreadFee = 3e4; // 3%
-    liquidatorDiscount = 2e4; // 2%
-    callDelay = 432000; // 5 days
-    autoInvestMinEquityRatio = 10e4; // 10%
-    autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-    autoInvest = true;
-
     before(async () => {
         [admin, liquidator, guest] = await ethers.getSigners();
         ZERO = 0;
+        // Variables
+        usdxAmount = 1000e6;
+        sweepAmount = ethers.utils.parseUnits("1000", 18);
+        maxBorrow = ethers.utils.parseUnits("100", 18);
+        depositAmount = 10e6;
+        minEquityRatio = 10e4; // 10%
+        mintAmount = ethers.utils.parseUnits("50", 18);
+        spreadFee = 3e4; // 3%
+        liquidatorDiscount = 2e4; // 2%
+        callDelay = 432000; // 5 days
+        autoInvestMinEquityRatio = 10e4; // 10%
+        autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
+        autoInvest = true;
 
-        Sweep = await ethers.getContractFactory("SweepDollarCoin");
-        sweep = await Sweep.attach(addresses.sweep);
+        Sweep = await ethers.getContractFactory("SweepMock");
+        const Proxy = await upgrades.deployProxy(Sweep);
+        sweep = await Proxy.deployed();
+        await sweep.setTreasury(addresses.treasury);
 
         ERC20 = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
         usdx = await ERC20.attach(addresses.usdc);
         aave_usdx = await ERC20.attach(addresses.aave_usdc);
 
+        Uniswap = await ethers.getContractFactory("UniswapMock");
+        uniswap_amm = await Uniswap.deploy(sweep.address);
+
+        USDOracle = await ethers.getContractFactory("AggregatorMock");
+        usdOracle = await USDOracle.deploy();
+
         AaveAsset = await ethers.getContractFactory("AaveV3Asset");
         aaveAsset = await AaveAsset.deploy(
             'Aave Asset',
-            addresses.sweep,
+            sweep.address,
             addresses.usdc,
             addresses.aave_usdc,
             addresses.aaveV3_pool,
-            addresses.uniswap_amm,
-            addresses.multisig
+            uniswap_amm.address,
+            addresses.multisig,
+            usdOracle.address
         );
+
+        // add asset as a minter
+        await sweep.addMinter(aaveAsset.address, sweepAmount);
+        await sweep.addMinter(admin.address, sweepAmount.mul(3));
+
+        // mint sweep for the liquidator
+        // simulates a pool in uniswap with 10000 SWEEP/USDX
+        await sweep.minter_mint(liquidator.address, sweepAmount);
+        await sweep.minter_mint(uniswap_amm.address, sweepAmount);
+        await sweep.minter_mint(addresses.multisig, sweepAmount);
+
+        await impersonate(addresses.usdc)
+        await usdx.connect(user).transfer(uniswap_amm.address, usdxAmount);
 
         await impersonate(addresses.multisig);
         // config stabilizer
@@ -53,20 +74,8 @@ contract('Aave V3 Asset - Local', async () => {
             "htttp://test.com"
         );
 
-        await impersonate(sweep_owner);
-        await admin.sendTransaction({ to: sweep_owner, value: ethers.utils.parseEther("5.0") });
-
-        const amm_price = await sweep.amm_price();
-        await sweep.connect(user).setTargetPrice(amm_price, amm_price);
-
-        // add asset as a minter
-        await sweep.connect(user).addMinter(aaveAsset.address, sweepAmount);
-
-        // mint sweep for the liquidator
-        await sweep.connect(user).addMinter(admin.address, maxBorrow);
-
-        await sweep.connect(admin).minter_mint(liquidator.address, maxBorrow);
-        await sweep.connect(liquidator).approve(aaveAsset.address, maxBorrow);
+        await sweep.connect(user).approve(aaveAsset.address, sweepAmount);
+        await sweep.connect(liquidator).approve(aaveAsset.address, sweepAmount);
     });
 
     async function impersonate(account) {
@@ -79,20 +88,23 @@ contract('Aave V3 Asset - Local', async () => {
 
     describe("Initial Test", async function () {
         it('deposit usdc to the asset', async () => {
-            await impersonate(addresses.multisig);
             await usdx.connect(user).transfer(aaveAsset.address, depositAmount);
-            expect(await usdx.balanceOf(aaveAsset.address)).to.equal(depositAmount)
+            expect(await usdx.balanceOf(aaveAsset.address)).to.equal(depositAmount);
         });
 
         it('mint and sell sweep', async () => {
             // Mint Sweep
-            await expect(aaveAsset.connect(guest).borrow(mintAmount)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            await expect(aaveAsset.connect(guest).borrow(mintAmount))
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
             await aaveAsset.connect(user).borrow(mintAmount);
             expect(await aaveAsset.sweep_borrowed()).to.equal(mintAmount);
 
             // Sell Sweep
-            await expect(aaveAsset.connect(guest).sellSweepOnAMM(mintAmount, 0)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
-            await expect(aaveAsset.connect(user).sellSweepOnAMM(0, 0)).to.be.revertedWithCustomError(aaveAsset, 'NotEnoughBalance');
+            await expect(aaveAsset.connect(guest).sellSweepOnAMM(mintAmount, 0))
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            await expect(aaveAsset.connect(user).sellSweepOnAMM(0, 0))
+                .to.be.revertedWithCustomError(aaveAsset, 'NotEnoughBalance');
+
             await aaveAsset.connect(user).sellSweepOnAMM(mintAmount, 0);
             expect(await sweep.balanceOf(aaveAsset.address)).to.equal(ZERO);
             expect(await usdx.balanceOf(aaveAsset.address)).to.above(depositAmount);
@@ -100,8 +112,9 @@ contract('Aave V3 Asset - Local', async () => {
 
         it('invest and divest to the Aave', async () => {
             // Invest usdx
-            investAmount = 50 * 1e6;
-            await expect(aaveAsset.connect(guest).invest(investAmount)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            investAmount = 50e6;
+            await expect(aaveAsset.connect(guest).invest(investAmount))
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
             await aaveAsset.connect(user).invest(investAmount);
             expect(await aaveAsset.assetValue()).to.closeTo(investAmount, 1);
 
@@ -110,21 +123,26 @@ contract('Aave V3 Asset - Local', async () => {
             await network.provider.send("evm_mine");
 
             // Divest usdx
-            divestAmount = 600 * 1e6;
-            await expect(aaveAsset.connect(guest).divest(divestAmount)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            divestAmount = 600e6;
+            await expect(aaveAsset.connect(guest).divest(divestAmount))
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
             await aaveAsset.connect(user).divest(divestAmount);
             expect(await aaveAsset.assetValue()).to.closeTo(ZERO, 1);
         });
 
         it('buy and repay sweep', async () => {
             // Buy Sweep
-            await expect(aaveAsset.connect(guest).buySweepOnAMM(divestAmount, 0)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            await expect(aaveAsset.connect(guest).buySweepOnAMM(divestAmount, 0))
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
             await aaveAsset.connect(user).buySweepOnAMM(divestAmount, 0);
+
             expect(await sweep.balanceOf(aaveAsset.address)).to.above(ZERO);
 
             // Repay Sweep
-            await expect(aaveAsset.connect(guest).repay(maxBorrow)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            await expect(aaveAsset.connect(guest).repay(maxBorrow))
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
             await aaveAsset.connect(user).repay(maxBorrow);
+
             expect(await aaveAsset.sweep_borrowed()).to.equal(ZERO);
         });
 
@@ -155,26 +173,28 @@ contract('Aave V3 Asset - Local', async () => {
         });
 
         it('mint and sell sweep', async () => {
-            // Delay 100 days
-            await network.provider.send("evm_increaseTime", [8640000]);
-            await network.provider.send("evm_mine");
-
             // Mint Sweep
-            await expect(aaveAsset.connect(guest).borrow(mintAmount)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            await expect(aaveAsset.connect(guest).borrow(mintAmount))
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
             await aaveAsset.connect(user).borrow(mintAmount);
             expect(await aaveAsset.sweep_borrowed()).to.equal(mintAmount);
 
             // Sell Sweep
-            await expect(aaveAsset.connect(guest).sellSweepOnAMM(mintAmount, 0)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
-            await expect(aaveAsset.connect(user).sellSweepOnAMM(0, 0)).to.be.revertedWithCustomError(aaveAsset, 'NotEnoughBalance');
+            await expect(aaveAsset.connect(guest).sellSweepOnAMM(mintAmount, 0))
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            await expect(aaveAsset.connect(user).sellSweepOnAMM(0, 0))
+                .to.be.revertedWithCustomError(aaveAsset, 'NotEnoughBalance');
             await aaveAsset.connect(user).sellSweepOnAMM(mintAmount, 0);
+
             expect(await usdx.balanceOf(aaveAsset.address)).to.above(depositAmount);
         });
 
         it('invest to the Aave', async () => {
             investAmount = 50 * 1e6;
-            await expect(aaveAsset.connect(guest).invest(investAmount)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            await expect(aaveAsset.connect(guest).invest(investAmount))
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
             await aaveAsset.connect(user).invest(investAmount);
+
             expect(await aaveAsset.assetValue()).to.equal(investAmount);
         });
 
