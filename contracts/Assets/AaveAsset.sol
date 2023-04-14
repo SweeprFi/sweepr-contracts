@@ -26,8 +26,18 @@ contract AaveAsset is Stabilizer {
         address _aave_usdx_address,
         address _aave_lending_pool_address,
         address _amm_address,
-        address _borrower
-    ) Stabilizer(_name, _sweep_address, _usdx_address, _amm_address, _borrower) {
+        address _borrower,
+        address _usd_oracle_address
+    )
+        Stabilizer(
+            _name,
+            _sweep_address,
+            _usdx_address,
+            _amm_address,
+            _borrower,
+            _usd_oracle_address
+        )
+    {
         aaveUSDX_Token = IERC20(_aave_usdx_address);
         aaveLending_Pool = IAAVELendingPool_Partial(_aave_lending_pool_address);
     }

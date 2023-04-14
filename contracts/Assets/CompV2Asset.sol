@@ -23,8 +23,7 @@ contract CompV2Asset is Stabilizer {
     ICompComptroller private immutable compController;
 
     // Oracle to fetch price COMP / USDC
-    AggregatorV3Interface private constant compOracle =
-        AggregatorV3Interface(0xdbd020CAeF83eFd542f4De03e3cF0C28A4428bd5);
+    AggregatorV3Interface private immutable compOracle;
 
     // Events
     event Collected(address reward, uint256 amount);
@@ -37,11 +36,22 @@ contract CompV2Asset is Stabilizer {
         address _cusdc_address,
         address _controller_address,
         address _amm_address,
-        address _borrower
-    ) Stabilizer(_name, _sweep_address, _usdx_address, _amm_address, _borrower) {
+        address _borrower,
+        address _usd_oracle_address
+    )
+        Stabilizer(
+            _name,
+            _sweep_address,
+            _usdx_address,
+            _amm_address,
+            _borrower,
+            _usd_oracle_address
+        )
+    {
         cUSDC = IcUSDC(_cusdc_address);
         comp = Comp(_compound_address);
         compController = ICompComptroller(_controller_address);
+        compOracle = AggregatorV3Interface(0xdbd020CAeF83eFd542f4De03e3cF0C28A4428bd5);
     }
 
     /* ========== Views ========== */
