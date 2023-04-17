@@ -51,7 +51,10 @@ contract TokenAsset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         uint256 token_balance = token.balanceOf(address(this));
-        (, int256 price, , , ) = oracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = oracle.latestRoundData();
+
+        if(price == 0) revert ZeroPrice();
+        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
 
         uint256 usdx_amount = (token_balance *
             uint256(price) *
@@ -105,7 +108,11 @@ contract TokenAsset is Stabilizer {
     }
 
     function _divest(uint256 _usdx_amount) internal override {
-        (, int256 price, , , ) = oracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = oracle.latestRoundData();
+
+        if(price == 0) revert ZeroPrice();
+        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+
         uint256 token_amount = (_usdx_amount *
             (10 ** (token.decimals() + oracle.decimals()))) /
             (uint256(price) * 10 ** usdx.decimals());

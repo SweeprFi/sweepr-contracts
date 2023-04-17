@@ -50,8 +50,6 @@ contract('Uniswap V3 Asset - Local', async () => {
         if (!ima) {
             amm_price = await sweep.amm_price();
             await sweep.connect(user).setTargetPrice(amm_price, amm_price);
-            await network.provider.send("evm_increaseTime", [86400]);
-            await network.provider.send("evm_mine");
         }
         await sweep.connect(user).addMinter(asset.address, sweepAmount);
 

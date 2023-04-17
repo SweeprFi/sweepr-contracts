@@ -33,6 +33,10 @@ contract UniV3TWAPOracle is Owned {
     uint256 public version = 1;
     AggregatorV3Interface private immutable oracle;
 
+    /* ========== Errors ========== */
+    error ZeroPrice();
+    error StalePrice();
+
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
@@ -119,7 +123,10 @@ contract UniV3TWAPOracle is Owned {
      */
     function getPrice() public view returns (uint256 amount_out) {
         (uint160 sqrtRatioX96, , , , , , ) = pool.slot0();
-        (, int256 price, , , ) = oracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = oracle.latestRoundData();
+
+        if(price == 0) revert ZeroPrice();
+        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
 
         uint256 quote = getQuote(
             sqrtRatioX96,

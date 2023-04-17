@@ -108,6 +108,8 @@ contract Stabilizer {
     error InvalidToken();
     error SpreadNotEnough();
     error NotDefaulted();
+    error ZeroPrice();
+    error StalePrice();
 
     /* ========== Modifies ========== */
 
