@@ -5,7 +5,7 @@ const { addresses } = require('../utils/address');
 
 contract("Sweep - Mint", async function () {
 	before(async () => {
-		[owner, receiver, treasury, newAddress, newMinter] = await ethers.getSigners();
+		[owner, receiver, treasury, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 
 		// ------------- Deployment of contracts -------------
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
@@ -17,7 +17,7 @@ contract("Sweep - Mint", async function () {
 		MULTISIG = ethers.BigNumber.from("1");
 		ZERO = 0;
 
-		const Proxy = await upgrades.deployProxy(Sweep);
+		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
 		sweep = await Proxy.deployed();
 
 		blacklistApprover = await BlacklistApprover.deploy(sweep.address);

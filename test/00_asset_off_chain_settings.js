@@ -3,7 +3,7 @@ const { ethers, contract } = require("hardhat");
 
 contract("Off-Chain Asset - Settings", async function () {
 	before(async () => {
-		[owner, borrower, wallet, treasury, multisig] = await ethers.getSigners();
+		[owner, borrower, wallet, treasury, multisig, lzEndpoint] = await ethers.getSigners();
 
 		sweepAmount = ethers.utils.parseUnits("1000", 18);
 		maxBorrow = ethers.utils.parseUnits("100", 18);
@@ -19,7 +19,7 @@ contract("Off-Chain Asset - Settings", async function () {
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
-		const Proxy = await upgrades.deployProxy(Sweep);
+		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
 		sweep = await Proxy.deployed();
 
 		Token = await ethers.getContractFactory("USDCMock");

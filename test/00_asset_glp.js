@@ -12,10 +12,10 @@ contract('GLP Asset - Local', async () => {
     divestAmount = 200e6;
 
     before(async () => {
-        [guest] = await ethers.getSigners();
+        [guest, lzEndpoint] = await ethers.getSigners();
 
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep);
+        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
         sweep = await Proxy.deployed();
 
         ERC20 = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
@@ -30,7 +30,7 @@ contract('GLP Asset - Local', async () => {
             sweep.address,
             addresses.usdc,
             addresses.glp_reward_router,
-            addresses.oracle_weth_usdc,
+            addresses.oracle_weth_usd,
             amm.address,
             addresses.multisig
         );

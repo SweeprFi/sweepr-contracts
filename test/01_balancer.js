@@ -5,13 +5,13 @@ const { time } = require('@openzeppelin/test-helpers');
 
 contract("Balancer - Local", async function () {
 	before(async () => {
-		[owner, multisig, treasury, usdc, uniswap_amm] = await ethers.getSigners();
+		[owner, multisig, treasury, usdc, uniswap_amm, lzEndpoint] = await ethers.getSigners();
 		ZERO = 0;
 		TARGET_PRICE = ethers.utils.parseUnits("1", 6);
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
-		SweepProxy = await upgrades.deployProxy(Sweep);
+		SweepProxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
 		sweep = await SweepProxy.deployed();
 
 		Balancer = await ethers.getContractFactory("Balancer");

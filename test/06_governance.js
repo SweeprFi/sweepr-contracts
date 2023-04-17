@@ -13,6 +13,7 @@ contract('Governance - Local', async (accounts) => {
 		USER2 = accounts[3];
 		USER3 = accounts[4];
 		USER4 = accounts[5];
+		LZENDPOINT = accounts[6];
 		OWNER_SWEEPER = addresses.owner;
 		APPROVER = '0x59490d4dcC479B3717A6Eb289Db929E125E86eB1'; // approver blacklist
 		MINT_AMOUNT = ethers.utils.parseUnits("100000", 18);
@@ -30,7 +31,7 @@ contract('Governance - Local', async (accounts) => {
 		CANCELLER_ROLE = roles.CANCELLER_ROLE;
 		// contracts
 		Sweep = await ethers.getContractFactory("SweepMock");
-		const Proxy = await upgrades.deployProxy(Sweep);
+		const Proxy = await upgrades.deployProxy(Sweep, [LZENDPOINT]);
 		sweep = await Proxy.deployed(Sweep);
 		await sweep.setTreasury(addresses.treasury);
 
@@ -110,8 +111,9 @@ contract('Governance - Local', async (accounts) => {
 		// Transfer sweep ownership to governance
 		await sweep.transferOwnership(addresses.timelock);
 
-		calldata = sweep.interface.encodeFunctionData('acceptOwnership', []);
-		proposeDescription = "Proposal #1: Accept ownership";
+		// Make proposal to transfer ownership to OWNER_SWEEPER
+		calldata = sweep.interface.encodeFunctionData('transferOwnership', [OWNER_SWEEPER]);
+		proposeDescription = "Proposal #1: transfer ownership";
 		descriptionHash = ethers.utils.id(proposeDescription);
 
 		await impersonate(PROPOSER);
@@ -137,8 +139,8 @@ contract('Governance - Local', async (accounts) => {
 	});
 
 	it('revert queuing proposal if voting period is not finished', async () => {
-		calldata = sweep.interface.encodeFunctionData('acceptOwnership', []);
-		proposeDescription = "Proposal #1: Accept ownership";
+		calldata = sweep.interface.encodeFunctionData('transferOwnership', [OWNER_SWEEPER]);
+		proposeDescription = "Proposal #1: transfer ownership";
 		descriptionHash = ethers.utils.id(proposeDescription);
 
 		await expectRevert(
