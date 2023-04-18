@@ -19,7 +19,7 @@ module.exports = async function (taskArgs, hre) {
 
     let nativeFee = (await localSweepInstance.estimateSendFee(remoteChainId, toAddress, qty, false, adapterParams)).nativeFee;
 
-    if (hre.network.name == "mainnet" && hre.network.name == "goerli") {
+    if (hre.network.name == "mainnet" || hre.network.name == "goerli") {
         nativeFee = Math.round(nativeFee * 1.2);
     }
     
