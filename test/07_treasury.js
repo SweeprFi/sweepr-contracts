@@ -3,12 +3,12 @@ const { expect } = require('chai');
 
 contract('Treasury - Local', async () => {
   before(async () => {
-    [owner] = await ethers.getSigners();
+    [owner, lzEndpoint] = await ethers.getSigners();
     ZERO = 0;
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep);
+    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
     sweep = await Proxy.deployed();
 
     Token = await ethers.getContractFactory("USDCMock");

@@ -5,6 +5,7 @@ const { addresses } = require("../utils/address");
 contract("Off-Chain Asset - Local", async function (accounts) {
     before(async () => {
         GUEST = accounts[0];
+        LZENDPOINT = accounts[1];
         WALLET = accounts[8];
         BORROWER = addresses.borrower;
 
@@ -17,7 +18,7 @@ contract("Off-Chain Asset - Local", async function (accounts) {
         usdx = await Token.attach(addresses.usdc);
 
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep);
+        const Proxy = await upgrades.deployProxy(Sweep, [LZENDPOINT]);
         sweep = await Proxy.deployed();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");

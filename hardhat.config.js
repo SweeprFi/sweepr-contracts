@@ -7,6 +7,7 @@ require('@nomicfoundation/hardhat-chai-matchers');
 require('hardhat-contract-sizer');
 require('solidity-coverage');
 require('dotenv').config();
+require('./tasks');
 
 module.exports = {
 	solidity: {
@@ -16,7 +17,16 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 100000
+						runs: 200
+					}
+				}
+			},
+			{
+				version: "0.8.4",
+				settings: {
+					optimizer: {
+						enabled: true,
+						runs: 200
 					}
 				}
 			}
@@ -43,13 +53,19 @@ module.exports = {
 			gas: 10000000,
 			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
 		},
+		arbitrum_goerli: {
+			url: "https://arb-goerli.g.alchemy.com/v2/" + process.env.ARBITRUM_KEY,
+			gas: 10000000,
+			chainId: 421613,
+			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
+		},
 		arbitrum: {
 			url: "https://arb-mainnet.g.alchemy.com/v2/" + process.env.ARBITRUM_MAIN_KEY,
 			gas: 10000000,
 			chainId: 42161,
 			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
 		},
-		main: {
+		mainnet: {
 			url: "https://eth-mainnet.g.alchemy.com/v2/" + process.env.ALCHEMY_KEY,
 			gas: 10000000,
 			accounts: [process.env.OWNER_PKEY],

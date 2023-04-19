@@ -4,7 +4,7 @@ const { addresses } = require('../utils/address');
 
 contract("Sweep - Local", async function () {
 	before(async () => {
-		[owner, multisig, receiver, treasury, newAddress, newMinter] = await ethers.getSigners();
+		[owner, multisig, receiver, treasury, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepDollarCoin");
@@ -14,7 +14,7 @@ contract("Sweep - Local", async function () {
 		MULTISIG = ethers.BigNumber.from("1");
 		ZERO = 0;
 
-		const Proxy = await upgrades.deployProxy(Sweep);
+		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
 		sweep = await Proxy.deployed(Sweep);
 		await sweep.setTreasury(treasury.address);
 
@@ -48,8 +48,6 @@ contract("Sweep - Local", async function () {
 	it('set admin to multisig', async () => {
 		// Transfer ownership to multisig
 		await sweep.connect(owner).transferOwnership(multisig.address);
-		// Accept ownership
-		await sweep.connect(multisig).acceptOwnership();
 		expect(await sweep.owner()).to.equal(multisig.address);
 	});
 

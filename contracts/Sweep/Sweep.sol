@@ -29,9 +29,6 @@ contract SweepDollarCoin is BaseSweep {
     // Constants
     uint256 internal constant SPREAD_PRECISION = 1e6;
 
-    // Minter Addresses
-    address[] public minter_addresses;
-
     /* ========== Events ========== */
 
     event PeriodTimeSet(uint256 new_period_time);
@@ -64,8 +61,8 @@ contract SweepDollarCoin is BaseSweep {
     }
 
     // Constructor
-    function initialize() public initializer {
-        BaseSweep.__Sweep_init("SWEEP Dollar Coin", "SWEEP");
+    function initialize(address _lzEndpoint) public initializer {
+        BaseSweep.__Sweep_init("SWEEP Dollar Coin", "SWEEP", _lzEndpoint);
 
         interest_rate = 0;
         current_target_price = 1e6;
@@ -126,62 +123,7 @@ contract SweepDollarCoin is BaseSweep {
         return new_sweep_amount < usdx_sweep_amount ? true : false;
     }
 
-    /**
-     * @notice Get Minters
-     * @return list of whitelisted minter addresses
-     */
-    function getMinters() external view returns (address[] memory) {
-        return minter_addresses;
-    }
-
     /* ========== Actions ========== */
-
-    /**
-     * @notice Add Minter
-     * Adds whitelisted minters.
-     * @param _minter Address to be added.
-     * @param _amount Max Amount for mint.
-     */
-    function addMinter(address _minter, uint256 _amount) public onlyOwner {
-        if (_minter == address(0)) revert ZeroAddressDetected();
-        if (_amount == 0) revert ZeroAmountDetected();
-        if (minters[_minter].is_listed) revert MinterExist();
-
-        minter_addresses.push(_minter);
-
-        Minter memory new_minter = Minter({
-            max_amount: _amount,
-            minted_amount: 0,
-            is_listed: true,
-            is_enabled: true
-        });
-        minters[_minter] = new_minter;
-
-        emit MinterAdded(_minter, new_minter);
-    }
-
-     /**
-     * @notice Remove Minter
-     * A minter will be removed from the list.
-     * @param _minter Address to be removed.
-     */
-    function removeMinter(
-        address _minter
-    ) public onlyOwner validMinter(_minter) {
-        delete minters[_minter]; // Delete minter from the mapping
-
-        for (uint256 i = 0; i < minter_addresses.length; i++) {
-            if (minter_addresses[i] == _minter) {
-                minter_addresses[i] = minter_addresses[
-                    minter_addresses.length - 1
-                ];
-                minter_addresses.pop();
-                break;
-            }
-        }
-
-        emit MinterRemoved(_minter);
-    }
 
     /**
      * @notice Mint (Override)

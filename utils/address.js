@@ -4,6 +4,7 @@ const {
   libraries,
   contracts,
   networks,
+  chainIDs,
   chainlink_oracle,
   stabilizers,
   assets,
@@ -90,9 +91,20 @@ const roles = {
   CANCELLER_ROLE: '0xfd643c72710c63c0180259aba6b2d05451e3591a24e58b62239378085726f783'
 }
 
+function getDeployedSweepAddress(networkName) {
+  const chainID = chainIDs[networkName];
+
+  if (chainID === undefined) {
+      throw new Error("Invalid network name!")
+  }
+
+  return tokens.sweep[chainID];
+}
+
 module.exports = {
   chainId,
   addresses,
   network,
-  roles
+  roles,
+  getDeployedSweepAddress
 }

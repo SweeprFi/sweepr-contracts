@@ -3,7 +3,7 @@ const { ethers, contract } = require("hardhat");
 
 contract("Sweeper", async function () {
 	before(async () => {
-		[owner, newAddress, newMinter] = await ethers.getSigners();
+		[owner, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
@@ -14,7 +14,7 @@ contract("Sweeper", async function () {
 		PRECISION = 1000000;
 		ZERO = 0;
 
-		const Proxy = await upgrades.deployProxy(Sweep);
+		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
 		sweep = await Proxy.deployed();
 
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");

@@ -6,6 +6,8 @@ let user;
 
 contract('Balancer - Repayment Calls', async () => {
   before(async () => {
+    [lzEndpoint] = await ethers.getSigners();
+
     // Contracts
     usdc = await ethers.getContractAt("contracts/Common/ERC20/ERC20.sol:ERC20", addresses.usdc);
     Balancer = await ethers.getContractFactory("Balancer");
@@ -32,7 +34,7 @@ contract('Balancer - Repayment Calls', async () => {
 
     // Deploys
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep);
+    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
     sweep = await Proxy.deployed();
 
     balancer = await Balancer.deploy(sweep.address, USDC_ADDRESS);

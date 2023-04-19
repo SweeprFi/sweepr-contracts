@@ -1,7 +1,15 @@
 const networks = {
   1: 'mainnet',
   5: 'goerli',
+  421613: 'arbitrum_goerli',
   42161: 'arbitrum',
+}
+
+const chainIDs = {
+  'mainnet': 1,
+  'goerli': 5,
+  'arbitrum_goerli': 421613,
+  'arbitrum': 42161,
 }
 
 // Andy:0x87212Bc566b54C60CAca777565F0340F458B1C1b
@@ -11,6 +19,7 @@ const wallets = {
   owner: {
     1: '', // Ethereum Mainnet
     5: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A', // Ethereum Goerli
+    421613: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A', // Arbitrum Goerli
     42161: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A', // Arbitrum One
   },
   borrower: {
@@ -49,6 +58,7 @@ const tokens = {
   sweep: {
     1: '',
     5: '0x5729dc3190d2c2E82e7Be0F3FE92fD77BA249b2c',
+    421613: '0xdAd3fECde16f4c3f5F55781a4Ee5701732919a89', // Arbitrum Goerli
     42161: '0x4F4219c9B851AEbB652DD182D944A99b0b68edcf',
   },
   sweeper: {
@@ -305,6 +315,7 @@ module.exports = {
   libraries,
   contracts,
   networks,
+  chainIDs,
   chainlink_oracle,
   stabilizers,
   assets,

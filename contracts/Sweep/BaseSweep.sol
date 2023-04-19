@@ -5,16 +5,13 @@ pragma solidity 0.8.16;
 // ======================= BaseSweep.sol ==============================
 // ====================================================================
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/oft/OFTUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./TransferApprover/ITransferApprover.sol";
 
 contract BaseSweep is
     Initializable,
-    ERC20Upgradeable,
-    Ownable2StepUpgradeable,
+    OFTUpgradeable,
     PausableUpgradeable
 {
     // Addresses
@@ -33,6 +30,9 @@ contract BaseSweep is
 
     // Minters
     mapping(address => Minter) public minters;
+    // Minter Addresses
+    address[] public minter_addresses;
+
 
     /* ========== Events ========== */
 
@@ -65,10 +65,10 @@ contract BaseSweep is
 
     function __Sweep_init(
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        address _lzEndpoint
     ) public onlyInitializing {
-        __ERC20_init(_name, _symbol);
-        __Ownable2Step_init();
+        __OFTUpgradeable_init(_name, _symbol, _lzEndpoint);
         __Pausable_init();
 
         DEFAULT_ADMIN_ADDRESS = _msgSender();
@@ -94,6 +94,61 @@ contract BaseSweep is
      */
     function unpause() external onlyOwner whenPaused {
         _unpause();
+    }
+
+    /**
+     * @notice Get Minters
+     * @return list of whitelisted minter addresses
+     */
+    function getMinters() external view returns (address[] memory) {
+        return minter_addresses;
+    }
+
+        /**
+     * @notice Add Minter
+     * Adds whitelisted minters.
+     * @param _minter Address to be added.
+     * @param _amount Max Amount for mint.
+     */
+    function addMinter(address _minter, uint256 _amount) public onlyOwner {
+        if (_minter == address(0)) revert ZeroAddressDetected();
+        if (_amount == 0) revert ZeroAmountDetected();
+        if (minters[_minter].is_listed) revert MinterExist();
+
+        minter_addresses.push(_minter);
+
+        Minter memory new_minter = Minter({
+            max_amount: _amount,
+            minted_amount: 0,
+            is_listed: true,
+            is_enabled: true
+        });
+        minters[_minter] = new_minter;
+
+        emit MinterAdded(_minter, new_minter);
+    }
+
+     /**
+     * @notice Remove Minter
+     * A minter will be removed from the list.
+     * @param _minter Address to be removed.
+     */
+    function removeMinter(
+        address _minter
+    ) public onlyOwner validMinter(_minter) {
+        delete minters[_minter]; // Delete minter from the mapping
+
+        for (uint256 i = 0; i < minter_addresses.length; i++) {
+            if (minter_addresses[i] == _minter) {
+                minter_addresses[i] = minter_addresses[
+                    minter_addresses.length - 1
+                ];
+                minter_addresses.pop();
+                break;
+            }
+        }
+
+        emit MinterRemoved(_minter);
     }
 
     /**

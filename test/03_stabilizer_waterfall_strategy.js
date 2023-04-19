@@ -3,7 +3,7 @@ const { ethers, contract } = require("hardhat");
 
 contract("Stabilizer's waterfall workflow", async function () {
   before(async () => {
-    [owner, borrower, wallet, treasury, multisig] = await ethers.getSigners();
+    [owner, borrower, wallet, treasury, multisig, lzEndpoint] = await ethers.getSigners();
     priceHigh = 1.01e6;
     priceLow = 0.99e6;
     price = 1e6;
@@ -22,7 +22,7 @@ contract("Stabilizer's waterfall workflow", async function () {
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep);
+    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
     sweep = await Proxy.deployed();
     await sweep.setTreasury(treasury.address);
 
