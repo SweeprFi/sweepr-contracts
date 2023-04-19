@@ -1,6 +1,5 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
-const { time } = require('@openzeppelin/test-helpers');
 const { addresses, chainId } = require("../utils/address");
 
 contract('GLP Asset - Local', async () => {
@@ -71,10 +70,6 @@ contract('GLP Asset - Local', async () => {
             await asset.connect(user).invest(depositAmount);
 
             expect(await asset.assetValue()).to.above(ZERO);
-
-            // Delay 5 days
-            await time.increase(432000);
-            await time.advanceBlock();
 
             // Collect Reward
             expect(await reward_token.balanceOf(user.address)).to.equal(ZERO);

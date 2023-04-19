@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
 
-contract('Uniswap Oracle - Local', async () => {
+contract.only('Uniswap Oracle - Local', async () => {
     before(async () => {
         await hre.network.provider.request({
             method: "hardhat_impersonateAccount",

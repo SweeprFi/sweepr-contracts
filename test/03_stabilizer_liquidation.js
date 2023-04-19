@@ -4,7 +4,7 @@ const { addresses } = require("../utils/address");
 
 contract("Stabilizer - Liquidation", async function () {
   before(async () => {
-    [borrower, liquidator, other, treasury] = await ethers.getSigners();
+    [borrower, liquidator, other, treasury, lzEndpoint] = await ethers.getSigners();
     // Stabilizer config
     maxBorrow = ethers.utils.parseUnits("100", 18);
     maxSweep = ethers.utils.parseUnits("500000", 18);
@@ -31,7 +31,7 @@ contract("Stabilizer - Liquidation", async function () {
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep);
+    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
     sweep = await Proxy.deployed();
     await sweep.setTreasury(treasury.address);
 

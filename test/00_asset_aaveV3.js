@@ -4,7 +4,7 @@ const { addresses } = require("../utils/address");
 
 contract('Aave V3 Asset - Local', async () => {
     before(async () => {
-        [admin, liquidator, guest] = await ethers.getSigners();
+        [admin, liquidator, guest, lzEndpoint] = await ethers.getSigners();
         ZERO = 0;
         // Variables
         usdxAmount = 1000e6;
@@ -21,7 +21,7 @@ contract('Aave V3 Asset - Local', async () => {
         autoInvest = true;
 
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep);
+        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
         sweep = await Proxy.deployed();
         await sweep.setTreasury(addresses.treasury);
 
