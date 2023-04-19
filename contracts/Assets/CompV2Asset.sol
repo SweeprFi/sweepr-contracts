@@ -61,7 +61,11 @@ contract CompV2Asset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         uint256 comp_balance = comp.balanceOf(address(this));
-        (, int256 answer, , , ) = compOracle.latestRoundData();
+        (, int256 answer, , uint256 updatedAt, ) = compOracle.latestRoundData();
+
+        if(answer == 0) revert ZeroPrice();
+        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+
         comp_balance =
             (comp_balance * uint256(answer) * 10 ** usdx.decimals()) /
             (10 ** (comp.decimals() + compOracle.decimals()));

@@ -52,11 +52,6 @@ contract("Stabilizer - Liquidation", async function () {
     user = await ethers.getSigner(account);
   }
 
-  async function increaseTime() {
-    await time.increase(86400);
-    await time.advanceBlock();
-  }
-
   describe("liquidates a WETH Asset when this is defaulted", async function () {
     it("environment setup", async function () {
       expect(await weth_asset.isDefaulted()).to.equal(false);
@@ -95,7 +90,6 @@ contract("Stabilizer - Liquidation", async function () {
     it("stabilizer takes a debt and invest into WETH Asset", async function () {
       expect(await weth_asset.assetValue()).to.equal(ZERO);
       expect(await weth_asset.isDefaulted()).to.equal(false);
-      await increaseTime();
 
       amount = sweepAmount.mul(2)
       await weth_asset.connect(user).borrow(amount);

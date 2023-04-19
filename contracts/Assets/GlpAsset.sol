@@ -77,7 +77,11 @@ contract GlpAsset is Stabilizer {
 
         // Get reward in USDX
         uint256 reward = feeGlpTracker.claimable(address(this));
-        (, int256 price, , , ) = oracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = oracle.latestRoundData();
+
+        if(price == 0) revert ZeroPrice();
+        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+
         uint256 reward_in_usdx = (reward *
             uint256(price) *
             10 ** usdx.decimals()) /
