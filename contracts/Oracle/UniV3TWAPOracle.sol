@@ -31,7 +31,7 @@ contract UniV3TWAPOracle is Owned {
     // AggregatorV3Interface stuff
     string public description = "Uniswap Oracle";
     uint256 public version = 1;
-    AggregatorV3Interface private immutable oracle;
+    AggregatorV3Interface private immutable usd_oracle;
 
     /* ========== Errors ========== */
     error ZeroPrice();
@@ -42,10 +42,10 @@ contract UniV3TWAPOracle is Owned {
     constructor(
         address _sweep_address, 
         address _pool_address,
-        address _oracle_address
+        address _usd_oracle_address
     ) Owned(_sweep_address) {
         _setUniswapPool(_pool_address);
-        oracle = AggregatorV3Interface(_oracle_address);
+        usd_oracle = AggregatorV3Interface(_usd_oracle_address);
     }
 
     /* ========== VIEWS ========== */
@@ -123,7 +123,7 @@ contract UniV3TWAPOracle is Owned {
      */
     function getPrice() public view returns (uint256 amount_out) {
         (uint160 sqrtRatioX96, , , , , , ) = pool.slot0();
-        (, int256 price, , uint256 updatedAt, ) = oracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = usd_oracle.latestRoundData();
 
         if(price == 0) revert ZeroPrice();
         if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
@@ -135,7 +135,7 @@ contract UniV3TWAPOracle is Owned {
             address(base_token)
         );
 
-        amount_out = (quote * uint256(price)) / (10 ** (oracle.decimals()));
+        amount_out = (quote * uint256(price)) / (10 ** (usd_oracle.decimals()));
     }
 
     /**

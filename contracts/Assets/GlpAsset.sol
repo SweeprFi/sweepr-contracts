@@ -23,7 +23,7 @@ contract GlpAsset is Stabilizer {
     IGlpManager private glpManager;
     IRewardTracker private stakedGlpTracker;
     IRewardTracker private feeGlpTracker;
-    AggregatorV3Interface private immutable oracle;
+    AggregatorV3Interface private immutable reward_oracle;
     IERC20Metadata public reward_token;
 
     // Events
@@ -34,19 +34,21 @@ contract GlpAsset is Stabilizer {
         address _sweep_address,
         address _usdx_address,
         address _reward_router_address,
-        address _oracle_address,
+        address _reward_oracle_oracle_address,
         address _amm_address,
-        address _borrower
+        address _borrower,
+        address _usd_oracle_address
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
             _amm_address,
-            _borrower
+            _borrower,
+            _usd_oracle_address
         )
     {
-        oracle = AggregatorV3Interface(_oracle_address);
+        reward_oracle = AggregatorV3Interface(_reward_oracle_oracle_address);
         rewardRouter = IRewardRouter(_reward_router_address);
         glpManager = IGlpManager(rewardRouter.glpManager());
         stakedGlpTracker = IRewardTracker(rewardRouter.stakedGlpTracker());
@@ -72,22 +74,22 @@ contract GlpAsset is Stabilizer {
         // Get staked GLP value in USDX
         uint256 glp_price = getGlpPrice(false); // True: maximum, False: minimum
         uint256 glp_balance = stakedGlpTracker.balanceOf(address(this));
-        uint256 staked_in_usdx = (glp_balance * glp_price) /
+        uint256 staked_in_usd = (glp_balance * glp_price) /
             10 ** stakedGlpTracker.decimals();
 
-        // Get reward in USDX
+        // Get reward in USD
         uint256 reward = feeGlpTracker.claimable(address(this));
-        (, int256 price, , uint256 updatedAt, ) = oracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = reward_oracle.latestRoundData();
 
         if(price == 0) revert ZeroPrice();
         if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
 
-        uint256 reward_in_usdx = (reward *
+        uint256 reward_in_usd = (reward *
             uint256(price) *
             10 ** usdx.decimals()) /
-            (10 ** (reward_token.decimals() + oracle.decimals()));
+            (10 ** (reward_token.decimals() + reward_oracle.decimals()));
 
-        return staked_in_usdx + reward_in_usdx;
+        return staked_in_usd + reward_in_usd;
     }
 
     /* ========== Actions ========== */

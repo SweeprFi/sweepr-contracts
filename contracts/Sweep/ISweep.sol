@@ -71,7 +71,7 @@ interface ISweep {
 
     function totalSupply() external view returns (uint256);
 
-    function convertToUSDX(uint256 amount) external view returns (uint256);
+    function convertToUSD(uint256 amount) external view returns (uint256);
 
     function convertToSWEEP(uint256 amount) external view returns (uint256);
 

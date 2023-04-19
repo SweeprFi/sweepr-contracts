@@ -255,7 +255,7 @@ contract SweepMock is BaseSweep {
      * @param _amount Amount of SWEEP.
      * @return amount of USDX.
      */
-    function convertToUSDX(uint256 _amount) external view returns (uint256) {
+    function convertToUSD(uint256 _amount) external view returns (uint256) {
         return (_amount * target_price()) / 10**decimals();
     }
 

@@ -29,7 +29,10 @@ contract("Stabilizer - Isolated Functions", async function () {
     usdx = await Token.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdx.address);
+    amm = await Uniswap.deploy(sweep.address);
+    
+    USDOracle = await ethers.getContractFactory("AggregatorMock");
+    usdOracle = await USDOracle.deploy();
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 
@@ -39,7 +42,8 @@ contract("Stabilizer - Isolated Functions", async function () {
       usdx.address,
       wallet.address,
       amm.address,
-      borrower.address
+      borrower.address,
+      usdOracle.address
     );
 
     // ------------- Initialize context -------------
@@ -150,7 +154,7 @@ contract("Stabilizer - Isolated Functions", async function () {
 
   describe("buy & sell SWEEP from stabilizer", async function () {
     it("tries to buy without balance", async function () {
-      await expect(offChainAsset.connect(borrower).swapUsdcToSweep(usdxAmount))
+      await expect(offChainAsset.connect(borrower).swapUsdxToSweep(usdxAmount))
         .to.be.revertedWithCustomError(offChainAsset, 'NotEnoughBalance');
     });
 
@@ -164,7 +168,7 @@ contract("Stabilizer - Isolated Functions", async function () {
 
       targetPrice = await sweep.target_price();
       expectSweepAmount = (usdxAmount.toNumber() / targetPrice) * 1e18;
-      await offChainAsset.connect(borrower).swapUsdcToSweep(usdxAmount);
+      await offChainAsset.connect(borrower).swapUsdxToSweep(usdxAmount);
 
       sweepBalanceAfter = sweepBalanceBefore.toBigInt() + ethers.BigNumber.from(expectSweepAmount.toString()).toBigInt();
       usdxBalanceAfter = usdxBalanceBefore.toNumber() + usdxAmount.toNumber();
@@ -203,7 +207,7 @@ contract("Stabilizer - Isolated Functions", async function () {
       expectUSXAmount = (30e6 * targetPrice) / 1e6;
 
       await sweep.connect(borrower).approve(offChainAsset.address, sweepAmount);
-      await offChainAsset.connect(borrower).swapSweepToUsdc(sweepAmount);
+      await offChainAsset.connect(borrower).swapSweepToUsdx(sweepAmount);
 
       sweepBalanceAfter = sweepBalanceBefore.toBigInt() + ethers.BigNumber.from(sweepAmount.toString()).toBigInt();
       usdxBalanceAfter = usdxBalanceBefore.toNumber() + expectUSXAmount;

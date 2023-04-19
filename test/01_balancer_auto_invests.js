@@ -35,8 +35,11 @@ contract('Balancer - Auto Invests', async () => {
         Balancer = await ethers.getContractFactory("Balancer");
         balancer = await Balancer.deploy(sweep.address, USDC_ADDRESS);
 
+        USDOracle = await ethers.getContractFactory("AggregatorMock");
+        usdOracle = await USDOracle.deploy();
+
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, USDC_ADDRESS);
+        amm = await Uniswap.deploy(sweep.address);
 
         AaveAsset = await ethers.getContractFactory("AaveV3Asset");
         assets = await Promise.all(
@@ -48,7 +51,8 @@ contract('Balancer - Auto Invests', async () => {
                     addresses.aave_usdc,
                     addresses.aaveV3_pool,
                     amm.address,
-                    BORROWER
+                    BORROWER,
+                    usdOracle.address
                 );
             })
         )
