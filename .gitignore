@@ -14,3 +14,7 @@ artifacts
 
 coverage.json
 coverage
+
+# foundry
+out
+lib/
