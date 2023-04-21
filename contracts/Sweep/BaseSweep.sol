@@ -252,4 +252,38 @@ contract BaseSweep is
 
         super._beforeTokenTransfer(_from, _to, _amount);
     }
+
+    function _debitFrom(
+        address _from, 
+        uint16 _dstChainId, 
+        bytes memory _toAddress, 
+        uint _amount
+    ) internal override returns(uint) {
+        address toAddress;
+        assembly {
+            toAddress := mload(add(_toAddress, 20))
+        }
+
+        if (
+            transfer_approver_address != address(0) &&
+            !transferApprover.checkTransfer(_from, toAddress)
+        ) revert TransferNotAllowed();
+
+        super._debitFrom(_from, _dstChainId, _toAddress, _amount);
+        return _amount;
+    }
+
+    function _creditTo(
+        uint16 _srcChainId, 
+        address _toAddress, 
+        uint _amount
+    ) internal override returns(uint) {
+        if (
+            transfer_approver_address != address(0) &&
+            !transferApprover.checkTransfer(_toAddress, _toAddress)
+        ) revert TransferNotAllowed();
+
+        super._creditTo(_srcChainId, _toAddress, _amount);
+        return _amount;
+    }
 }
