@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.16;
 
 interface ISweep {
@@ -71,7 +71,7 @@ interface ISweep {
 
     function totalSupply() external view returns (uint256);
 
-    function convertToUSDX(uint256 amount) external view returns (uint256);
+    function convertToUSD(uint256 amount) external view returns (uint256);
 
     function convertToSWEEP(uint256 amount) external view returns (uint256);
 

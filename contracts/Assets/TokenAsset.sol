@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.16;
 pragma experimental ABIEncoderV2;
 
@@ -19,19 +19,29 @@ contract TokenAsset is Stabilizer {
     IERC20Metadata public token;
 
     // Oracle to fetch price token / base
-    AggregatorV3Interface private immutable oracle;
+    AggregatorV3Interface private immutable token_oracle;
 
     constructor(
         string memory _name,
         address _sweep_address,
         address _usdx_address,
         address _token_address,
-        address _oracle_address,
+        address _token_oracle_address,
         address _amm_address,
-        address _borrower
-    ) Stabilizer(_name, _sweep_address, _usdx_address, _amm_address, _borrower) {
+        address _borrower,
+        address _usd_oracle_address
+    )
+        Stabilizer(
+            _name,
+            _sweep_address,
+            _usdx_address,
+            _amm_address,
+            _borrower,
+            _usd_oracle_address
+        )
+    {
         token = IERC20Metadata(_token_address);
-        oracle = AggregatorV3Interface(_oracle_address);
+        token_oracle = AggregatorV3Interface(_token_oracle_address);
     }
 
     /* ========== Views ========== */
@@ -51,12 +61,15 @@ contract TokenAsset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         uint256 token_balance = token.balanceOf(address(this));
-        (, int256 price, , , ) = oracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = token_oracle.latestRoundData();
+
+        if(price == 0) revert ZeroPrice();
+        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
 
         uint256 usdx_amount = (token_balance *
             uint256(price) *
             10 ** usdx.decimals()) /
-            (10 ** (token.decimals() + oracle.decimals()));
+            (10 ** (token.decimals() + token_oracle.decimals()));
 
         return usdx_amount;
     }
@@ -105,9 +118,13 @@ contract TokenAsset is Stabilizer {
     }
 
     function _divest(uint256 _usdx_amount) internal override {
-        (, int256 price, , , ) = oracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = token_oracle.latestRoundData();
+
+        if(price == 0) revert ZeroPrice();
+        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+
         uint256 token_amount = (_usdx_amount *
-            (10 ** (token.decimals() + oracle.decimals()))) /
+            (10 ** (token.decimals() + token_oracle.decimals()))) /
             (uint256(price) * 10 ** usdx.decimals());
 
         uint256 token_balance = token.balanceOf(address(this));

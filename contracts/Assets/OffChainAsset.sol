@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.16;
 pragma experimental ABIEncoderV2;
 
@@ -43,8 +43,18 @@ contract OffChainAsset is Stabilizer {
         address _usdx_address,
         address _wallet,
         address _amm_address,
-        address _borrower
-    ) Stabilizer(_name, _sweep_address, _usdx_address, _amm_address, _borrower) {
+        address _borrower,
+        address _usd_oracle_address
+    )
+        Stabilizer(
+            _name,
+            _sweep_address,
+            _usdx_address,
+            _amm_address,
+            _borrower,
+            _usd_oracle_address
+        )
+    {
         wallet = _wallet;
         redeem_mode = false;
     }
@@ -114,7 +124,7 @@ contract OffChainAsset is Stabilizer {
     function payback(address _token, uint256 _amount) external {
         if (_token != address(sweep) && _token != address(usdx))
             revert InvalidToken();
-        if (_token == address(sweep)) _amount = sweep.convertToUSDX(_amount);
+        if (_token == address(sweep)) _amount = sweep.convertToUSD(_amount);
         if (redeem_amount > _amount) revert NotEnoughAmount();
 
         TransferHelper.safeTransferFrom(
@@ -155,9 +165,9 @@ contract OffChainAsset is Stabilizer {
 
         TransferHelper.safeTransfer(address(sweep), wallet, _sweep_amount);
 
-        uint256 sweep_in_usdx = sweep.convertToUSDX(_sweep_amount);
+        uint256 sweep_in_usd = sweep.convertToUSD(_sweep_amount);
         current_value += _usdx_amount;
-        current_value += sweep_in_usdx;
+        current_value += sweep_in_usd;
         valuation_time = block.timestamp;
 
         emit Invested(_usdx_amount, _sweep_amount);

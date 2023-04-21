@@ -30,7 +30,10 @@ contract('Compound V2 Asset - Local', async () => {
         comp = await ERC20.attach(addresses.comp);
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdx.address);
+        amm = await Uniswap.deploy(sweep.address);
+
+        USDOracle = await ethers.getContractFactory("AggregatorMock");
+        usdOracle = await USDOracle.deploy();
 
         CompoundAsset = await ethers.getContractFactory("CompV2Asset");
         compAsset = await CompoundAsset.deploy(
@@ -41,7 +44,8 @@ contract('Compound V2 Asset - Local', async () => {
             addresses.comp_cusdc,
             addresses.comp_control,
             amm.address,
-            addresses.multisig
+            addresses.multisig,
+            usdOracle.address
         );
 
         BORROWER = addresses.multisig;

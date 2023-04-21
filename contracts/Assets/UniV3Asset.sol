@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.16;
 pragma experimental ABIEncoderV2;
 
@@ -56,8 +56,9 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         address _usdx_address,
         address _liquidityHelper,
         address _amm_address,
-        address _borrower
-    ) Stabilizer(_name, _sweep_address, _usdx_address, _amm_address, _borrower) {
+        address _borrower,
+        address _usd_oracle_address
+    ) Stabilizer(_name, _sweep_address, _usdx_address, _amm_address, _borrower, _usd_oracle_address) {
         flag = _usdx_address < _sweep_address;
 
         (token0, token1) = flag
@@ -91,7 +92,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             ? (_amount0, _amount1)
             : (_amount1, _amount0);
 
-        return _usdx_amount + sweep.convertToUSDX(_sweep_amount);
+        return _usdx_amount + sweep.convertToUSD(_sweep_amount);
     }
 
     /* ========== Actions ========== */

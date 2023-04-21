@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: agpl-3.0
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.16;
 
 // Original at https://etherscan.io/address/0xc6845a5c768bf8d7681249f8927877efda425baf#code

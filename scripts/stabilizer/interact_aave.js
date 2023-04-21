@@ -410,7 +410,7 @@ async function main() {
     const min_equity_ratio = Number(pp(await asset.min_equity_ratio(), 4));
     const total_value = Number(pp(await asset.currentValue(), 6));
     const sweep_borrowed = await asset.sweep_borrowed();
-    const senior_tranche_in_usdx = Number(pp(await sweep.convertToUSDX(sweep_borrowed), 6));
+    const senior_tranche_in_usdx = Number(pp(await sweep.convertToUSD(sweep_borrowed), 6));
 
     if (total_value == 0 || total_value <= senior_tranche_in_usdx) return 0;
 

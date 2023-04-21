@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.16;
 pragma experimental ABIEncoderV2;
 
@@ -22,6 +22,7 @@ import "../Sweep/ISweep.sol";
 import "../AMM/IAMM.sol";
 import "../Common/ERC20/IERC20Metadata.sol";
 import "../Utils/Uniswap/V3/libraries/TransferHelper.sol";
+import "../Oracle/AggregatorV3Interface.sol";
 
 contract Stabilizer {
     // Variables
@@ -48,6 +49,7 @@ contract Stabilizer {
     bool public frozen;
 
     IAMM public amm;
+    AggregatorV3Interface private immutable usd_oracle;
 
     // Tokens
     ISweep public sweep;
@@ -108,6 +110,8 @@ contract Stabilizer {
     error InvalidToken();
     error SpreadNotEnough();
     error NotDefaulted();
+    error ZeroPrice();
+    error StalePrice();
 
     /* ========== Modifies ========== */
 
@@ -151,7 +155,8 @@ contract Stabilizer {
         address _sweep_address,
         address _usdx_address,
         address _amm_address,
-        address _borrower
+        address _borrower,
+        address _usd_oracle_address
     ) {
         name = _name;
         sweep = ISweep(_sweep_address);
@@ -160,6 +165,7 @@ contract Stabilizer {
         borrower = _borrower;
         settings_enabled = true;
         frozen = false;
+        usd_oracle = AggregatorV3Interface(_usd_oracle_address);
     }
 
     /* ========== Views ========== */
@@ -214,9 +220,9 @@ contract Stabilizer {
      */
     function currentValue() public view virtual returns (uint256) {
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
-        uint256 sweep_balance_in_usdx = sweep.convertToUSDX(sweep_balance);
+        uint256 sweep_balance_in_usd = sweep.convertToUSD(sweep_balance);
 
-        return usdx_balance + sweep_balance_in_usdx;
+        return (_USDXtoUSD(usdx_balance) + sweep_balance_in_usd);
     }
 
     /**
@@ -224,7 +230,7 @@ contract Stabilizer {
      * @return int256 calculated junior tranche amount.
      */
     function getJuniorTrancheValue() external view returns (int256) {
-        uint256 senior_tranche_in_usdx = sweep.convertToUSDX(sweep_borrowed);
+        uint256 senior_tranche_in_usdx = sweep.convertToUSD(sweep_borrowed);
         uint256 total_value = currentValue();
 
         return int256(total_value) - int256(senior_tranche_in_usdx);
@@ -423,7 +429,7 @@ contract Stabilizer {
 
         if (sweep_balance < call_amount) {
             uint256 missing_sweep = call_amount - sweep_balance;
-            missing_usdx = sweep.convertToUSDX(missing_sweep);
+            missing_usdx = sweep.convertToUSD(missing_sweep);
             if (missing_usdx > usdx_balance)
                 _divest(missing_usdx - usdx_balance);
         }
@@ -489,7 +495,7 @@ contract Stabilizer {
      * @param _usdx_amount.
      * @dev Decreases the sweep balance and increase usdx balance
      */
-    function swapUsdcToSweep(
+    function swapUsdxToSweep(
         uint256 _usdx_amount
     ) external onlyBorrower notFrozen validAmount(_usdx_amount) {
         uint256 sweep_amount = sweep.convertToSWEEP(_usdx_amount);
@@ -513,11 +519,13 @@ contract Stabilizer {
      * @param _sweep_amount.
      * @dev Decreases the sweep balance and increase usdx balance
      */
-    function swapSweepToUsdc(
+    function swapSweepToUsdx(
         uint256 _sweep_amount
     ) external onlyBorrower notFrozen validAmount(_sweep_amount) {
-        uint256 usdx_amount = sweep.convertToUSDX(_sweep_amount);
+        uint256 usd_amount = sweep.convertToUSD(_sweep_amount);
         (uint256 usdx_balance, ) = _balances();
+        uint256 usdx_amount = _USDtoUSDX(usd_amount);
+
         if (usdx_amount > usdx_balance) revert NotEnoughBalance();
 
         TransferHelper.safeTransferFrom(
@@ -551,8 +559,8 @@ contract Stabilizer {
         if (sweep_borrowed > 0) {
             uint256 usdx_amount = _amount;
             if (_token == address(sweep))
-                usdx_amount = sweep.convertToUSDX(_amount);
-            int256 current_equity_ratio = _calculateEquityRatio(0, usdx_amount);
+                usdx_amount = sweep.convertToUSD(_amount);
+            int256 current_equity_ratio = _calculateEquityRatio(0, _USDXtoUSD(usdx_amount));
             if (current_equity_ratio < min_equity_ratio)
                 revert EquityRatioExcessed();
         }
@@ -701,27 +709,27 @@ contract Stabilizer {
      * @notice Calculate Equity Ratio
      * Calculated the equity ratio based on the internal storage.
      * @param _sweep_delta Variation of SWEEP to recalculate the new equity ratio.
-     * @param _usdx_delta Variation of USDX to recalculate the new equity ratio.
+     * @param _usd_delta Variation of USD to recalculate the new equity ratio.
      * @return the new equity ratio used to control the Mint and Withdraw functions.
      * @dev Current Equity Ratio percentage has a precision of 4 decimals.
      */
     function _calculateEquityRatio(
         uint256 _sweep_delta,
-        uint256 _usdx_delta
+        uint256 _usd_delta
     ) internal view returns (int256) {
         uint256 current_value = currentValue();
-        uint256 sweep_delta_in_usdx = sweep.convertToUSDX(_sweep_delta);
-        uint256 total_value = current_value + sweep_delta_in_usdx - _usdx_delta;
+        uint256 sweep_delta_in_usd = sweep.convertToUSD(_sweep_delta);
+        uint256 total_value = current_value + sweep_delta_in_usd - _usd_delta;
 
         if (total_value == 0) return 0;
 
-        uint256 senior_tranche_in_usdx = sweep.convertToUSDX(
+        uint256 senior_tranche_in_usd = sweep.convertToUSD(
             sweep_borrowed + _sweep_delta
         );
 
         // 1e6 is decimals of the percentage result
         int256 current_equity_ratio = ((int256(total_value) -
-            int256(senior_tranche_in_usdx)) * 1e6) / int256(total_value);
+            int256(senior_tranche_in_usd)) * 1e6) / int256(total_value);
 
         if (current_equity_ratio < -1e6) current_equity_ratio = -1e6;
 
@@ -745,5 +753,21 @@ contract Stabilizer {
      **/
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
         return (a < b) ? a : b;
+    }
+
+    /**
+     * @notice Calculate the amount USD that are equivalent to the USDX input.
+     **/
+    function _USDXtoUSD(uint256 _usdx_amount) internal view returns (uint256) {
+        (, int256 price, , , ) = usd_oracle.latestRoundData();
+        return ((_usdx_amount * uint256(price)) / (10 ** (usd_oracle.decimals())));
+    }
+
+    /**
+     * @notice Calculate the amount USDX that are equivalent to the USD input.
+     **/
+    function _USDtoUSDX(uint256 _usdx_amount) internal view returns (uint256) {
+        (, int256 price, , , ) = usd_oracle.latestRoundData();
+        return ((_usdx_amount * (10 ** (usd_oracle.decimals()))) / uint256(price));
     }
 }
