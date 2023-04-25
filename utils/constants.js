@@ -164,6 +164,21 @@ const libraries = {
     1: '',
     5: '',
     42161: '0xB95DB5B167D75e6d04227CfFFA61069348d271F5',
+  },
+  rage_deposit_periphery: {
+    1: '',
+    5: '',
+    42161: '0x7CA90dD6813256BD040a8e13BbceD857B1C0C90c',
+  },
+  rage_withdraw_periphery: {
+    1: '',
+    5: '',
+    42161: '0xBA55D7f67Fa22DF5E92487d5b306DdB1aA543d10',
+  },
+  gmx_junior_vault: {
+    1: '',
+    5: '',
+    42161: '0x8478AB5064EbAC770DdCE77E7D31D969205F041E',
   }
 }
 

@@ -34,7 +34,7 @@ contract GlpAsset is Stabilizer {
         address _sweep_address,
         address _usdx_address,
         address _reward_router_address,
-        address _reward_oracle_oracle_address,
+        address _reward_oracle_address,
         address _amm_address,
         address _borrower,
         address _usd_oracle_address
@@ -48,7 +48,7 @@ contract GlpAsset is Stabilizer {
             _usd_oracle_address
         )
     {
-        reward_oracle = AggregatorV3Interface(_reward_oracle_oracle_address);
+        reward_oracle = AggregatorV3Interface(_reward_oracle_address);
         rewardRouter = IRewardRouter(_reward_router_address);
         glpManager = IGlpManager(rewardRouter.glpManager());
         stakedGlpTracker = IRewardTracker(rewardRouter.stakedGlpTracker());

@@ -49,6 +49,9 @@ const addresses = {
   uniV3Positions: libraries.uniswapV3_positions[chainId],
   comp_control: libraries.comp_control[chainId],
   glp_reward_router: libraries.glp_reward_router[chainId],
+  rage_deposit_periphery: libraries.rage_deposit_periphery[chainId],
+  rage_withdraw_periphery: libraries.rage_withdraw_periphery[chainId],
+  gmx_junior_vault: libraries.gmx_junior_vault[chainId],
 
   // Oracles - ChainLink
   oracle_comp_usd: chainlink_oracle.comp_usd[chainId],
