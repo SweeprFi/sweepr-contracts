@@ -114,6 +114,9 @@ contract Stabilizer {
     error NotDefaulted();
     error ZeroPrice();
     error StalePrice();
+    error NotAutoInvest();
+    error NotAutoInvesMinAMount();
+    error NotAutoInvestMinRatio();
 
     /* ========== Modifies ========== */
 
@@ -462,17 +465,15 @@ contract Stabilizer {
         _sweep_amount = _min(_sweep_amount, sweep_available);
         int256 current_equity_ratio = _calculateEquityRatio(_sweep_amount, 0);
 
-        if (
-            auto_invest &&
-            _sweep_amount >= auto_invest_min_amount &&
-            current_equity_ratio >= auto_invest_min_ratio
-        ) {
-            _borrow(_sweep_amount);
-            uint256 usdx_amount = _sell(_sweep_amount, 0);
-            _invest(usdx_amount, 0);
+        if(!auto_invest) revert NotAutoInvest();
+        if(_sweep_amount < auto_invest_min_amount) revert NotAutoInvesMinAMount();
+        if(current_equity_ratio < auto_invest_min_ratio) revert NotAutoInvestMinRatio();
 
-            emit AutoInvested(_sweep_amount);
-        }
+        _borrow(_sweep_amount);
+        uint256 usdx_amount = _sell(_sweep_amount, 0);
+        _invest(usdx_amount, 0);
+
+        emit AutoInvested(_sweep_amount);
     }
 
     /**

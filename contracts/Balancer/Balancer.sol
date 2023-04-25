@@ -25,6 +25,7 @@ contract Balancer is Owned {
     struct Limit {
         uint248 amount;
         bool added;
+        bool auto_invest;
     }
 
     // Slot 0
@@ -136,11 +137,16 @@ contract Balancer is Owned {
      * @param _stabilizers stabilizer addresses to be added,
      * * @param _amounts new loan limit amounts for each stabilizer,
      */
-    function addLoanLimits(address[] memory _stabilizers, uint96[] memory _amounts) external onlyHotWallet {
+    function addLoanLimits(
+        address[] memory _stabilizers,
+        uint96[] memory _amounts,
+        bool[] memory _auto_invests
+    ) external onlyHotWallet {
         require(_stabilizers.length == _amounts.length, "Wrong data received");
+        require(_stabilizers.length == _auto_invests.length, "Wrong data received");
 
         for (uint256 i = 0; i < _stabilizers.length;) {
-            addLoanLimit(_stabilizers[i], _amounts[i]);    
+            addLoanLimit(_stabilizers[i], _amounts[i], _auto_invests[i]);
             unchecked { ++i; }
         }
     }
@@ -151,14 +157,14 @@ contract Balancer is Owned {
      * @param _stabilizer stabilizer address,
      * * @param _amount new loan limit amount,
      */
-    function addLoanLimit(address _stabilizer, uint96 _amount) public onlyHotWallet {
+    function addLoanLimit(address _stabilizer, uint96 _amount, bool _auto_invest) public onlyHotWallet {
         if(!SWEEP.isValidMinter(_stabilizer)) revert InvalidMinter();
 
         if(!limits[_stabilizer].added) {
             stabilizers.push(_stabilizer);
         }
 
-        limits[_stabilizer] = Limit({ amount: _amount, added: true });
+        limits[_stabilizer] = Limit({ amount: _amount, added: true, auto_invest: _auto_invest});
 
         emit LimitAdded(_stabilizer, _amount);
     }
@@ -218,6 +224,7 @@ contract Balancer is Owned {
         for (uint256 i = 0; i < stabilizers.length;) {
             address _stabilizer = stabilizers[i];
             uint248 new_limit = limits[_stabilizer].amount;
+            bool auto_invest = limits[_stabilizer].auto_invest;
 
             // is valid minter
             if(SWEEP.isValidMinter(_stabilizer)){
@@ -225,10 +232,12 @@ contract Balancer is Owned {
                 uint256 old_limit = stabilizer.loan_limit();
                 stabilizer.setLoanLimit(new_limit);
 
-                if( new_limit > old_limit ){
-                    stabilizer.autoInvest(new_limit - old_limit);
-                } else {
-                    stabilizer.autoCall(old_limit - new_limit);
+                if(auto_invest) {
+                    if( new_limit > old_limit ){
+                        stabilizer.autoInvest(new_limit - old_limit);
+                    } else {
+                        stabilizer.autoCall(old_limit - new_limit);
+                    }
                 }
             }
 

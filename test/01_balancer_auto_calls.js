@@ -4,9 +4,9 @@ const { addresses } = require('../utils/address');
 const { impersonate } = require("../utils/helper_functions");
 let user;
 
-contract('Balancer - Repayment Calls', async () => {
+contract('Balancer - Auto Call', async () => {
   before(async () => {
-    [lzEndpoint] = await ethers.getSigners();
+    [owner, lzEndpoint] = await ethers.getSigners();
 
     // Contracts
     usdc = await ethers.getContractAt("contracts/Common/ERC20/ERC20.sol:ERC20", addresses.usdc);
@@ -24,7 +24,7 @@ contract('Balancer - Repayment Calls', async () => {
     ZERO = 0;
     MIN_RATIO = 1e5; // 10 %
     SPREAD_FEE = 3e4; // 3%
-    LOAN_LIMIT = SWEEP_MINT; // 1000 sweeps
+    LOAN_LIMIT = SWEEP_MINT; // 100 sweeps
     DISCOUNT = 2e4; // 2%
     DELAY = ZERO;
     AUTO_INVEST = true;
@@ -40,7 +40,7 @@ contract('Balancer - Repayment Calls', async () => {
     USDOracle = await ethers.getContractFactory("AggregatorMock");
     usdOracle = await USDOracle.deploy();
 
-    balancer = await Balancer.deploy(sweep.address, USDC_ADDRESS);
+    balancer = await Balancer.deploy(sweep.address, USDC_ADDRESS, owner.address);
     amm = await Uniswap.deploy(sweep.address);
     assets = await Promise.all(
       Array(4).fill().map(async () => {
@@ -58,7 +58,7 @@ contract('Balancer - Repayment Calls', async () => {
     );
   });
 
-  describe('Repayment calls - Balancer & Stabilizers', async () => {
+  describe('Auto Calls - Balancer & Stabilizers', async () => {
     it('config the initial state', async () => {
       user = await impersonate(BORROWER);
       await Promise.all(
@@ -135,20 +135,22 @@ contract('Balancer - Repayment Calls', async () => {
 
     it('balancer calls the Stabilizers to repay debts', async () => {
       targets = assets.map((asset) => { return asset.address });
-      amount = ethers.utils.parseUnits("75", 18);
+      amount = ethers.utils.parseUnits("25", 18); // 100 Sweep (old limit) -> 75 Sweep remanent
       amounts = [amount, amount, amount, amount]; // 75 Sweep to each stabilizer
+      autoInvests = [true, true, true, true];
       CALL_SWEEP = ethers.utils.parseUnits("75", 18);
       CALL_USDC = ethers.utils.parseUnits("75", 6);
 
-      // constraints
-      user = await impersonate(USDC_ADDRESS)
-      await expect(balancer.connect(user).repaymentCalls(targets, amounts))
-        .to.be.revertedWithCustomError(Balancer, 'OnlyAdmin');
-
-      await expect(balancer.repaymentCalls(targets, [])).to.be.revertedWith('Wrong data received');
-
       assetValue = await assets[3].assetValue();
-      await balancer.repaymentCalls(targets, amounts);
+
+      // constraints
+      user = await impersonate(USDC_ADDRESS);
+      await expect(balancer.connect(user).addLoanLimits(targets, amounts, autoInvests))
+        .to.be.revertedWithCustomError(Balancer, 'OnlyHotWallet');
+      await expect(balancer.addLoanLimits(targets, [], autoInvests)).to.be.revertedWith('Wrong data received');
+      
+      await balancer.addLoanLimits(targets, amounts, autoInvests);
+      await balancer.execute();
 
       // asset 1 paid his debt with Sweep
       expect(await usdc.balanceOf(assets[0].address)).to.equal(USDC_AMOUNT);

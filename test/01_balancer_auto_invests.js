@@ -5,7 +5,7 @@ const { impersonate } = require("../utils/helper_functions");
 
 contract('Balancer - Auto Invests', async () => {
     before(async () => {
-        [lzEndpoint] = await ethers.getSigners();
+        [owner, lzEndpoint] = await ethers.getSigners();
         // Variables
         ZERO = 0;
         usdxAmount = 1000e6;
@@ -34,7 +34,7 @@ contract('Balancer - Auto Invests', async () => {
         usdc = await ERC20.attach(USDC_ADDRESS);
 
         Balancer = await ethers.getContractFactory("Balancer");
-        balancer = await Balancer.deploy(sweep.address, USDC_ADDRESS);
+        balancer = await Balancer.deploy(sweep.address, USDC_ADDRESS, owner.address);
 
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
@@ -178,11 +178,13 @@ contract('Balancer - Auto Invests', async () => {
 
         it('Call auto invests in the Balancer', async () => {
             targets = assets.map((asset) => { return asset.address });
-            updateAmount = ethers.utils.parseUnits("95", 18); // mintAmount(50) + amount(45) = 95 SWEEP
-            amount = ethers.utils.parseUnits("45", 18);
+            amount = ethers.utils.parseUnits("125", 18); // 80 Sweep (old limit) -> 45 Sweep more
             amounts = [amount, amount, amount, amount, amount]; // 45 Sweep to each stabilizer
+            autoInvests = [true, true, true, false, false];
+            updateAmount = ethers.utils.parseUnits("95", 18); // mintAmount(50) + amount(45) = 95 SWEEP
 
-            await balancer.autoInvests(targets, amounts);
+            await balancer.addLoanLimits(targets, amounts, autoInvests);
+            await balancer.execute();
 
             expect(await assets[0].sweep_borrowed()).to.eq(updateAmount);
             expect(await assets[1].sweep_borrowed()).to.eq(updateAmount);

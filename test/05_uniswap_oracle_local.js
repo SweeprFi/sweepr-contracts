@@ -13,7 +13,6 @@ contract('Uniswap Oracle - Local', async () => {
 
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
-
         Oracle = await ethers.getContractFactory("UniswapOracle");
         oracle = await Oracle.connect(admin).deploy(
             addresses.sweep,
