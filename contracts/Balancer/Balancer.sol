@@ -10,7 +10,7 @@ pragma experimental ABIEncoderV2;
  * @title Balancer
  * @dev Implementation:
  * Updates the interest rate from Sweep weekly.
- * Executes the repayments and auto invests from Stabilizers.
+ * Executes the auto calls and auto invests from Stabilizers.
  */
 
 import "../Stabilizer/IStabilizer.sol";
@@ -22,21 +22,48 @@ import "../Common/ERC20/IERC20.sol";
 contract Balancer is Owned {
     using PRBMathSD59x18 for int256;
 
-    // Constants
-    uint256 private constant DAY_TIMESTAMP = 24 * 60 * 60;
-    int256 private constant PRICE_PRECISION = 1e6;
-    uint256 private constant PRECISE_PRICE_PRECISION = 1e18;
-    uint256 private constant TIME_ONE_YEAR = 365 * 24 * 60 * 60;
+    struct Limit {
+        uint248 amount;
+        bool added;
+    }
 
+    // Slot 0
+    uint24 private constant PRICE_PRECISION = 1e6;
+    uint32 private constant ONE_YEAR = 365 * 1 days;
+    int24 next_interest_rate;
+    address hot_wallet;
+
+    // Slot 1
     IERC20 public USDX;
+
+    mapping(address => Limit) public limits;
+    address[] public stabilizers;
 
     // Events
     event InterestRateRefreshed(int256 interestRate);
+    event NextInterestRateSet(int24 next_interest_rate);
+    event LimitAdded(address stabilizer, uint256 amount);
+    event LimitRemoved(address stabilizer);
+    event LimitsRemoved();
+    event HotWalletChanged(address hot_wallet);
+    event BalancerExecuted();
+
+    error ZeroAmount();
+    error ZeroAddress();
+    error OnlyHotWallet();
+    error InvalidMinter();
+
+    modifier onlyHotWallet {
+        if(msg.sender != hot_wallet) revert OnlyHotWallet();
+        _;
+    }
 
     constructor(
         address _sweep_address,
-        address _usdc_address
+        address _usdc_address,
+        address _hot_wallet
     ) Owned(_sweep_address) {
+        hot_wallet = _hot_wallet;
         USDX = IERC20(_usdc_address);
     }
 
@@ -80,79 +107,137 @@ contract Balancer is Owned {
         uint256 _current_target_price,
         int256 _interest_rate,
         uint256 _period_time
-    ) internal pure returns (uint256) {
-        int256 year = int256(TIME_ONE_YEAR).fromInt();
+    ) internal view returns (uint256) {
+        int256 precision = int24(PRICE_PRECISION);
+        int256 year = int256(int32(ONE_YEAR)).fromInt();
         int256 period = int256(_period_time).fromInt();
         int256 time_ratio = period.div(year);
-        int256 price_ratio = PRICE_PRECISION + _interest_rate;
+        int256 price_ratio = precision + _interest_rate;
         int256 price_unit = price_ratio.pow(time_ratio).div(
-            PRICE_PRECISION.pow(time_ratio)
+            precision.pow(time_ratio)
         );
 
-        return
-            (_current_target_price * uint256(price_unit)) /
-            PRECISE_PRICE_PRECISION;
+        return ((_current_target_price * uint256(price_unit)) / (10 ** SWEEP.decimals()));
     }
 
     /**
-     * @notice Repayment Calls
-     * @dev Makes a repayment call to a list of Assets provided as input.
-     * @param _targets Assets to be called.
-     * @param _amounts Amounts per Asset.
+     * @notice Set Next Interest Rate
+     * @dev Assigns the value that will be set as the interest rate when calling execute
+     * @param _next_interest_rate new value to be assigned.
      */
-    function repaymentCalls(
-        address[] memory _targets,
-        uint256[] memory _amounts
-    ) external onlyAdmin {
-        require(_targets.length == _amounts.length, "Wrong data received");
-        uint256 len = _targets.length;
+    function setNextInterestRate(int24 _next_interest_rate) external onlyHotWallet {
+        next_interest_rate = _next_interest_rate;
+        emit NextInterestRateSet(next_interest_rate);
+    }
 
-        for (uint256 index = 0; index < len; ) {
-            if (_amounts[index] > 0) {
-                IStabilizer(_targets[index]).repaymentCall(_amounts[index]);
-            }
-            unchecked {
-                ++index;
-            }
+    /**
+     * @notice Add Loan Limits
+     * @dev Adds a new loan limits per values sent in the array
+     * @param _stabilizers stabilizer addresses to be added,
+     * * @param _amounts new loan limit amounts for each stabilizer,
+     */
+    function addLoanLimits(address[] memory _stabilizers, uint96[] memory _amounts) external onlyHotWallet {
+        require(_stabilizers.length == _amounts.length, "Wrong data received");
+
+        for (uint256 i = 0; i < _stabilizers.length;) {
+            addLoanLimit(_stabilizers[i], _amounts[i]);    
+            unchecked { ++i; }
         }
     }
 
     /**
-     * @notice Auto Invests
-     * @dev Automates the investment process in a list of Assets provided as input.
-     * @param _targets Assets to be invested.
-     * @param _amounts Amounts per Asset.
+     * @notice Add Loan Limit
+     * @dev Adds a new loan limit to the limits map and stabilizers array, to be processed in the execute call
+     * @param _stabilizer stabilizer address,
+     * * @param _amount new loan limit amount,
      */
-    function autoInvests(
-        address[] memory _targets,
-        uint256[] memory _amounts
-    ) external onlyAdmin {
-        require(_targets.length == _amounts.length, "Wrong data received");
-        uint256 len = _targets.length;
+    function addLoanLimit(address _stabilizer, uint96 _amount) public onlyHotWallet {
+        if(!SWEEP.isValidMinter(_stabilizer)) revert InvalidMinter();
 
-        for (uint256 index = 0; index < len; ) {
-            uint256 amount = _amounts[index];
-            if (amount > 0) {
-                address stabilizer = _targets[index];
-                bool isValid = SWEEP.isValidMinter(stabilizer);
-                bool isInvest = IStabilizer(stabilizer).auto_invest();
-                if (isValid && isInvest) {
-                    uint256 sweep_limit = SWEEP.minters(stabilizer).max_amount;
-                    uint256 min_amount = IStabilizer(stabilizer)
-                        .auto_invest_min_amount();
-                    uint256 sweep_borrowed = IStabilizer(stabilizer)
-                        .sweep_borrowed();
-                    uint256 sweep_available = sweep_limit - sweep_borrowed;
-                    amount = amount > sweep_available
-                        ? sweep_available
-                        : amount;
-                    if (amount > min_amount)
-                        IStabilizer(stabilizer).autoInvest(amount);
+        if(!limits[_stabilizer].added) {
+            stabilizers.push(_stabilizer);
+        }
+
+        limits[_stabilizer] = Limit({ amount: _amount, added: true });
+
+        emit LimitAdded(_stabilizer, _amount);
+    }
+
+    /**
+     * @notice Remove Loan Limits
+     * @dev Removes the entire limits array
+     */
+    function removeLoanLimits() public onlyAdmin {
+        for (uint256 i = 0; i < stabilizers.length;) {
+            delete limits[stabilizers[i]];
+            stabilizers[i] = address(0);
+            unchecked { ++i; }
+        }
+
+        emit LimitsRemoved();
+    }
+
+    /**
+     * @notice Remove Loan Limit
+     * @dev removes a loan limit from the limits map and the stabilizer from the array
+     * @param _stabilizer stabilizer to be removed
+     */
+    function removeLoanLimit(address _stabilizer) external onlyHotWallet {
+        delete limits[_stabilizer];
+        
+        for (uint256 i = 0; i < stabilizers.length;) {
+            if (stabilizers[i] == _stabilizer) {
+                stabilizers[i] = stabilizers[stabilizers.length - 1];
+                stabilizers.pop();
+                break;
+            }
+            unchecked { ++i; }
+        }
+
+        emit LimitRemoved(_stabilizer);
+    }
+
+    /**
+     * @notice Set Hot Wallet
+     * @dev sets the wallet address that will be use to propose the new limits and interest rate
+     * @param _hot_wallet address to be assigned
+     */
+    function setHotWallet(address _hot_wallet) external onlyAdmin {
+        if(_hot_wallet == address(0)) revert ZeroAddress();
+        hot_wallet = _hot_wallet;
+        emit HotWalletChanged(_hot_wallet);
+    }
+
+    /**
+     * @notice Execute
+     * @dev sets the interest rate to the stored value and sets new loan limits by auto-calling or auto-investing stabilizers
+     */
+    function execute() external onlyAdmin {
+        SWEEP.setInterestRate(next_interest_rate);
+
+        for (uint256 i = 0; i < stabilizers.length;) {
+            address _stabilizer = stabilizers[i];
+            uint248 new_limit = limits[_stabilizer].amount;
+
+            // is valid minter
+            if(SWEEP.isValidMinter(_stabilizer)){
+                IStabilizer stabilizer = IStabilizer(_stabilizer);
+                uint256 old_limit = stabilizer.loan_limit();
+                stabilizer.setLoanLimit(new_limit);
+
+                if( new_limit > old_limit ){
+                    stabilizer.autoInvest(new_limit - old_limit);
+                } else {
+                    stabilizer.autoCall(old_limit - new_limit);
                 }
             }
-            unchecked {
-                ++index;
-            }
+
+            delete limits[_stabilizer];
+            stabilizers[i] = address(0);
+
+            unchecked { ++i; }
         }
+
+        emit BalancerExecuted();
     }
 }
