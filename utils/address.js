@@ -91,14 +91,26 @@ const roles = {
   CANCELLER_ROLE: '0xfd643c72710c63c0180259aba6b2d05451e3591a24e58b62239378085726f783'
 }
 
-function getDeployedSweepAddress(networkName) {
+function getDeployedAddress(networkName, contractType) {
   const chainID = chainIDs[networkName];
 
   if (chainID === undefined) {
       throw new Error("Invalid network name!")
   }
 
-  return tokens.sweep[chainID];
+  let contractAddress;
+
+  if (contractType == 'sweep') {
+    contractAddress = tokens.sweep[chainID];
+  } else if (contractType == 'sender') {
+    contractAddress = contracts.omnichain_proposal_sender[chainID];
+  } else if (contractType == 'executor') {
+    contractAddress = contracts.omnichain_proposal_executor[chainID];
+  } else {
+    throw new Error("Invalid contract Type!");
+  }
+
+  return contractAddress;
 }
 
 module.exports = {
@@ -106,5 +118,5 @@ module.exports = {
   addresses,
   network,
   roles,
-  getDeployedSweepAddress
+  getDeployedAddress
 }

@@ -112,6 +112,7 @@ const libraries = {
   timelock: {
     1: '',
     5: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
+    421613: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
     42161: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
   },
   approver: {
@@ -210,6 +211,18 @@ const contracts = {
     1: '',
     5: '',
     42161: '0x76373EaE8d8facE76476f6B9edefcAf8B677D106'
+  },
+  omnichain_proposal_sender: {
+    1: '',
+    5: '0xEAD18f9DeE6a73C7c4251F31B91b063a0c54043A',
+    421613: '',
+    42161: ''
+  },
+  omnichain_proposal_executor: {
+    1: '',
+    5: '',
+    421613: '0x004276c95961BE229393c4425E84259255564004',
+    42161: ''
   }
 }
 

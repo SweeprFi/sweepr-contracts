@@ -1,10 +1,10 @@
 const CHAIN_ID = require("../utils/layerzero/chainIds.json");
-const { getDeployedSweepAddress } = require('../utils/address');
+const { getDeployedAddress } = require('../utils/address');
 
 module.exports = async function (taskArgs, hre) {
     // get deployed local and remote sweep address
-    const localAddress = getDeployedSweepAddress(hre.network.name);
-    const remoteAddress = getDeployedSweepAddress(taskArgs.targetNetwork);
+    const localAddress = getDeployedAddress(hre.network.name, 'sweep');
+    const remoteAddress = getDeployedAddress(taskArgs.targetNetwork, 'sweep');
 
     // get local contract
     const localSweepInstance = await ethers.getContractAt("SweepDollarCoin", localAddress);
