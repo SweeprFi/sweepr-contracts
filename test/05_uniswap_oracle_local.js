@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
 
-contract.only('Uniswap Oracle - Local', async () => {
+contract('Uniswap Oracle - Local', async () => {
     before(async () => {
         await hre.network.provider.request({
             method: "hardhat_impersonateAccount",
@@ -11,11 +11,14 @@ contract.only('Uniswap Oracle - Local', async () => {
 
         admin = await ethers.getSigner(sweep_owner);
 
+        USDOracle = await ethers.getContractFactory("AggregatorMock");
+        usdOracle = await USDOracle.deploy();
+
         Oracle = await ethers.getContractFactory("UniV3TWAPOracle");
         oracle = await Oracle.connect(admin).deploy(
             addresses.sweep,
             addresses.uniswap_pool,
-            addresses.oracle_usdc_usd
+            usdOracle.address
         );
     });
 
