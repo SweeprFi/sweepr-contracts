@@ -1,23 +1,25 @@
+/*
+** How to run:
+** npx hardhat --network hardhat run scripts/sweep/binary_search.js
+*/
+
 const { ethers } = require("hardhat");
 const { networks } = require("../../hardhat.config");
 const { addresses } = require('../../utils/address');
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
 
 let user;
-let amount;
-let ammPrice;
-let index = 0;
 let blockNumber;
 const MAX_ROUNDS = 15;
+
 
 async function binary_search() {
     // contracts
     [tester] = await ethers.getSigners();
 
     const ETH = ethers.utils.parseUnits("1", 18);
-    const DEC = ethers.utils.parseUnits("1", 6);
-    const SWEEP_AMOUNT = ethers.utils.parseUnits("5000", 18);
-    const USDC_AMOUNT = ethers.utils.parseUnits("5000", 6);
+    const SWEEP_AMOUNT = ethers.utils.parseUnits("50000", 18);
+    const USDC_AMOUNT = ethers.utils.parseUnits("50000", 6);
 
     amm = await ethers.getContractAt("UniswapAMM", addresses.uniswap_amm);
     sweep = await ethers.getContractAt("SweepDollarCoin", addresses.sweep);
@@ -31,13 +33,80 @@ async function binary_search() {
     sweepBalance = sweepBalance.div(ETH);
     usdcBalance = usdcBalance.div(ETH);
 
-    const targetPrice = await sweep.target_price();
+    const targetPrice = await sweep.target_price(); // to simulate other target price: ethers.utils.parseUnits("1002800", 0);
     let arbSpread = await sweep.arb_spread();
+    if (arbSpread == 0) arbSpread = ethers.utils.parseUnits("1000", 0); //~> simulated 0.1% - now it is zero in Arbitrum
 
-    if (arbSpread == 0) arbSpread = ethers.utils.parseUnits("1", 3); //~> simulated 0.1% - now it is zero in Arbitrum
+    const spread = targetPrice.mul(arbSpread).div(1e6);
+    const maxPrice = targetPrice.add(spread);
+    const minPrice = targetPrice.sub(spread);
 
-    const maxPrice = (DEC).add(arbSpread).mul(targetPrice).div(DEC);
-    const minPrice = (DEC).sub(arbSpread).mul(targetPrice).div(DEC);
+    // MAIN PROCESS ===============================================================================
+    await resetNetwork();
+    const ammPrice = await sweep.amm_price();
+
+    console.log(`TARGET PRICE: [ ${minPrice} - ${maxPrice} ] `);
+    console.log(`AMM PRICE: ${ammPrice}`);
+
+    const zero = ethers.BigNumber.from(0);
+    const bound = sweepBalance.add(usdcBalance);
+
+    if (ammPrice.gt(maxPrice)) {
+        console.log("\nThe balancer needs to SELL [X] SWEEP to the AMM.");
+        const amount = await simulate(amm.sellSweep, 18, bound, zero);
+        console.log(`X = SELL ${amount} SWEEP`);
+        return;
+    }
+
+    if(ammPrice.lt(minPrice)) {
+        console.log("\nThe balancer needs to BUY [X] SWEEP from the AMM.");
+        const amount = await simulate(amm.buySweep, 6, zero, bound);
+        console.log(`X = BUY ${amount} SWEEP`);
+        return;
+    }
+
+    console.log("Nothing to do. AMM price is between the target_price +/- arb_spread range");
+
+    // FUNCTIONS =================================================================================
+
+    // =================== simulates swaps in the AMM ===================
+    async function simulate(swap, decimals, min, max) {
+        let X = min.add(max).div(2);
+
+        for( let i=0; i<MAX_ROUNDS; i++ ) {
+            const swap_amount = ethers.utils.parseUnits(X.toString(), decimals);
+            await swap(addresses.usdc, swap_amount, 0);
+            const ammPrice = await sweep.amm_price();
+            console.log(`Attemp ${i}: ${X} SWEEP ~> New AMM Price: ${ammPrice}`);
+
+            if (ammPrice.gt(maxPrice)) {
+                max = X;
+                X = X.add(min).div(2);
+            } else if (ammPrice.lt(minPrice)) {
+                min = X;
+                X = X.add(max).div(2);
+            } else {
+                return X;
+            }
+
+            await resetNetwork();
+        }
+    }
+
+    // =================== reset the local fork state ===================
+    async function resetNetwork() {
+        if (!blockNumber) {
+            url = networks.hardhat.forking.url;
+            blockNumber = await ethers.provider.getBlockNumber();
+        } else {
+            await helpers.reset(url, blockNumber);
+        }
+
+        await sendETH(sweepOwner);
+        await sendETH(addresses.usdc);
+        await sendBalance();
+    }
+
     // =================== impersonate accounts ===================
     async function impersonate(account) {
         await hre.network.provider.request({
@@ -64,101 +133,10 @@ async function binary_search() {
         await sweep.connect(user).setTargetPrice(100, 100);
         await sweep.minter_mint(tester.address, SWEEP_AMOUNT);
 
-        await sweep.approve(addresses.uniswap_amm, SWEEP_AMOUNT);
-        await usdc.approve(addresses.uniswap_amm, USDC_AMOUNT);
+        await sweep.approve(addresses.uniswap_amm, SWEEP_AMOUNT.mul(100));
+        await usdc.approve(addresses.uniswap_amm, USDC_AMOUNT.mul(100));
     }
-    // =================== reset the local fork state ===================
-    async function resetNetwork() {
-        if (!blockNumber) {
-            url = networks.hardhat.forking.url;
-            blockNumber = await ethers.provider.getBlockNumber();
-        } else {
-            await helpers.reset(url, blockNumber);
-        }
-
-        await sendETH(sweepOwner);
-        await sendETH(addresses.usdc);
-        await sendBalance();
-    }
-    // =================== logs ===================
-    function logs(attemp, amount, price) {
-        console.log(`Attemp ${attemp}: ${amount} SWEEP ~> New AMM Price: ${price}`);
-    }
-    // =================== sells sweep on AMM ===================
-    async function sellSweep() {
-        min = 0;
-        max = usdcBalance;
-        X = max / 2;
-
-        while (index < MAX_ROUNDS) {
-            _amount = ethers.utils.parseUnits(X + "", 18);
-            await amm.sellSweep(addresses.usdc, _amount, 0);
-
-            if (ammPrice.gt(maxPrice)) {
-                max = X;
-                X = (X + min) / 2;
-            } else if (ammPrice.lt(minPrice)) {
-                min = X;
-                X = (X + max) / 2;
-            } else {
-                amount = X;
-                break;
-            }
-
-            ammPrice = await sweep.amm_price();
-            index++;
-            logs(index, X, ammPrice);
-            await resetNetwork();
-        }
-    }
-    // =================== buys sweep on AMM ===================
-    async function buySweep() {
-        min = 0;
-        max = sweepBalance;
-        X = max / 2;
-
-        while (index < MAX_ROUNDS) {
-            _amount = ethers.utils.parseUnits(X + "", 6);
-            await amm.buySweep(addresses.usdc, _amount, 0);
-
-            if (ammPrice.gt(maxPrice)) {
-                min = X;
-                X = (X + max) / 2;
-            } else if (ammPrice.lt(minPrice)) {
-                max = X;
-                X = (X + min) / 2;
-            } else {
-                amount = X;
-                break;
-            }
-
-            ammPrice = await sweep.amm_price();
-            index++;
-            logs(index, X, ammPrice);
-            await resetNetwork();
-        }
-    }
-    // =================== main function ===================
-    await resetNetwork();
-    ammPrice = await sweep.amm_price();
-
-    console.log(`TARGET PRICE: [ ${minPrice} - ${maxPrice} ] `);
-    console.log(`AMM PRICE: ${ammPrice}`);
-
-    if (sweepBalance > usdcBalance) {
-        console.log("\nThe balancer needs to BUY -X- SWEEP from the AMM.");
-        await buySweep();
-    } else {
-        console.log("\nThe balancer needs to SELL -X- SWEEP to the AMM.");
-        await sellSweep();
-    }
-
-    console.log(`X = ${amount} SWEEP`);
 };
 
-binary_search();
 
-/*
-How to run:
-    npx hardhat --network hardhat run scripts/sweep/binary_search.js
-*/
+binary_search();
