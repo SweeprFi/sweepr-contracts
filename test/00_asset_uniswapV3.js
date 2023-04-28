@@ -50,7 +50,7 @@ contract.skip('Uniswap V3 Asset - Local', async () => {
         OWNER = await sweep.owner();
         await impersonate(OWNER);
         // add asset as a minter
-        ima = await sweep.is_minting_allowed(sweepAmount);
+        ima = await sweep.is_minting_allowed();
         if (!ima) {
             amm_price = await sweep.amm_price();
             await sweep.connect(user).setTargetPrice(amm_price, amm_price);
