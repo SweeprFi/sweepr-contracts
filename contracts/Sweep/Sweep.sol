@@ -114,13 +114,10 @@ contract SweepDollarCoin is BaseSweep {
      * @notice Get Sweep Minting Allow Status
      * @return bool Sweep minting allow status
      */
-    function is_minting_allowed(uint256 _mint_amount) public view returns (bool) {
-        (uint256 sweep_amount, uint256 usdx_amount) = uniV3TWAPOracle.getLiquidity();
-
-        uint256 new_sweep_amount = sweep_amount + _mint_amount;
-        uint256 usdx_sweep_amount = (usdx_amount * 10 ** decimals()) / target_price();
-        
-        return new_sweep_amount < usdx_sweep_amount ? true : false;
+    function is_minting_allowed() public view returns (bool) {
+        uint256 arb_price = ((SPREAD_PRECISION - arb_spread) * target_price()) /
+            SPREAD_PRECISION;
+        return amm_price() >= arb_price ? true : false;
     }
 
     /* ========== Actions ========== */
@@ -134,7 +131,7 @@ contract SweepDollarCoin is BaseSweep {
         address _minter,
         uint256 _amount
     ) public override validMinter(msg.sender) whenNotPaused {
-        if (sweep_usdc_oracle_address != address(0) && !is_minting_allowed(_amount)) 
+        if (sweep_usdc_oracle_address != address(0) && !is_minting_allowed())
             revert MintNotAllowed();
 
         super.minter_mint(_minter, _amount);
