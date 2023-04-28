@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses } = require("../utils/address");
+const { impersonate } = require("../utils/helper_functions");
 
 contract('Aave V3 Asset - Local', async () => {
     before(async () => {
@@ -57,10 +58,10 @@ contract('Aave V3 Asset - Local', async () => {
         await sweep.minter_mint(uniswap_amm.address, sweepAmount);
         await sweep.minter_mint(addresses.multisig, sweepAmount);
 
-        await impersonate(addresses.usdc)
+        user = await impersonate(addresses.usdc)
         await usdx.connect(user).transfer(uniswap_amm.address, usdxAmount);
 
-        await impersonate(addresses.multisig);
+        user = await impersonate(addresses.multisig);
         // config stabilizer
         await aaveAsset.connect(user).configure(
             minEquityRatio,
@@ -77,14 +78,6 @@ contract('Aave V3 Asset - Local', async () => {
         await sweep.connect(user).approve(aaveAsset.address, sweepAmount);
         await sweep.connect(liquidator).approve(aaveAsset.address, sweepAmount);
     });
-
-    async function impersonate(account) {
-        await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [account]
-        });
-        user = await ethers.getSigner(account);
-    }
 
     describe("Initial Test", async function () {
         it('deposit usdc to the asset', async () => {
@@ -167,7 +160,7 @@ contract('Aave V3 Asset - Local', async () => {
 
     describe("Liquidate Test", async function () {
         it('deposit usdc to the asset', async () => {
-            await impersonate(addresses.multisig);
+            user = await impersonate(addresses.multisig);
             await usdx.connect(user).transfer(aaveAsset.address, depositAmount);
             expect(await usdx.balanceOf(aaveAsset.address)).to.equal(depositAmount)
         });

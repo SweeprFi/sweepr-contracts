@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { expectRevert } = require('@openzeppelin/test-helpers');
+const { impersonate } = require("../utils/helper_functions");
 let user;
 
 contract('Balancer - Repayment Calls', async () => {
@@ -58,20 +58,9 @@ contract('Balancer - Repayment Calls', async () => {
     );
   });
 
-  ////////////////  helper functions  //////////////////
-  async function impersonate(address) {
-    await hre.network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: [address]
-    });
-
-    user = await ethers.getSigner(address);
-  }
-  //////////////////////////////////
-
   describe('Repayment calls - Balancer & Stabilizers', async () => {
     it('config the initial state', async () => {
-      await impersonate(BORROWER);
+      user = await impersonate(BORROWER);
       await Promise.all(
         assets.map(async (asset) => {
           await asset.connect(user).configure(
@@ -89,15 +78,14 @@ contract('Balancer - Repayment Calls', async () => {
       await sweep.setTreasury(TREASURY);
 
       // sends funds to Borrower
-      await impersonate(USDC_ADDRESS);
+      user = await impersonate(USDC_ADDRESS);
       await usdc.connect(user).transfer(BORROWER, USDC_AMOUNT * 4);
       await usdc.connect(user).transfer(amm.address, USDC_AMOUNT * 100);
       await sweep.transfer(amm.address, MAX_MINT);
     });
 
     it('deposits and mints sweep', async () => {
-      await impersonate(BORROWER);
-      await impersonate(BORROWER);
+      user = await impersonate(BORROWER);
       await Promise.all(
         assets.map(async (asset) => {
           await usdc.connect(user).transfer(asset.address, USDC_AMOUNT);
@@ -118,7 +106,7 @@ contract('Balancer - Repayment Calls', async () => {
     });
 
     it('config the assets', async () => {
-      await impersonate(BORROWER);
+      user = await impersonate(BORROWER);
       await assets[1].connect(user).sellSweepOnAMM(SWEEP_MINT, 0);
       await assets[2].connect(user).sellSweepOnAMM(SWEEP_MINT, 0);
       await assets[3].connect(user).sellSweepOnAMM(HALF_MINT, 0);
@@ -153,11 +141,11 @@ contract('Balancer - Repayment Calls', async () => {
       CALL_USDC = ethers.utils.parseUnits("75", 6);
 
       // constraints
-      await impersonate(USDC_ADDRESS)
+      user = await impersonate(USDC_ADDRESS)
       await expect(balancer.connect(user).repaymentCalls(targets, amounts))
         .to.be.revertedWithCustomError(Balancer, 'OnlyAdmin');
 
-      await expectRevert(balancer.repaymentCalls(targets, []), 'Wrong data received');
+      await expect(balancer.repaymentCalls(targets, [])).to.be.revertedWith('Wrong data received');
 
       assetValue = await assets[3].assetValue();
       await balancer.repaymentCalls(targets, amounts);

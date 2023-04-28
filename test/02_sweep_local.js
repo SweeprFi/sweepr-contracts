@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ethers, contract } = require("hardhat");
+const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 
 contract("Sweep - Local", async function () {
@@ -83,7 +83,7 @@ contract("Sweep - Local", async function () {
 
 	it('sets a new oracle and gets price correctly', async () => {
 		expect(await sweep.sweep_usdc_oracle_address()).to.equal(ethers.constants.AddressZero);
-		oracle = addresses.uniV3Twap_oracle;
+		oracle = addresses.uniswap_oracle;
 
 		await sweep.connect(multisig).setUniswapOracle(oracle);
 

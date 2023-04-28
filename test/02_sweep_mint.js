@@ -1,6 +1,5 @@
 const { expect } = require("chai");
-const { ethers, contract } = require("hardhat");
-const { expectRevert } = require('@openzeppelin/test-helpers');
+const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 
 contract("Sweep - Mint", async function () {
@@ -81,10 +80,8 @@ contract("Sweep - Mint", async function () {
 		// Pause sweep
 		await sweep.connect(owner).pause();
 
-		await expectRevert(
-			sweep.connect(owner).transfer(receiver.address, TRANSFER_AMOUNT),
-			"Pausable: paused"
-		);
+		await expect(sweep.connect(owner).transfer(receiver.address, TRANSFER_AMOUNT))
+			.to.be.revertedWith("Pausable: paused");
 	});
 
 	it('reverts transfer when receiver is blacklisted', async () => {

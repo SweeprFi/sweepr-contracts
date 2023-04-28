@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
+const { impersonate } = require("../utils/helper_functions");
 
 contract('Balancer - Auto Invests', async () => {
     before(async () => {
@@ -58,19 +59,10 @@ contract('Balancer - Auto Invests', async () => {
         )
     });
 
-    async function impersonate(address) {
-        await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [address]
-        });
-
-        user = await ethers.getSigner(address);
-    }
-
     describe('Auto invests - Balancer & Stabilizers', async () => {
         it('Config the initial state', async () => {
             // config the assets
-            await impersonate(BORROWER);
+            user = await impersonate(BORROWER);
             await Promise.all(
                 assets.map(async (asset, index) => {
                     if (index < 3) {
@@ -127,7 +119,7 @@ contract('Balancer - Auto Invests', async () => {
             );
 
             // Send USDC to Borrower
-            await impersonate(USDC_ADDRESS);
+            user = await impersonate(USDC_ADDRESS);
             await usdc.connect(user).transfer(BORROWER, usdxAmount);
 
             await usdc.connect(user).transfer(amm.address, usdxAmount);
@@ -135,7 +127,7 @@ contract('Balancer - Auto Invests', async () => {
         });
 
         it('Deposits and mints sweep', async () => {
-            await impersonate(BORROWER);
+            user = await impersonate(BORROWER);
             await Promise.all(
                 assets.map(async (asset) => {
                     await usdc.connect(user).transfer(asset.address, depositAmount);

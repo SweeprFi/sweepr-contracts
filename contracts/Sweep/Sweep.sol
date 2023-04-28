@@ -6,10 +6,10 @@ pragma solidity 0.8.16;
 // ====================================================================
 
 import "./BaseSweep.sol";
-import "../Oracle/UniV3TWAPOracle.sol";
+import "../Oracle/UniswapOracle.sol";
 
 contract SweepDollarCoin is BaseSweep {
-    UniV3TWAPOracle private uniV3TWAPOracle;
+    UniswapOracle private uniswapOracle;
 
     // Addresses
     address public sweep_usdc_oracle_address;
@@ -88,11 +88,11 @@ contract SweepDollarCoin is BaseSweep {
 
     /**
      * @notice Get Sweep Price
-     * The Sweep Price comes from UniswapV3TWAPOracle.
+     * The Sweep Price comes from UniswapOracle.
      * @return uint256 Sweep price
      */
     function amm_price() public view returns (uint256) {
-        return uniV3TWAPOracle.getPrice();
+        return uniswapOracle.getPrice();
     }
 
     /**
@@ -216,7 +216,7 @@ contract SweepDollarCoin is BaseSweep {
     ) external onlyOwner {
         if (_uniswap_oracle_address == address(0)) revert ZeroAddressDetected();
         sweep_usdc_oracle_address = _uniswap_oracle_address;
-        uniV3TWAPOracle = UniV3TWAPOracle(_uniswap_oracle_address);
+        uniswapOracle = UniswapOracle(_uniswap_oracle_address);
 
         emit UniswapOracleSet(_uniswap_oracle_address);
     }

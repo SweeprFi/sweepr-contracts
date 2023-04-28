@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses, chainId } = require("../utils/address");
+const { impersonate } = require("../utils/helper_functions")
 
 contract('GLP Asset - Local', async () => {
     // GLP Asset only work on the Arbitrum.
@@ -12,7 +13,7 @@ contract('GLP Asset - Local', async () => {
     divestAmount = 200e6;
 
     before(async () => {
-        [guest, lzEndpoint] = await ethers.getSigners();
+        [lzEndpoint] = await ethers.getSigners();
         BORROWER = addresses.multisig;
 
         Sweep = await ethers.getContractFactory("SweepMock");
@@ -45,30 +46,20 @@ contract('GLP Asset - Local', async () => {
         reward_token = await ERC20.attach(reward_token_address);
     });
 
-    // impersonate accounts
-    async function impersonate(account) {
-        await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [account]
-        });
-        user = await ethers.getSigner(account);
-    }
-
     describe("Initial Test", async function () {
         it('deposit usdc to the asset', async () => {
-            await impersonate(addresses.usdc);
+            user = await impersonate(addresses.usdc);
             await usdx.connect(user).transfer(asset.address, depositAmount);
             expect(await usdx.balanceOf(asset.address)).to.equal(depositAmount)
         });
 
         it('invest and divest to the GMX', async () => {
-            await impersonate(BORROWER);
-            // Invest usdx
-            expect(await asset.assetValue()).to.equal(ZERO);
-            await expect(asset.connect(guest).invest(depositAmount))
+            await expect(asset.invest(depositAmount))
                 .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
-            await asset.connect(user).invest(depositAmount);
 
+            user = await impersonate(BORROWER);
+            expect(await asset.assetValue()).to.equal(ZERO);
+            await asset.connect(user).invest(depositAmount);
             expect(await asset.assetValue()).to.above(ZERO);
 
             // Collect Reward
@@ -77,7 +68,7 @@ contract('GLP Asset - Local', async () => {
             expect(await reward_token.balanceOf(user.address)).to.above(ZERO);
 
             // Divest usdx
-            await expect(asset.connect(guest).divest(divestAmount))
+            await expect(asset.divest(divestAmount))
                 .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
             await asset.connect(user).divest(divestAmount);
 

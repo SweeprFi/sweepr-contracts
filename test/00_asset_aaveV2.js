@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses, chainId } = require("../utils/address");
+const { sendEth, impersonate } = require("../utils/helper_functions");
 
 contract('Aave V2 Asset - Local', async (accounts) => {
     // Test contract only on the ethereum mainnet due to some libraries.
@@ -51,7 +52,7 @@ contract('Aave V2 Asset - Local', async (accounts) => {
         await sendEth(BORROWER);
 
         // config stabilizer
-        await impersonate(BORROWER);
+        user = await impersonate(BORROWER);
         await aaveAsset.connect(user).configure(
             minEquityRatio,
             spreadFee,
@@ -65,31 +66,15 @@ contract('Aave V2 Asset - Local', async (accounts) => {
         );
     });
 
-    async function sendEth(account) {
-        await hre.network.provider.request({
-            method: "hardhat_setBalance",
-            params: [account, ethers.utils.parseEther('15').toHexString()]
-        });
-    }
-
-    // impersonate accounts
-    async function impersonate(account) {
-        await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [account]
-        });
-        user = await ethers.getSigner(account);
-    }
-
     describe("Initial Test", async function () {
         it('deposit usdc to the asset', async () => {
-            await impersonate(addresses.usdc);
+            user = await impersonate(addresses.usdc);
             await usdx.connect(user).transfer(aaveAsset.address, depositAmount);
             expect(await usdx.balanceOf(aaveAsset.address)).to.equal(depositAmount)
         });
 
         it('invest and divest to the Comp', async () => {
-            await impersonate(BORROWER);
+            user = await impersonate(BORROWER);
             // Invest usdx
             expect(await aaveAsset.assetValue()).to.equal(ZERO);
             await expect(aaveAsset.connect(guest).invest(depositAmount)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');

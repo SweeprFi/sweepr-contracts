@@ -13,7 +13,7 @@ const chainIDs = {
 }
 
 // Andy:0x87212Bc566b54C60CAca777565F0340F458B1C1b
-// Sub: 0x614Bdbe46B394ad2f1Db06E9236568C046007f67
+// Sudb: 0x614Bdbe46B394ad2f1Db06E9236568C046007f67
 
 const wallets = {
   owner: {
@@ -126,7 +126,7 @@ const libraries = {
     5: '0x3aA3633bc4d514CcfB052FD9Db2f978500A387af',
     42161: '0xF75F92BF819FcBA96209990aE040DABd9Fd1c067',
   },
-  uniV3Twap_oracle: {
+  uniswap_oracle: {
     1: '',
     5: '0xd652C68ED7e93Adc5616cC61142AeaA262B09326',
     42161: '0x8906DB8CAc58bb12c156eb1f57E5f8EBDCbB2257',
@@ -207,11 +207,6 @@ const contracts = {
     5: '0x1aE97B3897eFC558955FB980B319D0ac8E22021B',
     42161: '0x57F45f0F38A9eEC3Db698b19eabF613a9207a9c7',
   },
-  pegging: {
-    1: '',
-    5: '',
-    42161: '0x76373EaE8d8facE76476f6B9edefcAf8B677D106'
-  },
   omnichain_proposal_sender: {
     1: '',
     5: '0xEAD18f9DeE6a73C7c4251F31B91b063a0c54043A',
@@ -226,68 +221,7 @@ const contracts = {
   }
 }
 
-const stabilizers = {
-  off_chain: {
-    1: '',
-    5: '0x464D64a24B56681022e4332EA047A03ebbdA5a26',
-    42161: '0xc27b18518943399648F83892Cd42c962030DEbE1'
-  },
-  aave: {
-    1: '',
-    5: '0xBFC2DEcdE652905fDC21A5f7E2a8bDEFfAe4ED01',
-    42161: '0xE9bb811a2b5A9b907f29983b2A4EC627fcD09d98',
-  },
-  comp: {
-    1: '',
-    5: '',
-    42161: '',
-  },
-  uniswap: {
-    1: '',
-    5: '',
-    42161: '0x803d4D63b863fcc881424251D75fbE58701Ce16a'
-  },
-  weth: {
-    1: '',
-    5: '',
-    42161: '0xae1dC22Bef2D111Bf98c73196300101d083b9F43'
-  },
-  wbtc: {
-    1: '',
-    5: '',
-    42161: '0xf5A6ed7202BA55d18b42f238a6DF0BAC635D4fd9'
-  }
-}
-
 const assets = {
-  off_chain: {
-    1: '',
-    5: '0xb45EAAc6f139ebaF7c89115DbfFF316c3BCB4313',
-    42161: '0xd36c53D81c43Fc0a0B0dBC37a0F3Ff3857A27E67',
-  },
-  aave:{
-    1: '',
-    5: '0x56873F157202a5bD2ea798376CFae96Efd053011',
-    42161: '0x306D1DB70E59F69d8E745BaAF0A18547b19b42bB',
-  },
-  uniswap: {
-    1: '',
-    5: '0xE2EAd4044Dd87402e04D988fB0160ecCfB0e787B',
-    42161: '0x50Ba6AB3082F11fbe67c3DBDc19ad5D03670344e',
-  },
-  weth: {
-    1: '',
-    5: '',
-    42161: '0x41D4eE919344e63397dB9a66Fb4065d520Ee7e8f',
-  },
-  wbtc: {
-    1: '',
-    5: '',
-    42161: '0xa2700D94Bbe72Cc5a3111a323C3efA8BED64b7E1',
-  }
-}
-
-const strategies = {
   off_chain: {
     1: '',
     5: '',
@@ -330,7 +264,5 @@ module.exports = {
   networks,
   chainIDs,
   chainlink_oracle,
-  stabilizers,
   assets,
-  strategies
 }

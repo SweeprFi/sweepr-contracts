@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ethers, contract } = require("hardhat");
+const { ethers } = require("hardhat");
 
 contract("Stabilizer's waterfall workflow", async function () {
   before(async () => {

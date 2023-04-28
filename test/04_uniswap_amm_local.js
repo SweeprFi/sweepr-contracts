@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
+const { impersonate } = require("../utils/helper_functions");
 let user;
 
 contract("Uniswap AMM - Local", async function () {
@@ -19,23 +20,13 @@ contract("Uniswap AMM - Local", async function () {
     UniswapAMM = await ethers.getContractFactory("UniswapAMM");
     amm = await UniswapAMM.deploy(addresses.sweep);
 
-    await impersonate(USDC_ADDRESS);
+    user = await impersonate(USDC_ADDRESS);
     await usdc.connect(user).transfer(OWNER, USDC_AMOUNT)
   });
 
-  // Function helpers
-  async function impersonate(account) {
-    await hre.network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: [account]
-    });
-
-    user = await ethers.getSigner(account);
-  }
-
   describe("main functions", async function() {
     it("buys 5 sweep correctly", async function() {
-        await impersonate(OWNER);
+        user = await impersonate(OWNER);
         sweepBefore = await sweep.balanceOf(OWNER);
         usdcBefore = await usdc.balanceOf(OWNER);
 
