@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
+const { impersonate } = require("../utils/helper_functions");
 
 contract("WBTC Asset - Local", async function () {
     before(async () => {
@@ -30,34 +31,27 @@ contract("WBTC Asset - Local", async function () {
         );
     });
 
-    async function impersonate(account) {
-        await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [account]
-        });
-
-        user = await ethers.getSigner(account);
-    }
-
     describe("asset constraints", async function () {
         it("only borrower can inveset", async function () {
-            await expect(wbtc_asset.invest(depositAmount)).to.be.revertedWithCustomError(wbtc_asset, 'OnlyBorrower');
+            await expect(wbtc_asset.invest(depositAmount))
+                .to.be.revertedWithCustomError(wbtc_asset, 'OnlyBorrower');
         });
 
         it("only borrower can divest", async function () {
-            await expect(wbtc_asset.divest(depositAmount)).to.be.revertedWithCustomError(wbtc_asset, 'OnlyBorrower');
+            await expect(wbtc_asset.divest(depositAmount))
+                .to.be.revertedWithCustomError(wbtc_asset, 'OnlyBorrower');
         });
     });
 
     describe("invest and divest functions", async function () {
         it('deposit usdc to the asset', async () => {
-            await impersonate(addresses.usdc);
+            user = await impersonate(addresses.usdc);
             await usdc.connect(user).transfer(wbtc_asset.address, depositAmount);
             expect(await usdc.balanceOf(wbtc_asset.address)).to.equal(depositAmount)
         });
 
         it("invest correctly", async function () {
-            await impersonate(BORROWER);
+            user = await impersonate(BORROWER);
             expect(await wbtc_asset.assetValue()).to.equal(ZERO);
             await wbtc_asset.connect(user).invest(depositAmount);
             expect(await usdc.balanceOf(wbtc_asset.address)).to.equal(ZERO);

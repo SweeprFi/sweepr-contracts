@@ -2,6 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 const { time } = require('@openzeppelin/test-helpers');
+const { increaseTime } = require("../utils/helper_functions");
 
 contract("Balancer - Local", async function () {
 	before(async () => {
@@ -20,11 +21,6 @@ contract("Balancer - Local", async function () {
 		await sweep.connect(owner).setBalancer(balancer.address);
 	});
 
-	async function increasesTime(_time) {
-		await time.increase(_time);
-		await time.advanceBlock();
-	}
-
 	it('increases the target price through time', async () => {
 		expect(await sweep.period_start()).to.equal(ZERO);
 		expect(await sweep.interest_rate()).to.equal(ZERO);
@@ -40,21 +36,21 @@ contract("Balancer - Local", async function () {
 		expect(await sweep.period_start()).to.equal(block.timestamp);
 		expect(await sweep.interest_rate()).to.equal(stepValue);
 
-		await increasesTime(604800); // 7 days
+		await increaseTime(604800); // 7 days
 		priceAfter7Days = await sweep.target_price();
 		expect(priceAfter7Days).to.above(TARGET_PRICE);
 
 		// begin 2nd period
 		await balancer.connect(owner).refreshInterestRate();
 
-		await increasesTime(604800); // 7days ~ 14 days
+		await increaseTime(604800); // 7days ~ 14 days
 		priceAfter14Days = await sweep.target_price();
 		expect(priceAfter14Days).to.above(priceAfter7Days);
 
 		// begin 3nd period
 		await balancer.connect(owner).refreshInterestRate();
 
-		await increasesTime(432000); // 5 days ~ 21 days
+		await increaseTime(432000); // 5 days ~ 21 days
 		priceAfter21Days = await sweep.target_price();
 		expect(priceAfter21Days).to.equal(priceAfter14Days);
 	});
@@ -64,13 +60,13 @@ contract("Balancer - Local", async function () {
 			balancer.connect(owner).refreshInterestRate()
 		).to.be.revertedWithCustomError(sweep, 'NotPassedPeriodTime');
 
-		await increasesTime(432000); // 5 days ~ 26 days
+		await increaseTime(432000); // 5 days ~ 26 days
 		// Set negative interest rate
 		await sweep.connect(owner).setInterestRate(-3e4); // -3%
 
 		// begin 4th period
 		await balancer.connect(owner).refreshInterestRate();
-		await increasesTime(604800); // 7 days ~ 33 days
+		await increaseTime(604800); // 7 days ~ 33 days
 
 		currentTargetPrice = await sweep.target_price();
 		expect(currentTargetPrice).to.not.above(priceAfter21Days);

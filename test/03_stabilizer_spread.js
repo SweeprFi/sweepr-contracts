@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { increaseTime } = require("../utils/helper_functions");
 
 contract("Stabilizer and spread", async function () {
   before(async () => {
@@ -81,11 +82,6 @@ contract("Stabilizer and spread", async function () {
       await usdx.connect(borrower).transfer(owner.address, amount);
     }
   });
-
-  async function increaseTime(seconds) {
-    await network.provider.send("evm_increaseTime", [seconds]);
-    await network.provider.send("evm_mine");
-  }
 
   it("Main Test", async function () {
     expect(await usdx.balanceOf(borrower.address)).to.equal(10e6);

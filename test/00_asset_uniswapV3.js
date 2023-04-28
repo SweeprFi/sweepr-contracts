@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
+const { impersonate } = require("../utils/helper_functions");
 
 contract.skip('Uniswap V3 Asset - Local', async () => {
     before(async () => {
@@ -48,7 +49,7 @@ contract.skip('Uniswap V3 Asset - Local', async () => {
         );
 
         OWNER = await sweep.owner();
-        await impersonate(OWNER);
+        user = await impersonate(OWNER);
         // add asset as a minter
         ima = await sweep.is_minting_allowed();
         if (!ima) {
@@ -57,7 +58,7 @@ contract.skip('Uniswap V3 Asset - Local', async () => {
         }
         await sweep.connect(user).addMinter(asset.address, sweepAmount);
 
-        await impersonate(BORROWER);
+        user = await impersonate(BORROWER);
         // config stabilizer
         await asset.connect(user).configure(
             minEquityRatio,
@@ -72,16 +73,6 @@ contract.skip('Uniswap V3 Asset - Local', async () => {
         );
     });
 
-    // helper functions
-    async function impersonate(account) {
-        await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [account]
-        });
-
-        user = await ethers.getSigner(account);
-    }
-
     describe("main functions", async function () {
         it('deposit usdc to the asset', async () => {
             expect(await usdx.balanceOf(asset.address)).to.equal(ZERO);
@@ -90,19 +81,23 @@ contract.skip('Uniswap V3 Asset - Local', async () => {
         });
 
         it('borrow sweep', async () => {
-            await expect(asset.connect(guest).borrow(sweepAmount)).to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+            await expect(asset.connect(guest).borrow(sweepAmount))
+                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
             expect(await asset.sweep_borrowed()).to.equal(ZERO);
             await asset.connect(user).borrow(sweepAmount);
             expect(await asset.sweep_borrowed()).to.equal(sweepAmount);
         });
 
         it('check LP token minted', async () => {
-            await expect(asset.connect(user).divest(usdxAmount)).to.be.revertedWithCustomError(asset, 'NotMinted');
-            await expect(asset.connect(user).collect()).to.be.revertedWithCustomError(asset, 'NotMinted');
+            await expect(asset.connect(user).divest(usdxAmount))
+                .to.be.revertedWithCustomError(asset, 'NotMinted');
+            await expect(asset.connect(user).collect())
+                .to.be.revertedWithCustomError(asset, 'NotMinted');
 
             // Check retrieveNFT
             let owner = await ethers.getSigner(OWNER);
-            await expect(asset.connect(owner).retrieveNFT()).to.be.revertedWithCustomError(asset, 'NotMinted');
+            await expect(asset.connect(owner).retrieveNFT())
+                .to.be.revertedWithCustomError(asset, 'NotMinted');
         });
 
         it('mint LP token', async () => {
@@ -125,19 +120,22 @@ contract.skip('Uniswap V3 Asset - Local', async () => {
         });
 
         it('withdraws rewards', async () => {
-            await expect(asset.connect(guest).collect()).to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+            await expect(asset.connect(guest).collect())
+                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
             await asset.connect(user).collect();
         });
 
         it('removes liquidity', async () => {
             liquidity = await asset.liquidity();
             withdrawAmount = liquidity.div(2);
-            await expect(asset.connect(guest).divest(withdrawAmount)).to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+            await expect(asset.connect(guest).divest(withdrawAmount))
+                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
             await asset.connect(user).divest(withdrawAmount);
         });
 
         it('retrieve LP token', async () => {
-            await expect(asset.connect(guest).retrieveNFT()).to.be.revertedWithCustomError(asset, 'OnlyAdmin');
+            await expect(asset.connect(guest).retrieveNFT())
+                .to.be.revertedWithCustomError(asset, 'OnlyAdmin');
 
             expect(await asset.tokenId()).to.not.equal(ZERO);
             let owner = await ethers.getSigner(OWNER);

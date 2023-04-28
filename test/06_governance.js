@@ -1,7 +1,8 @@
 const { expect } = require('chai');
 const { ethers } = require("hardhat");
 const { addresses, roles } = require("../utils/address");
-const { time, expectRevert } = require('@openzeppelin/test-helpers');
+const { time } = require('@openzeppelin/test-helpers');
+const { impersonate } = require('../utils/helper_functions');
 let account;
 
 contract('Governance - Local', async (accounts) => {
@@ -50,24 +51,15 @@ contract('Governance - Local', async (accounts) => {
 		// Set SWEEPER price to 1: 
 		await sweeper.setSWEEPERPrice(10000);
 
-		await impersonate(OWNER_SWEEPER);
+		account = await impersonate(OWNER_SWEEPER);
 		await timelock.connect(account).grantRole(PROPOSER_ROLE, governance.address);
 		await timelock.connect(account).grantRole(EXECUTOR_ROLE, governance.address);
 		await timelock.connect(account).grantRole(CANCELLER_ROLE, PROPOSER);
 	});
 
-	async function impersonate(address) {
-		await hre.network.provider.request({
-			method: "hardhat_impersonateAccount",
-			params: [address]
-		});
-
-		account = await ethers.getSigner(address);
-	}
-
 	it('delegates votes correctly', async () => {
 		await sweep.addMinter(PROPOSER, MINT_AMOUNT);
-		await impersonate(PROPOSER);
+		account = await impersonate(PROPOSER);
 		await sweep.connect(account).minter_mint(PROPOSER, MINT_AMOUNT);
 		await sweep.connect(account).approve(sweeper.address, MINT_AMOUNT);
 		await sweeper.connect(account).buySWEEPER(SWEEP_AMOUNT);
@@ -85,13 +77,13 @@ contract('Governance - Local', async (accounts) => {
 
 		// delegate
 		await sweeper.connect(account).delegate(PROPOSER);
-		await impersonate(USER1);
+		account = await impersonate(USER1);
 		await sweeper.connect(account).delegate(USER1);
-		await impersonate(USER2);
+		account = await impersonate(USER2);
 		await sweeper.connect(account).delegate(USER2);
-		await impersonate(USER3);
+		account = await impersonate(USER3);
 		await sweeper.connect(account).delegate(USER3);
-		await impersonate(USER4);
+		account = await impersonate(USER4);
 		await sweeper.connect(account).delegate(USER4);
 
 		expect(await sweeper.delegates(PROPOSER)).to.equal(PROPOSER);
@@ -116,7 +108,7 @@ contract('Governance - Local', async (accounts) => {
 		proposeDescription = "Proposal #1: transfer ownership";
 		descriptionHash = ethers.utils.id(proposeDescription);
 
-		await impersonate(PROPOSER);
+		account = await impersonate(PROPOSER);
 		await governance.propose([sweep.address], [0], [calldata], proposeDescription);
 
 		// Advance one block so the voting can begin
@@ -131,11 +123,9 @@ contract('Governance - Local', async (accounts) => {
 		calldata = sweep.interface.encodeFunctionData('addMinter', [NEW_MINTER, MINT_AMOUNT]);
 		proposeDescription = "Proposal #2: Adding new minter";
 
-		await impersonate(USER1);
-		await expectRevert(
-			governance.connect(account).propose([sweep.address], [0], [calldata], proposeDescription),
-			'Governor: proposer votes below proposal threshold'
-		);
+		account = await impersonate(USER1);
+		await expect(governance.connect(account).propose([sweep.address], [0], [calldata], proposeDescription))
+			.to.be.revertedWith('Governor: proposer votes below proposal threshold');
 	});
 
 	it('revert queuing proposal if voting period is not finished', async () => {
@@ -143,17 +133,13 @@ contract('Governance - Local', async (accounts) => {
 		proposeDescription = "Proposal #1: transfer ownership";
 		descriptionHash = ethers.utils.id(proposeDescription);
 
-		await expectRevert(
-			governance.queue([sweep.address], [0], [calldata], descriptionHash),
-			'Governor: proposal not successful'
-		);
+		await expect(governance.queue([sweep.address], [0], [calldata], descriptionHash))
+			.to.be.revertedWith('Governor: proposal not successful');
 	});
 
 	it('Revert executing proposal if proposal state is not success', async () => {
-		await expectRevert(
-			governance.execute([sweep.address], [0], [calldata], descriptionHash),
-			'Governor: proposal not successful'
-		);
+		await expect(governance.execute([sweep.address], [0], [calldata], descriptionHash))
+			.to.be.revertedWith('Governor: proposal not successful');
 	});
 
 	it('cast votes', async () => {
@@ -169,15 +155,15 @@ contract('Governance - Local', async (accounts) => {
 		expect(votes.forVotes).to.equal(ZERO);
 		expect(votes.abstainVotes).to.equal(ZERO);
 
-		await impersonate(PROPOSER);
+		account = await impersonate(PROPOSER);
 		await governance.connect(account).castVote(proposal_id, 1);
-		await impersonate(USER1);
+		account = await impersonate(USER1);
 		await governance.connect(account).castVote(proposal_id, 1);
-		await impersonate(USER2);
+		account = await impersonate(USER2);
 		await governance.connect(account).castVote(proposal_id, 1);
-		await impersonate(USER3);
+		account = await impersonate(USER3);
 		await governance.connect(account).castVote(proposal_id, 1);
-		await impersonate(USER4);
+		account = await impersonate(USER4);
 		await governance.connect(account).castVote(proposal_id, 2);
 
 		expect(await governance.hasVoted(proposal_id, PROPOSER)).to.equal(true);
@@ -202,11 +188,9 @@ contract('Governance - Local', async (accounts) => {
 	});
 
 	it('Revert cancel proposal if caller is not canceller(owner)', async () => {
-		await impersonate(USER1);
-		await expectRevert(
-			governance.connect(account).cancel([sweep.address], [0], [calldata], descriptionHash),
-			'Governor: only canceller'
-		);
+		account = await impersonate(USER1);
+		await expect(governance.connect(account).cancel([sweep.address], [0], [calldata], descriptionHash))
+			.to.be.revertedWith('Governor: only canceller');
 	});
 
 	it('executes proposal correctly', async () => {
@@ -224,7 +208,7 @@ contract('Governance - Local', async (accounts) => {
 		proposeDescription = "Proposal #3: Adding new minter";
 		descriptionHash = ethers.utils.id(proposeDescription);
 
-		await impersonate(PROPOSER);
+		account = await impersonate(PROPOSER);
 		await governance.propose([sweep.address], [0], [calldata], proposeDescription);
 
 		await time.increase(15);

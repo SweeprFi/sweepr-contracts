@@ -27,9 +27,9 @@ contract("Off-Chain Asset - Settings", async function () {
 
 		Uniswap = await ethers.getContractFactory("UniswapMock");
 		amm = await Uniswap.deploy(sweep.address);
-		
+
 		USDOracle = await ethers.getContractFactory("AggregatorMock");
-        usdOracle = await USDOracle.deploy();
+		usdOracle = await USDOracle.deploy();
 
 		OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 		offChainAsset = await OffChainAsset.deploy(
@@ -111,10 +111,8 @@ contract("Off-Chain Asset - Settings", async function () {
 				// Now, borrower is not collateral agent
 				amount = ethers.utils.parseUnits("10", 18);
 
-				await expect(
-					offChainAsset.connect(borrower).updateValue(
-						amount
-					)).to.be.revertedWithCustomError(offChainAsset, 'OnlyCollateralAgent');
+				await expect(offChainAsset.connect(borrower).updateValue(amount))
+					.to.be.revertedWithCustomError(offChainAsset, 'OnlyCollateralAgent');
 			});
 		});
 	});

@@ -2,6 +2,7 @@ const { artifacts } = require('hardhat');
 const { addresses } = require("../utils/address");
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
 const { networks } = require("../hardhat.config");
+const { sendEth } = require("../utils/helper_functions");
 
 const SWEEP = artifacts.require("contracts/Sweep/Sweep.sol:SweepDollarCoin");
 const SWEEPER = artifacts.require("SWEEPER");
@@ -32,25 +33,9 @@ module.exports = async () => {
   Governance.setAsDeployed(governance_instance);
   UniV3TWAPOracle.setAsDeployed(uniswap_oracle_instance);
   // ----------------------------------------------
-
-  await hre.network.provider.request({
-    method: "hardhat_setBalance",
-    params: [addresses.multisig, ethers.utils.parseEther('5').toHexString()]
-  });
-
-  await hre.network.provider.request({
-    method: "hardhat_setBalance",
-    params: [addresses.usdc, ethers.utils.parseEther('5').toHexString()]
-  });
-
-  await hre.network.provider.request({
-    method: "hardhat_setBalance",
-    params: [addresses.borrower, ethers.utils.parseEther('5').toHexString()]
-  });
-
   sweep_owner = await sweep_instance.owner();
-  await hre.network.provider.request({
-    method: "hardhat_setBalance",
-    params: [sweep_owner, ethers.utils.parseEther('5').toHexString()]
-  });
+  await sendEth(sweep_owner);
+  await sendEth(addresses.usdc);
+  await sendEth(addresses.borrower);
+  await sendEth(addresses.multisig);
 }

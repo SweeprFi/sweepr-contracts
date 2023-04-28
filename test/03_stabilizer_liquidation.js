@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers, contract } = require("hardhat");
 const { addresses } = require("../utils/address");
+const { impersonate } = require("../utils/helper_functions");
 
 contract("Stabilizer - Liquidation", async function () {
   before(async () => {
@@ -64,32 +65,24 @@ contract("Stabilizer - Liquidation", async function () {
     await sweep.minter_mint(amm.address, maxBorrow);
     await sweep.minter_mint(liquidator.address, liquidatorBalance);
 
-    await impersonate(addresses.usdc)
+    user = await impersonate(addresses.usdc)
     await usdc.connect(user).transfer(amm.address, 100e6);
 
-    await impersonate(WETH_HOLDER);
+    user = await impersonate(WETH_HOLDER);
     await weth.connect(user).transfer(amm.address, maxBorrow);
   });
-
-  async function impersonate(account) {
-    await hre.network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: [account]
-    });
-    user = await ethers.getSigner(account);
-  }
 
   describe("liquidates a WETH Asset when this is defaulted", async function () {
     it("environment setup", async function () {
       expect(await weth_asset.isDefaulted()).to.equal(false);
       amm_price = await sweep.amm_price();
 
-      await impersonate(addresses.usdc);
+      user = await impersonate(addresses.usdc);
       await usdc.connect(user).transfer(weth_asset.address, usdcAmount); // stabilizer deposit      
       await sweep.addMinter(weth_asset.address, sweepMintAmount);
       await sweep.addMinter(addresses.borrower, sweepMintAmount.mul(2));
 
-      await impersonate(addresses.borrower);
+      user = await impersonate(addresses.borrower);
       await weth_asset.connect(user).configure(
         minEquityRatio,
         spreadFee,

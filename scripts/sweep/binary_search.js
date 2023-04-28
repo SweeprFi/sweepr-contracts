@@ -6,12 +6,12 @@
 const { ethers } = require("hardhat");
 const { networks } = require("../../hardhat.config");
 const { addresses } = require('../../utils/address');
+const { impersonate, sendEth } = require("../../utils/helper_functions");
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
 
 let user;
 let blockNumber;
 const MAX_ROUNDS = 15;
-
 
 async function binary_search() {
     // contracts
@@ -92,7 +92,6 @@ async function binary_search() {
             await resetNetwork();
         }
     }
-
     // =================== reset the local fork state ===================
     async function resetNetwork() {
         if (!blockNumber) {
@@ -102,32 +101,16 @@ async function binary_search() {
             await helpers.reset(url, blockNumber);
         }
 
-        await sendETH(sweepOwner);
-        await sendETH(addresses.usdc);
+        await sendEth(sweepOwner);
+        await sendEth(addresses.usdc);
         await sendBalance();
-    }
-
-    // =================== impersonate accounts ===================
-    async function impersonate(account) {
-        await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [account]
-        });
-        user = await ethers.getSigner(account);
-    }
-    // =================== sends ETH to accounts ===================
-    async function sendETH(account) {
-        await hre.network.provider.request({
-            method: "hardhat_setBalance",
-            params: [account, ethers.utils.parseEther('5').toHexString()]
-        });
     }
     // =================== sends balances to the Tester ===================
     async function sendBalance() {
-        await impersonate(addresses.usdc);
+        user = await impersonate(addresses.usdc);
         await usdc.connect(user).transfer(tester.address, USDC_AMOUNT);
 
-        await impersonate(sweepOwner);
+        user = await impersonate(sweepOwner);
         await sweep.connect(user).addMinter(tester.address, SWEEP_AMOUNT);
         // sets a lower target price to can mint more Sweep
         await sweep.connect(user).setTargetPrice(100, 100);
@@ -137,6 +120,5 @@ async function binary_search() {
         await usdc.approve(addresses.uniswap_amm, USDC_AMOUNT.mul(100));
     }
 };
-
 
 binary_search();
