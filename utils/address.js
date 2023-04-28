@@ -6,9 +6,7 @@ const {
   networks,
   chainIDs,
   chainlink_oracle,
-  stabilizers,
   assets,
-  strategies
 } = require("./constants");
 require('dotenv').config();
 
@@ -61,23 +59,13 @@ const addresses = {
   balancer: contracts.balancer[chainId],
   uniswap_amm: contracts.uniswap_amm[chainId],
   
-  // Stabilizers
-  stabilizer_offChain: stabilizers.off_chain[chainId],
-  stabilizer_aave: stabilizers.aave[chainId],
-  stabilizer_comp: stabilizers.comp[chainId],
-  stabilizer_uniswap: stabilizers.uniswap[chainId],
-  stabilizer_weth: stabilizers.weth[chainId],
-  stabilizer_wbtc: stabilizers.wbtc[chainId],
-  
-  // Assets
+  // Assets + Stabilizers
   asset_offChain: assets.off_chain[chainId],
   asset_aave: assets.aave[chainId],
   asset_uniswap: assets.uniswap[chainId],
   asset_weth: assets.weth[chainId],
   asset_wbtc: assets.wbtc[chainId],
-
-  // Strategies (Stabilizers + Assets)
-  aave_strategy: strategies.aave[chainId],
+  asset_compound: assets.compound[chainId],
 }
 
 const network = {
