@@ -2,25 +2,23 @@
 pragma solidity 0.8.16;
 
 // ====================================================================
-// ========================= UniV3Oracle ==========================
+// ========================= UniswapOracle.sol ========================
 // ====================================================================
 
 /**
- * @title UniV3TWAPOracle
- * @dev Not a TWAP Oracle, we kept the naming for a redeployment reason, must be changed
+ * @title UniswapOracle
  * @dev fetches the current price in the AMM
  */
 
 import "../Utils/Math/SafeMath.sol";
 import "../Utils/Uniswap/V3/IUniswapV3Pool.sol";
-import "../Utils/Uniswap/V3/libraries/OracleLibrary.sol";
 import '../Utils/Uniswap/V3/libraries/FullMath.sol';
 import '../Utils/Uniswap/V3/libraries/FixedPoint128.sol';
 import "../Common/Owned.sol";
 import "../Common/ERC20/IERC20Metadata.sol";
 import "../Oracle/AggregatorV3Interface.sol";
 
-contract UniV3TWAPOracle is Owned {
+contract UniswapOracle is Owned {
     using SafeMath for uint256;
 
     // Core
@@ -161,44 +159,6 @@ contract UniV3TWAPOracle is Owned {
                 ? FullMath.mulDiv(ratioX128, baseAmount, 1 << 128)
                 : FullMath.mulDiv(1 << 128, baseAmount, ratioX128);
         }
-    }
-
-    /**
-     * @notice Get Peg Amounts For Invest
-     * @dev Calculates the amount to borrow and sell on the Uniswap pool to balance the amounts.
-     */
-    function getPegAmountsForInvest() public view returns (uint256 amount) {
-        uint256 sweep_amount = pricing_token.balanceOf(address(pool));
-        uint256 usdx_amount = base_token.balanceOf(address(pool));
-        uint256 target_price = SWEEP.target_price();
-        uint256 radicand = ((sweep_amount / target_price )/1e6) * usdx_amount;
-        uint256 root = radicand.sqrt();
-
-        uint256 sweep_to_peg = (root > usdx_amount) ? (root - usdx_amount) : (usdx_amount - root);
-        sweep_to_peg = sweep_to_peg * 997 / 1000;
-
-        (, int24 tickCurrent, , , , , ) = pool.slot0();
-
-        amount = OracleLibrary.getQuoteAtTick(tickCurrent, uint128(sweep_to_peg), address(base_token), address(pricing_token));
-    }
-
-    /**
-     * @notice Get Peg Amounts For Invest
-     * @dev Calculates the amount to repay for the assets to balance the uniswap pool.
-     */
-    function getPegAmountsForCall() public view returns (uint256 amount) {
-        uint256 sweep_amount = pricing_token.balanceOf(address(pool));
-        uint256 usdx_amount = base_token.balanceOf(address(pool));
-        uint256 target_price = SWEEP.target_price();
-        uint256 radicand = target_price * sweep_amount * usdx_amount * 1e6;
-        uint256 root = radicand.sqrt();
-
-        uint256 sweep_to_peg = (root > sweep_amount) ? (root - sweep_amount) : (sweep_amount - root);
-        sweep_to_peg = sweep_to_peg * 997 / 1000;
-
-        (, int24 tickCurrent, , , , , ) = pool.slot0();
-
-        amount = OracleLibrary.getQuoteAtTick(tickCurrent, uint128(sweep_to_peg), address(pricing_token), address(base_token));
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */

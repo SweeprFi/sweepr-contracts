@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ethers, contract, upgrades } = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 
 const chainIdSrc = 1;
 const chainIdDst = 2;

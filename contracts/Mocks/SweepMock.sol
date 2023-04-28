@@ -93,7 +93,7 @@ contract SweepMock is BaseSweep {
 
     /**
      * @notice Get Sweep Price
-     * The Sweep Price comes from UniswapV3TWAPOracle.
+     * The Sweep Price comes from UniswapOracle.
      * @return uint256 Sweep price
      */
     function amm_price() public view returns (uint256) {

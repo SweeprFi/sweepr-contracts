@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ethers, contract } = require("hardhat");
+const { ethers } = require("hardhat");
 
 contract("Off-Chain Asset - Settings", async function () {
 	before(async () => {

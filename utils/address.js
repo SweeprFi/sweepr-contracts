@@ -39,7 +39,7 @@ const addresses = {
   timelock: libraries.timelock[chainId],
   approver: libraries.approver[chainId],
   uniswap_pool: libraries.uniswap_pool[chainId],
-  uniV3Twap_oracle: libraries.uniV3Twap_oracle[chainId],
+  uniswap_oracle: libraries.uniswap_oracle[chainId],
   uniswap_factory: libraries.uniswap_factory[chainId],
   uniswap_router: libraries.uniswap_router[chainId],
   aaveV2_pool: libraries.aaveV2_pool[chainId],

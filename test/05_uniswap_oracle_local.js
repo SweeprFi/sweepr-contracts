@@ -14,7 +14,7 @@ contract('Uniswap Oracle - Local', async () => {
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
 
-        Oracle = await ethers.getContractFactory("UniV3TWAPOracle");
+        Oracle = await ethers.getContractFactory("UniswapOracle");
         oracle = await Oracle.connect(admin).deploy(
             addresses.sweep,
             addresses.uniswap_pool,
@@ -46,13 +46,5 @@ contract('Uniswap Oracle - Local', async () => {
         unclaimed = await oracle.getUnclaimedFeeAmount();
         expect(unclaimed.sweep_amount).to.above(0);
         expect(unclaimed.usdx_amount).to.above(0);
-    });
-
-    it('fetches amounts to call and invest correctly', async () => {
-        invest_amount = await oracle.getPegAmountsForInvest();
-        call_amount = await oracle.getPegAmountsForCall();
-
-        expect(invest_amount).to.above(0);
-        expect(call_amount).to.above(0);
     });
 });

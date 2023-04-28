@@ -126,7 +126,7 @@ const libraries = {
     5: '0x3aA3633bc4d514CcfB052FD9Db2f978500A387af',
     42161: '0xF75F92BF819FcBA96209990aE040DABd9Fd1c067',
   },
-  uniV3Twap_oracle: {
+  uniswap_oracle: {
     1: '',
     5: '0xd652C68ED7e93Adc5616cC61142AeaA262B09326',
     42161: '0x8906DB8CAc58bb12c156eb1f57E5f8EBDCbB2257',

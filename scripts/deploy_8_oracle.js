@@ -16,15 +16,15 @@ async function main() {
 
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
-  const uniV3TWAPOracleInstance = await ethers.getContractFactory("UniV3TWAPOracle");
-  const uniV3TWAPOracleContract = await uniV3TWAPOracleInstance.deploy(
+  const UniswapOracle = await ethers.getContractFactory("UniswapOracle");
+  const uniswapOracle = await UniswapOracle.deploy(
     sweepAddress,
     poolAddress,
     oracle
   );
 
-  console.log(`UniV3TWAPOracle deployed to:${uniV3TWAPOracleContract.address}`);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${uniV3TWAPOracleContract.address} ${sweepAddress} ${poolAddress} ${oracle}`);
+  console.log(`Uniswap Oracle deployed to:${uniswapOracle.address}`);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${uniswapOracle.address} ${sweepAddress} ${poolAddress} ${oracle}`);
 }
 
 main();

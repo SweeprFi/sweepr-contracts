@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ethers, contract } = require("hardhat");
+const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 
 contract("Sweep - Mint", async function () {
