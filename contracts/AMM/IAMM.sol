@@ -17,4 +17,6 @@ interface IAMM {
     function sellSweep(address _token, uint256 _amountIn, uint256 _amountOutMin)
         external
         returns (uint256);
+
+    function poolFee() external view returns (uint24);
 }

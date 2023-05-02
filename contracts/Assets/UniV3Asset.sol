@@ -25,7 +25,6 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     address public token0;
     address public token1;
     uint128 public liquidity;
-    uint24 public constant poolFee = 3000; // Fees are 500(0.05%), 3000(0.3%), 10000(1%)
     int24 public constant tickSpacing = 60; // TickSpacings are 10, 60, 200
     bool private immutable flag; // The sort status of tokens
 
@@ -86,7 +85,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         if (tokenId == 0) return 0;
 
         (uint256 _amount0, uint256 _amount1) = liquidityHelper
-            .getTokenAmountsFromLP(tokenId, token0, token1, poolFee);
+            .getTokenAmountsFromLP(tokenId, token0, token1, amm.poolFee());
 
         (uint256 _usdx_amount, uint256 _sweep_amount) = flag
             ? (_amount0, _amount1)
@@ -249,7 +248,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
                     token1: token1,
-                    fee: poolFee,
+                    fee: amm.poolFee(),
                     tickLower: minTick,
                     tickUpper: maxTick,
                     amount0Desired: amount0ToMint,

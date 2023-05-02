@@ -27,6 +27,7 @@ Store the output addresses in the .env file
 ### Run the tests:
 The CHAIN_ID in the .env must be 42161 to fork Arbitrum One
 ```
+npx hardhat clean
 npx hardhat coverage
 ```
 or

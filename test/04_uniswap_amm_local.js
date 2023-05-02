@@ -9,6 +9,8 @@ contract("Uniswap AMM - Local", async function () {
     OWNER = addresses.owner;
     USDC_ADDRESS = addresses.usdc;
     USDC_AMOUNT = 100e6;
+    FEE = 500;
+    NEW_FEE = 3000;
     SWEEP_AMOUNT = ethers.utils.parseUnits("80", 18);
     // ------------- Deployment of contracts -------------
     Token = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
@@ -18,13 +20,25 @@ contract("Uniswap AMM - Local", async function () {
     sweep = await Sweep.attach(addresses.sweep);
 
     UniswapAMM = await ethers.getContractFactory("UniswapAMM");
-    amm = await UniswapAMM.deploy(addresses.sweep);
+    amm = await UniswapAMM.deploy(addresses.sweep, FEE);
 
     user = await impersonate(USDC_ADDRESS);
     await usdc.connect(user).transfer(OWNER, USDC_AMOUNT)
   });
 
   describe("main functions", async function() {
+    it("sets a new pool fee correctly", async function() {
+        expect(await amm.poolFee()).to.be.equal(FEE);
+
+        await expect(amm.setPoolFee(NEW_FEE))
+            .to.be.revertedWithCustomError(UniswapAMM, 'OnlyAdmin');
+
+        user = await impersonate(sweep_owner);
+        await amm.connect(user).setPoolFee(NEW_FEE);
+
+        expect(await amm.poolFee()).to.be.equal(NEW_FEE);
+    });
+
     it("buys 5 sweep correctly", async function() {
         user = await impersonate(OWNER);
         sweepBefore = await sweep.balanceOf(OWNER);
