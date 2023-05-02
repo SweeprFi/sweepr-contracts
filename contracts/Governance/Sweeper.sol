@@ -13,9 +13,9 @@ import "../Sweep/ISweep.sol";
 import "../Sweep/TransferApprover/ITransferApprover.sol";
 
 contract SWEEPER is ERC20, ERC20Burnable, Pausable, Ownable, ERC20Permit, ERC20Votes {
-    ISweep private SWEEP;
-    ITransferApprover private transferApprover;
-    Treasury private treasury;
+    ISweep public SWEEP;
+    ITransferApprover public transferApprover;
+    Treasury public treasury;
 
     /// @notice If mintBurnAddress is set, we can only mint and burn with transactions from this address
     /// This will allow us to control batch sales
@@ -111,27 +111,29 @@ contract SWEEPER is ERC20, ERC20Burnable, Pausable, Ownable, ERC20Permit, ERC20V
     /* ========== RESTRICTED FUNCTIONS ========== */
 
     function setSWEEP(address sweepAddress) external onlyOwner {
-        require(sweepAddress != address(0), "Zero address detected");
+        if(sweepAddress == address(0)) revert ZeroAddressDetected();
 
         SWEEP = ISweep(sweepAddress);
         emit SWEEPSet(sweepAddress);
     }
 
     function setTransferApprover(address approverAddress) external onlyOwner {
-        require(approverAddress != address(0), "Zero address detected");
+        if(approverAddress == address(0)) revert ZeroAddressDetected();
 
         transferApprover = ITransferApprover(approverAddress);
         emit ApproverSet(approverAddress);
     }
 
     function setTreasury(address payable treasuryAddress) external onlyOwner {
-        require(treasuryAddress != address(0), "Zero address detected");
+        if(treasuryAddress == address(0)) revert ZeroAddressDetected();
 
         treasury = Treasury(treasuryAddress);
         emit TreasurySet(treasuryAddress);
     }
 
     function setMintBurnAddress(address newMintBurnAddress) external onlyOwner {
+        if(newMintBurnAddress == address(0)) revert ZeroAddressDetected();
+
         mintBurnAddress = newMintBurnAddress;
         emit mintBurnAddressSet(newMintBurnAddress);
     }
@@ -221,4 +223,5 @@ contract SWEEPER is ERC20, ERC20Burnable, Pausable, Ownable, ERC20Permit, ERC20V
     error NotMintBurnAddress();
     error MintNotAllowed();
     error BurnNotAllowed();
+    error ZeroAddressDetected();
 }

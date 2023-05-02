@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 
 contract("Sweeper", async function () {
 	before(async () => {
-		[owner, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
+		[owner, newAddress, newMinter, lzEndpoint, mintBurn] = await ethers.getSigners();
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
@@ -15,6 +15,7 @@ contract("Sweeper", async function () {
 		ZERO = 0;
 
 		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+		old_sweep = await Proxy.deployed();
 		sweep = await Proxy.deployed();
 
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
@@ -23,11 +24,36 @@ contract("Sweeper", async function () {
 		await sweep.setTransferApprover(blacklistApprover.address);
 
     	treasury = await Treasury.deploy(sweep.address);
-		sweeper = await Sweeper.deploy(sweep.address, blacklistApprover.address, treasury.address);
+		sweeper = await Sweeper.deploy(old_sweep.address, blacklistApprover.address, owner.address);
+	});
 
-		await sweep.setTreasury(treasury.address);
+	it('sets new config correctly', async () => {
+		expect(await sweeper.SWEEP()).to.be.equal(old_sweep.address);
+		await expect(sweeper.setSWEEP(ethers.constants.AddressZero))
+			.to.be.revertedWithCustomError(sweeper, "ZeroAddressDetected");
+		await sweeper.setSWEEP(sweep.address);
+		expect(await sweeper.SWEEP()).to.be.equal(sweep.address);
+
+		expect(await sweeper.treasury()).to.be.equal(owner.address);
+		await expect(sweeper.setTreasury(ethers.constants.AddressZero))
+			.to.be.revertedWithCustomError(sweeper, "ZeroAddressDetected");
+		await sweeper.setTreasury(treasury.address);
+		expect(await sweeper.treasury()).to.be.equal(treasury.address);
+
+		expect(await sweeper.mintBurnAddress()).to.be.equal(owner.address);
+		await expect(sweeper.setMintBurnAddress(ethers.constants.AddressZero))
+			.to.be.revertedWithCustomError(sweeper, "ZeroAddressDetected");
+		await sweeper.setMintBurnAddress(mintBurn.address);
+		expect(await sweeper.mintBurnAddress()).to.be.equal(mintBurn.address);
+		await sweeper.setMintBurnAddress(owner.address);
+
+		expect(await sweeper.allowMinting()).to.be.equal(false);
 		await sweeper.setAllowMinting(true);
+		expect(await sweeper.allowMinting()).to.be.equal(true);
+
+		expect(await sweeper.allowBurning()).to.be.equal(false);
 		await sweeper.setAllowBurning(true);
+		expect(await sweeper.allowBurning()).to.be.equal(true);
 	});
 
 	it('reverts buy Sweeper when treasury percent is greater than target treasury', async () => {
@@ -51,10 +77,18 @@ contract("Sweeper", async function () {
               .to.be.revertedWithCustomError(Sweeper, 'NotAdmin');
 	});
 
-	it('buys Sweeper', async () => {
+	it('can not buys Sweeper when contract has been paused', async () => {
 		// set target treasury to 10%
 		await sweeper.setTargetTreasury(100000);
+		await sweeper.pause();
 
+		await sweep.connect(owner).approve(sweeper.address, TRANSFER_AMOUNT);
+		await expect(sweeper.connect(owner).buySWEEPER(TRANSFER_AMOUNT))
+			.to.be.revertedWith("Pausable: paused");
+	});
+
+	it('buys Sweeper', async () => {
+		await sweeper.unpause();
 		expect(await sweeper.balanceOf(owner.address)).to.equal(ZERO);
 
 		treasurySweep = await sweep.balanceOf(treasury.address);
