@@ -19,13 +19,19 @@ contract UniswapAMM is Owned {
     // Uniswap v3
     ISwapRouter public constant uniV3Router =
         ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    uint24 public poolFee;
 
-    constructor(address _sweep_address) 
+    constructor(address _sweep_address, uint24 _pool_fee)
         Owned(_sweep_address)
-    {}
+    {
+        poolFee = _pool_fee; // Fees are 500(0.05%), 3000(0.3%), 10000(1%)
+    }
 
     event Bought(uint256 usdx_amount);
     event Sold(uint256 sweep_amount);
+    event PoolFeeChanged(uint24 poolFee);
+
+    error OverZero();
 
     /* ========== Actions ========== */
 
@@ -99,7 +105,7 @@ contract UniswapAMM is Owned {
             .ExactInputSingleParams({
                 tokenIn: _tokenA,
                 tokenOut: _tokenB,
-                fee: 3000,
+                fee: poolFee,
                 recipient: msg.sender,
                 deadline: block.timestamp + 200,
                 amountIn: _amountIn,
@@ -108,5 +114,12 @@ contract UniswapAMM is Owned {
             });
 
         amountOut = uniV3Router.exactInputSingle(swap_params);
+    }
+
+    function setPoolFee(uint24 _pool_fee) external onlyAdmin {
+        if(_pool_fee == 0) revert OverZero();
+
+        poolFee = _pool_fee;
+        emit PoolFeeChanged(poolFee);
     }
 }
