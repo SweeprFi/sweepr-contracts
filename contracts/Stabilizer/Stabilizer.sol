@@ -778,7 +778,10 @@ contract Stabilizer {
      * @notice Calculate the amount USD that are equivalent to the USDX input.
      **/
     function _USDXtoUSD(uint256 _usdx_amount) internal view returns (uint256) {
-        (, int256 price, , , ) = usd_oracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = usd_oracle.latestRoundData();
+        if(price == 0) revert ZeroPrice();
+        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+
         return ((_usdx_amount * uint256(price)) / (10 ** (usd_oracle.decimals())));
     }
 
@@ -786,7 +789,10 @@ contract Stabilizer {
      * @notice Calculate the amount USDX that are equivalent to the USD input.
      **/
     function _USDtoUSDX(uint256 _usdx_amount) internal view returns (uint256) {
-        (, int256 price, , , ) = usd_oracle.latestRoundData();
+        (, int256 price, , uint256 updatedAt, ) = usd_oracle.latestRoundData();
+        if(price == 0) revert ZeroPrice();
+        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+
         return ((_usdx_amount * (10 ** (usd_oracle.decimals()))) / uint256(price));
     }
 }
