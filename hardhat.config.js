@@ -37,8 +37,8 @@ module.exports = {
 			forking: {
 				// url: "https://eth-goerli.alchemyapi.io/v2/"  + process.env.ALCHEMY_KEY, // Goerli
 				// url: "https://eth-mainnet.alchemyapi.io/v2/"  + process.env.ALCHEMY_KEY, // Mainnet
-				// url: "https://arb-goerli.g.alchemy.com/v2/" + process.env.ARBITRUM_KEY, // Goerli-Arbitrum
-				url: "https://arb-mainnet.g.alchemy.com/v2/" + process.env.ARBITRUM_MAIN_KEY, // Arbitrum-Mainnet
+				// url: "https://arb-goerli.g.alchemy.com/v2/" + process.env.ALCHEMY_KEY, // Goerli-Arbitrum
+				url: "https://arb-mainnet.g.alchemy.com/v2/" + process.env.ALCHEMY_KEY, // Arbitrum-Mainnet
 				// blockNumber: 20005467
 			}
 		},
@@ -60,7 +60,7 @@ module.exports = {
 			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
 		},
 		arbitrum: {
-			url: "https://arb-mainnet.g.alchemy.com/v2/" + process.env.ARBITRUM_MAIN_KEY,
+			url: "https://arb-mainnet.g.alchemy.com/v2/" + process.env.ALCHEMY_KEY,
 			gas: 10000000,
 			chainId: 42161,
 			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
