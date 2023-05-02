@@ -15,7 +15,7 @@ contract("Balancer - Local", async function () {
 		sweep = await SweepProxy.deployed();
 
 		Balancer = await ethers.getContractFactory("Balancer");
-		balancer = await Balancer.deploy(sweep.address, addresses.usdc);
+		balancer = await Balancer.deploy(sweep.address, addresses.usdc, owner.address);
 
 		await sweep.connect(owner).setBalancer(balancer.address);
 	});

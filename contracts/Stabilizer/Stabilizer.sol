@@ -80,8 +80,10 @@ contract Stabilizer {
     event Divested(uint256 indexed usdx_amount, uint256 indexed sweep_amount);
     event Liquidated(address indexed user);
 
-    event RepaymentCalled(uint256 indexed sweep_amount);
+    event AutoCalled(uint256 indexed sweep_amount);
     event AutoInvested(uint256 indexed sweep_amount);
+    event CallCancelled(uint256 indexed sweep_amount);
+    
 
     event ConfigurationChanged(
         int256 indexed min_equity_ratio,
@@ -112,6 +114,9 @@ contract Stabilizer {
     error NotDefaulted();
     error ZeroPrice();
     error StalePrice();
+    error NotAutoInvest();
+    error NotAutoInvesMinAMount();
+    error NotAutoInvestMinRatio();
 
     /* ========== Modifies ========== */
 
@@ -275,23 +280,12 @@ contract Stabilizer {
     }
 
     /**
-     * @notice Set Loan Limit.
-     * @param _new_loan_limit.
-     * @dev How much debt an Stabilizer can take in SWEEP.
-     */
-    function setLoanLimit(uint256 _new_loan_limit) external onlyAdmin {
-        loan_limit = _new_loan_limit;
-
-        emit LoanLimitChanged(_new_loan_limit);
-    }
-
-    /**
      * @notice Configure intial settings
      * @param _min_equity_ratio The minimum equity ratio can be negative.
      * @param _spread_fee The fee that the protocol will get for providing the loan when the stabilizer takes debt
      * @param _loan_limit How much debt a Stabilizer can take in SWEEP.
      * @param _liquidator_discount A percentage that will be discounted in favor to the liquidator when the stabilizer is liquidated
-     * @param _call_delay Time in seconds after a repaymentCall until the Stabilizer gets defaulted if the debt is not paid in that period
+     * @param _call_delay Time in seconds after AutoCall until the Stabilizer gets defaulted if the debt is not paid in that period
      * @param _auto_invest_min_ratio Minimum equity ratio that should be kept to allow the execution of an auto invest
      * @param _auto_invest_min_amount Minimum amount to be invested to allow the execution of an auto invest
      * @param _auto_invest Represents if an auto invest execution is allowed or not
@@ -412,15 +406,26 @@ contract Stabilizer {
     }
 
     /**
-     * @notice Repayment Call.
+     * @notice Set Loan Limit.
+     * @param _new_loan_limit.
+     * @dev How much debt an Stabilizer can take in SWEEP.
+     */
+    function setLoanLimit(uint256 _new_loan_limit) external onlyBalancer {
+        loan_limit = _new_loan_limit;
+
+        emit LoanLimitChanged(_new_loan_limit);
+    }
+
+    /**
+     * @notice Auto Call.
      * @param _sweep_amount to repay.
      * @dev Strategy:
      * 1) repays debt with SWEEP balance
      * 2) repays remaining debt by divesting
      * 3) repays remaining debt by buying on SWEEP in the AMM
      */
-    function repaymentCall(uint256 _sweep_amount) external onlyBalancer {
-        uint256 missing_usdx;
+    function autoCall(uint256 _sweep_amount) external onlyBalancer {
+        uint256 missing_usdx = 0;
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
 
         if (call_delay > 0) call_time = block.timestamp + call_delay;
@@ -437,7 +442,17 @@ contract Stabilizer {
         if (missing_usdx > 0) call_amount = _buy(missing_usdx, 0);
         if (call_amount > 0) _repay(call_amount);
 
-        emit RepaymentCalled(_sweep_amount);
+        emit AutoCalled(_sweep_amount);
+    }
+
+    /**
+     * @notice Cancel Call
+     * @dev Cancels the auto call request by clearing variables for an asset that has a call_delay: meaning that it does not autorepay.
+     */
+    function cancelCall() external onlyAdmin {
+        emit CallCancelled(call_amount);
+        call_amount = 0;
+        call_time = 0;
     }
 
     /**
@@ -445,16 +460,20 @@ contract Stabilizer {
      * @param _sweep_amount to mint.
      */
     function autoInvest(uint256 _sweep_amount) external onlyBalancer {
-        uint256 sweep_to_limit = _sweep_amount + sweep_borrowed;
-        if (sweep_to_limit > loan_limit) loan_limit = sweep_to_limit;
+        uint256 sweep_limit = sweep.minters(address(this)).max_amount;
+        uint256 sweep_available = sweep_limit - sweep_borrowed;
+        _sweep_amount = _min(_sweep_amount, sweep_available);
         int256 current_equity_ratio = _calculateEquityRatio(_sweep_amount, 0);
-        if (current_equity_ratio >= auto_invest_min_ratio) {
-            _borrow(_sweep_amount);
-            uint256 usdx_amount = _sell(_sweep_amount, 0);
-            _invest(usdx_amount, 0);
 
-            emit AutoInvested(_sweep_amount);
-        }
+        if(!auto_invest) revert NotAutoInvest();
+        if(_sweep_amount < auto_invest_min_amount) revert NotAutoInvesMinAMount();
+        if(current_equity_ratio < auto_invest_min_ratio) revert NotAutoInvestMinRatio();
+
+        _borrow(_sweep_amount);
+        uint256 usdx_amount = _sell(_sweep_amount, 0);
+        _invest(usdx_amount, 0);
+
+        emit AutoInvested(_sweep_amount);
     }
 
     /**
