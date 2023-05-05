@@ -226,8 +226,9 @@ contract Stabilizer {
     function currentValue() public view virtual returns (uint256) {
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
         uint256 sweep_balance_in_usd = sweep.convertToUSD(sweep_balance);
+        uint256 accrued_fee_in_usd = sweep.convertToUSD(accruedFee());
 
-        return (_USDXtoUSD(usdx_balance) + sweep_balance_in_usd);
+        return (_USDXtoUSD(usdx_balance) + sweep_balance_in_usd - accrued_fee_in_usd);
     }
 
     /**
@@ -247,7 +248,7 @@ contract Stabilizer {
      */
     function getLiquidationValue() public view returns (uint256) {
         return
-            sweep.convertToSWEEP(
+            accruedFee() + sweep.convertToSWEEP(
                 (currentValue() * (1e6 - liquidator_discount)) / PRECISION
             );
     }
@@ -447,7 +448,8 @@ contract Stabilizer {
 
     /**
      * @notice Cancel Call
-     * @dev Cancels the auto call request by clearing variables for an asset that has a call_delay: meaning that it does not autorepay.
+     * @dev Cancels the auto call request by clearing variables for an asset 
+     * that has a call_delay: meaning that it does not autorepay.
      */
     function cancelCall() external onlyAdmin {
         emit CallCancelled(call_amount);
@@ -628,7 +630,7 @@ contract Stabilizer {
             sweep_to_liquidate
         );
 
-        _repay(_min(sweep_to_liquidate, getDebt()));
+        _repay(sweep_to_liquidate);
 
         emit Liquidated(msg.sender);
     }
@@ -779,7 +781,7 @@ contract Stabilizer {
      **/
     function _USDXtoUSD(uint256 _usdx_amount) internal view returns (uint256) {
         (, int256 price, , uint256 updatedAt, ) = usd_oracle.latestRoundData();
-        if(price == 0) revert ZeroPrice();
+        if(price <= 0) revert ZeroPrice();
         if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
 
         return ((_usdx_amount * uint256(price)) / (10 ** (usd_oracle.decimals())));
@@ -790,7 +792,7 @@ contract Stabilizer {
      **/
     function _USDtoUSDX(uint256 _usdx_amount) internal view returns (uint256) {
         (, int256 price, , uint256 updatedAt, ) = usd_oracle.latestRoundData();
-        if(price == 0) revert ZeroPrice();
+        if(price <= 0) revert ZeroPrice();
         if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
 
         return ((_usdx_amount * (10 ** (usd_oracle.decimals()))) / uint256(price));

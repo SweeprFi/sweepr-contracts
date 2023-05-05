@@ -122,10 +122,12 @@ contract("Stabilizer's waterfall workflow", async function () {
       it("simulates change of usdx for sweep and 10% interest", async function () {
         await sweep.setCollateralAgent(borrower.address);
 
-        amount = ethers.utils.parseUnits("10", 18);
-        await sweep.transfer(wallet.address, amount.mul(2));
-        await offChainAsset.connect(borrower).updateValue(amount.mul(11));
-        expect(await sweep.balanceOf(wallet.address)).to.equal(amount.mul(11));
+        amount = ethers.utils.parseUnits("20", 18);
+        await sweep.transfer(wallet.address, amount);
+        balance = await sweep.balanceOf(wallet.address);
+        balance = await sweep.convertToUSD(balance);
+
+        await offChainAsset.connect(borrower).updateValue(balance);
       });
 
       it("repays less than the senior debt, buys sweeps and burns it", async function () {
@@ -135,7 +137,7 @@ contract("Stabilizer's waterfall workflow", async function () {
         expect(await sweep.balanceOf(offChainAsset.address)).to.equal(amount);
 
         await offChainAsset.connect(borrower).repay(amount);
-        expect(await offChainAsset.getEquityRatio()).to.equal(999999); // 99%
+        expect(await offChainAsset.getEquityRatio()).to.equal(909090); // 90%
       });
 
       it("repays more than the senior debt", async function () {
