@@ -12,6 +12,7 @@ contract("Stabilizer - Management Functions", async function () {
     autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
     autoInvest = true;
     ZERO = 0;
+    ADDRESS_ZERO = ethers.constants.AddressZero;
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
@@ -23,11 +24,11 @@ contract("Stabilizer - Management Functions", async function () {
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
-    Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address);
-
     USDOracle = await ethers.getContractFactory("AggregatorMock");
     usdOracle = await USDOracle.deploy();
+
+    Uniswap = await ethers.getContractFactory("UniswapMock");
+    amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
     // ------------- Initialize context -------------
@@ -37,8 +38,7 @@ contract("Stabilizer - Management Functions", async function () {
       usdx.address,
       wallet.address,
       amm.address,
-      owner.address,
-      usdOracle.address
+      owner.address
     );
 
     await usdx.connect(borrower).approve(offChainAsset.address, 10000e6);

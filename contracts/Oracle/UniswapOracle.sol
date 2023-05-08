@@ -17,7 +17,7 @@ import '../Utils/Uniswap/V3/libraries/FullMath.sol';
 import '../Utils/Uniswap/V3/libraries/FixedPoint128.sol';
 import "../Common/Owned.sol";
 import "../Common/ERC20/IERC20Metadata.sol";
-import "../Oracle/ChainlinkUSDPricer.sol";
+import "../Oracle/ChainlinkPricer.sol";
 
 contract UniswapOracle is Owned {
     using SafeMath for uint256;
@@ -30,23 +30,26 @@ contract UniswapOracle is Owned {
     // AggregatorV3Interface stuff
     string public description = "Uniswap Oracle";
     uint256 public version = 1;
-    ChainlinkUSDPricer private usd_oracle;
+    ChainlinkPricer private usd_oracle;
 
     uint32 public lookback_secs = 3600 * 24; // 1 day
+    uint256 private constant USDC_FREQUENCY = 1 days;
 
     /* ========== Errors ========== */
     error ZeroPrice();
     error StalePrice();
+    error SequencerDown();
 
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
         address _sweep_address, 
         address _pool_address,
-        address _usd_oracle_address
+        address _usd_oracle_address,
+        address _sequencer_feed_address
     ) Owned(_sweep_address) {
         _setUniswapPool(_pool_address);
-        usd_oracle = ChainlinkUSDPricer(_usd_oracle_address);
+        usd_oracle = new ChainlinkPricer(_usd_oracle_address, _sequencer_feed_address);
     }
 
     /* ========== VIEWS ========== */
@@ -124,7 +127,6 @@ contract UniswapOracle is Owned {
      */
     function getPrice() public view returns (uint256 amount_out) {
         (uint160 sqrtRatioX96, , , , , , ) = pool.slot0();
-
         uint256 quote = getQuote(
             sqrtRatioX96,
             uint128(10**pricing_token.decimals()),
@@ -132,7 +134,7 @@ contract UniswapOracle is Owned {
             address(base_token)
         );
 
-        amount_out = (quote * uint256(usd_oracle.getLatestPrice())) / (10 ** (usd_oracle.getDecimals()));
+        amount_out = (quote * uint256(usd_oracle.getLatestPrice(USDC_FREQUENCY))) / (10 ** (usd_oracle.getDecimals()));
     }
 
     /**
@@ -141,7 +143,7 @@ contract UniswapOracle is Owned {
      */
 
     function getTWAPrice() public view returns (uint256 amount_out) {
-        uint256 price = uint256(usd_oracle.getLatestPrice());
+        uint256 price = uint256(usd_oracle.getLatestPrice(USDC_FREQUENCY));
 
         // Get the average price tick first
         (int24 arithmeticMeanTick, ) = OracleLibrary.consult(

@@ -19,4 +19,8 @@ interface IAMM {
         returns (uint256);
 
     function poolFee() external view returns (uint24);
+
+    function usdOracle() external view returns(address);
+    
+    function sequencerUptimeFeed() external view returns(address);
 }

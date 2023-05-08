@@ -12,14 +12,17 @@ pragma experimental ABIEncoderV2;
  */
 
 import "../Stabilizer/Stabilizer.sol";
-import "../Oracle/AggregatorV3Interface.sol";
+import "../Oracle/ChainlinkPricer.sol";
 
 contract TokenAsset is Stabilizer {
     // Variables
-    IERC20Metadata public token;
+    IERC20Metadata private immutable token;
 
     // Oracle to fetch price token / base
-    AggregatorV3Interface private immutable token_oracle;
+    ChainlinkPricer private immutable token_oracle;
+
+    // WETH and WBTC has the same frequency - check others
+    uint256 private constant TOKEN_FREQUENCY = 1 days;
 
     constructor(
         string memory _name,
@@ -28,20 +31,18 @@ contract TokenAsset is Stabilizer {
         address _token_address,
         address _token_oracle_address,
         address _amm_address,
-        address _borrower,
-        address _usd_oracle_address
+        address _borrower
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
             _amm_address,
-            _borrower,
-            _usd_oracle_address
+            _borrower
         )
     {
         token = IERC20Metadata(_token_address);
-        token_oracle = AggregatorV3Interface(_token_oracle_address);
+        token_oracle = new ChainlinkPricer(_token_oracle_address, amm.sequencerUptimeFeed());
     }
 
     /* ========== Views ========== */
@@ -61,15 +62,12 @@ contract TokenAsset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         uint256 token_balance = token.balanceOf(address(this));
-        (, int256 price, , uint256 updatedAt, ) = token_oracle.latestRoundData();
-
-        if(price == 0) revert ZeroPrice();
-        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+        int256 price = token_oracle.getLatestPrice(TOKEN_FREQUENCY);
 
         uint256 usdx_amount = (token_balance *
             uint256(price) *
             10 ** usdx.decimals()) /
-            (10 ** (token.decimals() + token_oracle.decimals()));
+            (10 ** (token.decimals() + token_oracle.getDecimals()));
 
         return usdx_amount;
     }
@@ -118,13 +116,10 @@ contract TokenAsset is Stabilizer {
     }
 
     function _divest(uint256 _usdx_amount) internal override {
-        (, int256 price, , uint256 updatedAt, ) = token_oracle.latestRoundData();
-
-        if(price == 0) revert ZeroPrice();
-        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+        int256 price = token_oracle.getLatestPrice(TOKEN_FREQUENCY);
 
         uint256 token_amount = (_usdx_amount *
-            (10 ** (token.decimals() + token_oracle.decimals()))) /
+            (10 ** (token.decimals() + token_oracle.getDecimals()))) /
             (uint256(price) * 10 ** usdx.decimals());
 
         uint256 token_balance = token.balanceOf(address(this));

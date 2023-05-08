@@ -15,6 +15,7 @@ contract('GLP Asset - Local', async () => {
     before(async () => {
         [lzEndpoint] = await ethers.getSigners();
         BORROWER = addresses.multisig;
+        ADDRESS_ZERO = ethers.constants.AddressZero;
 
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
@@ -24,11 +25,11 @@ contract('GLP Asset - Local', async () => {
         ERC20 = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
         usdx = await ERC20.attach(addresses.usdc);
 
-        Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address);
-
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
+
+        Uniswap = await ethers.getContractFactory("UniswapMock");
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
 
         Asset = await ethers.getContractFactory("GlpAsset");
         asset = await Asset.deploy(
@@ -38,8 +39,7 @@ contract('GLP Asset - Local', async () => {
             addresses.glp_reward_router,
             addresses.oracle_weth_usd,
             amm.address,
-            addresses.multisig,
-            usdOracle.address
+            addresses.multisig
         );
 
         reward_token_address = await asset.reward_token();

@@ -7,7 +7,7 @@ pragma solidity 0.8.16;
 
 import "./Compound/IcUSDC.sol";
 import "./Compound/ICompComptroller.sol";
-import "../Oracle/AggregatorV3Interface.sol";
+import "../Oracle/ChainlinkPricer.sol";
 import "../Common/ERC20/Variants/Comp.sol";
 import "../Stabilizer/Stabilizer.sol";
 
@@ -18,12 +18,14 @@ import "../Stabilizer/Stabilizer.sol";
 
 contract CompV2Asset is Stabilizer {
     // Variables
-    IcUSDC public cUSDC;
-    Comp public comp;
+    IcUSDC private immutable cUSDC;
+    Comp private immutable comp;
     ICompComptroller private immutable compController;
 
     // Oracle to fetch price COMP / USDC
-    AggregatorV3Interface private immutable compOracle;
+    ChainlinkPricer private immutable compOracle;
+
+    uint256 private constant COMP_FREQUENCY = 1 hours;
 
     // Events
     event Collected(address reward, uint256 amount);
@@ -35,23 +37,22 @@ contract CompV2Asset is Stabilizer {
         address _compound_address,
         address _cusdc_address,
         address _controller_address,
+        address _oracle_comp_address,
         address _amm_address,
-        address _borrower,
-        address _usd_oracle_address
+        address _borrower
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
             _amm_address,
-            _borrower,
-            _usd_oracle_address
+            _borrower
         )
     {
         cUSDC = IcUSDC(_cusdc_address);
         comp = Comp(_compound_address);
         compController = ICompComptroller(_controller_address);
-        compOracle = AggregatorV3Interface(0xdbd020CAeF83eFd542f4De03e3cF0C28A4428bd5);
+        compOracle = new ChainlinkPricer(_oracle_comp_address, amm.sequencerUptimeFeed());
     }
 
     /* ========== Views ========== */
@@ -71,14 +72,11 @@ contract CompV2Asset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         uint256 comp_balance = comp.balanceOf(address(this));
-        (, int256 answer, , uint256 updatedAt, ) = compOracle.latestRoundData();
-
-        if(answer == 0) revert ZeroPrice();
-        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+        int256 answer = compOracle.getLatestPrice(COMP_FREQUENCY);
 
         comp_balance =
             (comp_balance * uint256(answer) * 10 ** usdx.decimals()) /
-            (10 ** (comp.decimals() + compOracle.decimals()));
+            (10 ** (comp.decimals() + compOracle.getDecimals()));
         uint256 usdx_amount = getAllocation();
 
         return usdx_amount + comp_balance;

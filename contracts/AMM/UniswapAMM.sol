@@ -20,11 +20,20 @@ contract UniswapAMM is Owned {
     ISwapRouter public constant uniV3Router =
         ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
     uint24 public poolFee;
+    address public immutable usdOracle;
+    address public immutable sequencerUptimeFeed;
 
-    constructor(address _sweep_address, uint24 _pool_fee)
+    constructor(
+        address _sweep_address,
+        uint24 _pool_fee,
+        address _usd_oracle_address,
+        address _sequencer_address
+    )
         Owned(_sweep_address)
     {
         poolFee = _pool_fee; // Fees are 500(0.05%), 3000(0.3%), 10000(1%)
+        usdOracle = _usd_oracle_address;
+        sequencerUptimeFeed = _sequencer_address;
     }
 
     event Bought(uint256 usdx_amount);

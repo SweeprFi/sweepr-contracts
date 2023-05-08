@@ -20,6 +20,7 @@ contract('Aave V3 Asset - Local', async () => {
         autoInvestMinEquityRatio = 10e4; // 10%
         autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
         autoInvest = true;
+        ADDRESS_ZERO = ethers.constants.AddressZero;
 
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
@@ -30,11 +31,11 @@ contract('Aave V3 Asset - Local', async () => {
         usdx = await ERC20.attach(addresses.usdc);
         aave_usdx = await ERC20.attach(addresses.aave_usdc);
 
-        Uniswap = await ethers.getContractFactory("UniswapMock");
-        uniswap_amm = await Uniswap.deploy(sweep.address);
-
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
+
+        Uniswap = await ethers.getContractFactory("UniswapMock");
+        uniswap_amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
 
         AaveAsset = await ethers.getContractFactory("AaveV3Asset");
         aaveAsset = await AaveAsset.deploy(
@@ -44,8 +45,7 @@ contract('Aave V3 Asset - Local', async () => {
             addresses.aave_usdc,
             addresses.aaveV3_pool,
             uniswap_amm.address,
-            addresses.multisig,
-            usdOracle.address
+            addresses.multisig
         );
 
         // add asset as a minter

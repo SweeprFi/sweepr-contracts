@@ -15,16 +15,18 @@ import "./GMX/IGlpManager.sol";
 import "./GMX/IRewardRouter.sol";
 import "./GMX/IRewardTracker.sol";
 import "../Stabilizer/Stabilizer.sol";
-import "../Oracle/AggregatorV3Interface.sol";
+import "../Oracle/ChainlinkPricer.sol";
 
 contract GlpAsset is Stabilizer {
     // Variables
-    IRewardRouter private rewardRouter;
-    IGlpManager private glpManager;
-    IRewardTracker private stakedGlpTracker;
-    IRewardTracker private feeGlpTracker;
-    AggregatorV3Interface private immutable reward_oracle;
-    IERC20Metadata public reward_token;
+    IRewardRouter private immutable rewardRouter;
+    IGlpManager private immutable glpManager;
+    IRewardTracker private immutable stakedGlpTracker;
+    IRewardTracker private immutable feeGlpTracker;
+    ChainlinkPricer private immutable reward_oracle;
+    IERC20Metadata public immutable reward_token;
+
+    uint256 private constant REWARDS_FREQUENCY = 1 days;
 
     // Events
     event Collected(address reward, uint256 amount);
@@ -36,19 +38,17 @@ contract GlpAsset is Stabilizer {
         address _reward_router_address,
         address _reward_oracle_oracle_address,
         address _amm_address,
-        address _borrower,
-        address _usd_oracle_address
+        address _borrower
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
             _amm_address,
-            _borrower,
-            _usd_oracle_address
+            _borrower
         )
     {
-        reward_oracle = AggregatorV3Interface(_reward_oracle_oracle_address);
+        reward_oracle = new ChainlinkPricer(_reward_oracle_oracle_address, amm.sequencerUptimeFeed());
         rewardRouter = IRewardRouter(_reward_router_address);
         glpManager = IGlpManager(rewardRouter.glpManager());
         stakedGlpTracker = IRewardTracker(rewardRouter.stakedGlpTracker());
@@ -79,15 +79,12 @@ contract GlpAsset is Stabilizer {
 
         // Get reward in USD
         uint256 reward = feeGlpTracker.claimable(address(this));
-        (, int256 price, , uint256 updatedAt, ) = reward_oracle.latestRoundData();
-
-        if(price == 0) revert ZeroPrice();
-        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+        int256 price = reward_oracle.getLatestPrice(REWARDS_FREQUENCY);
 
         uint256 reward_in_usd = (reward *
             uint256(price) *
             10 ** usdx.decimals()) /
-            (10 ** (reward_token.decimals() + reward_oracle.decimals()));
+            (10 ** (reward_token.decimals() + reward_oracle.getDecimals()));
 
         return staked_in_usd + reward_in_usd;
     }

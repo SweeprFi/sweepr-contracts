@@ -16,6 +16,7 @@ contract("Off-Chain Asset - Settings", async function () {
 		autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
 		autoInvest = true;
 		DELAY = 3; // 3 days
+		ADDRESS_ZERO = ethers.constants.AddressZero;
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
@@ -25,11 +26,11 @@ contract("Off-Chain Asset - Settings", async function () {
 		Token = await ethers.getContractFactory("USDCMock");
 		usdx = await Token.deploy();
 
-		Uniswap = await ethers.getContractFactory("UniswapMock");
-		amm = await Uniswap.deploy(sweep.address);
+        USDOracle = await ethers.getContractFactory("AggregatorMock");
+        usdOracle = await USDOracle.deploy();
 
-		USDOracle = await ethers.getContractFactory("AggregatorMock");
-		usdOracle = await USDOracle.deploy();
+        Uniswap = await ethers.getContractFactory("UniswapMock");
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
 
 		OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 		offChainAsset = await OffChainAsset.deploy(
@@ -38,8 +39,7 @@ contract("Off-Chain Asset - Settings", async function () {
 			usdx.address,
 			wallet.address,
 			amm.address,
-			borrower.address,
-			usdOracle.address
+			borrower.address
 		);
 
 		await offChainAsset.connect(borrower).configure(

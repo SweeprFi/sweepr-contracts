@@ -17,6 +17,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     autoInvestMinEquityRatio = 10e4; // 10%
     autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
     autoInvest = true;
+    ADDRESS_ZERO = ethers.constants.AddressZero;
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
@@ -26,11 +27,11 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
-    Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address);
-
     USDOracle = await ethers.getContractFactory("AggregatorMock");
     usdOracle = await USDOracle.deploy();
+
+    Uniswap = await ethers.getContractFactory("UniswapMock");
+    amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
     offChainAsset = await OffChainAsset.deploy(
@@ -39,8 +40,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
       usdx.address,
       wallet.address,
       amm.address,
-      borrower.address,
-      usdOracle.address
+      borrower.address
     );
 
     // ------------- Initialize context -------------
@@ -80,18 +80,18 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     await sweep.setTargetPrice(target_price, 0.9e6);
     
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(109890); // expected 10.989%    
+    expect(equity_ratio.toNumber()).to.equal(109890); // expected 10.98%    
 
     // Sell Sweep
     await st.sellSweepOnAMM(mintAmount, 0);
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(107506); // expected 10.7506%
+    expect(equity_ratio.toNumber()).to.equal(187807); // expected 18.78%
 
     // Set Target Price to 1.2
     target_price = await sweep.target_price();
     await sweep.setTargetPrice(target_price, 1.2e6);
     
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(-189990); // expected -18.999%
+    expect(equity_ratio.toNumber()).to.equal(-82923); // expected -18.99%
   });
 });

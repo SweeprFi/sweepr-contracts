@@ -43,16 +43,14 @@ contract OffChainAsset is Stabilizer {
         address _usdx_address,
         address _wallet,
         address _amm_address,
-        address _borrower,
-        address _usd_oracle_address
+        address _borrower
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
             _amm_address,
-            _borrower,
-            _usd_oracle_address
+            _borrower
         )
     {
         wallet = _wallet;
