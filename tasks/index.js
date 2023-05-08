@@ -17,6 +17,7 @@ task(
     "setExecutorTrustedRemote(chainId) to enable inbound/outbound messages with your other contracts",
     require("./setExecutorTrustedRemote")
 )
+.addParam("targetNetwork", "the target network to set as a trusted remote")
 
 task(
     "setSenderTransferOwnership",

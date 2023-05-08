@@ -17,7 +17,7 @@ import '../Utils/Uniswap/V3/libraries/FullMath.sol';
 import '../Utils/Uniswap/V3/libraries/FixedPoint128.sol';
 import "../Common/Owned.sol";
 import "../Common/ERC20/IERC20Metadata.sol";
-import "../Oracle/AggregatorV3Interface.sol";
+import "../Oracle/ChainlinkUSDPricer.sol";
 
 contract UniswapOracle is Owned {
     using SafeMath for uint256;
@@ -30,7 +30,7 @@ contract UniswapOracle is Owned {
     // AggregatorV3Interface stuff
     string public description = "Uniswap Oracle";
     uint256 public version = 1;
-    AggregatorV3Interface private immutable usd_oracle;
+    ChainlinkUSDPricer private usd_oracle;
 
     uint32 public lookback_secs = 3600 * 24; // 1 day
 
@@ -46,7 +46,7 @@ contract UniswapOracle is Owned {
         address _usd_oracle_address
     ) Owned(_sweep_address) {
         _setUniswapPool(_pool_address);
-        usd_oracle = AggregatorV3Interface(_usd_oracle_address);
+        usd_oracle = ChainlinkUSDPricer(_usd_oracle_address);
     }
 
     /* ========== VIEWS ========== */
@@ -124,10 +124,6 @@ contract UniswapOracle is Owned {
      */
     function getPrice() public view returns (uint256 amount_out) {
         (uint160 sqrtRatioX96, , , , , , ) = pool.slot0();
-        (, int256 price, , uint256 updatedAt, ) = usd_oracle.latestRoundData();
-
-        if(price == 0) revert ZeroPrice();
-        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
 
         uint256 quote = getQuote(
             sqrtRatioX96,
@@ -136,7 +132,7 @@ contract UniswapOracle is Owned {
             address(base_token)
         );
 
-        amount_out = (quote * uint256(price)) / (10 ** (usd_oracle.decimals()));
+        amount_out = (quote * uint256(usd_oracle.getLatestPrice())) / (10 ** (usd_oracle.getDecimals()));
     }
 
     /**

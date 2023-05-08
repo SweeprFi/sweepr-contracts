@@ -8,6 +8,7 @@ async function main() {
   const usdc = addresses.usdc;
   const weth = addresses.weth;
   const oracle_weth_usd = addresses.oracle_weth_usd;
+  const oracle_usdc = addresses.usdc_oracle;
   const uniswap_amm = addresses.uniswap_amm;
   const borrower = addresses.borrower;
 
@@ -22,10 +23,10 @@ async function main() {
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
   const WETHAsset = await ethers.getContractFactory("TokenAsset");
-  const wethAsset = await WETHAsset.deploy(assetName, sweep, usdc, weth, oracle_weth_usd, uniswap_amm, borrower);
+  const wethAsset = await WETHAsset.deploy(assetName, sweep, usdc, weth, oracle_weth_usd, uniswap_amm, borrower, oracle_usdc);
 
   console.log("WETH Asset deployed to:", wethAsset.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${wethAsset.address} "${assetName}" ${sweep} ${usdc} ${weth} ${oracle_weth_usd} ${uniswap_amm} ${borrower}`)
+  console.log(`\nnpx hardhat verify --network ${network.name} ${wethAsset.address} "${assetName}" ${sweep} ${usdc} ${weth} ${oracle_weth_usd} ${uniswap_amm} ${borrower} ${oracle_usdc}`)
 }
 
 main();
