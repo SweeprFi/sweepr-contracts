@@ -107,7 +107,7 @@ async function binary_search() {
     }
     // =================== sends balances to the Tester ===================
     async function sendBalance() {
-        user = await impersonate(addresses.usdc);
+        user = await impersonate(sweepOwner);
         await usdc.connect(user).transfer(tester.address, USDC_AMOUNT);
 
         user = await impersonate(sweepOwner);
