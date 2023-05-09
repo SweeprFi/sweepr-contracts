@@ -16,7 +16,6 @@ contract('Governance - Local', async (accounts) => {
 		USER4 = accounts[5];
 		LZENDPOINT = accounts[6];
 		OWNER_SWEEPER = addresses.owner;
-		APPROVER = '0x59490d4dcC479B3717A6Eb289Db929E125E86eB1'; // approver blacklist
 		MINT_AMOUNT = ethers.utils.parseUnits("100000", 18);
 		SWEEP_AMOUNT = ethers.utils.parseUnits("1400", 18);
 		TRANSFER_AMOUNT = ethers.utils.parseUnits("100", 18);
@@ -42,12 +41,11 @@ contract('Governance - Local', async (accounts) => {
 		Governance = await ethers.getContractFactory("SweepGovernor");
 
 		// deploys
-		sweeper = await SWEEPER.deploy(sweep.address, APPROVER, addresses.treasury);
+		sweeper = await SWEEPER.deploy(sweep.address, addresses.treasury);
 		governance = await Governance.deploy(sweeper.address, addresses.timelock, 10);
 
 		await sweeper.setAllowMinting(true);
 		await sweeper.setAllowBurning(true);
-		await sweeper.setTransferApprover(APPROVER);
 		// Set SWEEPER price to 1: 
 		await sweeper.setSWEEPERPrice(10000);
 

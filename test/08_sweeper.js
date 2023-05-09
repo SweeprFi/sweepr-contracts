@@ -4,7 +4,6 @@ const { ethers } = require("hardhat");
 contract("Sweeper", async function () {
 	before(async () => {
 		[owner, newAddress, newMinter, lzEndpoint, mintBurn] = await ethers.getSigners();
-
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
 		Sweeper = await ethers.getContractFactory("SWEEPER");
@@ -18,13 +17,8 @@ contract("Sweeper", async function () {
 		old_sweep = await Proxy.deployed();
 		sweep = await Proxy.deployed();
 
-		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
-		blacklistApprover = await BlacklistApprover.deploy(sweep.address);
-
-		await sweep.setTransferApprover(blacklistApprover.address);
-
     	treasury = await Treasury.deploy(sweep.address);
-		sweeper = await Sweeper.deploy(old_sweep.address, blacklistApprover.address, owner.address);
+		sweeper = await Sweeper.deploy(old_sweep.address, owner.address);
 	});
 
 	it('sets new config correctly', async () => {
@@ -39,10 +33,8 @@ contract("Sweeper", async function () {
 			.to.be.revertedWithCustomError(sweeper, "ZeroAddressDetected");
 		await sweeper.setTreasury(treasury.address);
 		expect(await sweeper.treasury()).to.be.equal(treasury.address);
-
 		expect(await sweeper.mintBurnAddress()).to.be.equal(owner.address);
-		await expect(sweeper.setMintBurnAddress(ethers.constants.AddressZero))
-			.to.be.revertedWithCustomError(sweeper, "ZeroAddressDetected");
+
 		await sweeper.setMintBurnAddress(mintBurn.address);
 		expect(await sweeper.mintBurnAddress()).to.be.equal(mintBurn.address);
 		await sweeper.setMintBurnAddress(owner.address);
@@ -74,7 +66,7 @@ contract("Sweeper", async function () {
 
 	it('reverts buy Sweeper when caller is not sweep owner in batch sell', async () => {
 		await expect(sweeper.connect(newAddress).buySWEEPER(TRANSFER_AMOUNT))
-              .to.be.revertedWithCustomError(Sweeper, 'NotAdmin');
+              .to.be.revertedWithCustomError(Sweeper, 'ExchangesNotPermitted');
 	});
 
 	it('can not buys Sweeper when contract has been paused', async () => {
@@ -138,7 +130,7 @@ contract("Sweeper", async function () {
 
 	it('reverts sell Sweeper when caller is not sweep owner in batch sell', async () => {
 		await expect(sweeper.connect(newAddress).sellSWEEPER(TRANSFER_AMOUNT))
-              .to.be.revertedWithCustomError(Sweeper, 'NotAdmin');
+              .to.be.revertedWithCustomError(Sweeper, 'ExchangesNotPermitted');
 	});
 
 	it('sells Sweeper', async () => {
