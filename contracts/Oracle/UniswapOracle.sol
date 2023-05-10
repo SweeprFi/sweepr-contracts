@@ -12,6 +12,7 @@ pragma solidity 0.8.16;
 
 import "../Utils/Math/SafeMath.sol";
 import "../Utils/Uniswap/V3/IUniswapV3Pool.sol";
+import "../Utils/Uniswap/V3/libraries/OracleLibrary.sol";
 import '../Utils/Uniswap/V3/libraries/FullMath.sol';
 import '../Utils/Uniswap/V3/libraries/FixedPoint128.sol';
 import "../Common/Owned.sol";
@@ -30,6 +31,8 @@ contract UniswapOracle is Owned {
     string public description = "Uniswap Oracle";
     uint256 public version = 1;
     AggregatorV3Interface private immutable usd_oracle;
+
+    uint32 public lookback_secs = 3600 * 24; // 1 day
 
     /* ========== Errors ========== */
     error ZeroPrice();
@@ -137,6 +140,33 @@ contract UniswapOracle is Owned {
     }
 
     /**
+     * @notice Get TWA Price
+     * @dev Get the quote for selling 1 unit of a token.
+     */
+
+    function getTWAPrice() public view returns (uint256 amount_out) {
+        (, int256 price, , uint256 updatedAt, ) = usd_oracle.latestRoundData();
+        if(price == 0) revert ZeroPrice();
+        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+
+        // Get the average price tick first
+        (int24 arithmeticMeanTick, ) = OracleLibrary.consult(
+            address(pool),
+            lookback_secs
+        );
+
+        // Get the quote for selling 1 unit of a token.
+        uint256 quote = OracleLibrary.getQuoteAtTick(
+            arithmeticMeanTick,
+            uint128(10**pricing_token.decimals()),
+            address(pricing_token),
+            address(base_token)
+        );
+
+        amount_out = (quote * uint256(price)) / (10 ** (usd_oracle.decimals()));
+    }
+
+    /**
      * @notice Get Quote
      * @dev Calculates the amount of quoteToken equivalent to a given amount of baseToken
      * based on the current prices of the two tokens.
@@ -169,6 +199,25 @@ contract UniswapOracle is Owned {
      */
     function setUniswapPool(address _pool_address) public onlyAdmin {
         _setUniswapPool(_pool_address);
+    }
+
+    /**
+     * @notice Increase observation cardinality
+     * @param _num_cardinals New cardinals.
+     */
+    function increaseObservationCardinality(uint16 _num_cardinals)
+        external
+        onlyAdmin
+    {
+        pool.increaseObservationCardinalityNext(_num_cardinals);
+    }
+
+    /**
+     * @notice Set lookback_sec
+     * @param _seconds New seconds.
+     */
+    function setTWAPLookbackSec(uint32 _seconds) external onlyAdmin {
+        lookback_secs = _seconds;
     }
 
     /**
