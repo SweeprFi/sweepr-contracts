@@ -32,6 +32,11 @@ const wallets = {
     5: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
     42161: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
   },
+  hot_wallet: {
+    1: '',
+    5: '',
+    42161: '',
+  },
   treasury: {
     1: '',
     5: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',

@@ -76,15 +76,19 @@ contract Balancer is Owned {
         uint256 current_target_price = SWEEP.target_price();
         uint256 twa_price = SWEEP.twa_price();
         uint256 arb_spread = SWEEP.arb_spread();
-        uint256 arb_price = ((PRICE_PRECISION + arb_spread) * SWEEP.target_price()) /
-            PRICE_PRECISION;
+        
+        uint256 arb_price_upper = ((PRICE_PRECISION + arb_spread) * SWEEP.target_price()) / PRICE_PRECISION;
+        uint256 arb_price_lower = ((PRICE_PRECISION - arb_spread) * SWEEP.target_price()) / PRICE_PRECISION;
+
         uint256 period_time = SWEEP.period_time();
         int256 step_value = SWEEP.step_value();
 
-        if (twa_price > arb_price) {
+        if (twa_price < arb_price_lower) {
+           interest_rate += step_value;
+        }
+
+        if (twa_price > arb_price_upper) {
             interest_rate -= step_value;
-        } else {
-            interest_rate += step_value;
         }
 
         uint256 next_target_price = getNextTargetPrice(
