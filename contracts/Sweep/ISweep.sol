@@ -31,6 +31,8 @@ interface ISweep {
 
     function amm_price() external view returns (uint256);
 
+    function twa_price() external view returns (uint256);
+
     function increaseAllowance(address spender, uint256 addedValue) external returns (bool);
 
     function name() external view returns (string memory);
@@ -54,6 +56,8 @@ interface ISweep {
     function period_time() external view returns (uint256);
 
     function step_value() external view returns (int256);
+
+    function arb_spread() external view returns (uint256);
 
     function setInterestRate(int256 interest_rate) external;
 

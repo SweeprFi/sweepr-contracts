@@ -96,6 +96,15 @@ contract SweepDollarCoin is BaseSweep {
     }
 
     /**
+     * @notice Get Sweep Time Weighted Averate Price
+     * The Sweep Price comes from UniswapOracle.
+     * @return uint256 Sweep price
+     */
+    function twa_price() public view returns (uint256) {
+        return uniswapOracle.getTWAPrice();
+    }
+
+    /**
      * @notice Get Sweep Target Price
      * Target Price will be used to peg the Sweep Price safely.
      * @return uint256 Sweep target price

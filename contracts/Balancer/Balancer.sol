@@ -73,12 +73,15 @@ contract Balancer is Owned {
      */
     function refreshInterestRate() public onlyAdmin {
         int256 interest_rate = SWEEP.interest_rate();
-        uint256 amm_price = SWEEP.amm_price();
         uint256 current_target_price = SWEEP.target_price();
+        uint256 twa_price = SWEEP.twa_price();
+        uint256 arb_spread = SWEEP.arb_spread();
+        uint256 arb_price = ((PRICE_PRECISION + arb_spread) * SWEEP.target_price()) /
+            PRICE_PRECISION;
         uint256 period_time = SWEEP.period_time();
         int256 step_value = SWEEP.step_value();
 
-        if (amm_price > current_target_price) {
+        if (twa_price > arb_price) {
             interest_rate -= step_value;
         } else {
             interest_rate += step_value;
