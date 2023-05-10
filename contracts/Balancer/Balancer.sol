@@ -62,6 +62,8 @@ contract Balancer is Owned {
         address _usdc_address,
         address _hot_wallet
     ) Owned(_sweep_address) {
+        if(_hot_wallet == address(0)) revert ZeroAddress();
+
         hot_wallet = _hot_wallet;
         USDX = IERC20(_usdc_address);
     }
@@ -69,7 +71,7 @@ contract Balancer is Owned {
     /**
      * @notice refresh interest rate weekly.
      */
-    function refreshInterestRate() public onlyAdmin {
+    function refreshInterestRate() external onlyAdmin {
         int256 interest_rate = SWEEP.interest_rate();
         uint256 current_target_price = SWEEP.target_price();
         uint256 twa_price = SWEEP.twa_price();
@@ -144,9 +146,9 @@ contract Balancer is Owned {
      * * @param _amounts new loan limit amounts for each stabilizer,
      */
     function addLoanLimits(
-        address[] memory _stabilizers,
-        uint96[] memory _amounts,
-        bool[] memory _auto_invests
+        address[] calldata _stabilizers,
+        uint96[] calldata _amounts,
+        bool[] calldata _auto_invests
     ) external onlyHotWallet {
         require(_stabilizers.length == _amounts.length, "Wrong data received");
         require(_stabilizers.length == _auto_invests.length, "Wrong data received");
@@ -247,11 +249,10 @@ contract Balancer is Owned {
                 }
             }
 
-            delete limits[_stabilizer];
-            stabilizers[i] = address(0);
-
             unchecked { ++i; }
         }
+
+        removeLoanLimits();
 
         emit BalancerExecuted();
     }

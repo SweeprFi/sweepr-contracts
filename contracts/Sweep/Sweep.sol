@@ -100,7 +100,7 @@ contract SweepDollarCoin is BaseSweep {
      * The Sweep Price comes from UniswapOracle.
      * @return uint256 Sweep price
      */
-    function twa_price() public view returns (uint256) {
+    function twa_price() external view returns (uint256) {
         return uniswapOracle.getTWAPrice();
     }
 

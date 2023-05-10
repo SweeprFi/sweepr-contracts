@@ -145,6 +145,7 @@ contract Stabilizer is Owned, Pausable {
         address _amm_address,
         address _borrower
     ) Owned(_sweep_address) {
+        if(_borrower == address(0)) revert ZeroAddressDetected();
         name = _name;
         usdx = IERC20Metadata(_usdx_address);
         amm = IAMM(_amm_address);
@@ -181,13 +182,14 @@ contract Stabilizer is Owned, Pausable {
      * @return uint256 calculated spread amount.
      */
     function accruedFee() public view returns (uint256) {
-        if (sweep_borrowed == 0) return 0;
-        else {
+        if (sweep_borrowed > 0) {
             uint256 period = block.timestamp - spread_date;
             return
                 (sweep_borrowed * spread_fee * period) /
                 (TIME_ONE_YEAR * PRECISION);
         }
+
+        return 0;
     }
 
     /**
@@ -195,7 +197,7 @@ contract Stabilizer is Owned, Pausable {
      * debt = borrow_amount + spread fee
      * @return uint256 calculated debt amount.
      */
-    function getDebt() public view returns (uint256) {
+    function getDebt() external view returns (uint256) {
         return sweep_borrowed + accruedFee();
     }
 
@@ -379,7 +381,7 @@ contract Stabilizer is Owned, Pausable {
 
         if (spread_amount > 0) {
             TransferHelper.safeTransfer(
-                address(SWEEP),
+                sweep_address,
                 SWEEP.treasury(),
                 spread_amount
             );
@@ -511,7 +513,7 @@ contract Stabilizer is Owned, Pausable {
             address(this),
             _usdx_amount
         );
-        TransferHelper.safeTransfer(address(SWEEP), msg.sender, sweep_amount);
+        TransferHelper.safeTransfer(sweep_address, msg.sender, sweep_amount);
 
         emit BoughtSWEEP(sweep_amount);
     }
@@ -532,7 +534,7 @@ contract Stabilizer is Owned, Pausable {
         if (usdx_amount > usdx_balance) revert NotEnoughBalance();
 
         TransferHelper.safeTransferFrom(
-            address(SWEEP),
+            sweep_address,
             msg.sender,
             address(this),
             _sweep_amount
@@ -553,7 +555,7 @@ contract Stabilizer is Owned, Pausable {
         address _token,
         uint256 _amount
     ) external onlyBorrower whenNotPaused validAmount(_amount) {
-        if (_token != address(SWEEP) && _token != address(usdx))
+        if (_token != sweep_address && _token != address(usdx))
             revert InvalidToken();
 
         if (_amount > IERC20Metadata(_token).balanceOf(address(this)))
@@ -561,7 +563,7 @@ contract Stabilizer is Owned, Pausable {
 
         if (sweep_borrowed > 0) {
             uint256 usdx_amount = _amount;
-            if (_token == address(SWEEP))
+            if (_token == sweep_address)
                 usdx_amount = SWEEP.convertToUSD(_amount);
             int256 current_equity_ratio = _calculateEquityRatio(0, _USDXtoUSD(usdx_amount));
             if (current_equity_ratio < min_equity_ratio)
@@ -595,20 +597,21 @@ contract Stabilizer is Owned, Pausable {
      */
     function _liquidate(address token) internal {
         if (!isDefaulted()) revert NotDefaulted();
+        address self = address(this);
 
         uint256 sweep_to_liquidate = getLiquidationValue();
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
-        uint256 token_balance = IERC20Metadata(token).balanceOf(address(this));
+        uint256 token_balance = IERC20Metadata(token).balanceOf(self);
         // Gives all the assets to the liquidator first
-        TransferHelper.safeTransfer(address(SWEEP), msg.sender, sweep_balance);
+        TransferHelper.safeTransfer(sweep_address, msg.sender, sweep_balance);
         TransferHelper.safeTransfer(address(usdx), msg.sender, usdx_balance);
         TransferHelper.safeTransfer(token, msg.sender, token_balance);
 
         // Takes SWEEP from the liquidator and repays as much debt as it can
         TransferHelper.safeTransferFrom(
-            address(SWEEP),
+            sweep_address,
             msg.sender,
-            address(this),
+            self,
             sweep_to_liquidate
         );
 
@@ -645,7 +648,7 @@ contract Stabilizer is Owned, Pausable {
 
         if (_sweep_amount == 0) revert NotEnoughBalance();
 
-        TransferHelper.safeApprove(address(SWEEP), address(amm), _sweep_amount);
+        TransferHelper.safeApprove(sweep_address, address(amm), _sweep_amount);
         uint256 usdx_amount = amm.sellSweep(
             address(usdx),
             _sweep_amount,
@@ -663,7 +666,7 @@ contract Stabilizer is Owned, Pausable {
 
         if (spread_amount > 0) {
             TransferHelper.safeTransfer(
-                address(SWEEP),
+                sweep_address,
                 SWEEP.treasury(),
                 spread_amount
             );
@@ -697,12 +700,12 @@ contract Stabilizer is Owned, Pausable {
         }
 
         TransferHelper.safeTransfer(
-            address(SWEEP),
+            sweep_address,
             SWEEP.treasury(),
             spread_amount
         );
 
-        TransferHelper.safeApprove(address(SWEEP), address(this), sweep_amount);
+        TransferHelper.safeApprove(sweep_address, address(this), sweep_amount);
         SWEEP.minter_burn_from(sweep_amount);
 
         emit Repaid(sweep_amount);

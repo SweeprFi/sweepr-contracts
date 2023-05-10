@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 interface IcUSDC is IERC20 {
     function decimals() external view returns (uint256);
 
+    // returns 0 = success, otherwise a failure
     function mint(uint256 mintAmount) external returns (uint256);
 
     // redeemAmount = # of cUSDC

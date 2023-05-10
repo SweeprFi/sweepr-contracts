@@ -17,7 +17,7 @@ interface ISweep {
 
     function collateral_agency() external view returns (address);
 
-    function allowance(address owner, address spender) external view returns (uint256);
+    function allowance(address holder, address spender) external view returns (uint256);
 
     function approve(address spender, uint256 amount) external returns (bool);
 
@@ -59,7 +59,7 @@ interface ISweep {
 
     function arb_spread() external view returns (uint256);
 
-    function setInterestRate(int256 interest_rate) external;
+    function setInterestRate(int256 new_interest_rate) external;
 
     function setTargetPrice(uint256 current_target_price, uint256 next_target_price) external;    
 

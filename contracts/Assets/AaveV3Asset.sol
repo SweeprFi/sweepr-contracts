@@ -121,8 +121,8 @@ contract AaveV3Asset is Stabilizer {
         if (aaveUSDX_Token.balanceOf(address(this)) < _usdx_amount)
             _usdx_amount = type(uint256).max;
 
-        aaveV3_Pool.withdraw(address(usdx), _usdx_amount, address(this));
+        uint256 divestedAmount = aaveV3_Pool.withdraw(address(usdx), _usdx_amount, address(this));
 
-        emit Divested(_usdx_amount, 0);
+        emit Divested(divestedAmount, 0);
     }
 }

@@ -16,7 +16,6 @@ contract TransferApproverBlacklist is Owned {
 
     event Blacklisted(address indexed _account);
     event UnBlacklisted(address indexed _account);
-    event AdminChanged(address indexed newAdmin);
 
     /* ========== CONSTRUCTOR ========== */
 

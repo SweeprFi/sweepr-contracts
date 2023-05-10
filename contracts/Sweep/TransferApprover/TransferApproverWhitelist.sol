@@ -12,12 +12,10 @@ import "../../Common/Owned.sol";
  * @dev Allows accounts to be whitelisted by admin role
  */
 contract TransferApproverWhitelist is Owned {
-    address public admin;
     mapping(address => bool) internal whitelisted;
 
     event Whitelisted(address indexed _account);
     event UnWhitelisted(address indexed _account);
-    event AdminChanged(address indexed _newAdmin);
 
     /* ========== CONSTRUCTOR ========== */
 
