@@ -18,6 +18,7 @@ const addresses = {
   owner: wallets.owner[chainId],
   borrower: wallets.borrower[chainId],
   wallet: wallets.wallet[chainId],
+  hot_wallet: wallets.hot_wallet[chainId],
   treasury: wallets.treasury[chainId],
   usdc_holder: wallets.usdc_holder[chainId],
   comp_holder: wallets.comp_holder[chainId],

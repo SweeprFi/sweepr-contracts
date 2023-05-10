@@ -5,6 +5,7 @@ async function main() {
   let deployer = '';
   const sweep = addresses.sweep;
   const usdc = addresses.usdc;
+  const hotWallet = addresses.hot_wallet;
 
   if (network.type === "0") { // local
     [deployer] = await ethers.getSigners();
@@ -16,10 +17,10 @@ async function main() {
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
   const Balancer = await ethers.getContractFactory("Balancer");
-  const balancer = await Balancer.deploy(sweep, usdc);
+  const balancer = await Balancer.deploy(sweep, usdc, hotWallet);
 
   console.log("Balancer deployed to:", balancer.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${balancer.address} ${sweep} ${usdc}`)
+  console.log(`\nnpx hardhat verify --network ${network.name} ${balancer.address} ${sweep} ${usdc} ${hotWallet}`)
 
   const SweepCoin = await ethers.getContractAt("SweepDollarCoin", sweep);
   await SweepCoin.setBalancer(balancer.address);
