@@ -20,8 +20,9 @@ contract Treasury is Owned {
 
     // Events
     event Execute(address indexed to, bytes data);
-    event RecoverEth(uint256 amount);
-    event RecoverSWEEP(uint256 amount);
+    event RecoverEth(address to, uint256 amount);
+    event RecoverSWEEP(address to, uint256 amount);
+    event RecoverToken(address token, address to, uint256 amount);
     event SWEEPERSet(address sweeper);
 
     // Errors
@@ -45,34 +46,22 @@ contract Treasury is Owned {
     receive() external payable {}
 
     /**
-     * @notice Execute encoded data
-     * @param _to address
-     * @param _data Encoded data
-     */
-    function execute(address _to, bytes memory _data) external onlyAdmin {
-        bytes memory returndata = Address.functionCall(_to, _data);
-        if (returndata.length > 0) {
-            require(abi.decode(returndata, (bool)), "Execute failed");
-        }
-
-        emit Execute(_to, _data);
-    }
-
-    /**
-     * @notice Recover Eth
+     * @notice Send Eth
+     * @param _receiver address
      * @param _amount Eth amount
      */
-    function recoverEth(uint256 _amount) external onlyAdmin {
+    function sendEth(address _receiver, uint256 _amount) external onlyAdmin {
         uint256 eth_balance = address(this).balance;
         if (_amount > eth_balance) _amount = eth_balance;
 
-        TransferHelper.safeTransferETH(msg.sender, _amount);
+        TransferHelper.safeTransferETH(_receiver, _amount);
 
-        emit RecoverEth(_amount);
+        emit RecoverEth(_receiver, _amount);
     }
 
     /**
      * @notice Recover SWEEP
+     * @param _receiver address
      * @param _amount SWEEP amount
      */
     function recoverSWEEP(address _receiver, uint256 _amount) external onlySWEEPER {
@@ -81,7 +70,22 @@ contract Treasury is Owned {
 
         TransferHelper.safeTransfer(address(SWEEP), _receiver, _amount);
 
-        emit RecoverSWEEP(_amount);
+        emit RecoverSWEEP(_receiver, _amount);
+    }
+
+    /**
+     * @notice Recover ERC20 Token
+     * @param _token address
+     * @param _receiver address
+     * @param _amount SWEEP amount
+     */
+    function sendToken(address _token, address _receiver, uint256 _amount) external onlyAdmin {
+        uint256 token_balance = IERC20(_token).balanceOf(address(this));
+        if (_amount > token_balance) _amount = token_balance;
+
+        TransferHelper.safeTransfer(_token, _receiver, _amount);
+
+        emit RecoverToken(_token, _receiver, _amount);
     }
 
     /**
