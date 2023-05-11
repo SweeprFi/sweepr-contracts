@@ -13,14 +13,14 @@ contract ChainlinkUSDPricer {
     /**
      * Returns the latest price
      */
-    function getLatestPrice() public view returns (int) {
+    function getLatestPrice() external view returns (int) {
         (uint80 roundID, int price, , uint256 updatedAt, uint80 answeredInRound) = priceFeed.latestRoundData();
         require(price >= 0 && updatedAt!= 0 && answeredInRound >= roundID, "Invalid chainlink price");
         
         return price;
     }
 
-    function getDecimals() public view returns (uint8) {
+    function getDecimals() external view returns (uint8) {
         return priceFeed.decimals();
     }
 }

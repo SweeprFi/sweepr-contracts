@@ -141,9 +141,7 @@ contract UniswapOracle is Owned {
      */
 
     function getTWAPrice() public view returns (uint256 amount_out) {
-        (, int256 price, , uint256 updatedAt, ) = usd_oracle.latestRoundData();
-        if(price == 0) revert ZeroPrice();
-        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
+        uint256 price = uint256(usd_oracle.getLatestPrice());
 
         // Get the average price tick first
         (int24 arithmeticMeanTick, ) = OracleLibrary.consult(
@@ -159,7 +157,7 @@ contract UniswapOracle is Owned {
             address(base_token)
         );
 
-        amount_out = (quote * uint256(price)) / (10 ** (usd_oracle.decimals()));
+        amount_out = (quote * price) / (10 ** (usd_oracle.getDecimals()));
     }
 
     /**
