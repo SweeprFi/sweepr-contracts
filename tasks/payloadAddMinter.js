@@ -21,7 +21,8 @@ module.exports = async function (taskArgs, hre) {
     const localSenderInstance = await ethers.getContractAt("OmnichainProposalSender", senderAddress);
 
     // quote fee with default adapterParams
-    let adapterParams = "0x";
+    let adapterParams = ethers.utils.solidityPack(["uint16", "uint256"], [1, 200000]);
+    console.log("adapter params: ", adapterParams);
 
     let nativeFee = (await localSenderInstance.estimateFees(remoteChainId, payload, adapterParams)).nativeFee;
     console.log(`fees (wei): ${nativeFee} / (eth): ${ethers.utils.formatEther(nativeFee)}`);

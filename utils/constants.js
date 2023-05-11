@@ -57,6 +57,11 @@ const wallets = {
     5: '0x23Ab3E2954Ec5577730B7674f4bA9e78Eb96C4d1',
     42161: '0x23Ab3E2954Ec5577730B7674f4bA9e78Eb96C4d1',
   },
+  hot_wallet: {
+    1: '',
+    5: '',
+    42161: '',
+  },
 }
 
 const tokens = {
@@ -135,6 +140,11 @@ const libraries = {
     1: '',
     5: '0xd652C68ED7e93Adc5616cC61142AeaA262B09326',
     42161: '0x8906DB8CAc58bb12c156eb1f57E5f8EBDCbB2257',
+  },
+  usdc_oracle: {
+    1: '',
+    5: '',
+    42161: '',
   },
   uniswap_factory: {
     1: '0x1F98431c8aD98523631AE4a59f267346ea31F984',

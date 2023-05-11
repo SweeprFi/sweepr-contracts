@@ -12,17 +12,11 @@ module.exports = async function (taskArgs, hre) {
     // get remote chain id
     const remoteChainId = CHAIN_ID[taskArgs.targetNetwork]
 
-    // concat remote and local address
-    let remoteAndLocal = hre.ethers.utils.solidityPack(
-        ['address','address'],
-        [remoteAddress, localAddress]
-    )
-
     try {
-        let tx = await (await localInstance.setTrustedRemote(remoteChainId, remoteAndLocal)).wait()
-        console.log(`✅ [${hre.network.name}] setTrustedRemote(${remoteChainId}, ${remoteAndLocal})`)
+        let tx = await (await localInstance.setTrustedRemoteAddress(remoteChainId, remoteAddress)).wait()
+        console.log(`✅ [${hre.network.name}] setTrustedRemote(${remoteChainId}, ${remoteAddress})`)
         console.log(` tx: ${tx.transactionHash}`)
     } catch (e) {
-        console.log(`❌ [${hre.network.name}] setTrustedRemote(${remoteChainId}, ${remoteAndLocal})`)
+        console.log(`❌ [${hre.network.name}] setTrustedRemote(${remoteChainId}, ${remoteAddress})`)
     }
 }

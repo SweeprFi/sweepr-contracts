@@ -22,7 +22,7 @@ import "../Sweep/ISweep.sol";
 import "../AMM/IAMM.sol";
 import "../Common/ERC20/IERC20Metadata.sol";
 import "../Utils/Uniswap/V3/libraries/TransferHelper.sol";
-import "../Oracle/AggregatorV3Interface.sol";
+import "../Oracle/ChainlinkUSDPricer.sol";
 
 contract Stabilizer {
     // Variables
@@ -49,7 +49,7 @@ contract Stabilizer {
     bool public frozen;
 
     IAMM public amm;
-    AggregatorV3Interface private immutable usd_oracle;
+    ChainlinkUSDPricer private usd_oracle;
 
     // Tokens
     ISweep public sweep;
@@ -170,7 +170,7 @@ contract Stabilizer {
         borrower = _borrower;
         settings_enabled = true;
         frozen = false;
-        usd_oracle = AggregatorV3Interface(_usd_oracle_address);
+        usd_oracle = ChainlinkUSDPricer(_usd_oracle_address);
     }
 
     /* ========== Views ========== */
@@ -780,21 +780,13 @@ contract Stabilizer {
      * @notice Calculate the amount USD that are equivalent to the USDX input.
      **/
     function _USDXtoUSD(uint256 _usdx_amount) internal view returns (uint256) {
-        (, int256 price, , uint256 updatedAt, ) = usd_oracle.latestRoundData();
-        if(price <= 0) revert ZeroPrice();
-        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
-
-        return ((_usdx_amount * uint256(price)) / (10 ** (usd_oracle.decimals())));
+        return ((_usdx_amount * uint256(usd_oracle.getLatestPrice())) / (10 ** (usd_oracle.getDecimals())));
     }
 
     /**
      * @notice Calculate the amount USDX that are equivalent to the USD input.
      **/
     function _USDtoUSDX(uint256 _usdx_amount) internal view returns (uint256) {
-        (, int256 price, , uint256 updatedAt, ) = usd_oracle.latestRoundData();
-        if(price <= 0) revert ZeroPrice();
-        if(updatedAt < block.timestamp - 1 hours) revert StalePrice();
-
-        return ((_usdx_amount * (10 ** (usd_oracle.decimals()))) / uint256(price));
+        return ((_usdx_amount * (10 ** (usd_oracle.getDecimals()))) / uint256(usd_oracle.getLatestPrice()));
     }
 }

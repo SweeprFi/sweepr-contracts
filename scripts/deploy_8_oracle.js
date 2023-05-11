@@ -5,7 +5,7 @@ async function main() {
   let deployer = '';
   const poolAddress = addresses.uniswap_pool;
   const sweepAddress = addresses.sweep;
-  const oracle = addresses.oracle_usdc_usd;
+  const oracle = addresses.usdc_oracle;
 
   if (network.type === "0") { // local
     [deployer] = await ethers.getSigners();
