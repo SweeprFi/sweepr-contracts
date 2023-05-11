@@ -192,8 +192,9 @@ contract('Aave V3 Asset - Local', async () => {
         });
 
         it('set as defaulted', async () => {
+            newRatio = 100e4
             await aaveAsset.connect(user).configure(
-                100e4,
+                newRatio,
                 spreadFee,
                 maxBorrow,
                 liquidatorDiscount,
@@ -208,8 +209,15 @@ contract('Aave V3 Asset - Local', async () => {
 
         it('liquidate asset', async () => {
             expect(await aaveAsset.sweep_borrowed()).to.equal(mintAmount);
+
             await aaveAsset.connect(liquidator).liquidate();
+
             expect(await aaveAsset.sweep_borrowed()).to.equal(ZERO);
+            expect(await aaveAsset.accruedFee()).to.equal(ZERO);
+            expect(await aaveAsset.getDebt()).to.equal(ZERO);
+            expect(await aaveAsset.assetValue()).to.equal(ZERO);
+            expect(await aaveAsset.isDefaulted()).to.equal(false);
+            expect(await aaveAsset.getEquityRatio()).to.equal(newRatio);
         });
     })
 });
