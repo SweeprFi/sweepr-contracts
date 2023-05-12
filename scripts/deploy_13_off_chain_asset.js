@@ -7,7 +7,6 @@ async function main() {
   const sweep = addresses.sweep;
   const usdc = addresses.usdc;
   const amm = addresses.uniswap_amm;
-  const oracle_usdc = addresses.oracle_usdc;
 
   if (network.type === "0") { // local
     [owner, borrower, wallet] = await ethers.getSigners();
@@ -23,10 +22,10 @@ async function main() {
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
   const OffChainAsset = await ethers.getContractFactory("OffChainAsset");
-  const asset = await OffChainAsset.deploy(assetName, sweep, usdc, wallet, amm, borrower, oracle_usdc);
+  const asset = await OffChainAsset.deploy(assetName, sweep, usdc, wallet, amm, borrower);
 
   console.log("OffChainAsset deployed to: ", asset.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${assetName}" ${sweep} ${usdc} ${wallet} ${amm} ${borrower} ${oracle_usdc}`);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${assetName}" ${sweep} ${usdc} ${wallet} ${amm} ${borrower}`);
 }
 
 main();

@@ -55,9 +55,16 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         address _usdx_address,
         address _liquidityHelper,
         address _amm_address,
-        address _borrower,
-        address _usd_oracle_address
-    ) Stabilizer(_name, _sweep_address, _usdx_address, _amm_address, _borrower, _usd_oracle_address) {
+        address _borrower
+    )
+        Stabilizer(
+            _name,
+            _sweep_address,
+            _usdx_address,
+            _amm_address,
+            _borrower
+        )
+    {
         flag = _usdx_address < _sweep_address;
 
         (token0, token1) = flag

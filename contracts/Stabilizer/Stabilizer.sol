@@ -22,7 +22,7 @@ import "../Sweep/ISweep.sol";
 import "../AMM/IAMM.sol";
 import "../Common/ERC20/IERC20Metadata.sol";
 import "../Utils/Uniswap/V3/libraries/TransferHelper.sol";
-import "../Oracle/ChainlinkUSDPricer.sol";
+import "../Oracle/ChainlinkPricer.sol";
 
 contract Stabilizer {
     // Variables
@@ -49,7 +49,7 @@ contract Stabilizer {
     bool public frozen;
 
     IAMM public amm;
-    ChainlinkUSDPricer private usd_oracle;
+    ChainlinkPricer private usd_oracle;
 
     // Tokens
     ISweep public sweep;
@@ -59,6 +59,7 @@ contract Stabilizer {
     uint256 private constant DAY_SECONDS = 60 * 60 * 24; // seconds of Day
     uint256 private constant TIME_ONE_YEAR = 365 * DAY_SECONDS; // seconds of Year
     uint256 private constant PRECISION = 1e6;
+    uint256 private constant USDC_FREQUENCY = 1 days;
 
     /* ========== Events ========== */
 
@@ -83,7 +84,6 @@ contract Stabilizer {
     event AutoCalled(uint256 indexed sweep_amount);
     event AutoInvested(uint256 indexed sweep_amount);
     event CallCancelled(uint256 indexed sweep_amount);
-    
 
     event ConfigurationChanged(
         int256 indexed min_equity_ratio,
@@ -117,6 +117,7 @@ contract Stabilizer {
     error NotAutoInvest();
     error NotAutoInvesMinAMount();
     error NotAutoInvestMinRatio();
+    error SequencerDown();
 
     /* ========== Modifies ========== */
 
@@ -160,8 +161,7 @@ contract Stabilizer {
         address _sweep_address,
         address _usdx_address,
         address _amm_address,
-        address _borrower,
-        address _usd_oracle_address
+        address _borrower
     ) {
         name = _name;
         sweep = ISweep(_sweep_address);
@@ -170,7 +170,7 @@ contract Stabilizer {
         borrower = _borrower;
         settings_enabled = true;
         frozen = false;
-        usd_oracle = ChainlinkUSDPricer(_usd_oracle_address);
+        usd_oracle = new ChainlinkPricer(amm.usdOracle(), amm.sequencerUptimeFeed());
     }
 
     /* ========== Views ========== */
@@ -780,13 +780,21 @@ contract Stabilizer {
      * @notice Calculate the amount USD that are equivalent to the USDX input.
      **/
     function _USDXtoUSD(uint256 _usdx_amount) internal view returns (uint256) {
-        return ((_usdx_amount * uint256(usd_oracle.getLatestPrice())) / (10 ** (usd_oracle.getDecimals())));
+        return 
+        (
+            (_usdx_amount * uint256(usd_oracle.getLatestPrice(USDC_FREQUENCY))) / 
+            (10 ** (usd_oracle.getDecimals()))
+        );
     }
 
     /**
      * @notice Calculate the amount USDX that are equivalent to the USD input.
      **/
     function _USDtoUSDX(uint256 _usdx_amount) internal view returns (uint256) {
-        return ((_usdx_amount * (10 ** (usd_oracle.getDecimals()))) / uint256(usd_oracle.getLatestPrice()));
+        return 
+        (
+            (_usdx_amount * (10 ** (usd_oracle.getDecimals()))) / 
+            uint256(usd_oracle.getLatestPrice(USDC_FREQUENCY))
+        );
     }
 }

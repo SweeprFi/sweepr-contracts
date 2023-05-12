@@ -41,7 +41,6 @@ const addresses = {
   approver: libraries.approver[chainId],
   uniswap_pool: libraries.uniswap_pool[chainId],
   uniswap_oracle: libraries.uniswap_oracle[chainId],
-  usdc_oracle: libraries.usdc_oracle[chainId],
   uniswap_factory: libraries.uniswap_factory[chainId],
   uniswap_router: libraries.uniswap_router[chainId],
   aaveV2_pool: libraries.aaveV2_pool[chainId],
@@ -55,6 +54,9 @@ const addresses = {
   oracle_weth_usd: chainlink_oracle.weth_usd[chainId],
   oracle_wbtc_usd: chainlink_oracle.wbtc_usd[chainId],
   oracle_usdc_usd: chainlink_oracle.usdc_usd[chainId],
+
+  // Sequencer Feed
+  sequencer_feed: chainlink_oracle.sequencer_feed[chainId],
   
   // Periphery Contracts
   governance: contracts.governance[chainId],

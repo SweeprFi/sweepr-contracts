@@ -6,13 +6,7 @@ let user;
 
 contract('Balancer - Auto Call', async () => {
   before(async () => {
-    [owner, lzEndpoint] = await ethers.getSigners();
-
-    // Contracts
-    usdc = await ethers.getContractAt("contracts/Common/ERC20/ERC20.sol:ERC20", addresses.usdc);
-    Balancer = await ethers.getContractFactory("Balancer");
-    StabilizerAave = await ethers.getContractFactory("AaveV3Asset");
-    Uniswap = await ethers.getContractFactory("UniswapMock");
+    [owner, lzEndpoint] = await ethers.getSigners();    
     // constants
     BORROWER = addresses.borrower;
     USDC_ADDRESS = addresses.usdc;
@@ -31,7 +25,10 @@ contract('Balancer - Auto Call', async () => {
     AUTO_MIN_RATIO = 5e4; // 5%
     AUTO_MIN_AMOUNT = ethers.utils.parseUnits("10", 18);
     LINK = 'https://docs.sweepr.finance/';
+    ADDRESS_ZERO = ethers.constants.AddressZero;
 
+    // Contracts
+    usdc = await ethers.getContractAt("contracts/Common/ERC20/ERC20.sol:ERC20", addresses.usdc);
     // Deploys
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
@@ -40,8 +37,13 @@ contract('Balancer - Auto Call', async () => {
     USDOracle = await ethers.getContractFactory("AggregatorMock");
     usdOracle = await USDOracle.deploy();
 
+    Uniswap = await ethers.getContractFactory("UniswapMock");
+    amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+
+    Balancer = await ethers.getContractFactory("Balancer");
     balancer = await Balancer.deploy(sweep.address, USDC_ADDRESS, owner.address);
-    amm = await Uniswap.deploy(sweep.address);
+
+    StabilizerAave = await ethers.getContractFactory("AaveV3Asset");
     assets = await Promise.all(
       Array(4).fill().map(async () => {
         return await StabilizerAave.deploy(
@@ -51,8 +53,7 @@ contract('Balancer - Auto Call', async () => {
           addresses.aave_usdc,
           addresses.aaveV3_pool,
           amm.address,
-          BORROWER,
-          usdOracle.address
+          BORROWER
         );
       })
     );

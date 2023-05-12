@@ -24,6 +24,7 @@ contract("Stabilizer and spread", async function () {
     autoInvestMinEquityRatio = 10e4; // 10%
     autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
     autoInvest = true;
+    ADDRESS_ZERO = ethers.constants.AddressZero;
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
@@ -34,11 +35,11 @@ contract("Stabilizer and spread", async function () {
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
-    Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address);
-
     USDOracle = await ethers.getContractFactory("AggregatorMock");
     usdOracle = await USDOracle.deploy();
+
+    Uniswap = await ethers.getContractFactory("UniswapMock");
+    amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
   });
@@ -50,8 +51,7 @@ contract("Stabilizer and spread", async function () {
       usdx.address,
       wallet.address,
       amm.address,
-      borrower.address,
-      usdOracle.address
+      borrower.address
     );
 
     // ------------- Initialize context -------------

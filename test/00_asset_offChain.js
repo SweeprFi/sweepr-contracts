@@ -13,6 +13,7 @@ contract("Off-Chain Asset - Local", async function (accounts) {
         ZERO = 0;
         sweepAmount = ethers.utils.parseUnits("100", 18);
         usdxAmount = 100e6;
+        ADDRESS_ZERO = ethers.constants.AddressZero;
 
         // ------------- Deployment of contracts -------------
         Token = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
@@ -22,11 +23,11 @@ contract("Off-Chain Asset - Local", async function (accounts) {
         const Proxy = await upgrades.deployProxy(Sweep, [LZENDPOINT]);
         sweep = await Proxy.deployed();
 
-        Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address);
-
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
+
+        Uniswap = await ethers.getContractFactory("UniswapMock");
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
 
         OffChainAsset = await ethers.getContractFactory("OffChainAsset");
         asset = await OffChainAsset.deploy(
@@ -35,8 +36,7 @@ contract("Off-Chain Asset - Local", async function (accounts) {
             addresses.usdc,
             WALLET,
             amm.address,
-            BORROWER,
-            usdOracle.address
+            BORROWER
         );
     });
 

@@ -20,7 +20,7 @@ contract("Uniswap AMM - Local", async function () {
     sweep = await Sweep.attach(addresses.sweep);
 
     UniswapAMM = await ethers.getContractFactory("UniswapAMM");
-    amm = await UniswapAMM.deploy(addresses.sweep, FEE);
+    amm = await UniswapAMM.deploy(addresses.sweep, FEE, addresses.oracle_usdc_usd, addresses.sequencer_feed);
 
     user = await impersonate(USDC_ADDRESS);
     await usdc.connect(user).transfer(OWNER, USDC_AMOUNT)

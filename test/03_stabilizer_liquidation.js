@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
-const { impersonate } = require("../utils/helper_functions");
+const { impersonate, sendEth } = require("../utils/helper_functions");
 
 contract("Stabilizer - Liquidation", async function () {
   before(async () => {
@@ -24,28 +24,26 @@ contract("Stabilizer - Liquidation", async function () {
     sweepAmount = ethers.utils.parseUnits("10", 18);
     sweepMintAmount = ethers.utils.parseUnits("50", 18);
     WETH_HOLDER = '0xe50fa9b3c56ffb159cb0fca61f5c9d750e8128c8';
+    ADDRESS_ZERO = ethers.constants.AddressZero;
 
-    await hre.network.provider.request({
-      method: "hardhat_setBalance",
-      params: [WETH_HOLDER, ethers.utils.parseEther('5').toHexString()]
-    });
-
+    await sendEth(WETH_HOLDER);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
     sweep = await Proxy.deployed();
     await sweep.setTreasury(treasury.address);
 
-    Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address);
-
     USDC = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
     WETH = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
     usdc = await USDC.attach(addresses.usdc);
     weth = await WETH.attach(addresses.weth);
 
+
     USDOracle = await ethers.getContractFactory("AggregatorMock");
     usdOracle = await USDOracle.deploy();
+
+    Uniswap = await ethers.getContractFactory("UniswapMock");
+    amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
 
     WETHAsset = await ethers.getContractFactory("TokenAsset");
     // ------------- Initialize context -------------
@@ -56,8 +54,7 @@ contract("Stabilizer - Liquidation", async function () {
       addresses.weth,
       addresses.oracle_weth_usd,
       amm.address,
-      addresses.borrower,
-      usdOracle.address
+      addresses.borrower
     );
 
     // simulates a pool in uniswap with 10000 SWEEP/USDX

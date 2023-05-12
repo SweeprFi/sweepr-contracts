@@ -11,7 +11,6 @@ async function main() {
   const uniswap_amm = addresses.uniswap_amm;
   const borrower = addresses.borrower;
 
-
   if (network.type === "0") { // local
     [deployer] = await ethers.getSigners();
     deployer = deployer.address;

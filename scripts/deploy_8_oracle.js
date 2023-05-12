@@ -6,6 +6,7 @@ async function main() {
   const poolAddress = addresses.uniswap_pool;
   const sweepAddress = addresses.sweep;
   const oracle = addresses.usdc_oracle;
+  const sequencer = addresses.sequencer_feed;
 
   if (network.type === "0") { // local
     [deployer] = await ethers.getSigners();
@@ -20,11 +21,12 @@ async function main() {
   const uniswapOracle = await UniswapOracle.deploy(
     sweepAddress,
     poolAddress,
-    oracle
+    oracle,
+    sequencer
   );
 
   console.log(`Uniswap Oracle deployed to:${uniswapOracle.address}`);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${uniswapOracle.address} ${sweepAddress} ${poolAddress} ${oracle}`);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${uniswapOracle.address} ${sweepAddress} ${poolAddress} ${oracle} ${sequencer}`);
 }
 
 main();

@@ -18,6 +18,7 @@ contract('Aave V2 Asset - Local', async (accounts) => {
     autoInvestMinEquityRatio = 10e4; // 10%
     autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
     autoInvest = true;
+    ADDRESS_ZERO = ethers.constants.AddressZero;
 
     before(async () => {
         [guest, lzEndpoint] = await ethers.getSigners();
@@ -29,11 +30,11 @@ contract('Aave V2 Asset - Local', async (accounts) => {
         ERC20 = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
         usdx = await ERC20.attach(addresses.usdc);
 
-        Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address);
-
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
+
+        Uniswap = await ethers.getContractFactory("UniswapMock");
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
         
         AaveAsset = await ethers.getContractFactory("AaveAsset");
         aaveAsset = await AaveAsset.deploy(
@@ -43,8 +44,7 @@ contract('Aave V2 Asset - Local', async (accounts) => {
             addresses.aave_usdc,
             addresses.aaveV2_pool,
             amm.address,
-            addresses.multisig,
-            usdOracle.address
+            addresses.multisig
         );
 
         BORROWER = addresses.multisig;

@@ -16,8 +16,8 @@ import "../Stabilizer/Stabilizer.sol";
 import "./Aave/IAAVELendingPool_Partial.sol";
 
 contract AaveAsset is Stabilizer {
-    IERC20 private aaveUSDX_Token;
-    IAAVELendingPool_Partial private aaveLending_Pool;
+    IERC20 private immutable aaveUSDX_Token;
+    IAAVELendingPool_Partial private immutable aaveLending_Pool;
 
     constructor(
         string memory _name,
@@ -26,16 +26,14 @@ contract AaveAsset is Stabilizer {
         address _aave_usdx_address,
         address _aave_lending_pool_address,
         address _amm_address,
-        address _borrower,
-        address _usd_oracle_address
+        address _borrower
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
             _amm_address,
-            _borrower,
-            _usd_oracle_address
+            _borrower
         )
     {
         aaveUSDX_Token = IERC20(_aave_usdx_address);

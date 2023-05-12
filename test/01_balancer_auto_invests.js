@@ -25,6 +25,7 @@ contract('Balancer - Auto Invests', async () => {
         BORROWER = addresses.borrower;
         USDC_ADDRESS = addresses.usdc;
         TREASURY = addresses.treasury;
+        ADDRESS_ZERO = ethers.constants.AddressZero;
         // Deploys
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
@@ -38,9 +39,9 @@ contract('Balancer - Auto Invests', async () => {
 
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
-
+    
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address);
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
 
         AaveAsset = await ethers.getContractFactory("AaveV3Asset");
         assets = await Promise.all(
@@ -52,8 +53,7 @@ contract('Balancer - Auto Invests', async () => {
                     addresses.aave_usdc,
                     addresses.aaveV3_pool,
                     amm.address,
-                    BORROWER,
-                    usdOracle.address
+                    BORROWER
                 );
             })
         )

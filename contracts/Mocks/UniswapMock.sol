@@ -5,9 +5,19 @@ import "../Sweep/ISweep.sol";
 
 contract UniswapMock {
     ISweep private SWEEP;
+    uint256 public price;
+    address public immutable usdOracle;
+    address public immutable sequencerUptimeFeed;
 
-    constructor(address _sweep) {
+    constructor(address _sweep, address _usd_oracle_address, address _sequencer_address) {
         SWEEP = ISweep(_sweep);
+        price = SWEEP.target_price();
+        usdOracle =  _usd_oracle_address;
+        sequencerUptimeFeed = _sequencer_address;
+    }
+
+    function setPrice(uint256 _price) public {
+        price = _price;
     }
 
     function buySweep(
@@ -44,13 +54,14 @@ contract UniswapMock {
     ) public returns (uint256 result) {
         _amount_out_min;
 
-        uint256 price = SWEEP.target_price();
         ERC20(_tokenA).transferFrom(msg.sender, address(this), _amount);
+        uint8 decimalsA = ERC20(_tokenA).decimals();
+        uint8 decimalsB = ERC20(_tokenB).decimals();
 
-        if (ERC20(_tokenA).decimals() == 18) {
-            result = ((_amount * price) * (1e6 - 3000)) / 1e18 / 1e6;
+        if (decimalsA > 6) {
+            result = ((_amount * price) * (1e6 - 3000)) / ((10 ** decimalsA) * 1e6);
         } else {
-            result = (((_amount * 1e18) / price) * (1e6 - 3000)) / 1e6;
+            result = ((_amount * (10 ** decimalsB) * (1e6 - 3000)) / (price * 1e6));
         }
         ERC20(_tokenB).transfer(msg.sender, result);
     }

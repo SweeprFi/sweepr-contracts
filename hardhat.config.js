@@ -46,7 +46,7 @@ module.exports = {
 			allowUnlimitedContractSize: true,
 			blockGasLimit: 87500000000,
 			url: 'http://127.0.0.1:8545/',
-			// accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.WALLET_PKEY],
+			// accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY],
 		},
 		goerli: {
 			url: "https://eth-goerli.alchemyapi.io/v2/" + process.env.ALCHEMY_KEY,
