@@ -33,8 +33,8 @@ contract("Stabilizer - Liquidation", async function () {
     sweep = await Proxy.deployed();
     await sweep.setTreasury(treasury.address);
 
-    USDC = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
-    WETH = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
+    USDC = await ethers.getContractFactory("ERC20");
+    WETH = await ethers.getContractFactory("ERC20");
     usdc = await USDC.attach(addresses.usdc);
     weth = await WETH.attach(addresses.weth);
 

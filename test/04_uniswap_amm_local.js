@@ -13,7 +13,7 @@ contract("Uniswap AMM - Local", async function () {
     NEW_FEE = 3000;
     SWEEP_AMOUNT = ethers.utils.parseUnits("80", 18);
     // ------------- Deployment of contracts -------------
-    Token = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
+    Token = await ethers.getContractFactory("ERC20");
     usdc = await Token.attach(USDC_ADDRESS);
 
     Sweep = await ethers.getContractFactory("SweepDollarCoin");

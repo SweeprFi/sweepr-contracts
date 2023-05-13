@@ -28,7 +28,7 @@ contract('Balancer - Auto Call', async () => {
     ADDRESS_ZERO = ethers.constants.AddressZero;
 
     // Contracts
-    usdc = await ethers.getContractAt("contracts/Common/ERC20/ERC20.sol:ERC20", addresses.usdc);
+    usdc = await ethers.getContractAt("ERC20", addresses.usdc);
     // Deploys
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);

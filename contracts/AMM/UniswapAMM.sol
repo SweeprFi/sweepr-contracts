@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.16;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.19;
 
 // ==========================================================
 // ====================== UniswapAMM ========================
@@ -12,8 +11,8 @@ pragma experimental ABIEncoderV2;
  */
 
 import "../Common/Owned.sol";
-import "../Utils/Uniswap/V3/ISwapRouter.sol";
-import "../Utils/Uniswap/V3/libraries/TransferHelper.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 
 contract UniswapAMM is Owned {
     // Uniswap v3

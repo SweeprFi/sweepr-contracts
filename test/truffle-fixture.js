@@ -7,7 +7,7 @@ const { sendEth } = require("../utils/helper_functions");
 const SWEEP = artifacts.require("contracts/Sweep/Sweep.sol:SweepDollarCoin");
 const SWEEPER = artifacts.require("SWEEPER");
 const Governance = artifacts.require("SweepGovernor");
-const USDC = artifacts.require("contracts/Common/ERC20/ERC20.sol:ERC20");
+const USDC = artifacts.require("ERC20");
 // const UniswapOracle = artifacts.require("Oracle/UniswapOracle");
 
 let blockNumber;

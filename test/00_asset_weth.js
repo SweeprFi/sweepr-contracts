@@ -23,7 +23,7 @@ contract("WETH Asset - Local", async function () {
         sweep = await Proxy.deployed();
         await sweep.setTreasury(treasury.address);
 
-        Token = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
+        Token = await ethers.getContractFactory("ERC20");
         usdc = await Token.attach(addresses.usdc);
         weth = await Token.attach(addresses.weth);
 

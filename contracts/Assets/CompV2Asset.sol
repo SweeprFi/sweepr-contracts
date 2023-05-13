@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.16;
+pragma solidity 0.8.19;
 
 // ====================================================================
 // ========================= CompV2Asset.sol ==========================
@@ -8,8 +8,9 @@ pragma solidity 0.8.16;
 import "./Compound/IcUSDC.sol";
 import "./Compound/ICompComptroller.sol";
 import "../Oracle/ChainlinkPricer.sol";
-import "../Common/ERC20/Variants/Comp.sol";
 import "../Stabilizer/Stabilizer.sol";
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title Compound V2 Asset
@@ -19,7 +20,7 @@ import "../Stabilizer/Stabilizer.sol";
 contract CompV2Asset is Stabilizer {
     // Variables
     IcUSDC private immutable cUSDC;
-    Comp private immutable comp;
+    ERC20 private immutable comp;
     ICompComptroller private immutable compController;
 
     // Oracle to fetch price COMP / USDC
@@ -50,7 +51,7 @@ contract CompV2Asset is Stabilizer {
         )
     {
         cUSDC = IcUSDC(_cusdc_address);
-        comp = Comp(_compound_address);
+        comp = ERC20(_compound_address);
         compController = ICompComptroller(_controller_address);
         compOracle = new ChainlinkPricer(_oracle_comp_address, amm.sequencerUptimeFeed());
     }

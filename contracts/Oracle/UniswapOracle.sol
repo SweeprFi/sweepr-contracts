@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.16;
+pragma solidity 0.8.19;
 
 // ====================================================================
 // ========================= UniswapOracle.sol ========================
@@ -10,18 +10,18 @@ pragma solidity 0.8.16;
  * @dev fetches the current price in the AMM
  */
 
-import "../Utils/Math/SafeMath.sol";
-import "../Utils/Uniswap/V3/IUniswapV3Pool.sol";
-import "../Utils/Uniswap/V3/libraries/OracleLibrary.sol";
-import '../Utils/Uniswap/V3/libraries/FullMath.sol';
-import '../Utils/Uniswap/V3/libraries/FixedPoint128.sol';
 import "../Common/Owned.sol";
-import "../Common/ERC20/IERC20Metadata.sol";
 import "../Oracle/ChainlinkPricer.sol";
 
-contract UniswapOracle is Owned {
-    using SafeMath for uint256;
+import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
+import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import '@uniswap/v3-core/contracts/libraries/FullMath.sol';
+import '@uniswap/v3-core/contracts/libraries/FixedPoint128.sol';
+
+
+contract UniswapOracle is Owned {
     // Core
     IUniswapV3Pool public pool;
     IERC20Metadata public base_token;

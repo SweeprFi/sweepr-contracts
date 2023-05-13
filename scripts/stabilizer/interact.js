@@ -11,8 +11,8 @@ async function main() {
   const pool = addresses.uniswap_pool;
 
   const sweep = await ethers.getContractAt("SweepDollarCoin", addresses.sweep);
-  const usd = await ethers.getContractAt("contracts/Common/ERC20/ERC20.sol:ERC20", addresses.usdc);
-  const weth = await ethers.getContractAt("contracts/Common/ERC20/ERC20.sol:ERC20", addresses.weth);
+  const usd = await ethers.getContractAt("ERC20", addresses.usdc);
+  const weth = await ethers.getContractAt("ERC20", addresses.weth);
   const balancer = await ethers.getContractAt("Balancer", addresses.balancer);
   
   let asset = await ethers.getContractAt("OffChainAsset", addresses.asset_offChain);

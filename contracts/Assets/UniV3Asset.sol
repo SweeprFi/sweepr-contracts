@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.16;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.19;
 
 // ====================================================================
 // ======================== UniV3Asset.sol ============================
@@ -15,9 +14,10 @@ pragma experimental ABIEncoderV2;
  */
 
 import "../Stabilizer/Stabilizer.sol";
-import "../Common/ERC721/IERC721Receiver.sol";
-import "../Utils/Uniswap/V3/LiquidityHelper.sol";
-import "../Utils/Uniswap/V3/periphery/INonfungiblePositionManager.sol";
+import "../Utils/LiquidityHelper.sol";
+
+import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract UniV3Asset is IERC721Receiver, Stabilizer {
     // Variables

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.16;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.19;
 
 // ====================================================================
 // ========================= OffChainAsset.sol ========================

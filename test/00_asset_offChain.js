@@ -16,7 +16,7 @@ contract("Off-Chain Asset - Local", async function (accounts) {
         ADDRESS_ZERO = ethers.constants.AddressZero;
 
         // ------------- Deployment of contracts -------------
-        Token = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
+        Token = await ethers.getContractFactory("ERC20");
         usdx = await Token.attach(addresses.usdc);
 
         Sweep = await ethers.getContractFactory("SweepMock");

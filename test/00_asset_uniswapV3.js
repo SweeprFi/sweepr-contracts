@@ -28,7 +28,7 @@ contract.skip('Uniswap V3 Asset - Local', async () => {
         Sweep = await ethers.getContractFactory("SweepDollarCoin");
         sweep = await Sweep.attach(addresses.sweep);
 
-        ERC20 = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
+        ERC20 = await ethers.getContractFactory("ERC20");
         usdx = await ERC20.attach(addresses.usdc);
 
         LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");

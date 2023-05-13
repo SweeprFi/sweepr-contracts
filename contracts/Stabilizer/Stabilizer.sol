@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.16;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.19;
 
 // ====================================================================
 // ====================== Stabilizer.sol ==============================
@@ -20,11 +19,11 @@ pragma experimental ABIEncoderV2;
 
 import "../Sweep/ISweep.sol";
 import "../AMM/IAMM.sol";
-import "../Common/Owned.sol";
-import "../Common/ERC20/IERC20Metadata.sol";
-import "../Utils/Uniswap/V3/libraries/TransferHelper.sol";
 import "../Oracle/ChainlinkPricer.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
+import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import "../Common/Owned.sol";
 
 contract Stabilizer is Owned, Pausable {
     // Variables

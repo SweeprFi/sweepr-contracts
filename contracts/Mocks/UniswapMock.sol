@@ -1,7 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity >=0.6.11;
-import "../Common/ERC20/ERC20.sol";
+
 import "../Sweep/ISweep.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract UniswapMock {
     ISweep private SWEEP;
