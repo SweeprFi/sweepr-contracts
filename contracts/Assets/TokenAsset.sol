@@ -81,7 +81,7 @@ contract TokenAsset is Stabilizer {
      */
     function invest(
         uint256 _usdx_amount
-    ) external onlyBorrower notFrozen validAmount(_usdx_amount) {
+    ) external onlyBorrower whenNotPaused validAmount(_usdx_amount) {
         _invest(_usdx_amount, 0);
     }
 

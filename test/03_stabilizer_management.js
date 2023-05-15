@@ -51,8 +51,8 @@ contract("Stabilizer - Management Functions", async function () {
         .to.be.revertedWithCustomError(offChainAsset, 'OnlyBorrower');
     });
 
-    it("only admin can frozen the stabilizer", async function () {
-      await expect(offChainAsset.connect(borrower).setFrozen(true))
+    it("only admin can pause the stabilizer", async function () {
+      await expect(offChainAsset.connect(borrower).pause())
         .to.be.revertedWithCustomError(offChainAsset, 'OnlyAdmin');
     });
 
@@ -153,31 +153,31 @@ contract("Stabilizer - Management Functions", async function () {
       expect(await offChainAsset.settings_enabled()).to.equal(true);
     });
 
-    it("set frozen correctly", async function () {
-      expect(await offChainAsset.frozen()).to.equal(false);
-      await offChainAsset.connect(owner).setFrozen(true);
-      expect(await offChainAsset.frozen()).to.equal(true);
+    it("set pause correctly", async function () {
+      expect(await offChainAsset.paused()).to.equal(false);
+      await offChainAsset.connect(owner).pause();
+      expect(await offChainAsset.paused()).to.equal(true);
     });
   });
 
   describe("stabilizer constraints", async function () {
-    it("cannot mint if stabilizer was frozen", async function () {
+    it("cannot mint if stabilizer was paused", async function () {
       await expect(offChainAsset.connect(borrower).borrow(amount))
-        .to.be.revertedWithCustomError(offChainAsset, 'StabilizerFrozen');
+        .to.be.revertedWith("Pausable: paused");
     });
 
-    it("cannot invest if stabilizer was frozen", async function () {
+    it("cannot invest if stabilizer was paused", async function () {
       await expect(offChainAsset.connect(borrower).invest(sweep.address, amount))
-        .to.be.revertedWithCustomError(offChainAsset, 'StabilizerFrozen');
+        .to.be.revertedWith("Pausable: paused");
     });
 
-    it("cannot withdraw if stabilizer was frozen", async function () {
+    it("cannot withdraw if stabilizer was paused", async function () {
       await expect(offChainAsset.connect(borrower).withdraw(sweep.address, amount))
-        .to.be.revertedWithCustomError(offChainAsset, 'StabilizerFrozen');
+        .to.be.revertedWith("Pausable: paused");
     });
 
     it("not a valid minter", async function () {
-      await offChainAsset.connect(owner).setFrozen(false);
+      await offChainAsset.connect(owner).unpause();
       await expect(offChainAsset.connect(borrower).borrow(amount))
         .to.be.revertedWithCustomError(offChainAsset, 'InvalidMinter');
     });
