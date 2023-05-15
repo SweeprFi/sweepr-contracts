@@ -1,35 +1,26 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { impersonate } = require("../utils/helper_functions");
+const { toBN, Const } = require("../utils/helper_functions");
 
-contract.skip('Uniswap V3 Asset - Local', async () => {
+contract('Uniswap V3 Asset', async () => {
     before(async () => {
-        [guest] = await ethers.getSigners();
+        [borrower, guest, lzEndpoint] = await ethers.getSigners();
 
-        ZERO = 0;
-        sweepAmount = ethers.utils.parseUnits("100", 18);
-        usdxAmount = 100e6;
-        mintLPSweepAmount = ethers.utils.parseUnits("10", 18);
-        mintLPUsdxAmount = 10e6;
-        increaseLPSweepAmount = ethers.utils.parseUnits("50", 18);
-        increaseLPUsdxAmount = 50e6;
-        maxBorrow = ethers.utils.parseUnits("100", 18);
-        minEquityRatio = 10e4; // 10%
-        spreadFee = 3e4; // 3%
-        liquidatorDiscount = 2e4; // 2%
-        callDelay = 432000; // 5 days
-        autoInvestMinEquityRatio = 10e4; // 10%
-        autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-        autoInvest = true;
+        usdxAmount = 1000e6;
+        mintLPUsdxAmount = 100e6;
+        increaseLPUsdxAmount = 500e6;
+        sweepAmount = ethers.utils.parseUnits("1000", 18);
+        mintLPSweepAmount = ethers.utils.parseUnits("100", 18);
+        increaseLPSweepAmount = ethers.utils.parseUnits("500", 18);
+        BORROWER = borrower.address;
 
-        BORROWER = addresses.multisig;
+        Sweep = await ethers.getContractFactory("SweepMock");
+        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+        sweep = await Proxy.deployed();
 
-        Sweep = await ethers.getContractFactory("SweepDollarCoin");
-        sweep = await Sweep.attach(addresses.sweep);
-
-        ERC20 = await ethers.getContractFactory("ERC20");
-        usdx = await ERC20.attach(addresses.usdc);
+        ERC20 = await ethers.getContractFactory("USDCMock");
+        usdc = await ERC20.deploy();
 
         LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
         liquidityHelper = await LiquidityHelper.deploy();
@@ -37,92 +28,115 @@ contract.skip('Uniswap V3 Asset - Local', async () => {
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
 
+        Uniswap = await ethers.getContractFactory("UniswapMock");
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+
+        factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
+        positionManager = await ethers.getContractAt("INonfungiblePositionManager", "0xC36442b4a4522E871399CD717aBDD847Ab11FE88");
+
         UniV3Asset = await ethers.getContractFactory("UniV3Asset");
         asset = await UniV3Asset.deploy(
             'Uniswap Asset',
-            addresses.sweep,
-            addresses.usdc,
+            sweep.address,
+            usdc.address,
             liquidityHelper.address,
-            addresses.uniswap_amm,
-            BORROWER,
-            usdOracle.address
+            amm.address,
+            BORROWER
         );
 
-        OWNER = await sweep.owner();
-        user = await impersonate(OWNER);
-        // add asset as a minter
-        ima = await sweep.is_minting_allowed();
-        if (!ima) {
-            amm_price = await sweep.amm_price();
-            await sweep.connect(user).setTargetPrice(amm_price, amm_price);
-        }
-        await sweep.connect(user).addMinter(asset.address, sweepAmount);
-
-        user = await impersonate(BORROWER);
+        await sweep.addMinter(asset.address, sweepAmount);
         // config stabilizer
-        await asset.connect(user).configure(
-            minEquityRatio,
-            spreadFee,
-            maxBorrow,
-            liquidatorDiscount,
-            callDelay,
-            autoInvestMinEquityRatio,
-            autoInvestMinAmount,
-            autoInvest,
-            "htttp://test.com"
+        await asset.configure(
+            Const.RATIO,
+            Const.SPREAD_FEE,
+            sweepAmount,
+            Const.DISCOUNT,
+            Const.DAY,
+            Const.RATIO,
+            sweepAmount,
+            Const.FALSE,
+            Const.URL
         );
     });
 
     describe("main functions", async function () {
+        it('creates the pool', async () => {
+            expect(await factory.getPool(usdc.address, sweep.address, 500))
+                .to.equal(Const.ADDRESS_ZERO);
+
+            let token0, token1;
+            const sqrtPriceX96 = toBN("7930916251426803402043", 1);
+
+            if (usdc.address < sweep.address) {
+                token0 = usdc.address;
+                token1 = sweep.address;
+            } else {
+                token0 = sweep.address;
+                token1 = usdc.address;
+            }
+
+            await positionManager.createAndInitializePoolIfNecessary(token0, token1, 500, sqrtPriceX96)
+            pool_address = await factory.getPool(usdc.address, sweep.address, 500);
+
+            expect(pool_address).to.not.equal(Const.ADDRESS_ZERO);
+        });
+
         it('deposit usdc to the asset', async () => {
-            expect(await usdx.balanceOf(asset.address)).to.equal(ZERO);
-            await usdx.connect(user).transfer(asset.address, usdxAmount);
-            expect(await usdx.balanceOf(asset.address)).to.equal(usdxAmount);
+            expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
+            await usdc.transfer(asset.address, usdxAmount);
+            expect(await usdc.balanceOf(asset.address)).to.equal(usdxAmount);
         });
 
         it('borrow sweep', async () => {
             await expect(asset.connect(guest).borrow(sweepAmount))
                 .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
-            expect(await asset.sweep_borrowed()).to.equal(ZERO);
-            await asset.connect(user).borrow(sweepAmount);
+            expect(await asset.sweep_borrowed()).to.equal(Const.ZERO);
+            await asset.borrow(sweepAmount);
             expect(await asset.sweep_borrowed()).to.equal(sweepAmount);
         });
 
         it('check LP token minted', async () => {
-            await expect(asset.connect(user).divest(usdxAmount))
+            await expect(asset.divest(usdxAmount))
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
-            await expect(asset.connect(user).collect())
+            await expect(asset.collect())
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
 
             // Check retrieveNFT
-            let owner = await ethers.getSigner(OWNER);
-            await expect(asset.connect(owner).retrieveNFT())
+            await expect(asset.retrieveNFT())
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
         });
 
         it('mint LP token', async () => {
-            expect(await asset.assetValue()).to.equal(ZERO);
-            expect(await asset.liquidity()).to.equal(ZERO);
-            expect(await asset.tokenId()).to.equal(ZERO);
+            expect(await asset.assetValue()).to.equal(Const.ZERO);
+            expect(await asset.liquidity()).to.equal(Const.ZERO);
+            expect(await asset.tokenId()).to.equal(Const.ZERO);
+            expect(await sweep.balanceOf(pool_address)).to.equal(Const.ZERO);
+            expect(await usdc.balanceOf(pool_address)).to.equal(Const.ZERO);
 
-            await asset.connect(user).invest(mintLPUsdxAmount, mintLPSweepAmount);
+            await asset.invest(mintLPUsdxAmount, mintLPSweepAmount);
 
-            expect(await asset.tokenId()).to.not.equal(ZERO);
-            expect(await asset.liquidity()).to.above(ZERO);
+            expect(await asset.tokenId()).to.not.equal(Const.ZERO);
+            expect(await asset.liquidity()).to.above(Const.ZERO);
+            expect(await sweep.balanceOf(pool_address)).to.above(Const.ZERO);
+            expect(await usdc.balanceOf(pool_address)).to.above(Const.ZERO);
         });
 
         it('increases liquidity', async () => {
             liquidity = await asset.liquidity();
+            balanceSweep = await sweep.balanceOf(pool_address);
+            balanceUSDC = await usdc.balanceOf(pool_address);
 
-            await asset.connect(user).invest(increaseLPUsdxAmount, increaseLPSweepAmount);
+            await asset.invest(increaseLPUsdxAmount, increaseLPSweepAmount);
 
+            expect(await sweep.balanceOf(pool_address)).to.above(balanceSweep);
+            expect(await usdc.balanceOf(pool_address)).to.above(balanceUSDC);
             expect(await asset.liquidity()).to.above(liquidity);
         });
 
         it('withdraws rewards', async () => {
             await expect(asset.connect(guest).collect())
                 .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
-            await asset.connect(user).collect();
+            await asset.collect();
         });
 
         it('removes liquidity', async () => {
@@ -130,17 +144,15 @@ contract.skip('Uniswap V3 Asset - Local', async () => {
             withdrawAmount = liquidity.div(2);
             await expect(asset.connect(guest).divest(withdrawAmount))
                 .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
-            await asset.connect(user).divest(withdrawAmount);
+            await asset.divest(withdrawAmount);
         });
 
         it('retrieve LP token', async () => {
+            expect(await asset.tokenId()).to.not.equal(Const.ZERO);
             await expect(asset.connect(guest).retrieveNFT())
                 .to.be.revertedWithCustomError(asset, 'OnlyAdmin');
-
-            expect(await asset.tokenId()).to.not.equal(ZERO);
-            let owner = await ethers.getSigner(OWNER);
-            await asset.connect(owner).retrieveNFT();
-            expect(await asset.tokenId()).to.equal(ZERO);
+            await asset.retrieveNFT();
+            expect(await asset.tokenId()).to.equal(Const.ZERO);
         });
     })
 });

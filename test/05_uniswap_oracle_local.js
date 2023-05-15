@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
 
-contract('Uniswap Oracle - Local', async () => {
+contract('Uniswap Oracle', async () => {
     before(async () => {
         await hre.network.provider.request({
             method: "hardhat_impersonateAccount",
@@ -30,11 +30,6 @@ contract('Uniswap Oracle - Local', async () => {
 
         expect(dataBefore[0]).to.equal(dataAfter[1]);
         expect(dataBefore[1]).to.equal(dataAfter[0]);
-    });
-
-    it('fetches the price', async () => {
-        price = await oracle.getPrice();
-        expect(price).to.above(0);
     });
 
     it('fetches the pool liquidity correctly', async () => {

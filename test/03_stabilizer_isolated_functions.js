@@ -1,24 +1,15 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { Const, toBN } = require("../utils/helper_functions");
 
 contract("Stabilizer - Isolated Functions", async function () {
   before(async () => {
     [owner, borrower, wallet, treasury, other, multisig, lzEndpoint] = await ethers.getSigners();
     usdxAmount = 10000e6;
-    sweepAmount = ethers.utils.parseUnits("10000", 18);
-    mintAmount = ethers.utils.parseUnits("90", 18);
-    tenSweep = ethers.utils.parseUnits("10", 18);
-
-    maxBorrow = ethers.utils.parseUnits("100", 18);
-    minimumEquityRatio = 1e4; // 1%
-    spreadFee = 1e4; // 1%
-    liquidatorDiscount = 2e4; // 2%
-    callDelay = 432000; // 5 days
-    autoInvestMinEquityRatio = 10e4; // 10%
-    autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-    autoInvest = true;
-    ZERO = 0;
-    ADDRESS_ZERO = ethers.constants.AddressZero;
+    sweepAmount = toBN("10000", 18);
+    mintAmount = toBN("90", 18);
+    tenSweep = toBN("10", 18);
+    maxBorrow = toBN("100", 18);
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
@@ -33,7 +24,7 @@ contract("Stabilizer - Isolated Functions", async function () {
     usdOracle = await USDOracle.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 
@@ -46,21 +37,22 @@ contract("Stabilizer - Isolated Functions", async function () {
       borrower.address
     );
 
+    await offChainAsset.connect(borrower).configure(
+      Const.RATIO,
+      Const.SPREAD_FEE,
+      maxBorrow,
+      Const.DISCOUNT,
+      Const.DAYS_5,
+      Const.RATIO,
+      maxBorrow,
+      Const.FALSE,
+      Const.URL
+    );
+
     // ------------- Initialize context -------------
     await usdx.transfer(borrower.address, usdxAmount);
     await sweep.transfer(other.address, maxBorrow);
     await sweep.transfer(borrower.address, tenSweep);
-    await offChainAsset.connect(borrower).configure(
-      minimumEquityRatio,
-      spreadFee,
-      maxBorrow,
-      liquidatorDiscount,
-      callDelay,
-      autoInvestMinEquityRatio,
-      autoInvestMinAmount,
-      autoInvest,
-      "htttp://test.com"
-    );
     await usdx.connect(borrower).approve(offChainAsset.address, 10000e6);
     await sweep.connect(borrower).approve(offChainAsset.address, tenSweep);
     await sweep.connect(other).approve(offChainAsset.address, maxBorrow);
@@ -74,7 +66,7 @@ contract("Stabilizer - Isolated Functions", async function () {
 
   describe("get the junior investment", async function () {
     it("gets the value of the junior tranche before and after of deposit", async function () {
-      expect(await offChainAsset.getJuniorTrancheValue()).to.be.equal(ZERO);
+      expect(await offChainAsset.getJuniorTrancheValue()).to.be.equal(Const.ZERO);
       await usdx.connect(borrower).transfer(offChainAsset.address, 10e6);
       expect(await offChainAsset.getJuniorTrancheValue()).to.be.equal(10e6);
     });
@@ -88,9 +80,10 @@ contract("Stabilizer - Isolated Functions", async function () {
         expect(ratioBefore).to.be.equal(1e6); // 100%
 
         await offChainAsset.connect(borrower).borrow(mintAmount);
+
         ratioAfter = await offChainAsset.getEquityRatio();
         expect(ratioAfter).to.be.equal(1e5); // 10%
-        expect(ratioBefore > ratioAfter).to.be.equal(true);
+        expect(ratioBefore > ratioAfter).to.be.equal(Const.TRUE);
         expect(await offChainAsset.sweep_borrowed()).to.equal(mintAmount);
       });
     });
@@ -100,16 +93,16 @@ contract("Stabilizer - Isolated Functions", async function () {
     it("sends sweep to the offChainAsset correctly", async function () {
       expect(await usdx.balanceOf(offChainAsset.address)).to.equal(10e6);
       expect(await sweep.balanceOf(offChainAsset.address)).to.equal(mintAmount);
-      expect(await offChainAsset.assetValue()).to.equal(ZERO);
+      expect(await offChainAsset.assetValue()).to.equal(Const.ZERO);
       expect(await offChainAsset.currentValue()).to.equal(100e6); // 10 USDC - 90 SWEEP
-      expect(await usdx.balanceOf(wallet.address)).to.equal(ZERO);
-      expect(await sweep.balanceOf(wallet.address)).to.equal(ZERO);
+      expect(await usdx.balanceOf(wallet.address)).to.equal(Const.ZERO);
+      expect(await sweep.balanceOf(wallet.address)).to.equal(Const.ZERO);
 
       await offChainAsset.connect(borrower).invest(20e6, mintAmount.mul(2));
 
       expect(await offChainAsset.currentValue()).to.equal(100e6);
-      expect(await sweep.balanceOf(offChainAsset.address)).to.equal(ZERO);
-      expect(await usdx.balanceOf(offChainAsset.address)).to.equal(ZERO);
+      expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
+      expect(await usdx.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
 
       expect(await sweep.balanceOf(wallet.address)).to.equal(mintAmount);
       expect(await usdx.balanceOf(wallet.address)).to.equal(10e6);
@@ -131,11 +124,11 @@ contract("Stabilizer - Isolated Functions", async function () {
     it("receives sweep correctly", async function () {
       await offChainAsset.connect(borrower).divest(maxBorrow);
 
-      expect(await offChainAsset.redeem_mode()).to.equal(true);
+      expect(await offChainAsset.redeem_mode()).to.equal(Const.TRUE);
       await sweep.connect(wallet).transfer(offChainAsset.address, maxBorrow);
 
       expect(await sweep.balanceOf(offChainAsset.address)).to.equal(maxBorrow);
-      expect(await sweep.balanceOf(wallet.address)).to.equal(ZERO);
+      expect(await sweep.balanceOf(wallet.address)).to.equal(Const.ZERO);
     });
 
     it("burns sweeps token correctly", async function () {
@@ -159,19 +152,18 @@ contract("Stabilizer - Isolated Functions", async function () {
     });
 
     it("buy SWEEP", async function () {
-      usdxAmount = ethers.utils.parseUnits("50", 6);
+      usdxAmount = toBN("50", 6);
+      expectSweepAmount = toBN("50", 18);
 
       await offChainAsset.connect(borrower).borrow(mintAmount);
 
       sweepBalanceBefore = await sweep.balanceOf(borrower.address);
       usdxBalanceBefore = await usdx.balanceOf(offChainAsset.address);
 
-      targetPrice = await sweep.target_price();
-      expectSweepAmount = (usdxAmount.toNumber() / targetPrice) * 1e18;
       await offChainAsset.connect(borrower).swapUsdxToSweep(usdxAmount);
 
-      sweepBalanceAfter = sweepBalanceBefore.toBigInt() + ethers.BigNumber.from(expectSweepAmount.toString()).toBigInt();
-      usdxBalanceAfter = usdxBalanceBefore.toNumber() + usdxAmount.toNumber();
+      sweepBalanceAfter = sweepBalanceBefore.add(expectSweepAmount);
+      usdxBalanceAfter = usdxBalanceBefore.add(usdxAmount);
 
       expect(await sweep.balanceOf(borrower.address)).to.equal(sweepBalanceAfter);
       expect(await usdx.balanceOf(offChainAsset.address)).to.equal(usdxBalanceAfter);
@@ -182,12 +174,12 @@ contract("Stabilizer - Isolated Functions", async function () {
       await offChainAsset.connect(borrower).sellSweepOnAMM(balance, 0);
 
       expect(await usdx.balanceOf(offChainAsset.address)).to.equal(89880000);
-      expect(await sweep.balanceOf(offChainAsset.address)).to.equal(ZERO);
+      expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
     });
 
     it("buy SWEEP through the AMM", async function () {
-      usdxAmount = ethers.utils.parseUnits("50", 6);
-      sweepAmount = ethers.utils.parseUnits("49.85", 18); // 50 * 0.997 (0.03% fee of uniswap)
+      usdxAmount = toBN("50", 6);
+      sweepAmount = toBN("49.85", 18); // 50 * 0.997 (0.03% fee of uniswap)
       balanceBefore = await usdx.balanceOf(offChainAsset.address);
 
       await offChainAsset.connect(borrower).buySweepOnAMM(usdxAmount, 0);
@@ -199,7 +191,7 @@ contract("Stabilizer - Isolated Functions", async function () {
     });
 
     it("Sell SWEEP", async function () {
-      sweepAmount = ethers.utils.parseUnits("30", 18);
+      sweepAmount = toBN("30", 18);
       sweepBalanceBefore = await sweep.balanceOf(offChainAsset.address);
       usdxBalanceBefore = await usdx.balanceOf(borrower.address);
 
@@ -209,8 +201,8 @@ contract("Stabilizer - Isolated Functions", async function () {
       await sweep.connect(borrower).approve(offChainAsset.address, sweepAmount);
       await offChainAsset.connect(borrower).swapSweepToUsdx(sweepAmount);
 
-      sweepBalanceAfter = sweepBalanceBefore.toBigInt() + ethers.BigNumber.from(sweepAmount.toString()).toBigInt();
-      usdxBalanceAfter = usdxBalanceBefore.toNumber() + expectUSXAmount;
+      sweepBalanceAfter = sweepBalanceBefore.add(sweepAmount);
+      usdxBalanceAfter = usdxBalanceBefore.add(expectUSXAmount);
       expect(await sweep.balanceOf(offChainAsset.address)).to.equal(sweepBalanceAfter);
       expect(await usdx.balanceOf(borrower.address)).to.equal(usdxBalanceAfter);
     });

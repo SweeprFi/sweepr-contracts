@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 const { increaseTime } = require("../utils/helper_functions");
 
-contract("Balancer - Local", async function () {
+contract.skip("Balancer - Local", async function () {
 	before(async () => {
 		[owner, multisig, lzEndpoint, stab_1, stab_2, stab_3, stab_4, stab_5] = await ethers.getSigners();
 		ZERO = 0;

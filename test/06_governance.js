@@ -1,11 +1,11 @@
 const { expect } = require('chai');
 const { ethers } = require("hardhat");
-const { addresses, roles } = require("../utils/address");
+const { addresses } = require("../utils/address");
 const { time } = require('@openzeppelin/test-helpers');
-const { impersonate } = require('../utils/helper_functions');
+const { impersonate, Const, toBN } = require('../utils/helper_functions');
 let account;
 
-contract('Governance - Local', async (accounts) => {
+contract('Governance', async (accounts) => {
 	before(async () => {
 		// constants
 		PROPOSER = accounts[0];
@@ -16,19 +16,10 @@ contract('Governance - Local', async (accounts) => {
 		USER4 = accounts[5];
 		LZENDPOINT = accounts[6];
 		OWNER_SWEEPER = addresses.owner;
-		MINT_AMOUNT = ethers.utils.parseUnits("100000", 18);
-		SWEEP_AMOUNT = ethers.utils.parseUnits("1400", 18);
-		TRANSFER_AMOUNT = ethers.utils.parseUnits("100", 18);
-		REMANENT_AMOUNT = ethers.utils.parseUnits("139600", 18);
-		ZERO = 0;
-		PROPOSAL_ACTIVE = 1;
-		PROPOSAL_CANCELED = 2;
-		PROPOSAL_SUCCEEDED = 4;
-		PROPOSAL_QUEUED = 5;
-		PROPOSAL_EXECUTED = 7;
-		PROPOSER_ROLE = roles.PROPOSER_ROLE;
-		EXECUTOR_ROLE = roles.EXECUTOR_ROLE;
-		CANCELLER_ROLE = roles.CANCELLER_ROLE;
+		MINT_AMOUNT = toBN("100000", 18);
+		SWEEP_AMOUNT = toBN("1400", 18);
+		TRANSFER_AMOUNT = toBN("100", 18);
+		REMANENT_AMOUNT = toBN("139600", 18);
 		// contracts
 		Sweep = await ethers.getContractFactory("SweepMock");
 		const Proxy = await upgrades.deployProxy(Sweep, [LZENDPOINT]);
@@ -44,15 +35,15 @@ contract('Governance - Local', async (accounts) => {
 		sweeper = await SWEEPER.deploy(sweep.address, addresses.treasury);
 		governance = await Governance.deploy(sweeper.address, addresses.timelock, 10);
 
-		await sweeper.setAllowMinting(true);
-		await sweeper.setAllowBurning(true);
+		await sweeper.setAllowMinting(Const.TRUE);
+		await sweeper.setAllowBurning(Const.TRUE);
 		// Set SWEEPER price to 1: 
 		await sweeper.setSWEEPERPrice(10000);
 
 		account = await impersonate(OWNER_SWEEPER);
-		await timelock.connect(account).grantRole(PROPOSER_ROLE, governance.address);
-		await timelock.connect(account).grantRole(EXECUTOR_ROLE, governance.address);
-		await timelock.connect(account).grantRole(CANCELLER_ROLE, PROPOSER);
+		await timelock.connect(account).grantRole(Const.PROPOSER_ROLE, governance.address);
+		await timelock.connect(account).grantRole(Const.EXECUTOR_ROLE, governance.address);
+		await timelock.connect(account).grantRole(Const.CANCELLER_ROLE, PROPOSER);
 	});
 
 	it('delegates votes correctly', async () => {
@@ -67,11 +58,11 @@ contract('Governance - Local', async (accounts) => {
 		await sweeper.connect(account).transfer(USER3, TRANSFER_AMOUNT);
 		await sweeper.connect(account).transfer(USER4, TRANSFER_AMOUNT);
 
-		expect(await sweeper.getVotes(PROPOSER)).to.equal(ZERO);
-		expect(await sweeper.getVotes(USER1)).to.equal(ZERO);
-		expect(await sweeper.getVotes(USER2)).to.equal(ZERO);
-		expect(await sweeper.getVotes(USER3)).to.equal(ZERO);
-		expect(await sweeper.getVotes(USER4)).to.equal(ZERO);
+		expect(await sweeper.getVotes(PROPOSER)).to.equal(Const.ZERO);
+		expect(await sweeper.getVotes(USER1)).to.equal(Const.ZERO);
+		expect(await sweeper.getVotes(USER2)).to.equal(Const.ZERO);
+		expect(await sweeper.getVotes(USER3)).to.equal(Const.ZERO);
+		expect(await sweeper.getVotes(USER4)).to.equal(Const.ZERO);
 
 		// delegate
 		await sweeper.connect(account).delegate(PROPOSER);
@@ -114,7 +105,7 @@ contract('Governance - Local', async (accounts) => {
 		await time.advanceBlock();
 
 		proposal_id = await governance.hashProposal([sweep.address], [0], [calldata], descriptionHash);
-		expect(await governance.state(proposal_id)).to.equal(PROPOSAL_ACTIVE);
+		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_ACTIVE);
 	});
 
 	it('reverts propose if proposer votes below proposal threshold', async () => {
@@ -141,17 +132,17 @@ contract('Governance - Local', async (accounts) => {
 	});
 
 	it('cast votes', async () => {
-		expect(await governance.state(proposal_id)).to.equal(PROPOSAL_ACTIVE);
-		expect(await governance.hasVoted(proposal_id, PROPOSER)).to.equal(false);
-		expect(await governance.hasVoted(proposal_id, USER1)).to.equal(false);
-		expect(await governance.hasVoted(proposal_id, USER2)).to.equal(false);
-		expect(await governance.hasVoted(proposal_id, USER3)).to.equal(false);
-		expect(await governance.hasVoted(proposal_id, USER4)).to.equal(false);
+		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_ACTIVE);
+		expect(await governance.hasVoted(proposal_id, PROPOSER)).to.equal(Const.FALSE);
+		expect(await governance.hasVoted(proposal_id, USER1)).to.equal(Const.FALSE);
+		expect(await governance.hasVoted(proposal_id, USER2)).to.equal(Const.FALSE);
+		expect(await governance.hasVoted(proposal_id, USER3)).to.equal(Const.FALSE);
+		expect(await governance.hasVoted(proposal_id, USER4)).to.equal(Const.FALSE);
 
 		votes = await governance.proposalVotes(proposal_id)
-		expect(votes.againstVotes).to.equal(ZERO);
-		expect(votes.forVotes).to.equal(ZERO);
-		expect(votes.abstainVotes).to.equal(ZERO);
+		expect(votes.againstVotes).to.equal(Const.ZERO);
+		expect(votes.forVotes).to.equal(Const.ZERO);
+		expect(votes.abstainVotes).to.equal(Const.ZERO);
 
 		account = await impersonate(PROPOSER);
 		await governance.connect(account).castVote(proposal_id, 1);
@@ -164,14 +155,14 @@ contract('Governance - Local', async (accounts) => {
 		account = await impersonate(USER4);
 		await governance.connect(account).castVote(proposal_id, 2);
 
-		expect(await governance.hasVoted(proposal_id, PROPOSER)).to.equal(true);
-		expect(await governance.hasVoted(proposal_id, USER1)).to.equal(true);
-		expect(await governance.hasVoted(proposal_id, USER2)).to.equal(true);
-		expect(await governance.hasVoted(proposal_id, USER3)).to.equal(true);
-		expect(await governance.hasVoted(proposal_id, USER4)).to.equal(true);
+		expect(await governance.hasVoted(proposal_id, PROPOSER)).to.equal(Const.TRUE);
+		expect(await governance.hasVoted(proposal_id, USER1)).to.equal(Const.TRUE);
+		expect(await governance.hasVoted(proposal_id, USER2)).to.equal(Const.TRUE);
+		expect(await governance.hasVoted(proposal_id, USER3)).to.equal(Const.TRUE);
+		expect(await governance.hasVoted(proposal_id, USER4)).to.equal(Const.TRUE);
 
 		votes = await governance.proposalVotes(proposal_id)
-		expect(votes.againstVotes).to.equal(ZERO);
+		expect(votes.againstVotes).to.equal(Const.ZERO);
 		expect(votes.abstainVotes).to.equal(TRANSFER_AMOUNT);
 		expect(votes.forVotes).to.equal((SWEEP_AMOUNT.mul(100)).sub(TRANSFER_AMOUNT));
 	});
@@ -180,9 +171,9 @@ contract('Governance - Local', async (accounts) => {
 		await time.increase(300);
 		await time.advanceBlock();
 
-		expect(await governance.state(proposal_id)).to.equal(PROPOSAL_SUCCEEDED);
+		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_SUCCEEDED);
 		await governance.connect(account).queue([sweep.address], [0], [calldata], descriptionHash);
-		expect(await governance.state(proposal_id)).to.equal(PROPOSAL_QUEUED);
+		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_QUEUED);
 	});
 
 	it('Revert cancel proposal if caller is not canceller(owner)', async () => {
@@ -196,9 +187,9 @@ contract('Governance - Local', async (accounts) => {
 		await time.increase(parseInt(delay));
 		await time.advanceBlock();
 
-		expect(await governance.state(proposal_id)).to.equal(PROPOSAL_QUEUED);
+		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_QUEUED);
 		await governance.connect(account).execute([sweep.address], [0], [calldata], descriptionHash);
-		expect(await governance.state(proposal_id)).to.equal(PROPOSAL_EXECUTED);
+		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_EXECUTED);
 	});
 
 	it('Cancel proposal', async () => {
@@ -213,11 +204,11 @@ contract('Governance - Local', async (accounts) => {
 		await time.advanceBlock();
 
 		proposal_id = await governance.hashProposal([sweep.address], [0], [calldata], descriptionHash);
-		expect(await governance.state(proposal_id)).to.equal(PROPOSAL_ACTIVE);
+		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_ACTIVE);
 
 		await governance.connect(account).cancel([sweep.address], [0], [calldata], descriptionHash)
 
 		proposal_id = await governance.hashProposal([sweep.address], [0], [calldata], descriptionHash);
-		expect(await governance.state(proposal_id)).to.equal(PROPOSAL_CANCELED);
+		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_CANCELED);
 	});
 });

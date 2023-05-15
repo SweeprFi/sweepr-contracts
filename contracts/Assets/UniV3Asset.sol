@@ -287,7 +287,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         );
 
         TransferHelper.safeApprove(
-            address(SWEEP),
+            sweep_address,
             address(nonfungiblePositionManager),
             _sweep_amount
         );

@@ -1,20 +1,18 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
+const { toBN, Const } = require("../utils/helper_functions");
 
 contract("Sweep - Mint", async function () {
 	before(async () => {
 		[owner, receiver, treasury, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 
+		TRANSFER_AMOUNT = toBN("100", 18);
+		INTEREST_RATE = 5e4; // 5%
 		// ------------- Deployment of contracts -------------
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 		WhitelistApprover = await ethers.getContractFactory("TransferApproverWhitelist");
 		Sweep = await ethers.getContractFactory("SweepMock");
-
-		TRANSFER_AMOUNT = ethers.utils.parseUnits("100", 18);
-		INTEREST_RATE = 50000; // 5%
-		MULTISIG = ethers.BigNumber.from("1");
-		ZERO = 0;
 
 		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
 		sweep = await Proxy.deployed();
@@ -52,12 +50,12 @@ contract("Sweep - Mint", async function () {
 
 		minters = await sweep.getMinters();
 
-		is_found = false;
+		is_found = Const.FALSE;
 		minters.map(async (minter) => {
-			if (minter == addresses.asset_offChain) is_found = true;
+			if (minter == addresses.asset_offChain) is_found = Const.TRUE;
 		})
 
-		expect(is_found).equal(false);
+		expect(is_found).equal(Const.FALSE);
 	});
 
 	it('transfers tokens when unpaused and unblacklisted', async () => {
@@ -65,11 +63,11 @@ contract("Sweep - Mint", async function () {
 		await sweep.connect(newMinter).minter_mint(newAddress.address, TRANSFER_AMOUNT);
 
 		let receiverBalance = await sweep.balanceOf(receiver.address);
-		expect(receiverBalance).to.equal(ZERO);
+		expect(receiverBalance).to.equal(Const.ZERO);
 
 		await sweep.connect(newAddress).transfer(receiver.address, TRANSFER_AMOUNT)
 
-		expect(await sweep.balanceOf(newAddress.address)).to.equal(ZERO);
+		expect(await sweep.balanceOf(newAddress.address)).to.equal(Const.ZERO);
 		expect(await sweep.balanceOf(receiver.address)).to.equal(TRANSFER_AMOUNT);
 	});
 
@@ -108,7 +106,7 @@ contract("Sweep - Mint", async function () {
 
 		await sweep.connect(receiver).transfer(newAddress.address, TRANSFER_AMOUNT)
 
-		expect(await sweep.balanceOf(receiver.address)).to.equal(ZERO);
+		expect(await sweep.balanceOf(receiver.address)).to.equal(Const.ZERO);
 		expect(await sweep.balanceOf(newAddress.address)).to.equal(TRANSFER_AMOUNT);
 	});
 
@@ -117,12 +115,12 @@ contract("Sweep - Mint", async function () {
 		await sweep.connect(owner).setTransferApprover(whitelistApprover.address);
 
 		// whitelist receiver
-		expect(await whitelistApprover.isWhitelisted(receiver.address)).to.equal(false);
+		expect(await whitelistApprover.isWhitelisted(receiver.address)).to.equal(Const.FALSE);
 		await whitelistApprover.connect(owner).whitelist(receiver.address);
 
 		await sweep.connect(newAddress).transfer(receiver.address, TRANSFER_AMOUNT)
 
-		expect(await sweep.balanceOf(newAddress.address)).to.equal(ZERO);
+		expect(await sweep.balanceOf(newAddress.address)).to.equal(Const.ZERO);
 		expect(await sweep.balanceOf(receiver.address)).to.equal(TRANSFER_AMOUNT);
 
 		// unwhitelist receiver
@@ -133,17 +131,17 @@ contract("Sweep - Mint", async function () {
 	});
 
 	it('burns Sweeps correctly', async () => {
-		MAX_MINT_AMOUNT = ethers.utils.parseUnits("500", 18);
-		await sweep.connect(owner).setMinterEnabled(newMinter.address, true);
+		MAX_MINT_AMOUNT = toBN("500", 18);
+		await sweep.connect(owner).setMinterEnabled(newMinter.address, Const.TRUE);
 		await sweep.connect(owner).setMinterMaxAmount(newMinter.address, MAX_MINT_AMOUNT);
 
-		expect(await sweep.balanceOf(newMinter.address)).to.equal(ZERO);
+		expect(await sweep.balanceOf(newMinter.address)).to.equal(Const.ZERO);
 		await sweep.connect(newMinter).minter_mint(newMinter.address, TRANSFER_AMOUNT);
 
 		expect(await sweep.balanceOf(newMinter.address)).to.equal(TRANSFER_AMOUNT);
 
 		await sweep.connect(newMinter).minter_burn_from(TRANSFER_AMOUNT);
-		expect(await sweep.balanceOf(newMinter.address)).to.equal(ZERO);
+		expect(await sweep.balanceOf(newMinter.address)).to.equal(Const.ZERO);
 	});
 
 	it('allow and disallow minting', async () => {
@@ -162,7 +160,7 @@ contract("Sweep - Mint", async function () {
 		NEW_ARB_SPREAD = 1000; // 0.1%
 		await sweep.connect(owner).setArbSpread(NEW_ARB_SPREAD);
 
-		expect(await sweep.balanceOf(newAddress.address)).to.equal(ZERO);
+		expect(await sweep.balanceOf(newAddress.address)).to.equal(Const.ZERO);
 
 		//  Mint should be allowed because amm_price > (1 - arb_spread) * target_price
 		//	Here,  amm_price = 990000, target_price = 1000000, arb_spread = 1000

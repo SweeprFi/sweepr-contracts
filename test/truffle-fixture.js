@@ -1,7 +1,5 @@
 const { artifacts } = require('hardhat');
 const { addresses } = require("../utils/address");
-const helpers = require("@nomicfoundation/hardhat-network-helpers");
-const { networks } = require("../hardhat.config");
 const { sendEth } = require("../utils/helper_functions");
 
 const SWEEP = artifacts.require("contracts/Sweep/Sweep.sol:SweepDollarCoin");
@@ -10,15 +8,7 @@ const Governance = artifacts.require("SweepGovernor");
 const USDC = artifacts.require("ERC20");
 // const UniswapOracle = artifacts.require("Oracle/UniswapOracle");
 
-let blockNumber;
-
 module.exports = async () => {
-  if (!blockNumber) {
-    url = networks.hardhat.forking.url;
-    blockNumber = await ethers.provider.getBlockNumber();
-  } else {
-    await helpers.reset(url, blockNumber);
-  }
   // Get the necessary instances
   // ======================================================
   usdc_instance = await USDC.at(addresses.usdc);

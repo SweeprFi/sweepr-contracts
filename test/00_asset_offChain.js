@@ -1,19 +1,17 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
-const { impersonate } = require("../utils/helper_functions");
+const { impersonate, Const, toBN } = require("../utils/helper_functions");
 
-contract("Off-Chain Asset - Local", async function (accounts) {
+contract("Off-Chain Asset", async function (accounts) {
     before(async () => {
         GUEST = accounts[0];
         LZENDPOINT = accounts[1];
         WALLET = accounts[8];
         BORROWER = addresses.borrower;
 
-        ZERO = 0;
-        sweepAmount = ethers.utils.parseUnits("100", 18);
+        sweepAmount = toBN("100", 18);
         usdxAmount = 100e6;
-        ADDRESS_ZERO = ethers.constants.AddressZero;
 
         // ------------- Deployment of contracts -------------
         Token = await ethers.getContractFactory("ERC20");
@@ -27,7 +25,7 @@ contract("Off-Chain Asset - Local", async function (accounts) {
         usdOracle = await USDOracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
         OffChainAsset = await ethers.getContractFactory("OffChainAsset");
         asset = await OffChainAsset.deploy(
@@ -51,14 +49,14 @@ contract("Off-Chain Asset - Local", async function (accounts) {
 
         it("invests correctly", async function () {
             user = await impersonate(GUEST);
-            expect(await asset.assetValue()).to.equal(ZERO);
-            expect(await asset.valuation_time()).to.equal(ZERO);
+            expect(await asset.assetValue()).to.equal(Const.ZERO);
+            expect(await asset.valuation_time()).to.equal(Const.ZERO);
             await expect(asset.connect(user).invest(usdxAmount, sweepAmount))
                 .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
 
             user = await impersonate(BORROWER);
             await asset.connect(user).invest(usdxAmount, sweepAmount);
-            expect(await asset.assetValue()).to.above(ZERO);
+            expect(await asset.assetValue()).to.above(Const.ZERO);
             expect(await usdx.balanceOf(WALLET)).to.equal(usdxAmount);
             expect(await sweep.balanceOf(WALLET)).to.equal(sweepAmount);
         });
@@ -71,8 +69,8 @@ contract("Off-Chain Asset - Local", async function (accounts) {
             user = await impersonate(BORROWER);
             await asset.connect(user).divest(usdxAmount);
             expect(await asset.redeem_amount()).to.equal(usdxAmount);
-            expect(await asset.redeem_mode()).to.equal(true);
-            expect(await asset.redeem_time()).to.above(ZERO);
+            expect(await asset.redeem_mode()).to.equal(Const.TRUE);
+            expect(await asset.redeem_time()).to.above(Const.ZERO);
         });
 
         it("returns investment correctly", async function () {
@@ -80,8 +78,8 @@ contract("Off-Chain Asset - Local", async function (accounts) {
             await usdx.connect(user).approve(asset.address, usdxAmount);
             await asset.connect(user).payback(addresses.usdc, usdxAmount);
 
-            expect(await asset.redeem_mode()).to.equal(false);
-            expect(await asset.redeem_amount()).to.equal(ZERO);
+            expect(await asset.redeem_mode()).to.equal(Const.FALSE);
+            expect(await asset.redeem_amount()).to.equal(Const.ZERO);
         });
     });
 });

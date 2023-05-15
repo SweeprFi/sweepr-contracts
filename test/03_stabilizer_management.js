@@ -1,19 +1,13 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { Const, toBN } = require("../utils/helper_functions");
 
 contract("Stabilizer - Management Functions", async function () {
   before(async () => {
     [owner, borrower, wallet, treasury, multisig, lzEndpoint, balancer] = await ethers.getSigners();
-    maxBorrow = ethers.utils.parseUnits("100", 18);
-    newLoanLimit = ethers.utils.parseUnits("90", 18);
-    minimumEquityRatio = 1e4; // 1%
-    spreadFee = 1e4; // 1%
-    autoInvestMinEquityRatio = 10e4; // 10%
-    autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-    autoInvest = true;
-    ZERO = 0;
-    ADDRESS_ZERO = ethers.constants.AddressZero;
-
+    maxBorrow = toBN("100", 18);
+    newLoanLimit = toBN("90", 18);
+    autoInvestAmount = toBN("10", 18);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
@@ -28,7 +22,7 @@ contract("Stabilizer - Management Functions", async function () {
     usdOracle = await USDOracle.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
     // ------------- Initialize context -------------
@@ -46,7 +40,7 @@ contract("Stabilizer - Management Functions", async function () {
 
   describe("management constraints", async function () {
     it("only borrower can mint", async function () {
-      amount = ethers.utils.parseUnits("40", 18);
+      amount = toBN("40", 18);
       await expect(offChainAsset.connect(borrower).borrow(amount))
         .to.be.revertedWithCustomError(offChainAsset, 'OnlyBorrower');
     });
@@ -72,52 +66,52 @@ contract("Stabilizer - Management Functions", async function () {
       expect(await offChainAsset.borrower()).to.equal(owner.address);
       await offChainAsset.setBorrower(borrower.address);
       expect(await offChainAsset.borrower()).to.equal(borrower.address);
-      expect(await offChainAsset.settings_enabled()).to.equal(true);
+      expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
     });
 
     it("set a new configuration", async function () {
-      expect(await offChainAsset.settings_enabled()).to.equal(true);
-      expect(await offChainAsset.min_equity_ratio()).to.equal(ZERO);
-      expect(await offChainAsset.spread_fee()).to.equal(ZERO);
-      expect(await offChainAsset.loan_limit()).to.equal(ZERO);
-      expect(await offChainAsset.liquidator_discount()).to.equal(ZERO);
-      expect(await offChainAsset.call_delay()).to.equal(ZERO);
+      expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
+      expect(await offChainAsset.min_equity_ratio()).to.equal(Const.ZERO);
+      expect(await offChainAsset.spread_fee()).to.equal(Const.ZERO);
+      expect(await offChainAsset.loan_limit()).to.equal(Const.ZERO);
+      expect(await offChainAsset.liquidator_discount()).to.equal(Const.ZERO);
+      expect(await offChainAsset.call_delay()).to.equal(Const.ZERO);
       expect(await offChainAsset.link()).to.equal("");
 
       await expect(offChainAsset.connect(multisig)
         .configure(
-          1e4,
-          1e4,
+          Const.RATIO,
+          Const.RATIO,
           maxBorrow,
-          1e4,
-          100,
-          autoInvestMinEquityRatio,
-          autoInvestMinAmount,
-          autoInvest,
-          "htttp://test.com"
+          Const.RATIO,
+          Const.FEE,
+          Const.RATIO,
+          autoInvestAmount,
+          Const.TRUE,
+          Const.URL
         )
       ).to.be.revertedWithCustomError(offChainAsset, 'OnlyBorrower');
 
       await offChainAsset.connect(borrower)
         .configure(
-          1e4,
-          1e4,
+          Const.RATIO,
+          Const.RATIO,
           maxBorrow,
-          1e4,
-          100,
-          autoInvestMinEquityRatio,
-          autoInvestMinAmount,
-          autoInvest,
-          "htttp://test.com"
+          Const.RATIO,
+          Const.FEE,
+          Const.RATIO,
+          autoInvestAmount,
+          Const.TRUE,
+          Const.URL
         );
 
-      expect(await offChainAsset.min_equity_ratio()).to.equal(1e4);
-      expect(await offChainAsset.spread_fee()).to.equal(1e4);
+      expect(await offChainAsset.min_equity_ratio()).to.equal(Const.RATIO);
+      expect(await offChainAsset.spread_fee()).to.equal(Const.RATIO);
       expect(await offChainAsset.loan_limit()).to.equal(maxBorrow);
-      expect(await offChainAsset.liquidator_discount()).to.equal(1e4);
-      expect(await offChainAsset.call_delay()).to.equal(100);
+      expect(await offChainAsset.liquidator_discount()).to.equal(Const.RATIO);
+      expect(await offChainAsset.call_delay()).to.equal(Const.FEE);
 
-      expect(await offChainAsset.link()).to.equal("htttp://test.com");
+      expect(await offChainAsset.link()).to.equal(Const.URL);
     });
 
     it("set a new loan limit", async function () {
@@ -127,36 +121,36 @@ contract("Stabilizer - Management Functions", async function () {
     });
 
     it("set a new settings manager", async function () {
-      expect(await offChainAsset.settings_enabled()).to.equal(true);
+      expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
       await offChainAsset.connect(borrower).propose();
 
       await expect(offChainAsset.connect(borrower)
         .configure(
-          1e4,
-          1e4,
+          Const.RATIO,
+          Const.RATIO,
           maxBorrow,
-          1e4,
-          100,
-          autoInvestMinEquityRatio,
-          autoInvestMinAmount,
-          autoInvest,
-          "htttp://test.com"
+          Const.RATIO,
+          Const.FEE,
+          Const.RATIO,
+          autoInvestAmount,
+          Const.TRUE,
+          Const.URL
         )
       ).to.be.revertedWithCustomError(offChainAsset, 'SettingsDisabled');
 
-      expect(await offChainAsset.settings_enabled()).to.equal(false);
+      expect(await offChainAsset.settings_enabled()).to.equal(Const.FALSE);
     });
 
     it("rejects the proposed and rollback the settings manager", async function () {
-      expect(await offChainAsset.settings_enabled()).to.equal(false);
+      expect(await offChainAsset.settings_enabled()).to.equal(Const.FALSE);
       await offChainAsset.connect(owner).reject();
-      expect(await offChainAsset.settings_enabled()).to.equal(true);
+      expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
     });
 
     it("set pause correctly", async function () {
-      expect(await offChainAsset.paused()).to.equal(false);
+      expect(await offChainAsset.paused()).to.equal(Const.FALSE);
       await offChainAsset.connect(owner).pause();
-      expect(await offChainAsset.paused()).to.equal(true);
+      expect(await offChainAsset.paused()).to.equal(Const.TRUE);
     });
   });
 
@@ -184,13 +178,13 @@ contract("Stabilizer - Management Functions", async function () {
 
     it("maximum mint amount has been reached", async function () {
       await sweep.addMinter(offChainAsset.address, maxBorrow);
-      amount = ethers.utils.parseUnits("101", 18);
+      amount = toBN("101", 18);
       await expect(offChainAsset.connect(borrower).borrow(amount))
         .to.be.revertedWithCustomError(offChainAsset, 'NotEnoughBalance');
     });
 
     it("next equity ratio will be lower than the minimum", async function () {
-      amount = ethers.utils.parseUnits("10", 18);
+      amount = toBN("10", 18);
       await expect(offChainAsset.connect(borrower).borrow(amount))
         .to.be.revertedWithCustomError(offChainAsset, 'EquityRatioExcessed');
     });
@@ -207,14 +201,14 @@ contract("Stabilizer - Management Functions", async function () {
 
     it("tries to withdraw all balance", async function () {
       balance = await usdx.balanceOf(offChainAsset.address);
-      await expect(offChainAsset.connect(borrower).withdraw(sweep.address, ZERO))
+      await expect(offChainAsset.connect(borrower).withdraw(sweep.address, Const.ZERO))
         .to.be.revertedWithCustomError(offChainAsset, 'OverZero');
     });
 
     it("tries to withdraw more than the junior tranche value", async function () {
-      mintAmount = ethers.utils.parseUnits("9", 18);
-      depositAmount = ethers.utils.parseUnits("1", 18);
-      withdrawAmount = ethers.utils.parseUnits("10", 18);
+      mintAmount = toBN("9", 18);
+      depositAmount = toBN("1", 18);
+      withdrawAmount = toBN("10", 18);
       await sweep.transfer(offChainAsset.address, depositAmount);
       await offChainAsset.connect(borrower).borrow(mintAmount);
 
@@ -229,10 +223,10 @@ contract("Stabilizer - Management Functions", async function () {
     });
 
     it("burn with more amount that the current balance", async function () {
-      burnAmount = ethers.utils.parseUnits("1000", 18);
+      burnAmount = toBN("1000", 18);
       await offChainAsset.connect(borrower).repay(burnAmount);
       restAmount = await sweep.balanceOf(offChainAsset.address);
-      expect(restAmount).to.above(0);
+      expect(restAmount).to.above(Const.ZERO);
     });
   });
 });

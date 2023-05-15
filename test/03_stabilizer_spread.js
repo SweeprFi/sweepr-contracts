@@ -1,31 +1,19 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { increaseTime } = require("../utils/helper_functions");
+const { increaseTime, Const, toBN } = require("../utils/helper_functions");
 
 contract("Stabilizer and spread", async function () {
   before(async () => {
     [owner, borrower, liquidater, wallet, treasury, multisig, lzEndpoint] = await ethers.getSigners();
     usdxAmount = 1000e6;
-    sweepAmount = ethers.utils.parseUnits("1000", 18);
-    maxBorrow = ethers.utils.parseUnits("100", 18);
-
-    ZERO = 0;
     investAmount = 10e6;
-    minimumEquityRatio = 1e4; // 1%
-    mintAmountFir = ethers.utils.parseUnits("10", 18);
-    mintAmountSec = ethers.utils.parseUnits("30", 18);
-    mintAmountThr = ethers.utils.parseUnits("32", 18);
-
-    buyAmount = ethers.utils.parseUnits("5", 18);
-
-    spreadFee = 3e4; // 3%
-    liquidatorDiscount = 2e4; // 2%
-    callDelay = 432000; // 5 days
-    autoInvestMinEquityRatio = 10e4; // 10%
-    autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-    autoInvest = true;
-    ADDRESS_ZERO = ethers.constants.AddressZero;
-
+    sweepAmount = toBN("1000", 18);
+    maxBorrow = toBN("100", 18);
+    mintAmountFir = toBN("10", 18);
+    mintAmountSec = toBN("30", 18);
+    mintAmountThr = toBN("32", 18);
+    buyAmount = toBN("5", 18);
+    autoInvestMinAmount = toBN("10", 18);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
@@ -39,7 +27,7 @@ contract("Stabilizer and spread", async function () {
     usdOracle = await USDOracle.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
   });
@@ -62,15 +50,15 @@ contract("Stabilizer and spread", async function () {
     balance = await usdx.balanceOf(borrower.address);
 
     await offChainAsset.connect(borrower).configure(
-      minimumEquityRatio,
-      spreadFee,
+      Const.RATIO,
+      Const.SPREAD_FEE,
       maxBorrow,
-      liquidatorDiscount,
-      callDelay,
-      autoInvestMinEquityRatio,
-      autoInvestMinAmount,
-      autoInvest,
-      "htttp://test.com"
+      Const.DISCOUNT,
+      Const.DAYS_5,
+      Const.RATIO,
+      maxBorrow,
+      Const.FALSE,
+      Const.URL
     );
 
     await sweep.addMinter(offChainAsset.address, maxBorrow);
@@ -85,9 +73,9 @@ contract("Stabilizer and spread", async function () {
 
   it("Main Test", async function () {
     expect(await usdx.balanceOf(borrower.address)).to.equal(10e6);
-    expect(await usdx.balanceOf(offChainAsset.address)).to.equal(ZERO);
-    expect(await sweep.balanceOf(offChainAsset.address)).to.equal(ZERO);
-    expect(await offChainAsset.accruedFee()).to.equal(ZERO);
+    expect(await usdx.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
+    expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
+    expect(await offChainAsset.accruedFee()).to.equal(Const.ZERO);
 
     // First Mint
     st = offChainAsset.connect(borrower);
@@ -101,9 +89,9 @@ contract("Stabilizer and spread", async function () {
     expect(await sweep.balanceOf(offChainAsset.address)).to.equal(mintAmountFir);
     expect(await offChainAsset.sweep_borrowed()).to.equal(mintAmountFir);
     expect(await offChainAsset.spread_date()).to.equal(block.timestamp);
-    expect(await offChainAsset.accruedFee()).to.equal(ZERO);
-    await increaseTime(360000); // Delay 100 hours
-    expect(await offChainAsset.accruedFee()).to.above(ZERO);
+    expect(await offChainAsset.accruedFee()).to.equal(Const.ZERO);
+    await increaseTime(Const.DAY*100); // Delay 100 hours
+    expect(await offChainAsset.accruedFee()).to.above(Const.ZERO);
 
     // Second Mint
     await st.borrow(mintAmountSec);
@@ -114,10 +102,10 @@ contract("Stabilizer and spread", async function () {
     expect(await sweep.balanceOf(offChainAsset.address)).to.not.above(sum);
     expect(await offChainAsset.sweep_borrowed()).to.equal(sum);
     expect(await offChainAsset.spread_date()).to.equal(block.timestamp);
-    expect(await offChainAsset.accruedFee()).to.equal(ZERO);
+    expect(await offChainAsset.accruedFee()).to.equal(Const.ZERO);
 
-    await increaseTime(604800); // Delay 7 days
-    expect(await offChainAsset.accruedFee()).to.above(ZERO);
+    await increaseTime(Const.DAY*7); // Delay 7 days
+    expect(await offChainAsset.accruedFee()).to.above(Const.ZERO);
 
     // Repay
     await st.repay(mintAmountFir);
@@ -129,19 +117,19 @@ contract("Stabilizer and spread", async function () {
     st = offChainAsset.connect(borrower);
     await usdx.connect(borrower).transfer(offChainAsset.address, investAmount);
     await st.borrow(mintAmountSec);
-    await increaseTime(360000); // Delay 100 hours
+    await increaseTime(Const.DAY*100); // Delay 100 hours
 
     await st.repay(mintAmountSec);
 
-    expect(await sweep.balanceOf(offChainAsset.address)).to.equal(ZERO);
-    expect(await offChainAsset.sweep_borrowed()).to.above(ZERO);
+    expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
+    expect(await offChainAsset.sweep_borrowed()).to.above(Const.ZERO);
   });
 
   it("Repays with the spread.", async function () {
     st = offChainAsset.connect(borrower);
     await usdx.connect(borrower).transfer(offChainAsset.address, investAmount);
     await st.borrow(mintAmountFir);
-    await increaseTime(360000); // Delay 100 hours
+    await increaseTime(Const.DAY*100); // Delay 100 hours
 
     spread_amount = await st.accruedFee();
     burn_amount = mintAmountFir.add(spread_amount);
@@ -150,7 +138,7 @@ contract("Stabilizer and spread", async function () {
     await st.payFee();
     await st.repay(burn_amount);
 
-    expect(await sweep.balanceOf(offChainAsset.address)).to.above(ZERO);
-    expect(await offChainAsset.sweep_borrowed()).to.equal(ZERO);
+    expect(await sweep.balanceOf(offChainAsset.address)).to.above(Const.ZERO);
+    expect(await offChainAsset.sweep_borrowed()).to.equal(Const.ZERO);
   });
 });

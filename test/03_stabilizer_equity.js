@@ -1,23 +1,15 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { Const, toBN } = require("../utils/helper_functions");
 
 contract("Test Equity Ratio of Stabilizer", async function () {
   before(async () => {
     [owner, borrower, wallet, treasury, multisig, lzEndpoint] = await ethers.getSigners();
     usdxAmount = 1000e6;
-    sweepAmount = ethers.utils.parseUnits("1000", 18);
-    maxBorrow = ethers.utils.parseUnits("100", 18);
-
     investAmount = 10e6;
-    minimumEquityRatio = 1e4; // 1%
-    mintAmount = ethers.utils.parseUnits("90", 18);
-    spreadFee = 3e4; // 3%
-    liquidatorDiscount = 2e4; // 2%
-		callDelay = 432000; // 5 days
-    autoInvestMinEquityRatio = 10e4; // 10%
-    autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-    autoInvest = true;
-    ADDRESS_ZERO = ethers.constants.AddressZero;
+    sweepAmount = toBN("1000", 18);
+    maxBorrow = toBN("100", 18);
+    mintAmount = toBN("90", 18);
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
@@ -31,7 +23,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     usdOracle = await USDOracle.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
     offChainAsset = await OffChainAsset.deploy(
@@ -49,20 +41,18 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     await sweep.transfer(amm.address, sweepAmount);
     await usdx.transfer(borrower.address, investAmount);
     await usdx.approve(offChainAsset.address, usdxAmount);
-    await usdx.connect(borrower).approve(offChainAsset.address, usdxAmount);
-
     await offChainAsset.connect(borrower).configure(
-			minimumEquityRatio,
-			spreadFee,
-			maxBorrow,
-			liquidatorDiscount,
-			callDelay,
-      autoInvestMinEquityRatio,
-      autoInvestMinAmount,
-      autoInvest,
-			"htttp://test.com"
-		);
-  
+      Const.RATIO,
+      Const.SPREAD_FEE,
+      maxBorrow,
+      Const.DISCOUNT,
+      Const.DAYS_5,
+      Const.RATIO,
+      maxBorrow,
+      Const.FALSE,
+      Const.URL
+    );
+    await usdx.connect(borrower).approve(offChainAsset.address, usdxAmount);
   });
 
   it("Main Test", async function () {
@@ -78,7 +68,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     // Set Target Price to 0.9
     target_price = await sweep.target_price();
     await sweep.setTargetPrice(target_price, 0.9e6);
-    
+
     equity_ratio = await st.getEquityRatio();
     expect(equity_ratio.toNumber()).to.equal(109890); // expected 10.98%    
 
@@ -90,7 +80,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     // Set Target Price to 1.2
     target_price = await sweep.target_price();
     await sweep.setTargetPrice(target_price, 1.2e6);
-    
+
     equity_ratio = await st.getEquityRatio();
     expect(equity_ratio.toNumber()).to.equal(-82923); // expected -18.99%
   });

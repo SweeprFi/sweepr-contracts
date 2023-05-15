@@ -110,9 +110,9 @@ contract OffChainAsset is Stabilizer {
      * @param _amount The amount of usdx to payback.
      */
     function payback(address _token, uint256 _amount) external {
-        if (_token != address(SWEEP) && _token != address(usdx))
+        if (_token != sweep_address && _token != address(usdx))
             revert InvalidToken();
-        if (_token == address(SWEEP)) _amount = SWEEP.convertToUSD(_amount);
+        if (_token == sweep_address) _amount = SWEEP.convertToUSD(_amount);
         if (redeem_amount > _amount) revert NotEnoughAmount();
 
         current_value -= _amount;
@@ -151,7 +151,7 @@ contract OffChainAsset is Stabilizer {
 
         TransferHelper.safeTransfer(address(usdx), wallet, _usdx_amount);
 
-        TransferHelper.safeTransfer(address(SWEEP), wallet, _sweep_amount);
+        TransferHelper.safeTransfer(sweep_address, wallet, _sweep_amount);
 
         uint256 sweep_in_usd = SWEEP.convertToUSD(_sweep_amount);
         current_value += _usdx_amount;
