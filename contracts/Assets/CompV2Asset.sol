@@ -103,7 +103,7 @@ contract CompV2Asset is Stabilizer {
      */
     function invest(
         uint256 _usdx_amount
-    ) external onlyBorrower notFrozen validAmount(_usdx_amount) {
+    ) external onlyBorrower whenNotPaused validAmount(_usdx_amount) {
         _invest(_usdx_amount, 0);
     }
 
@@ -121,7 +121,7 @@ contract CompV2Asset is Stabilizer {
     /**
      * @notice Withdraw Rewards from Compound.
      */
-    function collect() public onlyBorrower notFrozen {
+    function collect() public onlyBorrower whenNotPaused {
         address[] memory cTokens = new address[](1);
         cTokens[0] = address(cUSDC);
         compController.claimComp(address(this), cTokens);

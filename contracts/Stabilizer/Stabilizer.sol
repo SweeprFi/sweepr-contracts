@@ -20,11 +20,13 @@ pragma experimental ABIEncoderV2;
 
 import "../Sweep/ISweep.sol";
 import "../AMM/IAMM.sol";
+import "../Common/Owned.sol";
 import "../Common/ERC20/IERC20Metadata.sol";
 import "../Utils/Uniswap/V3/libraries/TransferHelper.sol";
 import "../Oracle/ChainlinkPricer.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 
-contract Stabilizer {
+contract Stabilizer is Owned, Pausable {
     // Variables
     string public name;
     address public borrower;
@@ -46,13 +48,11 @@ contract Stabilizer {
     bool public auto_invest;
 
     bool public settings_enabled;
-    bool public frozen;
 
     IAMM public amm;
     ChainlinkPricer private usd_oracle;
 
     // Tokens
-    ISweep public sweep;
     IERC20Metadata public usdx;
 
     // Constants for various precisions
@@ -71,7 +71,6 @@ contract Stabilizer {
     event Sold(uint256 indexed sweep_amount);
     event BoughtSWEEP(uint256 indexed sweep_amount);
     event SoldSWEEP(uint256 indexed usdx_amount);
-    event FrozenChanged(bool indexed frozen);
     event LoanLimitChanged(uint256 loan_limit);
     event BorrowerChanged(address indexed borrower);
     event Proposed(address indexed borrower);
@@ -98,13 +97,9 @@ contract Stabilizer {
     );
 
     /* ========== Errors ========== */
-
-    error StabilizerFrozen();
     error OnlyBorrower();
     error OnlyBalancer();
-    error OnlyAdmin();
     error SettingsDisabled();
-    error ZeroAddressDetected();
     error OverZero();
     error InvalidMinter();
     error NotEnoughBalance();
@@ -120,24 +115,13 @@ contract Stabilizer {
     error SequencerDown();
 
     /* ========== Modifies ========== */
-
-    modifier notFrozen() {
-        if (frozen) revert StabilizerFrozen();
-        _;
-    }
-
     modifier onlyBorrower() {
         if (msg.sender != borrower) revert OnlyBorrower();
         _;
     }
 
     modifier onlyBalancer() {
-        if (msg.sender != sweep.balancer()) revert OnlyBalancer();
-        _;
-    }
-
-    modifier onlyAdmin() {
-        if (msg.sender != sweep.owner()) revert OnlyAdmin();
+        if (msg.sender != SWEEP.balancer()) revert OnlyBalancer();
         _;
     }
 
@@ -162,14 +146,12 @@ contract Stabilizer {
         address _usdx_address,
         address _amm_address,
         address _borrower
-    ) {
+    ) Owned(_sweep_address) {
         name = _name;
-        sweep = ISweep(_sweep_address);
         usdx = IERC20Metadata(_usdx_address);
         amm = IAMM(_amm_address);
         borrower = _borrower;
         settings_enabled = true;
-        frozen = false;
         usd_oracle = new ChainlinkPricer(amm.usdOracle(), amm.sequencerUptimeFeed());
     }
 
@@ -225,8 +207,8 @@ contract Stabilizer {
      */
     function currentValue() public view virtual returns (uint256) {
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
-        uint256 sweep_balance_in_usd = sweep.convertToUSD(sweep_balance);
-        uint256 accrued_fee_in_usd = sweep.convertToUSD(accruedFee());
+        uint256 sweep_balance_in_usd = SWEEP.convertToUSD(sweep_balance);
+        uint256 accrued_fee_in_usd = SWEEP.convertToUSD(accruedFee());
 
         return (_USDXtoUSD(usdx_balance) + sweep_balance_in_usd - accrued_fee_in_usd);
     }
@@ -236,7 +218,7 @@ contract Stabilizer {
      * @return int256 calculated junior tranche amount.
      */
     function getJuniorTrancheValue() external view returns (int256) {
-        uint256 senior_tranche_in_usdx = sweep.convertToUSD(sweep_borrowed);
+        uint256 senior_tranche_in_usdx = SWEEP.convertToUSD(sweep_borrowed);
         uint256 total_value = currentValue();
 
         return int256(total_value) - int256(senior_tranche_in_usdx);
@@ -248,7 +230,7 @@ contract Stabilizer {
      */
     function getLiquidationValue() public view returns (uint256) {
         return
-            accruedFee() + sweep.convertToSWEEP(
+            accruedFee() + SWEEP.convertToSWEEP(
                 (currentValue() * (1e6 - liquidator_discount)) / PRECISION
             );
     }
@@ -270,14 +252,15 @@ contract Stabilizer {
     }
 
     /**
-     * @notice Frozen
-     * @param _frozen.
+     * @notice Pause
      * @dev Stops investment actions.
      */
-    function setFrozen(bool _frozen) external onlyAdmin {
-        frozen = _frozen;
+    function pause() external onlyAdmin {
+        _pause();
+    }
 
-        emit FrozenChanged(_frozen);
+    function unpause() external onlyAdmin {
+        _unpause();
     }
 
     /**
@@ -361,8 +344,8 @@ contract Stabilizer {
      */
     function borrow(
         uint256 _sweep_amount
-    ) external onlyBorrower notFrozen validAmount(_sweep_amount) {
-        if (!sweep.isValidMinter(address(this))) revert InvalidMinter();
+    ) external onlyBorrower whenNotPaused validAmount(_sweep_amount) {
+        if (!SWEEP.isValidMinter(address(this))) revert InvalidMinter();
 
         uint256 sweep_available = loan_limit - sweep_borrowed;
         if (sweep_available < _sweep_amount) revert NotEnoughBalance();
@@ -397,8 +380,8 @@ contract Stabilizer {
 
         if (spread_amount > 0) {
             TransferHelper.safeTransfer(
-                address(sweep),
-                sweep.treasury(),
+                address(SWEEP),
+                SWEEP.treasury(),
                 spread_amount
             );
 
@@ -435,7 +418,7 @@ contract Stabilizer {
 
         if (sweep_balance < call_amount) {
             uint256 missing_sweep = call_amount - sweep_balance;
-            missing_usdx = sweep.convertToUSD(missing_sweep);
+            missing_usdx = SWEEP.convertToUSD(missing_sweep);
             if (missing_usdx > usdx_balance)
                 _divest(missing_usdx - usdx_balance);
         }
@@ -462,7 +445,7 @@ contract Stabilizer {
      * @param _sweep_amount to mint.
      */
     function autoInvest(uint256 _sweep_amount) external onlyBalancer {
-        uint256 sweep_limit = sweep.minters(address(this)).max_amount;
+        uint256 sweep_limit = SWEEP.minters(address(this)).max_amount;
         uint256 sweep_available = sweep_limit - sweep_borrowed;
         _sweep_amount = _min(_sweep_amount, sweep_available);
         int256 current_equity_ratio = _calculateEquityRatio(_sweep_amount, 0);
@@ -488,7 +471,7 @@ contract Stabilizer {
     function buySweepOnAMM(
         uint256 _usdx_amount,
         uint256 _amountOutMin
-    ) external onlyBorrower notFrozen returns (uint256 sweep_amount) {
+    ) external onlyBorrower whenNotPaused returns (uint256 sweep_amount) {
         sweep_amount = _buy(_usdx_amount, _amountOutMin);
 
         emit Bought(sweep_amount);
@@ -504,7 +487,7 @@ contract Stabilizer {
     function sellSweepOnAMM(
         uint256 _sweep_amount,
         uint256 _amountOutMin
-    ) external onlyBorrower notFrozen returns (uint256 usdx_amount) {
+    ) external onlyBorrower whenNotPaused returns (uint256 usdx_amount) {
         usdx_amount = _sell(_sweep_amount, _amountOutMin);
 
         emit Sold(_sweep_amount);
@@ -518,8 +501,8 @@ contract Stabilizer {
      */
     function swapUsdxToSweep(
         uint256 _usdx_amount
-    ) external onlyBorrower notFrozen validAmount(_usdx_amount) {
-        uint256 sweep_amount = sweep.convertToSWEEP(_usdx_amount);
+    ) external onlyBorrower whenNotPaused validAmount(_usdx_amount) {
+        uint256 sweep_amount = SWEEP.convertToSWEEP(_usdx_amount);
         (, uint256 sweep_balance) = _balances();
         if (sweep_amount > sweep_balance) revert NotEnoughBalance();
 
@@ -529,7 +512,7 @@ contract Stabilizer {
             address(this),
             _usdx_amount
         );
-        TransferHelper.safeTransfer(address(sweep), msg.sender, sweep_amount);
+        TransferHelper.safeTransfer(address(SWEEP), msg.sender, sweep_amount);
 
         emit BoughtSWEEP(sweep_amount);
     }
@@ -542,15 +525,15 @@ contract Stabilizer {
      */
     function swapSweepToUsdx(
         uint256 _sweep_amount
-    ) external onlyBorrower notFrozen validAmount(_sweep_amount) {
-        uint256 usd_amount = sweep.convertToUSD(_sweep_amount);
+    ) external onlyBorrower whenNotPaused validAmount(_sweep_amount) {
+        uint256 usd_amount = SWEEP.convertToUSD(_sweep_amount);
         (uint256 usdx_balance, ) = _balances();
         uint256 usdx_amount = _USDtoUSDX(usd_amount);
 
         if (usdx_amount > usdx_balance) revert NotEnoughBalance();
 
         TransferHelper.safeTransferFrom(
-            address(sweep),
+            address(SWEEP),
             msg.sender,
             address(this),
             _sweep_amount
@@ -570,8 +553,8 @@ contract Stabilizer {
     function withdraw(
         address _token,
         uint256 _amount
-    ) external onlyBorrower notFrozen validAmount(_amount) {
-        if (_token != address(sweep) && _token != address(usdx))
+    ) external onlyBorrower whenNotPaused validAmount(_amount) {
+        if (_token != address(SWEEP) && _token != address(usdx))
             revert InvalidToken();
 
         if (_amount > IERC20Metadata(_token).balanceOf(address(this)))
@@ -579,8 +562,8 @@ contract Stabilizer {
 
         if (sweep_borrowed > 0) {
             uint256 usdx_amount = _amount;
-            if (_token == address(sweep))
-                usdx_amount = sweep.convertToUSD(_amount);
+            if (_token == address(SWEEP))
+                usdx_amount = SWEEP.convertToUSD(_amount);
             int256 current_equity_ratio = _calculateEquityRatio(0, _USDXtoUSD(usdx_amount));
             if (current_equity_ratio < min_equity_ratio)
                 revert EquityRatioExcessed();
@@ -618,13 +601,13 @@ contract Stabilizer {
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
         uint256 token_balance = IERC20Metadata(token).balanceOf(address(this));
         // Gives all the assets to the liquidator first
-        TransferHelper.safeTransfer(address(sweep), msg.sender, sweep_balance);
+        TransferHelper.safeTransfer(address(SWEEP), msg.sender, sweep_balance);
         TransferHelper.safeTransfer(address(usdx), msg.sender, usdx_balance);
         TransferHelper.safeTransfer(token, msg.sender, token_balance);
 
         // Takes SWEEP from the liquidator and repays as much debt as it can
         TransferHelper.safeTransferFrom(
-            address(sweep),
+            address(SWEEP),
             msg.sender,
             address(this),
             sweep_to_liquidate
@@ -663,7 +646,7 @@ contract Stabilizer {
 
         if (_sweep_amount == 0) revert NotEnoughBalance();
 
-        TransferHelper.safeApprove(address(sweep), address(amm), _sweep_amount);
+        TransferHelper.safeApprove(address(SWEEP), address(amm), _sweep_amount);
         uint256 usdx_amount = amm.sellSweep(
             address(usdx),
             _sweep_amount,
@@ -675,14 +658,14 @@ contract Stabilizer {
 
     function _borrow(uint256 _sweep_amount) internal {
         uint256 spread_amount = accruedFee();
-        sweep.minter_mint(address(this), _sweep_amount);
+        SWEEP.minter_mint(address(this), _sweep_amount);
         sweep_borrowed += _sweep_amount;
         spread_date = block.timestamp;
 
         if (spread_amount > 0) {
             TransferHelper.safeTransfer(
-                address(sweep),
-                sweep.treasury(),
+                address(SWEEP),
+                SWEEP.treasury(),
                 spread_amount
             );
             emit PayFee(spread_amount);
@@ -715,13 +698,13 @@ contract Stabilizer {
         }
 
         TransferHelper.safeTransfer(
-            address(sweep),
-            sweep.treasury(),
+            address(SWEEP),
+            SWEEP.treasury(),
             spread_amount
         );
 
-        TransferHelper.safeApprove(address(sweep), address(this), sweep_amount);
-        sweep.minter_burn_from(sweep_amount);
+        TransferHelper.safeApprove(address(SWEEP), address(this), sweep_amount);
+        SWEEP.minter_burn_from(sweep_amount);
 
         emit Repaid(sweep_amount);
     }
@@ -739,12 +722,12 @@ contract Stabilizer {
         uint256 _usd_delta
     ) internal view returns (int256) {
         uint256 current_value = currentValue();
-        uint256 sweep_delta_in_usd = sweep.convertToUSD(_sweep_delta);
+        uint256 sweep_delta_in_usd = SWEEP.convertToUSD(_sweep_delta);
         uint256 total_value = current_value + sweep_delta_in_usd - _usd_delta;
 
         if (total_value == 0) return 0;
 
-        uint256 senior_tranche_in_usd = sweep.convertToUSD(
+        uint256 senior_tranche_in_usd = SWEEP.convertToUSD(
             sweep_borrowed + _sweep_delta
         );
 
@@ -758,7 +741,7 @@ contract Stabilizer {
     }
 
     /**
-     * @notice Get Balances of the usdx and sweep.
+     * @notice Get Balances of the usdx and SWEEP.
      **/
     function _balances()
         internal
@@ -766,7 +749,7 @@ contract Stabilizer {
         returns (uint256 usdx_balance, uint256 sweep_balance)
     {
         usdx_balance = usdx.balanceOf(address(this));
-        sweep_balance = sweep.balanceOf(address(this));
+        sweep_balance = SWEEP.balanceOf(address(this));
     }
 
     /**

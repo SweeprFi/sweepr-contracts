@@ -27,15 +27,6 @@ contract OffChainAsset is Stabilizer {
 
     // Errors
     error NotEnoughAmount();
-    error OnlyCollateralAgent();
-
-    /* ========== Modifies ========== */
-
-    modifier onlyCollateralAgent() {
-        if (msg.sender != sweep.collateral_agency())
-            revert OnlyCollateralAgent();
-        _;
-    }
 
     constructor(
         string memory _name,
@@ -97,7 +88,7 @@ contract OffChainAsset is Stabilizer {
     )
         external
         onlyBorrower
-        notFrozen
+        whenNotPaused
         validAmount(_usdx_amount)
         validAmount(_sweep_amount)
     {
@@ -120,9 +111,9 @@ contract OffChainAsset is Stabilizer {
      * @param _amount The amount of usdx to payback.
      */
     function payback(address _token, uint256 _amount) external {
-        if (_token != address(sweep) && _token != address(usdx))
+        if (_token != address(SWEEP) && _token != address(usdx))
             revert InvalidToken();
-        if (_token == address(sweep)) _amount = sweep.convertToUSD(_amount);
+        if (_token == address(SWEEP)) _amount = SWEEP.convertToUSD(_amount);
         if (redeem_amount > _amount) revert NotEnoughAmount();
 
         TransferHelper.safeTransferFrom(
@@ -161,9 +152,9 @@ contract OffChainAsset is Stabilizer {
 
         TransferHelper.safeTransfer(address(usdx), wallet, _usdx_amount);
 
-        TransferHelper.safeTransfer(address(sweep), wallet, _sweep_amount);
+        TransferHelper.safeTransfer(address(SWEEP), wallet, _sweep_amount);
 
-        uint256 sweep_in_usd = sweep.convertToUSD(_sweep_amount);
+        uint256 sweep_in_usd = SWEEP.convertToUSD(_sweep_amount);
         current_value += _usdx_amount;
         current_value += sweep_in_usd;
         valuation_time = block.timestamp;

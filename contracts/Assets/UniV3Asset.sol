@@ -98,7 +98,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             ? (_amount0, _amount1)
             : (_amount1, _amount0);
 
-        return _usdx_amount + sweep.convertToUSD(_sweep_amount);
+        return _usdx_amount + SWEEP.convertToUSD(_sweep_amount);
     }
 
     /* ========== Actions ========== */
@@ -130,7 +130,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     )
         external
         onlyBorrower
-        notFrozen
+        whenNotPaused
         validAmount(_usdx_amount)
         validAmount(_sweep_amount)
     {
@@ -154,7 +154,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     function collect()
         public
         onlyBorrower
-        notFrozen
+        whenNotPaused
         isMinted
         returns (uint256 amount0, uint256 amount1)
     {
@@ -190,20 +190,21 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @return maxTick The maximum tick
      */
     function showTicks() internal view returns (int24 minTick, int24 maxTick) {
-        uint256 sweepPrice = sweep.target_price();
+        uint256 sweepPrice = SWEEP.target_price();
         uint256 minPrice = (sweepPrice * 99) / 100;
         uint256 maxPrice = (sweepPrice * 101) / 100;
+        uint8 decimals = SWEEP.decimals();
 
         minTick = liquidityHelper.getTickFromPrice(
             minPrice,
-            sweep.decimals(),
+            decimals,
             tickSpacing,
             flag
         );
 
         maxTick = liquidityHelper.getTickFromPrice(
             maxPrice,
-            sweep.decimals(),
+            decimals,
             tickSpacing,
             flag
         );
@@ -286,7 +287,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         );
 
         TransferHelper.safeApprove(
-            address(sweep),
+            address(SWEEP),
             address(nonfungiblePositionManager),
             _sweep_amount
         );

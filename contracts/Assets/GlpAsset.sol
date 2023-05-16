@@ -97,7 +97,7 @@ contract GlpAsset is Stabilizer {
      */
     function invest(
         uint256 _usdx_amount
-    ) external onlyBorrower notFrozen validAmount(_usdx_amount) {
+    ) external onlyBorrower whenNotPaused validAmount(_usdx_amount) {
         _invest(_usdx_amount, 0);
     }
 
@@ -115,7 +115,7 @@ contract GlpAsset is Stabilizer {
     /**
      * @notice Withdraw Rewards from GMX.
      */
-    function collect() public onlyBorrower notFrozen {
+    function collect() public onlyBorrower whenNotPaused {
         emit Collected(
             address(reward_token),
             feeGlpTracker.claimable(address(this))
