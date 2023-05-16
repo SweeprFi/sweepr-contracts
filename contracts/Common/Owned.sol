@@ -20,6 +20,8 @@ contract Owned {
     error ZeroAddressDetected();
 
     constructor(address _sweep_address) {
+        if(_sweep_address == address(0)) revert ZeroAddressDetected();
+
         sweep_address = _sweep_address;
         SWEEP = ISweep(_sweep_address);
     }

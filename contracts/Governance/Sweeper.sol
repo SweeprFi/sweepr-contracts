@@ -95,15 +95,15 @@ contract SWEEPER is ERC20, ERC20Burnable, Pausable, Owned, ERC20Permit, ERC20Vot
             receiver = msg.sender;
         }
 
+        _mint(receiver, SWEEPERAmount);
+        emit SweeperBought(SWEEPERAmount);
+
         TransferHelper.safeTransferFrom(
             address(SWEEP),
             receiver,
             address(treasury),
             SWEEPAmount
         );
-        _mint(receiver, SWEEPERAmount);
-
-        emit SweeperBought(SWEEPERAmount);
     }
 
     function sellSWEEPER(uint256 SWEEPERAmount) external permittedExchange {
@@ -123,10 +123,9 @@ contract SWEEPER is ERC20, ERC20Burnable, Pausable, Owned, ERC20Permit, ERC20Vot
             receiver = msg.sender;
         }
 
-        treasury.recoverSWEEP(receiver, SWEEPAmount);
         _burn(receiver, SWEEPERAmount);
-
         emit SweeperSold(SWEEPAmount);
+        treasury.recoverSWEEP(receiver, SWEEPAmount);
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */

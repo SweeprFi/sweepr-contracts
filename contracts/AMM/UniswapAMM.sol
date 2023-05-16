@@ -54,15 +54,14 @@ contract UniswapAMM is Owned {
         address _collateral_address,
         uint256 _collateral_amount,
         uint256 _amountOutMin
-    ) public returns (uint256 sweep_amount) {
+    ) external returns (uint256 sweep_amount) {
+        emit Bought(_collateral_amount);
         sweep_amount = swapExactInput(
             _collateral_address,
             sweep_address,
             _collateral_amount,
             _amountOutMin
         );
-
-        emit Bought(sweep_amount);
     }
 
     /**
@@ -76,15 +75,14 @@ contract UniswapAMM is Owned {
         address _collateral_address,
         uint256 _sweep_amount,
         uint256 _amountOutMin
-    ) public returns (uint256 collateral_amount) {
+    ) external returns (uint256 collateral_amount) {
+        emit Sold(_sweep_amount);
         collateral_amount = swapExactInput(
             address(SWEEP),
             _collateral_address,
             _sweep_amount,
             _amountOutMin
         );
-
-        emit Sold(_sweep_amount);
     }
 
     /**

@@ -115,16 +115,16 @@ contract OffChainAsset is Stabilizer {
         if (_token == address(SWEEP)) _amount = SWEEP.convertToUSD(_amount);
         if (redeem_amount > _amount) revert NotEnoughAmount();
 
+        current_value -= _amount;
+        redeem_mode = false;
+        redeem_amount = 0;
+
         TransferHelper.safeTransferFrom(
             _token,
             msg.sender,
             address(this),
             _amount
         );
-
-        current_value -= _amount;
-        redeem_mode = false;
-        redeem_amount = 0;
 
         emit Payback(_token, _amount);
     }

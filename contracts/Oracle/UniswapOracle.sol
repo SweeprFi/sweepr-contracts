@@ -26,14 +26,15 @@ contract UniswapOracle is Owned {
     IERC20Metadata public pricing_token;
 
     // AggregatorV3Interface stuff
-    string public description = "Uniswap Oracle";
-    uint256 public version = 1;
+    string public constant description = "Uniswap Oracle";
+    uint256 public constant version = 1;
     address private immutable usd_oracle;
     address private immutable sequencer_feed;
 
     uint32 public lookback_secs = 3600 * 24; // 1 day
     uint256 private constant USDC_FREQUENCY = 1 days;
 
+    event LookbakcSecChanged(uint32);
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
@@ -65,8 +66,8 @@ contract UniswapOracle is Owned {
      * @notice Get Liquidity
      * @dev Returns the balance of the pool without the unclaimed fees.
      */
-    function getLiquidity()
-        public
+    function getLiquidity() 
+        external
         view
         returns (uint256 sweep_amount, uint256 usdx_amount)
     {
@@ -123,7 +124,7 @@ contract UniswapOracle is Owned {
      * @notice Get Price
      * @dev Get the quote for selling 1 unit of a token.
      */
-    function getPrice() public view returns (uint256 amount_out) {
+    function getPrice() external view returns (uint256 amount_out) {
         (uint160 sqrtRatioX96, , , , , , ) = pool.slot0();
         uint256 quote = getQuote(
             sqrtRatioX96,
@@ -205,7 +206,7 @@ contract UniswapOracle is Owned {
      * @notice Set Uniswap Pool
      * @param _pool_address New pool.
      */
-    function setUniswapPool(address _pool_address) public onlyAdmin {
+    function setUniswapPool(address _pool_address) external onlyAdmin {
         _setUniswapPool(_pool_address);
     }
 
@@ -225,6 +226,7 @@ contract UniswapOracle is Owned {
      */
     function setTWAPLookbackSec(uint32 _seconds) external onlyAdmin {
         lookback_secs = _seconds;
+        emit LookbakcSecChanged(_seconds);
     }
 
     /**

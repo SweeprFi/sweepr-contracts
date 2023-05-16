@@ -29,6 +29,9 @@ contract CompV2Asset is Stabilizer {
     // Events
     event Collected(address reward, uint256 amount);
 
+    // Errors
+    error TransferFailure();
+
     constructor(
         string memory _name,
         address _sweep_address,
@@ -128,7 +131,7 @@ contract CompV2Asset is Stabilizer {
         address[] memory cTokens = new address[](1);
         cTokens[0] = address(cUSDC);
         compController.claimComp(address(this), cTokens);
-        comp.transfer(msg.sender, comp.balanceOf(address(this)));
+        if(!comp.transfer(msg.sender, comp.balanceOf(address(this)))) revert TransferFailure();
 
         emit Collected(address(comp), comp.balanceOf(address(this)));
     }
@@ -148,7 +151,7 @@ contract CompV2Asset is Stabilizer {
         _usdx_amount = _min(_usdx_amount, usdx_balance);
 
         TransferHelper.safeApprove(address(usdx), address(cUSDC), _usdx_amount);
-        cUSDC.mint(_usdx_amount);
+        if(cUSDC.mint(_usdx_amount) > 0) revert TransferFailure();
 
         emit Invested(_usdx_amount, 0);
     }
@@ -158,8 +161,9 @@ contract CompV2Asset is Stabilizer {
             cUSDC.exchangeRateStored();
         uint256 staked_amount = cUSDC.balanceOf(address(this));
         cusdc_amount = _min(cusdc_amount, staked_amount);
-        cUSDC.redeem(cusdc_amount);
 
-        emit Divested(_usdx_amount, 0);
+        uint256 divestedAmount = cUSDC.redeem(cusdc_amount);
+
+        emit Divested(divestedAmount, 0);
     }
 }

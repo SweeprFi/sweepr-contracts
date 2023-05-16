@@ -110,7 +110,7 @@ contract BaseSweep is
      * @param _minter Address to be added.
      * @param _amount Max Amount for mint.
      */
-    function addMinter(address _minter, uint256 _amount) public onlyOwner {
+    function addMinter(address _minter, uint256 _amount) external onlyOwner {
         if (_minter == address(0)) revert ZeroAddressDetected();
         if (_amount == 0) revert ZeroAmountDetected();
         if (minters[_minter].is_listed) revert MinterExist();
@@ -135,7 +135,7 @@ contract BaseSweep is
      */
     function removeMinter(
         address _minter
-    ) public onlyOwner validMinter(_minter) {
+    ) external onlyOwner validMinter(_minter) {
         delete minters[_minter]; // Delete minter from the mapping
 
         for (uint256 i = 0; i < minter_addresses.length; i++) {
@@ -224,7 +224,7 @@ contract BaseSweep is
      */
     function minter_burn_from(
         uint256 _amount
-    ) public validMinter(msg.sender) whenNotPaused {
+    ) external validMinter(msg.sender) whenNotPaused {
         if (minters[msg.sender].minted_amount < _amount)
             revert ExceedBurnAmount();
 

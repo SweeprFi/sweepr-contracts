@@ -5,11 +5,13 @@ pragma solidity 0.8.19;
 // ======================= SWEEP Dollar Coin (SWEEP) ==================
 // ====================================================================
 
-
 import "../Sweep/BaseSweep.sol";
+import "../Oracle/UniswapOracle.sol";
 
 contract SweepMock is BaseSweep {
+    UniswapOracle private uniswapOracle;
     // Addresses
+    address public sweep_usdc_oracle_address;
     address public collateral_agent;
     address public balancer;
     address public treasury;
@@ -98,6 +100,15 @@ contract SweepMock is BaseSweep {
      */
     function amm_price() public view returns (uint256) {
         return current_amm_price;
+    }
+
+    /**
+     * @notice Get Sweep Time Weighted Averate Price
+     * The Sweep Price comes from UniswapOracle.
+     * @return uint256 Sweep price
+     */
+    function twa_price() external view returns (uint256) {
+        return uniswapOracle.getTWAPrice();
     }
 
     /**
@@ -205,6 +216,18 @@ contract SweepMock is BaseSweep {
         collateral_agent = _agent_address;
 
         emit CollateralAgentSet(_agent_address);
+    }
+
+    /**
+     * @notice Set Uniswap Oracle
+     * @param _uniswap_oracle_address.
+     */
+    function setUniswapOracle(
+        address _uniswap_oracle_address
+    ) external onlyOwner {
+        if (_uniswap_oracle_address == address(0)) revert ZeroAddressDetected();
+        sweep_usdc_oracle_address = _uniswap_oracle_address;
+        uniswapOracle = UniswapOracle(_uniswap_oracle_address);
     }
 
     /**
