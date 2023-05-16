@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.16;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.19;
 
 // ====================================================================
 // ======================== Balancer.sol ==============================
@@ -13,15 +12,14 @@ pragma experimental ABIEncoderV2;
  * Executes the auto calls and auto invests from Stabilizers.
  */
 
-import "../Stabilizer/IStabilizer.sol";
-import "../Utils/Math/PRBMathSD59x18.sol";
-import "../Utils/Uniswap/V3/libraries/TransferHelper.sol";
 import "../Common/Owned.sol";
-import "../Common/ERC20/IERC20.sol";
+import "../Stabilizer/IStabilizer.sol";
+
+import { SD59x18, wrap, unwrap } from "@prb/math/src/SD59x18.sol";
+import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract Balancer is Owned {
-    using PRBMathSD59x18 for int256;
-
     struct Limit {
         uint248 amount;
         bool added;
@@ -116,14 +114,15 @@ contract Balancer is Owned {
         int256 _interest_rate,
         uint256 _period_time
     ) internal view returns (uint256) {
-        int256 precision = int24(PRICE_PRECISION);
-        int256 year = int256(int32(ONE_YEAR)).fromInt();
-        int256 period = int256(_period_time).fromInt();
-        int256 time_ratio = period.div(year);
-        int256 price_ratio = precision + _interest_rate;
-        int256 price_unit = price_ratio.pow(time_ratio).div(
+        SD59x18 precision = wrap(int256(int24(PRICE_PRECISION)));
+        SD59x18 year = wrap(int256(int32(ONE_YEAR)));
+        SD59x18 period = wrap(int256(_period_time));
+        SD59x18 time_ratio = period.div(year);
+        SD59x18 price_ratio = precision.add(wrap(_interest_rate));
+
+        int256 price_unit = unwrap(price_ratio.pow(time_ratio).div(
             precision.pow(time_ratio)
-        );
+        ));
 
         return ((_current_target_price * uint256(price_unit)) / (10 ** SWEEP.decimals()));
     }

@@ -22,7 +22,7 @@ contract('GLP Asset - Local', async () => {
         sweep = await Proxy.deployed();
         await sweep.setTreasury(addresses.treasury);
 
-        ERC20 = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
+        ERC20 = await ethers.getContractFactory("ERC20");
         usdx = await ERC20.attach(addresses.usdc);
 
         USDOracle = await ethers.getContractFactory("AggregatorMock");

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.16;
+pragma solidity 0.8.19;
 
-import "../../Common/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 interface IcUSDC is IERC20 {
     function decimals() external view returns (uint256);

@@ -31,7 +31,7 @@ contract('Balancer - Auto Invests', async () => {
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
         sweep = await Proxy.deployed();
 
-        ERC20 = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
+        ERC20 = await ethers.getContractFactory("ERC20");
         usdc = await ERC20.attach(USDC_ADDRESS);
 
         Balancer = await ethers.getContractFactory("Balancer");

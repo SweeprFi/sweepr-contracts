@@ -5,13 +5,14 @@ pragma solidity >=0.8.0;
 // ====================== LiquidityHelper.sol ============================
 // ====================================================================
 
-import "./libraries/TickMath.sol";
-import "./libraries/FixedPoint96.sol";
-import "./libraries/SqrtPriceMath.sol";
-import "./IUniswapV3Factory.sol";
-import "./IUniswapV3Pool.sol";
-import "./periphery/INonfungiblePositionManager.sol";
-import "../../Math/ABDKMath64x64.sol";
+import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
+import "@uniswap/v3-core/contracts/libraries/SqrtPriceMath.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
+
+import "abdk-libraries-solidity/ABDKMath64x64.sol";
 
 contract LiquidityHelper {
     IUniswapV3Factory internal constant uniswapV3Factory =

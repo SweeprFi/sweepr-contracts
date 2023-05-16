@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.16;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.19;
 
 // ====================================================================
 // ========================== Treasury.sol ============================
@@ -12,8 +11,9 @@ pragma experimental ABIEncoderV2;
  */
 
 import "../Common/Owned.sol";
-import "../Utils/Address.sol";
-import "../Common/TransferHelper.sol";
+
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 
 contract Treasury is Owned {
     address private sweeper;

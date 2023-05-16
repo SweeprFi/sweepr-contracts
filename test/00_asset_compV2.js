@@ -27,7 +27,7 @@ contract('Compound V2 Asset - Local', async () => {
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
         sweep = await Proxy.deployed();
 
-        ERC20 = await ethers.getContractFactory("contracts/Common/ERC20/ERC20.sol:ERC20");
+        ERC20 = await ethers.getContractFactory("ERC20");
         usdx = await ERC20.attach(addresses.usdc);
         comp = await ERC20.attach(addresses.comp);
 
