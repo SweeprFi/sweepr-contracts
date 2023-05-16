@@ -3,6 +3,8 @@ const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 const { toBN, Const } = require("../utils/helper_functions");
 
+let pool_address;
+
 contract('Uniswap V3 Asset', async () => {
     before(async () => {
         [borrower, guest, lzEndpoint] = await ethers.getSigners();
@@ -32,7 +34,7 @@ contract('Uniswap V3 Asset', async () => {
         amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
         factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
-        positionManager = await ethers.getContractAt("INonfungiblePositionManager", "0xC36442b4a4522E871399CD717aBDD847Ab11FE88");
+        positionManager = await ethers.getContractAt("INonfungiblePositionManager", Const.NFT_POSITION_MANAGER);
 
         UniV3Asset = await ethers.getContractFactory("UniV3Asset");
         asset = await UniV3Asset.deploy(
@@ -61,11 +63,10 @@ contract('Uniswap V3 Asset', async () => {
 
     describe("main functions", async function () {
         it('creates the pool', async () => {
-            expect(await factory.getPool(usdc.address, sweep.address, 500))
-                .to.equal(Const.ADDRESS_ZERO);
+            expect(await factory.getPool(usdc.address, sweep.address, 500)).to.equal(Const.ADDRESS_ZERO);
 
             let token0, token1;
-            const sqrtPriceX96 = toBN("7930916251426803402043", 1);
+            const sqrtPriceX96 = toBN("79243743360848080207210863491", 6);
 
             if (usdc.address < sweep.address) {
                 token0 = usdc.address;
