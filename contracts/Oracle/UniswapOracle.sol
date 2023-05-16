@@ -14,12 +14,10 @@ import "../Common/Owned.sol";
 import "../Oracle/ChainlinkPricer.sol";
 
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
-
 import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import '@uniswap/v3-core/contracts/libraries/FullMath.sol';
-import '@uniswap/v3-core/contracts/libraries/FixedPoint128.sol';
-
+import "@uniswap/v3-core/contracts/libraries/FullMath.sol";
+import "@uniswap/v3-core/contracts/libraries/FixedPoint128.sol";
 
 contract UniswapOracle is Owned {
     // Core
@@ -30,26 +28,23 @@ contract UniswapOracle is Owned {
     // AggregatorV3Interface stuff
     string public description = "Uniswap Oracle";
     uint256 public version = 1;
-    ChainlinkPricer private usd_oracle;
+    address private immutable usd_oracle;
+    address private immutable sequencer_feed;
 
     uint32 public lookback_secs = 3600 * 24; // 1 day
     uint256 private constant USDC_FREQUENCY = 1 days;
 
-    /* ========== Errors ========== */
-    error ZeroPrice();
-    error StalePrice();
-    error SequencerDown();
-
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
-        address _sweep_address, 
+        address _sweep_address,
         address _pool_address,
         address _usd_oracle_address,
         address _sequencer_feed_address
     ) Owned(_sweep_address) {
         _setUniswapPool(_pool_address);
-        usd_oracle = new ChainlinkPricer(_usd_oracle_address, _sequencer_feed_address);
+        usd_oracle = _usd_oracle_address;
+        sequencer_feed = _sequencer_feed_address;
     }
 
     /* ========== VIEWS ========== */
@@ -68,17 +63,22 @@ contract UniswapOracle is Owned {
 
     /**
      * @notice Get Liquidity
-     * @dev Returns the balance of the pool without the unclaimed fees.     
+     * @dev Returns the balance of the pool without the unclaimed fees.
      */
-    function getLiquidity() 
+    function getLiquidity()
         public
         view
-        returns (uint256 sweep_amount, uint256 usdx_amount) 
+        returns (uint256 sweep_amount, uint256 usdx_amount)
     {
-        (uint128 sweep_fee_Amount, uint128 usdx_fee_amount) = getUnclaimedFeeAmount();
+        (
+            uint128 sweep_fee_Amount,
+            uint128 usdx_fee_amount
+        ) = getUnclaimedFeeAmount();
         return (
-            IERC20Metadata(pricing_token).balanceOf(address(pool)) - uint256(sweep_fee_Amount),
-            IERC20Metadata(base_token).balanceOf(address(pool)) - uint256(usdx_fee_amount)
+            IERC20Metadata(pricing_token).balanceOf(address(pool)) -
+                uint256(sweep_fee_Amount),
+            IERC20Metadata(base_token).balanceOf(address(pool)) -
+                uint256(usdx_fee_amount)
         );
     }
 
@@ -87,9 +87,9 @@ contract UniswapOracle is Owned {
      * @dev Returns the fees that are not claimed for the pool configured in the protocol
      */
     function getUnclaimedFeeAmount()
-        public 
+        public
         view
-        returns (uint128 sweep_amount, uint128 usdx_amount) 
+        returns (uint128 sweep_amount, uint128 usdx_amount)
     {
         uint256 global0FeeAmount;
         uint256 global1FeeAmount;
@@ -102,23 +102,21 @@ contract UniswapOracle is Owned {
             global1FeeAmount = pool.feeGrowthGlobal0X128();
         }
 
-        usdx_amount =
-            uint128(
-                FullMath.mulDiv(
-                    global0FeeAmount,
-                    pool.liquidity(),
-                    FixedPoint128.Q128
-                )
-            );
+        usdx_amount = uint128(
+            FullMath.mulDiv(
+                global0FeeAmount,
+                pool.liquidity(),
+                FixedPoint128.Q128
+            )
+        );
 
-        sweep_amount =
-            uint128(
-                FullMath.mulDiv(
-                    global1FeeAmount,
-                    pool.liquidity(),
-                    FixedPoint128.Q128
-                )
-            );
+        sweep_amount = uint128(
+            FullMath.mulDiv(
+                global1FeeAmount,
+                pool.liquidity(),
+                FixedPoint128.Q128
+            )
+        );
     }
 
     /**
@@ -129,12 +127,18 @@ contract UniswapOracle is Owned {
         (uint160 sqrtRatioX96, , , , , , ) = pool.slot0();
         uint256 quote = getQuote(
             sqrtRatioX96,
-            uint128(10**pricing_token.decimals()),
+            uint128(10 ** pricing_token.decimals()),
             address(pricing_token),
             address(base_token)
         );
 
-        amount_out = (quote * uint256(usd_oracle.getLatestPrice(USDC_FREQUENCY))) / (10 ** (usd_oracle.getDecimals()));
+        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
+            usd_oracle,
+            sequencer_feed,
+            USDC_FREQUENCY
+        );
+
+        amount_out = (quote * uint256(price)) / (10 ** decimals);
     }
 
     /**
@@ -143,7 +147,11 @@ contract UniswapOracle is Owned {
      */
 
     function getTWAPrice() public view returns (uint256 amount_out) {
-        uint256 price = uint256(usd_oracle.getLatestPrice(USDC_FREQUENCY));
+        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
+            usd_oracle,
+            sequencer_feed,
+            USDC_FREQUENCY
+        );
 
         // Get the average price tick first
         (int24 arithmeticMeanTick, ) = OracleLibrary.consult(
@@ -154,12 +162,12 @@ contract UniswapOracle is Owned {
         // Get the quote for selling 1 unit of a token.
         uint256 quote = OracleLibrary.getQuoteAtTick(
             arithmeticMeanTick,
-            uint128(10**pricing_token.decimals()),
+            uint128(10 ** pricing_token.decimals()),
             address(pricing_token),
             address(base_token)
         );
 
-        amount_out = (quote * price) / (10 ** (usd_oracle.getDecimals()));
+        amount_out = (quote * uint256(price)) / (10 ** decimals);
     }
 
     /**
@@ -180,7 +188,11 @@ contract UniswapOracle is Owned {
                 ? FullMath.mulDiv(ratioX192, baseAmount, 1 << 192)
                 : FullMath.mulDiv(1 << 192, baseAmount, ratioX192);
         } else {
-            uint256 ratioX128 = FullMath.mulDiv(sqrtRatioX96, sqrtRatioX96, 1 << 64);
+            uint256 ratioX128 = FullMath.mulDiv(
+                sqrtRatioX96,
+                sqrtRatioX96,
+                1 << 64
+            );
             quoteAmount = baseToken < quoteToken
                 ? FullMath.mulDiv(ratioX128, baseAmount, 1 << 128)
                 : FullMath.mulDiv(1 << 128, baseAmount, ratioX128);
@@ -201,10 +213,9 @@ contract UniswapOracle is Owned {
      * @notice Increase observation cardinality
      * @param _num_cardinals New cardinals.
      */
-    function increaseObservationCardinality(uint16 _num_cardinals)
-        external
-        onlyAdmin
-    {
+    function increaseObservationCardinality(
+        uint16 _num_cardinals
+    ) external onlyAdmin {
         pool.increaseObservationCardinalityNext(_num_cardinals);
     }
 

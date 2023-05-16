@@ -23,9 +23,7 @@ contract CompV2Asset is Stabilizer {
     ERC20 private immutable comp;
     ICompComptroller private immutable compController;
 
-    // Oracle to fetch price COMP / USDC
-    ChainlinkPricer private immutable compOracle;
-
+    address private immutable comp_oracle;
     uint256 private constant COMP_FREQUENCY = 1 hours;
 
     // Events
@@ -53,7 +51,7 @@ contract CompV2Asset is Stabilizer {
         cUSDC = IcUSDC(_cusdc_address);
         comp = ERC20(_compound_address);
         compController = ICompComptroller(_controller_address);
-        compOracle = new ChainlinkPricer(_oracle_comp_address, amm.sequencerUptimeFeed());
+        comp_oracle = _oracle_comp_address;
     }
 
     /* ========== Views ========== */
@@ -73,11 +71,15 @@ contract CompV2Asset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         uint256 comp_balance = comp.balanceOf(address(this));
-        int256 answer = compOracle.getLatestPrice(COMP_FREQUENCY);
+        (int256 answer, uint8 decimals) = ChainlinkPricer.getLatestPrice(
+            comp_oracle,
+            sequencer_feed,
+            COMP_FREQUENCY
+        );
 
         comp_balance =
             (comp_balance * uint256(answer) * 10 ** usdx.decimals()) /
-            (10 ** (comp.decimals() + compOracle.getDecimals()));
+            (10 ** (comp.decimals() + decimals));
         uint256 usdx_amount = getAllocation();
 
         return usdx_amount + comp_balance;

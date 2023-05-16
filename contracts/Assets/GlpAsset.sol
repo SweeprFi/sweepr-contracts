@@ -22,7 +22,7 @@ contract GlpAsset is Stabilizer {
     IGlpManager private immutable glpManager;
     IRewardTracker private immutable stakedGlpTracker;
     IRewardTracker private immutable feeGlpTracker;
-    ChainlinkPricer private immutable reward_oracle;
+    address private immutable reward_oracle;
     IERC20Metadata public immutable reward_token;
 
     uint256 private constant REWARDS_FREQUENCY = 1 days;
@@ -47,7 +47,7 @@ contract GlpAsset is Stabilizer {
             _borrower
         )
     {
-        reward_oracle = new ChainlinkPricer(_reward_oracle_oracle_address, amm.sequencerUptimeFeed());
+        reward_oracle = _reward_oracle_oracle_address;
         rewardRouter = IRewardRouter(_reward_router_address);
         glpManager = IGlpManager(rewardRouter.glpManager());
         stakedGlpTracker = IRewardTracker(rewardRouter.stakedGlpTracker());
@@ -78,12 +78,16 @@ contract GlpAsset is Stabilizer {
 
         // Get reward in USD
         uint256 reward = feeGlpTracker.claimable(address(this));
-        int256 price = reward_oracle.getLatestPrice(REWARDS_FREQUENCY);
+        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
+            reward_oracle,
+            sequencer_feed,
+            REWARDS_FREQUENCY
+        );
 
         uint256 reward_in_usd = (reward *
             uint256(price) *
             10 ** usdx.decimals()) /
-            (10 ** (reward_token.decimals() + reward_oracle.getDecimals()));
+            (10 ** (reward_token.decimals() + decimals));
 
         return staked_in_usd + reward_in_usd;
     }

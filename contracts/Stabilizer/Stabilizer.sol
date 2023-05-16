@@ -49,10 +49,11 @@ contract Stabilizer is Owned, Pausable {
     bool public settings_enabled;
 
     IAMM public amm;
-    ChainlinkPricer private usd_oracle;
-
     // Tokens
     IERC20Metadata public usdx;
+
+    address private immutable usd_oracle;
+    address internal immutable sequencer_feed;
 
     // Constants for various precisions
     uint256 private constant DAY_SECONDS = 60 * 60 * 24; // seconds of Day
@@ -107,11 +108,9 @@ contract Stabilizer is Owned, Pausable {
     error SpreadNotEnough();
     error NotDefaulted();
     error ZeroPrice();
-    error StalePrice();
     error NotAutoInvest();
     error NotAutoInvesMinAMount();
     error NotAutoInvestMinRatio();
-    error SequencerDown();
 
     /* ========== Modifies ========== */
     modifier onlyBorrower() {
@@ -151,7 +150,8 @@ contract Stabilizer is Owned, Pausable {
         amm = IAMM(_amm_address);
         borrower = _borrower;
         settings_enabled = true;
-        usd_oracle = new ChainlinkPricer(amm.usdOracle(), amm.sequencerUptimeFeed());
+        usd_oracle = amm.usdOracle();
+        sequencer_feed = amm.sequencerUptimeFeed();
     }
 
     /* ========== Views ========== */
@@ -762,21 +762,25 @@ contract Stabilizer is Owned, Pausable {
      * @notice Calculate the amount USD that are equivalent to the USDX input.
      **/
     function _USDXtoUSD(uint256 _usdx_amount) internal view returns (uint256) {
-        return 
-        (
-            (_usdx_amount * uint256(usd_oracle.getLatestPrice(USDC_FREQUENCY))) / 
-            (10 ** (usd_oracle.getDecimals()))
+        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
+            usd_oracle,
+            sequencer_feed,
+            USDC_FREQUENCY
         );
+
+        return ((_usdx_amount * uint256(price)) / (10 ** decimals));
     }
 
     /**
      * @notice Calculate the amount USDX that are equivalent to the USD input.
      **/
     function _USDtoUSDX(uint256 _usdx_amount) internal view returns (uint256) {
-        return 
-        (
-            (_usdx_amount * (10 ** (usd_oracle.getDecimals()))) / 
-            uint256(usd_oracle.getLatestPrice(USDC_FREQUENCY))
+        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
+            usd_oracle,
+            sequencer_feed,
+            USDC_FREQUENCY
         );
+
+        return ((_usdx_amount * (10 ** decimals)) / uint256(price));
     }
 }

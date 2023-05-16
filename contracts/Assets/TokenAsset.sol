@@ -18,7 +18,7 @@ contract TokenAsset is Stabilizer {
     IERC20Metadata private immutable token;
 
     // Oracle to fetch price token / base
-    ChainlinkPricer private immutable token_oracle;
+    address private immutable token_oracle;
 
     // WETH and WBTC has the same frequency - check others
     uint256 private constant TOKEN_FREQUENCY = 1 days;
@@ -41,7 +41,7 @@ contract TokenAsset is Stabilizer {
         )
     {
         token = IERC20Metadata(_token_address);
-        token_oracle = new ChainlinkPricer(_token_oracle_address, amm.sequencerUptimeFeed());
+        token_oracle = _token_oracle_address;
     }
 
     /* ========== Views ========== */
@@ -61,12 +61,15 @@ contract TokenAsset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         uint256 token_balance = token.balanceOf(address(this));
-        int256 price = token_oracle.getLatestPrice(TOKEN_FREQUENCY);
+        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
+            token_oracle,
+            sequencer_feed,
+            TOKEN_FREQUENCY
+        );
 
         uint256 usdx_amount = (token_balance *
             uint256(price) *
-            10 ** usdx.decimals()) /
-            (10 ** (token.decimals() + token_oracle.getDecimals()));
+            10 ** usdx.decimals()) / (10 ** (token.decimals() + decimals));
 
         return usdx_amount;
     }
@@ -115,10 +118,14 @@ contract TokenAsset is Stabilizer {
     }
 
     function _divest(uint256 _usdx_amount) internal override {
-        int256 price = token_oracle.getLatestPrice(TOKEN_FREQUENCY);
+        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
+            token_oracle,
+            sequencer_feed,
+            TOKEN_FREQUENCY
+        );
 
         uint256 token_amount = (_usdx_amount *
-            (10 ** (token.decimals() + token_oracle.getDecimals()))) /
+            (10 ** (token.decimals() + decimals))) /
             (uint256(price) * 10 ** usdx.decimals());
 
         uint256 token_balance = token.balanceOf(address(this));
