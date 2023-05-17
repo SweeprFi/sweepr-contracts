@@ -1,31 +1,24 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { impersonate } = require("../utils/helper_functions");
+const { impersonate, Const, toBN } = require("../utils/helper_functions");
 
 contract('Balancer - Auto Invests', async () => {
     before(async () => {
         [owner, lzEndpoint] = await ethers.getSigners();
         // Variables
-        ZERO = 0;
-        usdxAmount = 1000e6;
-        sweepAmount = ethers.utils.parseUnits("1000", 18);
-        maxBorrow = ethers.utils.parseUnits("100", 18);
-        loanLimit = ethers.utils.parseUnits("80", 18);
-        mintAmount = ethers.utils.parseUnits("50", 18);
-        depositAmount = 10e6;
-        minEquityRatio = 10e4; // 10%
-        spreadFee = 3e4; // 3%
-        liquidatorDiscount = 2e4; // 2%
-        callDelay = 432000; // 5 days
-        autoInvestMinEquityRatio = 5e4; // 5%
-        autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-        autoInvest = true;
-        link = "htttp://test.com";
         BORROWER = addresses.borrower;
         USDC_ADDRESS = addresses.usdc;
         TREASURY = addresses.treasury;
-        ADDRESS_ZERO = ethers.constants.AddressZero;
+        usdxAmount = 1000e6;
+        depositAmount = 10e6;
+        sweepAmount = toBN("1000", 18);
+        maxBorrow = toBN("100", 18);
+        loanLimit = toBN("80", 18);
+        mintAmount = toBN("50", 18);
+        autoInvestMinAmount = toBN("10", 18);
+        minRatio = 5e4; // 5%
+
         // Deploys
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
@@ -39,9 +32,9 @@ contract('Balancer - Auto Invests', async () => {
 
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
-    
+
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
         AaveAsset = await ethers.getContractFactory("AaveV3Asset");
         assets = await Promise.all(
@@ -67,15 +60,15 @@ contract('Balancer - Auto Invests', async () => {
                 assets.map(async (asset, index) => {
                     if (index < 3) {
                         await asset.connect(user).configure(
-                            minEquityRatio,
-                            spreadFee,
+                            Const.RATIO,
+                            Const.SPREAD_FEE,
                             loanLimit,
-                            liquidatorDiscount,
-                            callDelay,
-                            autoInvestMinEquityRatio,
+                            Const.DISCOUNT,
+                            Const.DAYS_5,
+                            minRatio,
                             autoInvestMinAmount,
-                            autoInvest,
-                            link
+                            Const.TRUE,
+                            Const.URL
                         );
                     }
                 })
@@ -83,28 +76,28 @@ contract('Balancer - Auto Invests', async () => {
 
             // Auto invest is false.
             await assets[3].connect(user).configure(
-                minEquityRatio,
-                spreadFee,
+                Const.RATIO,
+                Const.SPREAD_FEE,
                 loanLimit,
-                liquidatorDiscount,
-                callDelay,
-                autoInvestMinEquityRatio,
+                Const.DISCOUNT,
+                Const.DAYS_5,
+                minRatio,
                 autoInvestMinAmount,
-                false,
-                link
+                Const.FALSE,
+                Const.URL
             );
 
             // Large auto invest amount.
             await assets[4].connect(user).configure(
-                minEquityRatio,
-                spreadFee,
+                Const.RATIO,
+                Const.SPREAD_FEE,
                 loanLimit,
-                liquidatorDiscount,
-                callDelay,
-                autoInvestMinEquityRatio,
+                Const.DISCOUNT,
+                Const.DAYS_5,
+                minRatio,
                 loanLimit,
-                autoInvest,
-                link
+                Const.TRUE,
+                Const.URL
             );
 
             // Set Balancer in the Sweep
@@ -151,13 +144,13 @@ contract('Balancer - Auto Invests', async () => {
         it('Sell sweep and invest usdc', async () => {
             await Promise.all(
                 assets.map(async (asset) => {
-                    await asset.connect(user).sellSweepOnAMM(mintAmount, 0);
+                    await asset.connect(user).sellSweepOnAMM(mintAmount, Const.ZERO);
                 })
             );
 
             await Promise.all(
                 assets.map(async (asset) => {
-                    expect(await sweep.balanceOf(asset.address)).to.equal(ZERO);
+                    expect(await sweep.balanceOf(asset.address)).to.equal(Const.ZERO);
                     expect(await usdc.balanceOf(asset.address)).to.above(depositAmount);
                 })
             );
@@ -168,20 +161,20 @@ contract('Balancer - Auto Invests', async () => {
                     await asset.connect(user).invest(usdxAmount);
                 })
             )
-            expect(await usdc.balanceOf(assets[0].address)).to.equal(ZERO);
+            expect(await usdc.balanceOf(assets[0].address)).to.equal(Const.ZERO);
             await Promise.all(
                 assets.map(async (asset) => {
-                    expect(await usdc.balanceOf(asset.address)).to.equal(ZERO);
+                    expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
                 })
             );
         });
 
         it('Call auto invests in the Balancer', async () => {
             targets = assets.map((asset) => { return asset.address });
-            amount = ethers.utils.parseUnits("125", 18); // 80 Sweep (old limit) -> 45 Sweep more
+            amount = toBN("125", 18); // 80 Sweep (old limit) -> 45 Sweep more
+            updateAmount = toBN("95", 18); // mintAmount(50) + amount(45) = 95 SWEEP
             amounts = [amount, amount, amount, amount, amount]; // 45 Sweep to each stabilizer
-            autoInvests = [true, true, true, false, false];
-            updateAmount = ethers.utils.parseUnits("95", 18); // mintAmount(50) + amount(45) = 95 SWEEP
+            autoInvests = [Const.TRUE, Const.TRUE, Const.TRUE, Const.FALSE, Const.FALSE];
 
             await balancer.addLoanLimits(targets, amounts, autoInvests);
             await balancer.execute();

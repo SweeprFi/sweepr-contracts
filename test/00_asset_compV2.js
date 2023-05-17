@@ -1,24 +1,16 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses, chainId } = require("../utils/address");
-const { sendEth, impersonate, increaseTime } = require("../utils/helper_functions");
+const { sendEth, impersonate, increaseTime, Const, toBN } = require("../utils/helper_functions");
 
-contract('Compound V2 Asset - Local', async () => {
+contract('Compound V2 Asset', async () => {
     // Compound only work on the ethereum mainnet due to oracle.
     if (Number(chainId) > 1) return;
 
     // Variables
-    ZERO = 0;
-    ADDRESS_ZERO = ethers.constants.AddressZero;
-    maxBorrow = ethers.utils.parseUnits("100", 18);
+    maxBorrow = toBN("100", 18);
     depositAmount = 100e6;
-    minEquityRatio = 10e4; // 10%
-    spreadFee = 3e4; // 3%
-    liquidatorDiscount = 2e4; // 2%
-    callDelay = 432000; // 5 days
-    autoInvestMinEquityRatio = 10e4; // 10%
-    autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-    autoInvest = true;
+    divestAmount = 200e6;
 
     before(async () => {
         [guest, lzEndpoint] = await ethers.getSigners();
@@ -35,7 +27,7 @@ contract('Compound V2 Asset - Local', async () => {
         usdOracle = await USDOracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
         CompoundAsset = await ethers.getContractFactory("CompV2Asset");
         compAsset = await CompoundAsset.deploy(
@@ -56,15 +48,15 @@ contract('Compound V2 Asset - Local', async () => {
         // config stabilizer
         user = await impersonate(BORROWER);
         await compAsset.connect(user).configure(
-            minEquityRatio,
-            spreadFee,
+            Const.RATIO,
+            Const.SPREAD_FEE,
             maxBorrow,
-            liquidatorDiscount,
-            callDelay,
-            autoInvestMinEquityRatio,
-            autoInvestMinAmount,
-            autoInvest,
-            "htttp://test.com"
+            Const.DISCOUNT,
+            Const.DAYS_5,
+            Const.RATIO,
+            maxBorrow,
+            Const.TRUE,
+            Const.URL
         );
     });
 
@@ -78,26 +70,25 @@ contract('Compound V2 Asset - Local', async () => {
         it('invest and divest to the Comp', async () => {
             user = await impersonate(BORROWER);
             // Invest usdx
-            expect(await compAsset.assetValue()).to.equal(ZERO);
+            expect(await compAsset.assetValue()).to.equal(Const.ZERO);
             await expect(compAsset.connect(guest).invest(depositAmount))
                 .to.be.revertedWithCustomError(compAsset, 'OnlyBorrower');
             await compAsset.connect(user).invest(depositAmount);
-            expect(await compAsset.assetValue()).to.above(ZERO);
+            expect(await compAsset.assetValue()).to.above(Const.ZERO);
 
             // Delay 100 days
-            await increaseTime(8640000);
+            await increaseTime(Const.DAY*100);
 
             // Collect Reward
-            expect(await comp.balanceOf(user.address)).to.equal(ZERO);
+            expect(await comp.balanceOf(user.address)).to.equal(Const.ZERO);
             await compAsset.connect(user).collect();
-            expect(await comp.balanceOf(user.address)).to.above(ZERO);
+            expect(await comp.balanceOf(user.address)).to.above(Const.ZERO);
 
             // Divest usdx
-            divestAmount = 200 * 1e6;
             await expect(compAsset.connect(guest).divest(divestAmount))
                 .to.be.revertedWithCustomError(compAsset, 'OnlyBorrower');
             await compAsset.connect(user).divest(divestAmount);
-            expect(await compAsset.assetValue()).to.equal(ZERO);
+            expect(await compAsset.assetValue()).to.equal(Const.ZERO);
         });
     });
 });

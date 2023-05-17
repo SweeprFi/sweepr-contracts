@@ -9,7 +9,6 @@ import "../Sweep/BaseSweep.sol";
 import "../Oracle/UniswapOracle.sol";
 
 contract SweepMock is BaseSweep {
-    UniswapOracle private uniswapOracle;
     // Addresses
     address public sweep_usdc_oracle_address;
     address public collateral_agent;
@@ -25,6 +24,7 @@ contract SweepMock is BaseSweep {
     uint256 public next_target_price; // The next target price of SWEEP
     uint256 public current_amm_price; // The AMM price of SWEEP
     uint256 public arb_spread; // 4 decimals of precision, e.g. 1000 = 0.1%
+    uint256 public twa_price;
 
     // Constants
     uint256 public constant GENESIS_SUPPLY = 10000e18;
@@ -77,6 +77,8 @@ contract SweepMock is BaseSweep {
         period_time = 604800; // 7 days
         step_value = 2500; // 0.25%
         arb_spread = 0;
+
+        twa_price = 1e6;
     }
 
     /* ========== VIEWS ========== */
@@ -103,15 +105,6 @@ contract SweepMock is BaseSweep {
     }
 
     /**
-     * @notice Get Sweep Time Weighted Averate Price
-     * The Sweep Price comes from UniswapOracle.
-     * @return uint256 Sweep price
-     */
-    function twa_price() external view returns (uint256) {
-        return uniswapOracle.getTWAPrice();
-    }
-
-    /**
      * @notice Get Sweep Target Price
      * Target Price will be used to peg the Sweep Price safely.
      * @return uint256 Sweep target price
@@ -132,7 +125,7 @@ contract SweepMock is BaseSweep {
      */
     function is_minting_allowed() public view returns (bool) {
         uint256 arb_price = ((SPREAD_PRECISION - arb_spread) * target_price()) / SPREAD_PRECISION;
-        return amm_price() >= arb_price ? true : false;
+        return amm_price() >= arb_price;
     }
 
     /* ========== Actions ========== */
@@ -219,18 +212,6 @@ contract SweepMock is BaseSweep {
     }
 
     /**
-     * @notice Set Uniswap Oracle
-     * @param _uniswap_oracle_address.
-     */
-    function setUniswapOracle(
-        address _uniswap_oracle_address
-    ) external onlyOwner {
-        if (_uniswap_oracle_address == address(0)) revert ZeroAddressDetected();
-        sweep_usdc_oracle_address = _uniswap_oracle_address;
-        uniswapOracle = UniswapOracle(_uniswap_oracle_address);
-    }
-
-    /**
      * @notice Set AMM price
      * @param _amm_price.
      */
@@ -293,4 +274,7 @@ contract SweepMock is BaseSweep {
     }
 
     /* ========== Actions ========== */
+    function setTWAPrice(uint256 _twa_price) public {
+        twa_price = _twa_price;
+    }
 }

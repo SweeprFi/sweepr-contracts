@@ -1,24 +1,17 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses, chainId } = require("../utils/address");
-const { sendEth, impersonate } = require("../utils/helper_functions");
+const { sendEth, impersonate, Const, toBN } = require("../utils/helper_functions");
 
-contract('Aave V2 Asset - Local', async (accounts) => {
+contract('Aave V2 Asset', async () => {
     // Test contract only on the ethereum mainnet due to some libraries.
     if (Number(chainId) > 1) return;
 
     // Variables
-    ZERO = 0;
-    maxBorrow = ethers.utils.parseUnits("100", 18);
+    maxBorrow = toBN("100", 18);
     depositAmount = 100e6;
-    minEquityRatio = 10e4; // 10%
-    spreadFee = 3e4; // 3%
-    liquidatorDiscount = 2e4; // 2%
-    callDelay = 432000; // 5 days
-    autoInvestMinEquityRatio = 10e4; // 10%
-    autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-    autoInvest = true;
-    ADDRESS_ZERO = ethers.constants.AddressZero;
+    divestAmount = 200e6;
+    autoInvestAMount = toBN("10", 18);
 
     before(async () => {
         [guest, lzEndpoint] = await ethers.getSigners();
@@ -34,7 +27,7 @@ contract('Aave V2 Asset - Local', async (accounts) => {
         usdOracle = await USDOracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
         
         AaveAsset = await ethers.getContractFactory("AaveAsset");
         aaveAsset = await AaveAsset.deploy(
@@ -54,15 +47,15 @@ contract('Aave V2 Asset - Local', async (accounts) => {
         // config stabilizer
         user = await impersonate(BORROWER);
         await aaveAsset.connect(user).configure(
-            minEquityRatio,
-            spreadFee,
+            Const.RATIO,
+            Const.SPREAD_FEE,
             maxBorrow,
-            liquidatorDiscount,
-            callDelay,
-            autoInvestMinEquityRatio,
-            autoInvestMinAmount,
-            autoInvest,
-            "htttp://test.com"
+            Const.DISCOUNT,
+            Const.DAYS_5,
+            Const.RATIO,
+            autoInvestAMount,
+            Const.TRUE,
+            Const.URL
         );
     });
 
@@ -76,20 +69,20 @@ contract('Aave V2 Asset - Local', async (accounts) => {
         it('invest and divest to the Comp', async () => {
             user = await impersonate(BORROWER);
             // Invest usdx
-            expect(await aaveAsset.assetValue()).to.equal(ZERO);
-            await expect(aaveAsset.connect(guest).invest(depositAmount)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            expect(await aaveAsset.assetValue()).to.equal(Const.ZERO);
+            await expect(aaveAsset.connect(guest).invest(depositAmount))
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
             await aaveAsset.connect(user).invest(depositAmount);
-            expect(await aaveAsset.assetValue()).to.above(ZERO);
+            expect(await aaveAsset.assetValue()).to.above(Const.ZERO);
 
             // Delay 100 days
-            await network.provider.send("evm_increaseTime", [8640000]);
-            await network.provider.send("evm_mine");
+            await increaseTime(Const.DAY*100);
 
             // Divest usdx
-            divestAmount = 200 * 1e6;
-            await expect(aaveAsset.connect(guest).divest(divestAmount)).to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+            await expect(aaveAsset.connect(guest).divest(divestAmount)) 
+                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
             await aaveAsset.connect(user).divest(divestAmount);
-            expect(await aaveAsset.assetValue()).to.equal(ZERO);
+            expect(await aaveAsset.assetValue()).to.equal(Const.ZERO);
         });
     });
 });

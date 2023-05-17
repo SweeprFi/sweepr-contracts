@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract UniswapMock {
     ISweep private SWEEP;
     uint256 public price;
+    uint256 public poolFee = 500;
     address public immutable usdOracle;
     address public immutable sequencerUptimeFeed;
 

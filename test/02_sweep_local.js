@@ -1,18 +1,17 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
+const { toBN, Const } = require("../utils/helper_functions");
 
-contract("Sweep - Local", async function () {
+contract("Sweep", async function () {
 	before(async () => {
 		[owner, multisig, receiver, treasury, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepDollarCoin");
 
-		TRANSFER_AMOUNT = ethers.utils.parseUnits("100", 18);
-		INTEREST_RATE = 50000; // 5%
-		MULTISIG = ethers.BigNumber.from("1");
-		ZERO = 0;
+		TRANSFER_AMOUNT = toBN("100", 18);
+		INTEREST_RATE = 5e4; // 5%
 
 		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
 		sweep = await Proxy.deployed(Sweep);
@@ -74,15 +73,15 @@ contract("Sweep - Local", async function () {
 
 	it('sets a new period time correctly', async () => {
 		period_time = await sweep.period_time();
-		await sweep.connect(multisig).setPeriodTime(ZERO);
+		await sweep.connect(multisig).setPeriodTime(Const.ZERO);
 		new_period_time = await sweep.period_time();
 
 		expect(period_time).to.equal(604800);
-		expect(new_period_time).to.equal(ZERO);
+		expect(new_period_time).to.equal(Const.ZERO);
 	});
 
 	it('sets a new oracle and gets price correctly', async () => {
-		expect(await sweep.sweep_usdc_oracle_address()).to.equal(ethers.constants.AddressZero);
+		expect(await sweep.sweep_usdc_oracle_address()).to.equal(Const.ADDRESS_ZERO);
 		oracle = addresses.uniswap_oracle;
 
 		await sweep.connect(multisig).setUniswapOracle(oracle);
@@ -90,7 +89,7 @@ contract("Sweep - Local", async function () {
 		expect(await sweep.sweep_usdc_oracle_address()).to.equal(oracle);
 
 		price = await sweep.amm_price();
-		expect(price).to.above(ZERO);
+		expect(price).to.above(Const.ZERO);
 	});
 
 	it('sets a new treasury address correctly', async () => {
@@ -100,7 +99,7 @@ contract("Sweep - Local", async function () {
 	});
 
 	it('sets a new balancer address correctly', async () => {
-		expect(await sweep.balancer()).to.equal(ethers.constants.AddressZero);
+		expect(await sweep.balancer()).to.equal(Const.ADDRESS_ZERO);
 		await sweep.connect(multisig).setBalancer(newAddress.address);
 		expect(await sweep.balancer()).to.equal(newAddress.address);
 	});
@@ -119,16 +118,16 @@ contract("Sweep - Local", async function () {
 	});
 
 	it('sets a new minter and gets his information correctly', async () => {
-		expect(await sweep.isValidMinter(newMinter.address)).to.equal(false);
+		expect(await sweep.isValidMinter(newMinter.address)).to.equal(Const.FALSE);
 
 		await sweep.connect(multisig).addMinter(newMinter.address, TRANSFER_AMOUNT);
-		expect(await sweep.isValidMinter(newMinter.address)).to.equal(true);
+		expect(await sweep.isValidMinter(newMinter.address)).to.equal(Const.TRUE);
 		minterInfo = await sweep.minters(newMinter.address);
 
 		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT);
-		expect(minterInfo.minted_amount).to.equal(ZERO);
-		expect(minterInfo.is_listed).to.equal(true);
-		expect(minterInfo.is_enabled).to.equal(true);
+		expect(minterInfo.minted_amount).to.equal(Const.ZERO);
+		expect(minterInfo.is_listed).to.equal(Const.TRUE);
+		expect(minterInfo.is_enabled).to.equal(Const.TRUE);
 	});
 
 	it('mints SWEEP for a valid minter', async () => {
@@ -140,8 +139,8 @@ contract("Sweep - Local", async function () {
 
 		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT);
 		expect(minterInfo.minted_amount).to.equal(10);
-		expect(minterInfo.is_listed).to.equal(true);
-		expect(minterInfo.is_enabled).to.equal(true);
+		expect(minterInfo.is_listed).to.equal(Const.TRUE);
+		expect(minterInfo.is_enabled).to.equal(Const.TRUE);
 	});
 
 	it('burns SWEEP for a valid minter', async () => {
@@ -152,9 +151,9 @@ contract("Sweep - Local", async function () {
 		minterInfo = await sweep.minters(newMinter.address);
 
 		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT);
-		expect(minterInfo.minted_amount).to.equal(ZERO);
-		expect(minterInfo.is_listed).to.equal(true);
-		expect(minterInfo.is_enabled).to.equal(true);
+		expect(minterInfo.minted_amount).to.equal(Const.ZERO);
+		expect(minterInfo.is_listed).to.equal(Const.TRUE);
+		expect(minterInfo.is_enabled).to.equal(Const.TRUE);
 	});
 
 	it('sets a new config for a minter correctly', async () => {
@@ -162,29 +161,29 @@ contract("Sweep - Local", async function () {
 		minterInfo = await sweep.minters(newMinter.address);
 
 		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT.mul(2));
-		expect(minterInfo.minted_amount).to.equal(ZERO);
-		expect(minterInfo.is_listed).to.equal(true);
-		expect(minterInfo.is_enabled).to.equal(true);
+		expect(minterInfo.minted_amount).to.equal(Const.ZERO);
+		expect(minterInfo.is_listed).to.equal(Const.TRUE);
+		expect(minterInfo.is_enabled).to.equal(Const.TRUE);
 
 		await sweep.connect(newMinter).minter_mint(newMinter.address, TRANSFER_AMOUNT);
-		await sweep.connect(multisig).setMinterEnabled(newMinter.address, false);
+		await sweep.connect(multisig).setMinterEnabled(newMinter.address, Const.FALSE);
 		minterInfo = await sweep.minters(newMinter.address);
 
 		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT.mul(2));
 		expect(minterInfo.minted_amount).to.equal(TRANSFER_AMOUNT);
-		expect(minterInfo.is_listed).to.equal(true);
-		expect(minterInfo.is_enabled).to.equal(false);
+		expect(minterInfo.is_listed).to.equal(Const.TRUE);
+		expect(minterInfo.is_enabled).to.equal(Const.FALSE);
 	});
 
 	it('removes from minters list', async () => {
         await sweep.connect(multisig).removeMinter(newMinter.address);
-		expect(await sweep.isValidMinter(newMinter.address)).to.equal(false);
+		expect(await sweep.isValidMinter(newMinter.address)).to.equal(Const.FALSE);
     });
 
 	it('sets a new collateral agency correctly', async () => {
 		expect(await sweep.collateral_agency()).to.equal(multisig.address);
 
-		await expect(sweep.connect(multisig).setCollateralAgent(ethers.constants.AddressZero))
+		await expect(sweep.connect(multisig).setCollateralAgent(Const.ADDRESS_ZERO))
 			.to.be.revertedWithCustomError(Sweep, 'ZeroAddressDetected');
 
 		await sweep.connect(multisig).setCollateralAgent(newAddress.address)

@@ -78,7 +78,7 @@ contract UniswapAMM is Owned {
     ) external returns (uint256 collateral_amount) {
         emit Sold(_sweep_amount);
         collateral_amount = swapExactInput(
-            address(SWEEP),
+            sweep_address,
             _collateral_address,
             _sweep_amount,
             _amountOutMin

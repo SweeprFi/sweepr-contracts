@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { expect } = require('chai');
 
-contract('Treasury - Local', async () => {
+contract('Treasury', async () => {
   before(async () => {
     [owner, receiver, lzEndpoint] = await ethers.getSigners();
     ZERO = 0;

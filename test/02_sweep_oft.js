@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers, upgrades } = require("hardhat");
+const { toBN, Const } = require("../utils/helper_functions");
 
 const chainIdSrc = 1;
 const chainIdDst = 2;
@@ -10,26 +11,21 @@ let deployer, lzEndpointSrcMock, lzEndpointDstMock, OFTSrc, OFTDst, LZEndpointMo
 contract("Sweep - OFT", async function () {
     before(async () => {
         [deployer, multisig, receiver, treasury, newAddress, newMinter] = await ethers.getSigners();
-
+        TRANSFER_AMOUNT = toBN("100", 18);
+        INTEREST_RATE = 5e4; // 5%
         // ------------- Deployment of contracts -------------
         LZEndpointMock = await ethers.getContractFactory("LZEndpointMock");
         lzEndpointSrcMock = await LZEndpointMock.deploy(chainIdSrc);
         lzEndpointDstMock = await LZEndpointMock.deploy(chainIdDst);
+        Sweep = await ethers.getContractFactory("SweepDollarCoin");
 
-		Sweep = await ethers.getContractFactory("SweepDollarCoin");
-
-		TRANSFER_AMOUNT = ethers.utils.parseUnits("100", 18);
-		INTEREST_RATE = 50000; // 5%
-		MULTISIG = ethers.BigNumber.from("1");
-		ZERO = 0;
-
-		const srcProxy = await upgrades.deployProxy(Sweep, [lzEndpointSrcMock.address]);
-		OFTSrc = await srcProxy.deployed(Sweep);
-		await OFTSrc.setTreasury(treasury.address);
+        const srcProxy = await upgrades.deployProxy(Sweep, [lzEndpointSrcMock.address]);
+        OFTSrc = await srcProxy.deployed(Sweep);
+        await OFTSrc.setTreasury(treasury.address);
 
         const dstProxy = await upgrades.deployProxy(Sweep, [lzEndpointDstMock.address]);
-		OFTDst = await dstProxy.deployed(Sweep);
-		await OFTDst.setTreasury(treasury.address);
+        OFTDst = await dstProxy.deployed(Sweep);
+        await OFTDst.setTreasury(treasury.address);
 
         await OFTSrc.connect(deployer).addMinter(deployer.address, TRANSFER_AMOUNT);
         await OFTSrc.connect(deployer).minter_mint(deployer.address, TRANSFER_AMOUNT);
@@ -48,18 +44,18 @@ contract("Sweep - OFT", async function () {
 
         //set destination min gas
         await OFTSrc.setMinDstGas(chainIdDst, parseInt(await OFTSrc.PT_SEND()), 220000)
-        await OFTSrc.setUseCustomAdapterParams(true)
+        await OFTSrc.setUseCustomAdapterParams(Const.TRUE)
     })
 
     describe("setting up stored payload", async function () {
         // v1 adapterParams, encoded for version 1 style, and 200k gas quote
         const adapterParam = ethers.utils.solidityPack(["uint16", "uint256"], [1, 225000])
-        const sendQty = ethers.utils.parseUnits("10", 18) // amount to be sent across
+        const sendQty = toBN("10", 18) // amount to be sent across
 
         it("sendFrom() - sends the payload", async function () {
             // ensure they're both starting with correct amounts
             expect(await OFTSrc.balanceOf(deployer.address)).to.be.equal(TRANSFER_AMOUNT)
-            expect(await OFTDst.balanceOf(deployer.address)).to.be.equal("0")
+            expect(await OFTDst.balanceOf(deployer.address)).to.be.equal(Const.ZERO)
 
             // block receiving msgs on the dst lzEndpoint to simulate ua reverts which stores a payload
             await lzEndpointDstMock.blockNextMsg()
@@ -87,7 +83,7 @@ contract("Sweep - OFT", async function () {
         })
 
         it("hasStoredPayload() - stores the payload", async function () {
-            expect(await lzEndpointDstMock.hasStoredPayload(chainIdSrc, srcPath)).to.equal(true)
+            expect(await lzEndpointDstMock.hasStoredPayload(chainIdSrc, srcPath)).to.equal(Const.TRUE)
         })
 
         it("getLengthOfQueue() - cant send another msg if payload is blocked", async function () {
@@ -117,7 +113,7 @@ contract("Sweep - OFT", async function () {
 
         it("retryPayload() - delivers a stuck msg", async function () {
             // balance before transfer is 0
-            expect(await OFTDst.balanceOf(deployer.address)).to.be.equal(0)
+            expect(await OFTDst.balanceOf(deployer.address)).to.be.equal(Const.ZERO)
 
             const payload = ethers.utils.defaultAbiCoder.encode(["uint16", "bytes", "uint256"], [0, deployer.address, sendQty])
             await expect(lzEndpointDstMock.retryPayload(chainIdSrc, srcPath, payload)).to.emit(lzEndpointDstMock, "PayloadCleared")

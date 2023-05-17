@@ -1,21 +1,19 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
-const { impersonate,sendEth } = require("../utils/helper_functions");
+const { impersonate, sendEth, Const, toBN } = require("../utils/helper_functions");
 
-contract("WBTC Asset - Local", async function () {
+contract("WBTC Asset", async function () {
     before(async () => {
         [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
+
+        BORROWER = borrower.address;
         depositAmount = 10e6;
         withdrawAmount = 15e6;
-        ZERO = 0;
-        BORROWER = borrower.address;
-        maxSweep = ethers.utils.parseUnits("500000", 18);
-        maxBorrow = ethers.utils.parseUnits("100", 8);
-        WBTC_HOLDER = '0x489ee077994b6658eafa855c308275ead8097c4a';
-        ADDRESS_ZERO = ethers.constants.AddressZero;
+        maxSweep = toBN("500000", 18);
+        maxBorrow = toBN("100", 8);
 
-        await sendEth(WBTC_HOLDER);
+        await sendEth(Const.WBTC_HOLDER);
         // ------------- Deployment of contracts -------------
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
@@ -26,12 +24,14 @@ contract("WBTC Asset - Local", async function () {
         usdc = await Token.attach(addresses.usdc);
         wbtc = await Token.attach(addresses.wbtc);
 
-        USDOracle = await ethers.getContractFactory("AggregatorMock");
-        usdOracle = await USDOracle.deploy();
+        Oracle = await ethers.getContractFactory("AggregatorMock");
+        usdOracle = await Oracle.deploy();
+        wbtcOracle = await Oracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
-        await amm.setPrice(28e9);
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+        await amm.setPrice(Const.WBTC_PRICE);
+        await wbtcOracle.setPrice(Const.WBTC_PRICE);
 
         WBTCAsset = await ethers.getContractFactory("TokenAsset");
         wbtc_asset = await WBTCAsset.deploy(
@@ -39,7 +39,7 @@ contract("WBTC Asset - Local", async function () {
             sweep.address,
             addresses.usdc,
             addresses.wbtc,
-            addresses.oracle_wbtc_usd,
+            wbtcOracle.address,
             amm.address,
             BORROWER
         );
@@ -51,7 +51,7 @@ contract("WBTC Asset - Local", async function () {
         user = await impersonate(addresses.usdc)
         await usdc.connect(user).transfer(amm.address, 100e6);
 
-        user = await impersonate(WBTC_HOLDER);
+        user = await impersonate(Const.WBTC_HOLDER);
         await wbtc.connect(user).transfer(amm.address, maxBorrow);
     });
 
@@ -75,16 +75,16 @@ contract("WBTC Asset - Local", async function () {
         });
 
         it("invest correctly", async function () {
-            expect(await wbtc_asset.assetValue()).to.equal(ZERO);
+            expect(await wbtc_asset.assetValue()).to.equal(Const.ZERO);
             await wbtc_asset.invest(depositAmount);
-            expect(await usdc.balanceOf(wbtc_asset.address)).to.equal(ZERO);
-            expect(await wbtc.balanceOf(wbtc_asset.address)).to.above(ZERO);
+            expect(await usdc.balanceOf(wbtc_asset.address)).to.equal(Const.ZERO);
+            expect(await wbtc.balanceOf(wbtc_asset.address)).to.above(Const.ZERO);
         });
 
         it("divest correctly", async function () {
             await wbtc_asset.divest(withdrawAmount);
-            expect(await usdc.balanceOf(wbtc_asset.address)).to.above(ZERO);
-            expect(await wbtc.balanceOf(wbtc_asset.address)).to.equal(ZERO);
+            expect(await usdc.balanceOf(wbtc_asset.address)).to.above(Const.ZERO);
+            expect(await wbtc.balanceOf(wbtc_asset.address)).to.equal(Const.ZERO);
         });
     });
 });

@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { Const, toBN } = require("../utils/helper_functions");
 
 contract("Stabilizer's waterfall workflow", async function () {
   before(async () => {
@@ -8,19 +9,9 @@ contract("Stabilizer's waterfall workflow", async function () {
     priceLow = 0.99e6;
     price = 1e6;
 
-    sweepAmount = ethers.utils.parseUnits("1000", 18);
-    maxBorrow = ethers.utils.parseUnits("100", 18);
     usdxAmount = 1000e6;
-    minimumEquityRatio = 1e4; // 1%
-    spreadFee = 1e4; // 1%
-    liquidatorDiscount = 2e4; // 2%
-    callDelay = 432000; // 5 days
-    autoInvestMinEquityRatio = 10e4; // 10%
-    autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-    autoInvest = true;
-    ZERO = 0;
-    ADDRESS_ZERO = ethers.constants.AddressZero;
-
+    sweepAmount = toBN("1000", 18);
+    maxBorrow = toBN("100", 18);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
@@ -34,7 +25,7 @@ contract("Stabilizer's waterfall workflow", async function () {
     usdOracle = await USDOracle.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
     offChainAsset = await OffChainAsset.deploy(
@@ -47,15 +38,15 @@ contract("Stabilizer's waterfall workflow", async function () {
     );
 
     await offChainAsset.connect(borrower).configure(
-      minimumEquityRatio,
-      spreadFee,
+      Const.RATIO,
+      Const.SPREAD_FEE,
       maxBorrow,
-      liquidatorDiscount,
-      callDelay,
-      autoInvestMinEquityRatio,
-      autoInvestMinAmount,
-      autoInvest,
-      "htttp://test.com"
+      Const.DISCOUNT,
+      Const.DAYS_5,
+      Const.RATIO,
+      maxBorrow,
+      Const.FALSE,
+      Const.URL
     );
 
     // usd to the borrower to he can invest
@@ -75,13 +66,13 @@ contract("Stabilizer's waterfall workflow", async function () {
       expect(await usdx.balanceOf(borrower.address)).to.equal(50e6);
       expect(await usdx.allowance(borrower.address, offChainAsset.address)).to.equal(usdxAmount);
 
-      expect(await usdx.balanceOf(offChainAsset.address)).to.equal(ZERO);
-      expect(await sweep.balanceOf(offChainAsset.address)).to.equal(ZERO);
-      expect(await offChainAsset.sweep_borrowed()).to.equal(ZERO);
+      expect(await usdx.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
+      expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
+      expect(await offChainAsset.sweep_borrowed()).to.equal(Const.ZERO);
 
-      expect(await offChainAsset.paused()).to.equal(false);
-      expect(await offChainAsset.assetValue()).to.equal(ZERO);
-      expect(await offChainAsset.min_equity_ratio()).to.equal(1e4);
+      expect(await offChainAsset.paused()).to.equal(Const.FALSE);
+      expect(await offChainAsset.assetValue()).to.equal(Const.ZERO);
+      expect(await offChainAsset.min_equity_ratio()).to.equal(Const.RATIO);
 
       expect(await offChainAsset.borrower()).to.equal(borrower.address);
 
@@ -99,7 +90,7 @@ contract("Stabilizer's waterfall workflow", async function () {
       });
 
       it("mints and sells requested sweeps, and sends investment to the asset", async function () {
-        amount = ethers.utils.parseUnits("90", 18);
+        amount = toBN("90", 18);
 
         await offChainAsset.connect(borrower).borrow(amount);
         expect(await usdx.balanceOf(offChainAsset.address)).to.equal(10e6);
@@ -109,9 +100,9 @@ contract("Stabilizer's waterfall workflow", async function () {
 
         await offChainAsset.connect(borrower).invest(10e6, amount);
 
-        expect(await sweep.balanceOf(offChainAsset.address)).to.equal(ZERO);
+        expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
         expect(await sweep.balanceOf(wallet.address)).to.equal(amount);
-        expect(await usdx.balanceOf(offChainAsset.address)).to.equal(ZERO);
+        expect(await usdx.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
         expect(await usdx.balanceOf(wallet.address)).to.equal(10e6);
         expect(await offChainAsset.sweep_borrowed()).to.equal(amount);
         expect(await offChainAsset.getEquityRatio()).to.equal(1e5); // 10%
@@ -122,7 +113,7 @@ contract("Stabilizer's waterfall workflow", async function () {
       it("simulates change of usdx for sweep and 10% interest", async function () {
         await sweep.setCollateralAgent(borrower.address);
 
-        amount = ethers.utils.parseUnits("20", 18);
+        amount = toBN("20", 18);
         await sweep.transfer(wallet.address, amount);
         balance = await sweep.balanceOf(wallet.address);
         balance = await sweep.convertToUSD(balance);
@@ -131,7 +122,7 @@ contract("Stabilizer's waterfall workflow", async function () {
       });
 
       it("repays less than the senior debt, buys sweeps and burns it", async function () {
-        amount = ethers.utils.parseUnits("80", 18);
+        amount = toBN("80", 18);
         await offChainAsset.connect(borrower).divest(amount);
         await sweep.connect(wallet).transfer(offChainAsset.address, amount);
         expect(await sweep.balanceOf(offChainAsset.address)).to.equal(amount);
@@ -141,8 +132,8 @@ contract("Stabilizer's waterfall workflow", async function () {
       });
 
       it("repays more than the senior debt", async function () {
-        amount = ethers.utils.parseUnits("15", 18);
-        burnAmount = ethers.utils.parseUnits("10", 18);
+        amount = toBN("15", 18);
+        burnAmount = toBN("10", 18);
         await offChainAsset.connect(borrower).divest(amount);
         await sweep.connect(wallet).transfer(offChainAsset.address, amount);
 
@@ -167,7 +158,7 @@ contract("Stabilizer's waterfall workflow", async function () {
   describe("borrower deposit and withdraw without investing", async function () {
     it("checks that borrower withdraw the deposit", async function () {
       borrowerBalance = await sweep.balanceOf(borrower.address);
-      depositAmount = ethers.utils.parseUnits("10", 18);;
+      depositAmount = toBN("10", 18);;
       await sweep.connect(borrower).transfer(offChainAsset.address, depositAmount);
       await offChainAsset.connect(borrower).withdraw(sweep.address, depositAmount);
     });

@@ -1,22 +1,15 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { Const, toBN } = require("../utils/helper_functions");
 
 contract("Off-Chain Asset - Settings", async function () {
 	before(async () => {
 		[owner, borrower, wallet, treasury, multisig, lzEndpoint] = await ethers.getSigners();
 
-		sweepAmount = ethers.utils.parseUnits("1000", 18);
-		maxBorrow = ethers.utils.parseUnits("100", 18);
+		sweepAmount = toBN("1000", 18);
+		maxBorrow = toBN("100", 18);
+		amount = toBN("10", 18);
 		usdxAmount = 1000e6;
-		minimumEquityRatio = 1e4; // 1%
-		spreadRatio = 1e4; // 1%
-		liquidatorDiscount = 2e4; // 2%
-		callDelay = 432000; // 5 days
-		autoInvestMinEquityRatio = 10e4; // 10%
-		autoInvestMinAmount = ethers.utils.parseUnits("10", 18);
-		autoInvest = true;
-		DELAY = 3; // 3 days
-		ADDRESS_ZERO = ethers.constants.AddressZero;
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
@@ -30,7 +23,7 @@ contract("Off-Chain Asset - Settings", async function () {
         usdOracle = await USDOracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
 		OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 		offChainAsset = await OffChainAsset.deploy(
@@ -43,15 +36,15 @@ contract("Off-Chain Asset - Settings", async function () {
 		);
 
 		await offChainAsset.connect(borrower).configure(
-			minimumEquityRatio,
-			spreadRatio,
+			Const.RATIO,
+			Const.SPREAD_FEE,
 			maxBorrow,
-			liquidatorDiscount,
-			callDelay,
-			autoInvestMinEquityRatio,
-			autoInvestMinAmount,
-			autoInvest,
-			"htttp://test.com"
+			Const.DISCOUNT,
+			Const.DAY,
+			Const.RATIO,
+			maxBorrow,
+			Const.TRUE,
+			Const.URL
 		);
 
 		// usd to the borrower to he can invest
@@ -69,7 +62,7 @@ contract("Off-Chain Asset - Settings", async function () {
 	describe("settings functions", async function () {
 		describe("Use setting manager of stabilizer", async function () {
 			it("Set delay and wallet by setting manager of stabilizer", async function () {
-				expect(await offChainAsset.settings_enabled()).to.equal(true);
+				expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
 
 				await offChainAsset.connect(borrower).setWallet(treasury.address);
 				expect(await offChainAsset.wallet()).to.equal(treasury.address);
@@ -78,7 +71,7 @@ contract("Off-Chain Asset - Settings", async function () {
 			it("Reverts setting when caller is not setting manager", async function () {
 				// Change setting manager into multisig
 				await offChainAsset.setBorrower(multisig.address);
-				expect(await offChainAsset.settings_enabled()).to.equal(true);
+				expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
 
 				// Now, borrower is not setting manager
 				await expect(offChainAsset.connect(borrower).setWallet(wallet.address))
@@ -97,8 +90,6 @@ contract("Off-Chain Asset - Settings", async function () {
 				expect(await sweep.collateral_agency()).to.equal(borrower.address);
 
 				// Update value by collateral agent
-				amount = ethers.utils.parseUnits("10", 18);
-
 				await offChainAsset.connect(borrower).updateValue(amount);
 				expect(await offChainAsset.current_value()).to.equal(amount);
 			});
@@ -109,8 +100,6 @@ contract("Off-Chain Asset - Settings", async function () {
 				expect(await sweep.collateral_agency()).to.equal(wallet.address);
 
 				// Now, borrower is not collateral agent
-				amount = ethers.utils.parseUnits("10", 18);
-
 				await expect(offChainAsset.connect(borrower).updateValue(amount))
 					.to.be.revertedWithCustomError(offChainAsset, 'OnlyCollateralAgent');
 			});
