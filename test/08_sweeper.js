@@ -28,7 +28,7 @@ contract("Sweeper", async function () {
 
 	it('reverts mint when caller is not owner', async () => {
 		await expect(sweeper.connect(sender).mint(sender.address, TRANSFER_AMOUNT))
-			.to.be.revertedWithCustomError(Sweeper, 'OnlyAdmin');
+			.to.be.revertedWithCustomError(Sweeper, 'NotGovernance');
 	});
 
 	it('mints correctly by owner', async () => {

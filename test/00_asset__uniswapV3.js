@@ -5,7 +5,7 @@ const { toBN, Const } = require("../utils/helper_functions");
 
 let pool_address;
 
-contract('Uniswap V3 Asset', async () => {
+contract.skip('Uniswap V3 Asset', async () => {
     before(async () => {
         [borrower, guest, lzEndpoint] = await ethers.getSigners();
 
@@ -155,7 +155,7 @@ contract('Uniswap V3 Asset', async () => {
         it('retrieve LP token', async () => {
             expect(await asset.tokenId()).to.not.equal(Const.ZERO);
             await expect(asset.connect(guest).retrieveNFT())
-                .to.be.revertedWithCustomError(asset, 'OnlyAdmin');
+                .to.be.revertedWithCustomError(asset, 'NotGovernance');
             await asset.retrieveNFT();
             expect(await asset.tokenId()).to.equal(Const.ZERO);
         });

@@ -38,7 +38,7 @@ contract('Balancer - Auto Call', async () => {
     amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
 
     Balancer = await ethers.getContractFactory("Balancer");
-    balancer = await Balancer.deploy(sweep.address, USDC_ADDRESS, owner.address);
+    balancer = await Balancer.deploy(sweep.address);
 
     StabilizerAave = await ethers.getContractFactory("AaveV3Asset");
     assets = await Promise.all(
@@ -143,23 +143,19 @@ contract('Balancer - Auto Call', async () => {
 
     it('balancer calls the Stabilizers to repay debts', async () => {
       targets = assets.map((asset) => { return asset.address });
-      amount = toBN("25", 18); // 100 Sweep (old limit) -> 75 Sweep remanent
+      amount = toBN("75", 18);
       amounts = [amount, amount, amount, amount]; // 75 Sweep to each stabilizer
-      autoInvests = [Const.TRUE, Const.TRUE, Const.TRUE, Const.TRUE];
       CALL_SWEEP = toBN("75", 18);
       CALL_USDC = toBN("75", 6);
+      NEW_LOAN_LIMIT = toBN("25", 18);
 
       assetValue = await assets[3].assetValue();
 
       // constraints
       user = await impersonate(USDC_ADDRESS);
-      await expect(balancer.connect(user).addLoanLimits(targets, amounts, autoInvests))
-        .to.be.revertedWithCustomError(Balancer, 'OnlyHotWallet');
-      await expect(balancer.addLoanLimits(targets, [], autoInvests))
-        .to.be.revertedWith('Wrong data received');
 
-      await balancer.addLoanLimits(targets, amounts, autoInvests);
-      await balancer.execute();
+      await balancer.addActions(targets, amounts);
+      await balancer.execute(2, true); // 2 => call, force: true
 
       // asset 1 paid his debt with Sweep
       expect(await usdc.balanceOf(assets[0].address)).to.equal(USDC_AMOUNT);
@@ -180,6 +176,11 @@ contract('Balancer - Auto Call', async () => {
       expect(await usdc.balanceOf(assets[3].address)).to.equal(Const.ZERO);
       expect(await sweep.balanceOf(assets[3].address)).to.equal(HALF_MINT);
       expect(await assets[3].assetValue()).to.not.equal(assetValue);
+
+      expect(await assets[0].loan_limit()).to.eq(NEW_LOAN_LIMIT);
+      expect(await assets[1].loan_limit()).to.eq(NEW_LOAN_LIMIT);
+      expect(await assets[2].loan_limit()).to.eq(NEW_LOAN_LIMIT);
+      expect(await assets[3].loan_limit()).to.eq(NEW_LOAN_LIMIT);
     });
   });
 });

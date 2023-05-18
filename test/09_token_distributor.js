@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-contract.only("TokenDistributor", async function () {
+contract("TokenDistributor", async function () {
 	before(async () => {
 		[owner, sender, lzEndpoint] = await ethers.getSigners();
 		// ------------- Deployment of contracts -------------
@@ -92,7 +92,7 @@ contract.only("TokenDistributor", async function () {
 		sweeperAmount = await sweeper.balanceOf(tokenDistributor.address);
 
 		await expect(tokenDistributor.connect(sender).recover(sweeper.address, sweeperAmount))
-			.to.be.revertedWithCustomError(Sweeper, 'OnlyAdmin');
+			.to.be.revertedWithCustomError(Sweeper, 'NotGovernance');
 	});
 
 	it('sends all sweeper amount to treasury', async () => {

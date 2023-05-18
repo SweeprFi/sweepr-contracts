@@ -76,7 +76,7 @@ contract TokenDistributor is Owned {
     function recover(
         address _token_address, 
         uint256 _token_amount
-    ) external onlyAdmin {
+    ) external onlyGov {
         TransferHelper.safeTransfer(address(_token_address), SWEEP.treasury(), _token_amount);
     }
 }

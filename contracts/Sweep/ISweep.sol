@@ -38,6 +38,8 @@ interface ISweep {
     function name() external view returns (string memory);
 
     function owner() external view returns (address);
+    
+    function fast_multisig() external view returns (address);
 
     function minter_burn_from(uint256 amount) external;
 

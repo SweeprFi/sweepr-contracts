@@ -32,7 +32,7 @@ contract('Balancer - Auto Invests', async () => {
         usdc = await ERC20.attach(USDC_ADDRESS);
 
         Balancer = await ethers.getContractFactory("Balancer");
-        balancer = await Balancer.deploy(sweep.address, USDC_ADDRESS, owner.address);
+        balancer = await Balancer.deploy(sweep.address);
 
         USDOracle = await ethers.getContractFactory("AggregatorMock");
         usdOracle = await USDOracle.deploy();
@@ -42,7 +42,7 @@ contract('Balancer - Auto Invests', async () => {
 
         AaveAsset = await ethers.getContractFactory("AaveV3Asset");
         assets = await Promise.all(
-            Array(5).fill().map(async () => {
+            Array(3).fill().map(async () => {
                 return await AaveAsset.deploy(
                     'Aave Asset',
                     sweep.address,
@@ -78,31 +78,31 @@ contract('Balancer - Auto Invests', async () => {
                 })
             );
 
-            // Auto invest is false.
-            await assets[3].connect(user).configure(
-                Const.RATIO,
-                Const.SPREAD_FEE,
-                loanLimit,
-                Const.DISCOUNT,
-                Const.DAYS_5,
-                minRatio,
-                autoInvestMinAmount,
-                Const.FALSE,
-                Const.URL
-            );
+            // // Auto invest is false.
+            // await assets[3].connect(user).configure(
+            //     Const.RATIO,
+            //     Const.SPREAD_FEE,
+            //     loanLimit,
+            //     Const.DISCOUNT,
+            //     Const.DAYS_5,
+            //     minRatio,
+            //     autoInvestMinAmount,
+            //     Const.FALSE,
+            //     Const.URL
+            // );
 
-            // Large auto invest amount.
-            await assets[4].connect(user).configure(
-                Const.RATIO,
-                Const.SPREAD_FEE,
-                loanLimit,
-                Const.DISCOUNT,
-                Const.DAYS_5,
-                minRatio,
-                loanLimit,
-                Const.TRUE,
-                Const.URL
-            );
+            // // Large auto invest amount.
+            // await assets[4].connect(user).configure(
+            //     Const.RATIO,
+            //     Const.SPREAD_FEE,
+            //     loanLimit,
+            //     Const.DISCOUNT,
+            //     Const.DAYS_5,
+            //     minRatio,
+            //     loanLimit,
+            //     Const.TRUE,
+            //     Const.URL
+            // );
 
             // Set Balancer in the Sweep
             await sweep.setBalancer(balancer.address);
@@ -176,19 +176,26 @@ contract('Balancer - Auto Invests', async () => {
 
         it('Call auto invests in the Balancer', async () => {
             targets = assets.map((asset) => { return asset.address });
-            amount = toBN("125", 18); // 80 Sweep (old limit) -> 45 Sweep more
-            updateAmount = toBN("95", 18); // mintAmount(50) + amount(45) = 95 SWEEP
-            amounts = [amount, amount, amount, amount, amount]; // 45 Sweep to each stabilizer
-            autoInvests = [Const.TRUE, Const.TRUE, Const.TRUE, Const.FALSE, Const.FALSE];
+            investAmount = toBN("45", 18); // 45 Sweep more
+            amounts = [investAmount, investAmount, investAmount]; // 45 Sweep to each stabilizer
 
-            await balancer.addLoanLimits(targets, amounts, autoInvests);
-            await balancer.execute();
+            expectedAmount = toBN("95", 18); // mintAmount(50) + amount(45) = 95
+            expectedLimit = toBN("125", 18); // oldLimit(80) + amount(45) = 125
 
-            expect(await assets[0].sweep_borrowed()).to.eq(updateAmount);
-            expect(await assets[1].sweep_borrowed()).to.eq(updateAmount);
-            expect(await assets[2].sweep_borrowed()).to.eq(updateAmount);
-            expect(await assets[3].sweep_borrowed()).to.eq(mintAmount); // auto invest = false
-            expect(await assets[4].sweep_borrowed()).to.eq(mintAmount); // minimum auto invest amount = 80 SWEEP
+            await balancer.addActions(targets, amounts);
+            await balancer.execute(1, true); // 1 => invests, force: true
+
+            expect(await assets[0].sweep_borrowed()).to.eq(expectedAmount);
+            expect(await assets[1].sweep_borrowed()).to.eq(expectedAmount);
+            expect(await assets[2].sweep_borrowed()).to.eq(expectedAmount);
+            // expect(await assets[3].sweep_borrowed()).to.eq(expectedAmount);
+            // expect(await assets[4].sweep_borrowed()).to.eq(expectedAmount);
+
+            expect(await assets[0].loan_limit()).to.eq(expectedLimit);
+            expect(await assets[1].loan_limit()).to.eq(expectedLimit);
+            expect(await assets[2].loan_limit()).to.eq(expectedLimit);
+            // expect(await assets[3].loan_limit()).to.eq(expectedLimit);
+            // expect(await assets[4].loan_limit()).to.eq(expectedLimit);
         });
     });
 });

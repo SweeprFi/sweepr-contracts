@@ -109,7 +109,7 @@ contract Stabilizer is Owned, Pausable {
     error NotDefaulted();
     error ZeroPrice();
     error NotAutoInvest();
-    error NotAutoInvesMinAMount();
+    error NotAutoInvestMinAmount();
     error NotAutoInvestMinRatio();
 
     /* ========== Modifies ========== */
@@ -245,7 +245,7 @@ contract Stabilizer is Owned, Pausable {
      */
     function setBorrower(
         address _borrower
-    ) external onlyAdmin validAddress(_borrower) {
+    ) external onlyGov validAddress(_borrower) {
         borrower = _borrower;
         settings_enabled = true;
 
@@ -256,11 +256,11 @@ contract Stabilizer is Owned, Pausable {
      * @notice Pause
      * @dev Stops investment actions.
      */
-    function pause() external onlyAdmin {
+    function pause() external onlyGov {
         _pause();
     }
 
-    function unpause() external onlyAdmin {
+    function unpause() external onlyGov {
         _unpause();
     }
 
@@ -329,7 +329,7 @@ contract Stabilizer is Owned, Pausable {
      * @dev after enable settings for the borrower
      * he/she should edit the values to align to the protocol requirements
      */
-    function reject() external onlyAdmin {
+    function reject() external onlyGov {
         settings_enabled = true;
 
         emit Rejected(borrower);
@@ -435,7 +435,7 @@ contract Stabilizer is Owned, Pausable {
      * @dev Cancels the auto call request by clearing variables for an asset 
      * that has a call_delay: meaning that it does not autorepay.
      */
-    function cancelCall() external onlyAdmin {
+    function cancelCall() external onlyBalancer {
         emit CallCancelled(call_amount);
         call_amount = 0;
         call_time = 0;
@@ -450,9 +450,9 @@ contract Stabilizer is Owned, Pausable {
         uint256 sweep_available = sweep_limit - sweep_borrowed;
         _sweep_amount = _min(_sweep_amount, sweep_available);
         int256 current_equity_ratio = _calculateEquityRatio(_sweep_amount, 0);
-
+        
         if(!auto_invest) revert NotAutoInvest();
-        if(_sweep_amount < auto_invest_min_amount) revert NotAutoInvesMinAMount();
+        if(_sweep_amount < auto_invest_min_amount) revert NotAutoInvestMinAmount();
         if(current_equity_ratio < auto_invest_min_ratio) revert NotAutoInvestMinRatio();
 
         _borrow(_sweep_amount);

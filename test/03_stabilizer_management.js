@@ -53,12 +53,12 @@ contract("Stabilizer - Management Functions", async function () {
 
     it("only admin can pause the stabilizer", async function () {
       await expect(offChainAsset.connect(borrower).pause())
-        .to.be.revertedWithCustomError(offChainAsset, 'OnlyAdmin');
+        .to.be.revertedWithCustomError(offChainAsset, 'NotGovernance');
     });
 
     it("only admin can change the borrower", async function () {
       await expect(offChainAsset.connect(borrower).setBorrower(borrower.address))
-        .to.be.revertedWithCustomError(offChainAsset, 'OnlyAdmin');
+        .to.be.revertedWithCustomError(offChainAsset, 'NotGovernance');
     });
 
     it("only balancer can change the loan limit", async function () {

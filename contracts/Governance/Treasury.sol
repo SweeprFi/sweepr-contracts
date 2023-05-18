@@ -35,7 +35,7 @@ contract Treasury is Owned {
      * @param _receiver address
      * @param _amount Eth amount
      */
-    function sendEth(address _receiver, uint256 _amount) external onlyAdmin {
+    function sendEth(address _receiver, uint256 _amount) external onlyGov {
         uint256 eth_balance = address(this).balance;
         if (_amount > eth_balance) _amount = eth_balance;
 
@@ -50,7 +50,7 @@ contract Treasury is Owned {
      * @param _receiver address
      * @param _amount SWEEP amount
      */
-    function sendToken(address _token, address _receiver, uint256 _amount) external onlyAdmin {
+    function sendToken(address _token, address _receiver, uint256 _amount) external onlyGov {
         uint256 token_balance = IERC20(_token).balanceOf(address(this));
         if (_amount > token_balance) _amount = token_balance;
 

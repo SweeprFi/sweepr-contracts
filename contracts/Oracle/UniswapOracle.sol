@@ -206,7 +206,7 @@ contract UniswapOracle is Owned {
      * @notice Set Uniswap Pool
      * @param _pool_address New pool.
      */
-    function setUniswapPool(address _pool_address) external onlyAdmin {
+    function setUniswapPool(address _pool_address) external onlyGov {
         _setUniswapPool(_pool_address);
     }
 
@@ -216,7 +216,7 @@ contract UniswapOracle is Owned {
      */
     function increaseObservationCardinality(
         uint16 _num_cardinals
-    ) external onlyAdmin {
+    ) external onlyGov {
         pool.increaseObservationCardinalityNext(_num_cardinals);
     }
 
@@ -224,7 +224,7 @@ contract UniswapOracle is Owned {
      * @notice Set lookback_sec
      * @param _seconds New seconds.
      */
-    function setTWAPLookbackSec(uint32 _seconds) external onlyAdmin {
+    function setTWAPLookbackSec(uint32 _seconds) external onlyGov {
         lookback_secs = _seconds;
         emit LookbakcSecChanged(_seconds);
     }
@@ -233,7 +233,7 @@ contract UniswapOracle is Owned {
      * @notice Toggle Token For Pricing
      * @dev Toggles the token address between the base token and the quote token.
      */
-    function toggleTokenForPricing() external onlyAdmin {
+    function toggleTokenForPricing() external onlyGov {
         IERC20Metadata aux = base_token;
         base_token = pricing_token;
         pricing_token = aux;

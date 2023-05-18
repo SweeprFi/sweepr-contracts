@@ -173,7 +173,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     /**
      * @notice Transfers the NFT to the owner
      */
-    function retrieveNFT() external onlyAdmin isMinted {
+    function retrieveNFT() external onlyGov isMinted {
         // transfer ownership to original owner
         nonfungiblePositionManager.safeTransferFrom(
             address(this),

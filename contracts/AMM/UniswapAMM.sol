@@ -122,7 +122,7 @@ contract UniswapAMM is Owned {
         amountOut = uniV3Router.exactInputSingle(swap_params);
     }
 
-    function setPoolFee(uint24 _pool_fee) external onlyAdmin {
+    function setPoolFee(uint24 _pool_fee) external onlyGov {
         if(_pool_fee == 0) revert OverZero();
 
         poolFee = _pool_fee;
