@@ -12,7 +12,6 @@ contract SweepDollarCoin is BaseSweep {
     UniswapOracle private uniswapOracle;
 
     // Addresses
-    address public collateral_agent;
     address public balancer;
     address public treasury;
 

@@ -10,8 +10,6 @@ import "../Oracle/UniswapOracle.sol";
 
 contract SweepMock is BaseSweep {
     // Addresses
-    address public sweep_usdc_oracle_address;
-    address public collateral_agent;
     address public balancer;
     address public treasury;
 

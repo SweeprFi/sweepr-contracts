@@ -11,9 +11,7 @@ import "./TransferApprover/ITransferApprover.sol";
 
 contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     // Addresses
-    address public transfer_approver_address;
     address public fast_multisig;
-    address public DEFAULT_ADMIN_ADDRESS;
 
     ITransferApprover private transferApprover;
 
@@ -58,7 +56,8 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     }
 
     modifier onlyMultisig() {
-        if (msg.sender != fast_multisig) revert NotMultisig();
+        if (msg.sender != owner() && msg.sender != fast_multisig)
+            revert NotMultisig();
         _;
     }
 
@@ -76,7 +75,6 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
 
         transferApprover = ITransferApprover(_transfer_approver);
         fast_multisig = _fast_multisig;
-        DEFAULT_ADMIN_ADDRESS = _msgSender();
     }
 
     /* ========== VIEWS ========== */
@@ -239,7 +237,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
         uint256 _amount
     ) internal override whenNotPaused {
         if (
-            transfer_approver_address != address(0) &&
+            address(transferApprover) != address(0) &&
             !transferApprover.checkTransfer(_from, _to)
         ) revert TransferNotAllowed();
 
@@ -258,7 +256,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
         }
 
         if (
-            transfer_approver_address != address(0) &&
+            address(transferApprover) != address(0) &&
             !transferApprover.checkTransfer(_from, toAddress)
         ) revert TransferNotAllowed();
 
@@ -272,7 +270,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
         uint _amount
     ) internal override returns (uint) {
         if (
-            transfer_approver_address != address(0) &&
+            address(transferApprover) != address(0) &&
             !transferApprover.checkTransfer(_toAddress, _toAddress)
         ) revert TransferNotAllowed();
 
