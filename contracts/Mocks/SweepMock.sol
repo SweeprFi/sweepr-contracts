@@ -41,7 +41,10 @@ contract SweepMock is BaseSweep {
     event CollateralAgentSet(address agent_address);
     event NewPeriodStarted(uint256 period_start);
     event AMMPriceSet(uint256 amm_price);
-    event TargetPriceSet(uint256 current_target_price, uint256 next_target_price);
+    event TargetPriceSet(
+        uint256 current_target_price,
+        uint256 next_target_price
+    );
 
     // Errors
 
@@ -51,23 +54,31 @@ contract SweepMock is BaseSweep {
 
     // Modifiers
 
-    modifier onlyOwnerOrBalancer() {
+    modifier onlyBalancer() {
         if (msg.sender != owner() && msg.sender != balancer)
             revert NotOwnerOrBalancer();
         _;
     }
 
     // Constructor
-    function initialize(address _lzEndpoint)
-        public 
-        initializer 
-    {
+    function initialize(
+        address _lzEndpoint,
+        address _fast_multisig,
+        address _transfer_approver,
+        address _treasury,
+        int256 _step_value
+    ) public initializer {
         BaseSweep.__Sweep_init(
             "SWEEP Dollar Coin",
             "SWEEP",
-            _lzEndpoint
+            _lzEndpoint,
+            _fast_multisig,
+            _transfer_approver
         );
         _mint(msg.sender, GENESIS_SUPPLY);
+
+        treasury = _treasury;
+        step_value = _step_value;
 
         interest_rate = 0;
         current_target_price = 1e6;
@@ -75,25 +86,12 @@ contract SweepMock is BaseSweep {
         current_amm_price = 1e6;
 
         period_time = 604800; // 7 days
-        step_value = 2500; // 0.25%
         arb_spread = 0;
 
         twa_price = 1e6;
     }
 
     /* ========== VIEWS ========== */
-
-    /**
-     * @notice Get Collateral Agent Address
-     * @return address
-     */
-    function collateral_agency() external view returns (address) {
-        if (collateral_agent != address(0)) {
-            return collateral_agent;
-        } else {
-            return owner();
-        }
-    }
 
     /**
      * @notice Get Sweep Price
@@ -124,7 +122,8 @@ contract SweepMock is BaseSweep {
      * @return bool Sweep minting allow status
      */
     function is_minting_allowed() public view returns (bool) {
-        uint256 arb_price = ((SPREAD_PRECISION - arb_spread) * target_price()) / SPREAD_PRECISION;
+        uint256 arb_price = ((SPREAD_PRECISION - arb_spread) * target_price()) /
+            SPREAD_PRECISION;
         return amm_price() >= arb_price;
     }
 
@@ -135,12 +134,10 @@ contract SweepMock is BaseSweep {
      * @param _minter Address of a minter.
      * @param _amount Amount for mint.
      */
-    function minter_mint(address _minter, uint256 _amount)
-        public
-        override
-        validMinter(msg.sender)
-        whenNotPaused
-    {
+    function minter_mint(
+        address _minter,
+        uint256 _amount
+    ) public override validMinter(msg.sender) whenNotPaused {
         if (!is_minting_allowed()) revert MintNotAllowed();
 
         super.minter_mint(_minter, _amount);
@@ -160,7 +157,9 @@ contract SweepMock is BaseSweep {
      * @notice Set Interest Rate
      * @param _new_interest_rate.
      */
-    function setInterestRate(int256 _new_interest_rate) external onlyOwnerOrBalancer {
+    function setInterestRate(
+        int256 _new_interest_rate
+    ) external onlyBalancer {
         interest_rate = _new_interest_rate;
 
         emit InterestRateSet(_new_interest_rate);
@@ -171,7 +170,10 @@ contract SweepMock is BaseSweep {
      * @param _current_target_price.
      * @param _next_target_price.
      */
-    function setTargetPrice(uint256 _current_target_price, uint256 _next_target_price) external onlyOwnerOrBalancer {
+    function setTargetPrice(
+        uint256 _current_target_price,
+        uint256 _next_target_price
+    ) external onlyBalancer {
         current_target_price = _current_target_price;
         next_target_price = _next_target_price;
 
@@ -190,28 +192,6 @@ contract SweepMock is BaseSweep {
     }
 
     /**
-     * @notice Set Treasury Address
-     * @param _treasury.
-     */
-    function setTreasury(address _treasury) external onlyOwner {
-        if (_treasury == address(0)) revert ZeroAddressDetected();
-        treasury = _treasury;
-
-        emit TreasurySet(_treasury);
-    }
-
-    /**
-     * @notice Set Collateral Agent
-     * @param _agent_address.
-     */
-    function setCollateralAgent(address _agent_address) external onlyOwner {
-        require(_agent_address != address(0), "Zero address detected");
-        collateral_agent = _agent_address;
-
-        emit CollateralAgentSet(_agent_address);
-    }
-
-    /**
      * @notice Set AMM price
      * @param _amm_price.
      */
@@ -219,16 +199,6 @@ contract SweepMock is BaseSweep {
         current_amm_price = _amm_price;
 
         emit AMMPriceSet(_amm_price);
-    }
-
-    /**
-     * @notice Set step value to change SWEEP interest rate
-     * @param _new_step_value.
-     */
-    function setStepValue(int256 _new_step_value) external onlyOwner {
-        step_value = _new_step_value;
-
-        emit StepValueSet(_new_step_value);
     }
 
     /**
@@ -244,7 +214,7 @@ contract SweepMock is BaseSweep {
     /**
      * @notice Start New Period
      */
-    function startNewPeriod() external onlyOwnerOrBalancer {
+    function startNewPeriod() external onlyBalancer {
         if (block.timestamp - period_start < period_time)
             revert NotPassedPeriodTime();
 
@@ -252,7 +222,7 @@ contract SweepMock is BaseSweep {
 
         emit NewPeriodStarted(period_start);
     }
-    
+
     /**
      * @notice SWEEP in USDX
      * Calculate the amount of USDX that are equivalent to the SWEEP input.
@@ -260,7 +230,7 @@ contract SweepMock is BaseSweep {
      * @return amount of USDX.
      */
     function convertToUSD(uint256 _amount) external view returns (uint256) {
-        return (_amount * target_price()) / 10**decimals();
+        return (_amount * target_price()) / 10 ** decimals();
     }
 
     /**
@@ -270,7 +240,7 @@ contract SweepMock is BaseSweep {
      * @return amount of SWEEP.
      */
     function convertToSWEEP(uint256 _amount) external view returns (uint256) {
-        return (_amount * 10**decimals()) / target_price();
+        return (_amount * 10 ** decimals()) / target_price();
     }
 
     /* ========== Actions ========== */

@@ -9,13 +9,10 @@ import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/of
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./TransferApprover/ITransferApprover.sol";
 
-contract BaseSweep is
-    Initializable,
-    OFTUpgradeable,
-    PausableUpgradeable
-{
+contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     // Addresses
     address public transfer_approver_address;
+    address public fast_multisig;
     address public DEFAULT_ADMIN_ADDRESS;
 
     ITransferApprover private transferApprover;
@@ -33,7 +30,6 @@ contract BaseSweep is
     // Minter Addresses
     address[] public minter_addresses;
 
-
     /* ========== Events ========== */
 
     event TokenBurned(address indexed from, uint256 amount);
@@ -41,11 +37,11 @@ contract BaseSweep is
     event MinterAdded(address indexed minter_address, Minter minter);
     event MinterUpdated(address indexed minter_address, Minter minter);
     event MinterRemoved(address indexed minter_address);
-    event ApproverSet(address indexed approver);
 
     /* ========== Errors ========== */
 
     error InvalidMinter();
+    error NotMultisig();
     error ZeroAmountDetected();
     error ZeroAddressDetected();
     error MintDisabled();
@@ -61,16 +57,25 @@ contract BaseSweep is
         _;
     }
 
+    modifier onlyMultisig() {
+        if (msg.sender != fast_multisig) revert NotMultisig();
+        _;
+    }
+
     /* ========== CONSTRUCTOR ========== */
 
     function __Sweep_init(
         string memory _name,
         string memory _symbol,
-        address _lzEndpoint
+        address _lzEndpoint,
+        address _fast_multisig,
+        address _transfer_approver
     ) public onlyInitializing {
         __OFTUpgradeable_init(_name, _symbol, _lzEndpoint);
         __Pausable_init();
 
+        transferApprover = ITransferApprover(_transfer_approver);
+        fast_multisig = _fast_multisig;
         DEFAULT_ADMIN_ADDRESS = _msgSender();
     }
 
@@ -85,14 +90,14 @@ contract BaseSweep is
     /**
      * @notice Pause Sweep
      */
-    function pause() external onlyOwner whenNotPaused {
+    function pause() external onlyMultisig whenNotPaused {
         _pause();
     }
 
     /**
      * @notice Unpause Sweep
      */
-    function unpause() external onlyOwner whenPaused {
+    function unpause() external onlyMultisig whenPaused {
         _unpause();
     }
 
@@ -104,7 +109,7 @@ contract BaseSweep is
         return minter_addresses;
     }
 
-        /**
+    /**
      * @notice Add Minter
      * Adds whitelisted minters.
      * @param _minter Address to be added.
@@ -128,7 +133,7 @@ contract BaseSweep is
         emit MinterAdded(_minter, new_minter);
     }
 
-     /**
+    /**
      * @notice Remove Minter
      * A minter will be removed from the list.
      * @param _minter Address to be removed.
@@ -179,18 +184,6 @@ contract BaseSweep is
         minters[_minter].is_enabled = _is_enabled;
 
         emit MinterUpdated(_minter, minters[_minter]);
-    }
-
-    /**
-     * @notice Set Transfer Approver
-     * @param _approver Address of a Approver.
-     */
-    function setTransferApprover(address _approver) external onlyOwner {
-        if (_approver == address(0)) revert ZeroAddressDetected();
-        transfer_approver_address = _approver;
-        transferApprover = ITransferApprover(_approver);
-
-        emit ApproverSet(_approver);
     }
 
     /* ========== Actions ========== */
@@ -254,11 +247,11 @@ contract BaseSweep is
     }
 
     function _debitFrom(
-        address _from, 
-        uint16 _dstChainId, 
-        bytes memory _toAddress, 
+        address _from,
+        uint16 _dstChainId,
+        bytes memory _toAddress,
         uint _amount
-    ) internal override returns(uint) {
+    ) internal override returns (uint) {
         address toAddress;
         assembly {
             toAddress := mload(add(_toAddress, 20))
@@ -274,10 +267,10 @@ contract BaseSweep is
     }
 
     function _creditTo(
-        uint16 _srcChainId, 
-        address _toAddress, 
+        uint16 _srcChainId,
+        address _toAddress,
         uint _amount
-    ) internal override returns(uint) {
+    ) internal override returns (uint) {
         if (
             transfer_approver_address != address(0) &&
             !transferApprover.checkTransfer(_toAddress, _toAddress)

@@ -20,9 +20,11 @@ contract OffChainAsset is Stabilizer {
     uint256 public current_value;
     uint256 public valuation_time;
     address public wallet;
+    address public collateral_agent;
 
     // Events
     event Payback(address token, uint256 amount);
+    event CollateralAgentSet(address agent_address);
 
     // Errors
     error NotEnoughAmount();
@@ -64,6 +66,15 @@ contract OffChainAsset is Stabilizer {
         return current_value;
     }
 
+    /**
+     * @notice Get Collateral Agent Address
+     * @return address
+     */
+    function collateral_agency() external view returns (address) {
+        return
+            collateral_agent != address(0) ? collateral_agent : SWEEP.owner();
+    }
+
     /* ========== Actions ========== */
 
     /**
@@ -74,6 +85,18 @@ contract OffChainAsset is Stabilizer {
         address _wallet
     ) external onlyBorrower onlySettingsEnabled {
         wallet = _wallet;
+    }
+
+    /**
+     * @notice Set Collateral Agent
+     * @param _agent_address.
+     */
+    function setCollateralAgent(
+        address _agent_address
+    ) external onlyBorrower validAddress(_agent_address) {
+        collateral_agent = _agent_address;
+
+        emit CollateralAgentSet(_agent_address);
     }
 
     /**

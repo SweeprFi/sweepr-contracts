@@ -81,12 +81,12 @@ contract("Sweep", async function () {
 	});
 
 	it('sets a new oracle and gets price correctly', async () => {
-		expect(await sweep.sweep_usdc_oracle_address()).to.equal(Const.ADDRESS_ZERO);
+		expect(await sweep.uniswapOracle()).to.equal(Const.ADDRESS_ZERO);
 		oracle = addresses.uniswap_oracle;
 
 		await sweep.connect(multisig).setUniswapOracle(oracle);
 
-		expect(await sweep.sweep_usdc_oracle_address()).to.equal(oracle);
+		expect(await sweep.uniswapOracle()).to.equal(oracle);
 
 		price = await sweep.amm_price();
 		expect(price).to.above(Const.ZERO);
@@ -102,12 +102,6 @@ contract("Sweep", async function () {
 		expect(await sweep.balancer()).to.equal(Const.ADDRESS_ZERO);
 		await sweep.connect(multisig).setBalancer(newAddress.address);
 		expect(await sweep.balancer()).to.equal(newAddress.address);
-	});
-
-	it('sets a new step value correctly', async () => {
-		expect(await sweep.step_value()).to.equal(2500);
-		await sweep.connect(multisig).setStepValue(3000);
-		expect(await sweep.step_value()).to.equal(3000);
 	});
 
 	it('sets a new current target price correctly', async () => {

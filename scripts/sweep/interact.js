@@ -48,7 +48,6 @@ async function main() {
     console.log("               admin:", await sweep.owner());
     console.log("            balancer:", await sweep.balancer());
     console.log("            treasury:", await sweep.treasury());
-    console.log("    collateral agent:", await sweep.collateral_agent());
     console.log("------------------------------------------");
     greenlog("ok");
   }
