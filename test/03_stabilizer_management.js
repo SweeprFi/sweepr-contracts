@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { Const, toBN } = require("../utils/helper_functions");
+const { Const, toBN, impersonate } = require("../utils/helper_functions");
 
 contract("Stabilizer - Management Functions", async function () {
   before(async () => {
@@ -15,10 +15,11 @@ contract("Stabilizer - Management Functions", async function () {
       lzEndpoint.address,
       addresses.owner,
       addresses.approver,
-      addresses.treasury,
       2500 // 0.25%
     ]);
     sweep = await Proxy.deployed();
+    user = await impersonate(addresses.owner);
+    await sweep.connect(user).setTreasury(addresses.treasury);
     await sweep.setBalancer(balancer.address);
 
     Token = await ethers.getContractFactory("USDCMock");

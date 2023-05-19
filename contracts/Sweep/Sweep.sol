@@ -34,6 +34,7 @@ contract SweepDollarCoin is BaseSweep {
     event InterestRateSet(int256 new_interest_rate);
     event UniswapOracleSet(address uniswap_oracle_address);
     event BalancerSet(address balancer_address);
+    event TreasurySet(address treasury_address);
     event NewPeriodStarted(uint256 period_start);
     event TargetPriceSet(
         uint256 current_target_price,
@@ -46,6 +47,7 @@ contract SweepDollarCoin is BaseSweep {
     error NotOwnerOrBalancer();
     error NotBalancer();
     error NotPassedPeriodTime();
+    error AlreadyExist();
 
     /* ======= MODIFIERS ====== */
 
@@ -65,7 +67,6 @@ contract SweepDollarCoin is BaseSweep {
         address _lzEndpoint,
         address _fast_multisig,
         address _transfer_approver,
-        address _treasury,
         int256 _step_value
     ) public initializer {
         BaseSweep.__Sweep_init(
@@ -76,7 +77,6 @@ contract SweepDollarCoin is BaseSweep {
             _transfer_approver
         );
 
-        treasury = _treasury;
         step_value = _step_value;
         interest_rate = 0;
         current_target_price = 1e6;
@@ -226,6 +226,18 @@ contract SweepDollarCoin is BaseSweep {
         period_start = block.timestamp;
 
         emit NewPeriodStarted(period_start);
+    }
+
+    /**
+     * @notice Set Treasury Address
+     * @param _treasury.
+     */
+    function setTreasury(address _treasury) external onlyMultisig {
+        if (_treasury == address(0)) revert ZeroAddressDetected();
+        if (treasury != address(0)) revert AlreadyExist();
+        treasury = _treasury;
+
+        emit TreasurySet(_treasury);
     }
 
     /**

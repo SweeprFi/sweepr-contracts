@@ -20,10 +20,11 @@ contract('Aave V3 Asset', async () => {
             lzEndpoint.address,
             addresses.owner,
             addresses.approver,
-            addresses.treasury,
             2500 // 0.25%
         ]);
         sweep = await Proxy.deployed();
+        user = await impersonate(addresses.owner);
+        await sweep.connect(user).setTreasury(addresses.treasury);
 
         ERC20 = await ethers.getContractFactory("ERC20");
         usdx = await ERC20.attach(addresses.usdc);

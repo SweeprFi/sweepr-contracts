@@ -18,7 +18,6 @@ contract("Off-Chain Asset - Settings", async function () {
 			lzEndpoint.address,
             addresses.owner,
             addresses.approver,
-            addresses.treasury,
             2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed();
@@ -88,18 +87,15 @@ contract("Off-Chain Asset - Settings", async function () {
 
 		describe("Use collateral agent of Sweep", async function () {
 			it("Update value by collateral agent of sweep", async function () {
-				// Check to see if collateral agent is set.
-				sweep_owner = await sweep.owner();
-				expect(await sweep.collateral_agency()).to.equal(sweep_owner);
-
 				// Update value by collateral agent
+				await offChainAsset.connect(multisig).setCollateralAgent(borrower.address)
 				await offChainAsset.connect(borrower).updateValue(amount);
 				expect(await offChainAsset.current_value()).to.equal(amount);
 			});
 
 			it("Reverts updating value when caller is not collateral agent", async function () {
 				// Now, borrower is not collateral agent
-				await expect(offChainAsset.connect(borrower).updateValue(amount))
+				await expect(offChainAsset.connect(multisig).updateValue(amount))
 					.to.be.revertedWithCustomError(offChainAsset, 'OnlyCollateralAgent');
 			});
 		});

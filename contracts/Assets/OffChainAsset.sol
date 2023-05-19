@@ -25,9 +25,16 @@ contract OffChainAsset is Stabilizer {
     // Events
     event Payback(address token, uint256 amount);
     event CollateralAgentSet(address agent_address);
+    error OnlyCollateralAgent();
 
     // Errors
     error NotEnoughAmount();
+
+    modifier onlyCollateralAgent() {
+        if (msg.sender != collateral_agent)
+            revert OnlyCollateralAgent();
+        _;
+    }
 
     constructor(
         string memory _name,

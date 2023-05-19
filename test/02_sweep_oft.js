@@ -24,7 +24,6 @@ contract("Sweep - OFT", async function () {
             lzEndpointSrcMock.address,
             addresses.owner,
             addresses.approver,
-            addresses.treasury,
             2500 // 0.25%
         ]);
         OFTSrc = await srcProxy.deployed(Sweep);
@@ -33,7 +32,6 @@ contract("Sweep - OFT", async function () {
             lzEndpointDstMock.address,
             addresses.owner,
             addresses.approver,
-            addresses.treasury,
             2500 // 0.25%
         ]);
         OFTDst = await dstProxy.deployed(Sweep);

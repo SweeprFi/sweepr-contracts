@@ -25,7 +25,6 @@ contract('Balancer - Auto Invests', async () => {
             lzEndpoint.address,
             addresses.owner,
             addresses.approver,
-            addresses.treasury,
             2500 // 0.25%
         ]);
         sweep = await Proxy.deployed();
@@ -108,6 +107,8 @@ contract('Balancer - Auto Invests', async () => {
 
             // Set Balancer in the Sweep
             await sweep.setBalancer(balancer.address);
+            user = await impersonate(addresses.owner);
+            await sweep.connect(user).setTreasury(TREASURY);
 
             // Add the assets to the minter list
             await Promise.all(

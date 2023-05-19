@@ -47,6 +47,7 @@ contract SweepMock is BaseSweep {
     // Errors
 
     error MintNotAllowed();
+    error AlreadyExist();
     error NotOwnerOrBalancer();
     error NotPassedPeriodTime();
 
@@ -63,7 +64,6 @@ contract SweepMock is BaseSweep {
         address _lzEndpoint,
         address _fast_multisig,
         address _transfer_approver,
-        address _treasury,
         int256 _step_value
     ) public initializer {
         BaseSweep.__Sweep_init(
@@ -75,7 +75,6 @@ contract SweepMock is BaseSweep {
         );
         _mint(msg.sender, GENESIS_SUPPLY);
 
-        treasury = _treasury;
         step_value = _step_value;
 
         interest_rate = 0;
@@ -207,6 +206,18 @@ contract SweepMock is BaseSweep {
         arb_spread = _new_arb_spread;
 
         emit ArbSpreadSet(_new_arb_spread);
+    }
+
+    /**
+     * @notice Set Treasury Address
+     * @param _treasury.
+     */
+    function setTreasury(address _treasury) external onlyMultisig {
+        if (_treasury == address(0)) revert ZeroAddressDetected();
+        if (treasury != address(0)) revert AlreadyExist();
+        treasury = _treasury;
+
+        emit TreasurySet(_treasury);
     }
 
     /**

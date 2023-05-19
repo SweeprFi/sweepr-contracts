@@ -26,10 +26,11 @@ contract('Governance', async (accounts) => {
 			LZENDPOINT,
             addresses.owner,
             addresses.approver,
-            addresses.treasury,
             2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed(Sweep);
+		user = await impersonate(addresses.owner);
+		await sweep.connect(user).setTreasury(addresses.treasury);
 
 		timelock = await ethers.getContractAt("TimelockController", addresses.timelock);
 

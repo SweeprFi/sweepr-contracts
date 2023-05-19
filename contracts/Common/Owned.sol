@@ -16,7 +16,6 @@ contract Owned {
 
     // Errors
     error OnlyAdmin();
-    error OnlyCollateralAgent();
     error ZeroAddressDetected();
 
     constructor(address _sweep_address) {
@@ -28,12 +27,6 @@ contract Owned {
 
     modifier onlyAdmin() {
         if (msg.sender != SWEEP.owner()) revert OnlyAdmin();
-        _;
-    }
-
-    modifier onlyCollateralAgent() {
-        if (msg.sender != SWEEP.collateral_agency())
-            revert OnlyCollateralAgent();
         _;
     }
 

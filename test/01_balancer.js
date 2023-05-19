@@ -18,7 +18,6 @@ contract("Balancer", async function () {
 			lzEndpoint.address,
             addresses.owner,
             addresses.approver,
-            addresses.treasury,
             2500 // 0.25%
 		]);
 		sweep = await SweepProxy.deployed();

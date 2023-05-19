@@ -14,7 +14,6 @@ contract('Treasury', async () => {
       lzEndpoint.address,
       addresses.owner,
       addresses.approver,
-      addresses.treasury,
       2500 // 0.25%
     ]);
     sweep = await Proxy.deployed();

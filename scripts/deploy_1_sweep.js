@@ -25,7 +25,6 @@ async function main() {
 		lzEndpointAddress,
 		addresses.owner,
 		addresses.approver,
-		addresses.treasury,
 		2500 // 0.25%
 	], { initializer: 'initialize' });
 
