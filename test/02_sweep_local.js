@@ -13,16 +13,19 @@ contract("Sweep", async function () {
 		TRANSFER_AMOUNT = toBN("100", 18);
 		INTEREST_RATE = 5e4; // 5%
 
-		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+		const Proxy = await upgrades.deployProxy(Sweep, [
+			lzEndpoint.address,
+            addresses.owner,
+            addresses.approver,
+            addresses.treasury,
+            2500 // 0.25%
+		]);
 		sweep = await Proxy.deployed(Sweep);
-		await sweep.setTreasury(treasury.address);
 
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 		WhitelistApprover = await ethers.getContractFactory("TransferApproverWhitelist");
 		blacklistApprover = await BlacklistApprover.deploy(sweep.address);
 		whitelistApprover = await WhitelistApprover.deploy(sweep.address);
-
-		await sweep.setTransferApprover(blacklistApprover.address);
 	});
 
 	it('upgrades Sweep', async () => {
@@ -48,14 +51,6 @@ contract("Sweep", async function () {
 		// Transfer ownership to multisig
 		await sweep.connect(owner).transferOwnership(multisig.address);
 		expect(await sweep.owner()).to.equal(multisig.address);
-	});
-
-	it('reverts transfer when receiver is unhhitelisted', async () => {
-		// set whitelist transfer approver
-		await sweep.connect(multisig).setTransferApprover(whitelistApprover.address);
-
-		await expect(sweep.connect(owner).transfer(receiver.address, TRANSFER_AMOUNT))
-			.to.be.revertedWithCustomError(Sweep, 'TransferNotAllowed');
 	});
 
 	it('gets the target price correctly', async () => {
@@ -90,12 +85,6 @@ contract("Sweep", async function () {
 
 		price = await sweep.amm_price();
 		expect(price).to.above(Const.ZERO);
-	});
-
-	it('sets a new treasury address correctly', async () => {
-		expect(await sweep.treasury()).to.equal(treasury.address);
-		await sweep.connect(multisig).setTreasury(newAddress.address);
-		expect(await sweep.treasury()).to.equal(newAddress.address);
 	});
 
 	it('sets a new balancer address correctly', async () => {
@@ -173,14 +162,4 @@ contract("Sweep", async function () {
         await sweep.connect(multisig).removeMinter(newMinter.address);
 		expect(await sweep.isValidMinter(newMinter.address)).to.equal(Const.FALSE);
     });
-
-	it('sets a new collateral agency correctly', async () => {
-		expect(await sweep.collateral_agency()).to.equal(multisig.address);
-
-		await expect(sweep.connect(multisig).setCollateralAgent(Const.ADDRESS_ZERO))
-			.to.be.revertedWithCustomError(Sweep, 'ZeroAddressDetected');
-
-		await sweep.connect(multisig).setCollateralAgent(newAddress.address)
-		expect(await sweep.collateral_agency()).to.equal(newAddress.address);
-	});
 });

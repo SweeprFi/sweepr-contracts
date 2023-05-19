@@ -21,7 +21,13 @@ async function main() {
 	console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
 	const sweepInstance = await ethers.getContractFactory("SweepDollarCoin");
-	const sweep = await upgrades.deployProxy(sweepInstance, [lzEndpointAddress], { initializer: 'initialize' });
+	const sweep = await upgrades.deployProxy(sweepInstance, [
+		lzEndpointAddress,
+		addresses.owner,
+		addresses.approver,
+		addresses.treasury,
+		2500 // 0.25%
+	], { initializer: 'initialize' });
 
 	console.log("Sweep deployed to:", sweep.address);
 

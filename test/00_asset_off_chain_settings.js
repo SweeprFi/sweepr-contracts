@@ -13,7 +13,13 @@ contract("Off-Chain Asset - Settings", async function () {
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
-		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+		const Proxy = await upgrades.deployProxy(Sweep, [
+			lzEndpoint.address,
+            addresses.owner,
+            addresses.approver,
+            addresses.treasury,
+            2500 // 0.25%
+		]);
 		sweep = await Proxy.deployed();
 
 		Token = await ethers.getContractFactory("USDCMock");
@@ -85,20 +91,12 @@ contract("Off-Chain Asset - Settings", async function () {
 				sweep_owner = await sweep.owner();
 				expect(await sweep.collateral_agency()).to.equal(sweep_owner);
 
-				// Set collateral agent to borrower
-				await sweep.setCollateralAgent(borrower.address);
-				expect(await sweep.collateral_agency()).to.equal(borrower.address);
-
 				// Update value by collateral agent
 				await offChainAsset.connect(borrower).updateValue(amount);
 				expect(await offChainAsset.current_value()).to.equal(amount);
 			});
 
 			it("Reverts updating value when caller is not collateral agent", async function () {
-				// Set collateral agent to wallet
-				await sweep.setCollateralAgent(wallet.address);
-				expect(await sweep.collateral_agency()).to.equal(wallet.address);
-
 				// Now, borrower is not collateral agent
 				await expect(offChainAsset.connect(borrower).updateValue(amount))
 					.to.be.revertedWithCustomError(offChainAsset, 'OnlyCollateralAgent');

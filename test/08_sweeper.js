@@ -13,7 +13,13 @@ contract("Sweeper", async function () {
 		PRECISION = 1000000;
 		ZERO = 0;
 
-		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+		const Proxy = await upgrades.deployProxy(Sweep, [
+			lzEndpoint.address,
+            addresses.owner,
+            addresses.approver,
+            addresses.treasury,
+            2500 // 0.25%
+		]);
 		old_sweep = await Proxy.deployed();
 		sweep = await Proxy.deployed();
 
@@ -28,11 +34,6 @@ contract("Sweeper", async function () {
 		await sweeper.setSWEEP(sweep.address);
 		expect(await sweeper.SWEEP()).to.be.equal(sweep.address);
 
-		expect(await sweeper.treasury()).to.be.equal(owner.address);
-		await expect(sweeper.setTreasury(ethers.constants.AddressZero))
-			.to.be.revertedWithCustomError(sweeper, "ZeroAddressDetected");
-		await sweeper.setTreasury(treasury.address);
-		expect(await sweeper.treasury()).to.be.equal(treasury.address);
 		expect(await sweeper.mintBurnAddress()).to.be.equal(owner.address);
 
 		await sweeper.setMintBurnAddress(mintBurn.address);

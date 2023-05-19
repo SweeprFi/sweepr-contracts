@@ -16,9 +16,14 @@ contract("Stabilizer and spread", async function () {
     autoInvestMinAmount = toBN("10", 18);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+    const Proxy = await upgrades.deployProxy(Sweep, [
+      lzEndpoint.address,
+      addresses.owner,
+      addresses.approver,
+      addresses.treasury,
+      2500 // 0.25%
+    ]);
     sweep = await Proxy.deployed();
-    await sweep.setTreasury(treasury.address);
 
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();

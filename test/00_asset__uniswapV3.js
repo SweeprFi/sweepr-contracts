@@ -18,7 +18,13 @@ contract('Uniswap V3 Asset', async () => {
         BORROWER = borrower.address;
 
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+        const Proxy = await upgrades.deployProxy(Sweep, [
+            lzEndpoint.address,
+            addresses.owner,
+            addresses.approver,
+            addresses.treasury,
+            2500 // 0.25%
+        ]);
         sweep = await Proxy.deployed();
 
         ERC20 = await ethers.getContractFactory("USDCMock");

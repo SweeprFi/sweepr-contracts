@@ -17,9 +17,14 @@ contract("WETH Asset", async function () {
         await sendEth(Const.WETH_HOLDER);
         // ------------- Deployment of contracts -------------
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+        const Proxy = await upgrades.deployProxy(Sweep, [
+            lzEndpoint.address,
+            addresses.owner,
+            addresses.approver,
+            addresses.treasury,
+            2500 // 0.25%
+        ]);
         sweep = await Proxy.deployed();
-        await sweep.setTreasury(treasury.address);
 
         Token = await ethers.getContractFactory("ERC20");
         usdc = await Token.attach(addresses.usdc);

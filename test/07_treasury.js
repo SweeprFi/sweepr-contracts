@@ -9,7 +9,13 @@ contract('Treasury', async () => {
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+    const Proxy = await upgrades.deployProxy(Sweep, [
+      lzEndpoint.address,
+      addresses.owner,
+      addresses.approver,
+      addresses.treasury,
+      2500 // 0.25%
+    ]);
     sweep = await Proxy.deployed();
 
     Token = await ethers.getContractFactory("USDCMock");

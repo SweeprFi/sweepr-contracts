@@ -24,7 +24,13 @@ contract('Balancer - Auto Call', async () => {
     usdc = await ethers.getContractAt("ERC20", addresses.usdc);
     // Deploys
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+    const Proxy = await upgrades.deployProxy(Sweep, [
+      lzEndpoint.address,
+      addresses.owner,
+      addresses.approver,
+      addresses.treasury,
+      2500 // 0.25%
+    ]);
     sweep = await Proxy.deployed();
 
     USDOracle = await ethers.getContractFactory("AggregatorMock");
@@ -77,7 +83,6 @@ contract('Balancer - Auto Call', async () => {
       await sweep.addMinter(assets[1].address, MAX_MINT);
       await sweep.addMinter(assets[2].address, MAX_MINT);
       await sweep.addMinter(assets[3].address, MAX_MINT);
-      await sweep.setTreasury(TREASURY);
 
       // sends funds to Borrower
       user = await impersonate(USDC_ADDRESS);

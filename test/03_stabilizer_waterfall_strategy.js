@@ -14,9 +14,14 @@ contract("Stabilizer's waterfall workflow", async function () {
     maxBorrow = toBN("100", 18);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+    const Proxy = await upgrades.deployProxy(Sweep, [
+      lzEndpoint.address,
+      addresses.owner,
+      addresses.approver,
+      addresses.treasury,
+      2500 // 0.25%
+    ]);
     sweep = await Proxy.deployed();
-    await sweep.setTreasury(treasury.address);
 
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
@@ -111,8 +116,6 @@ contract("Stabilizer's waterfall workflow", async function () {
 
     describe("repaying in 3 payments", async function () {
       it("simulates change of usdx for sweep and 10% interest", async function () {
-        await sweep.setCollateralAgent(borrower.address);
-
         amount = toBN("20", 18);
         await sweep.transfer(wallet.address, amount);
         balance = await sweep.balanceOf(wallet.address);

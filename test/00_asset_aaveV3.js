@@ -16,9 +16,14 @@ contract('Aave V3 Asset', async () => {
         sweepAmount = toBN("1000", 18);
 
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+        const Proxy = await upgrades.deployProxy(Sweep, [
+            lzEndpoint.address,
+            addresses.owner,
+            addresses.approver,
+            addresses.treasury,
+            2500 // 0.25%
+        ]);
         sweep = await Proxy.deployed();
-        await sweep.setTreasury(addresses.treasury);
 
         ERC20 = await ethers.getContractFactory("ERC20");
         usdx = await ERC20.attach(addresses.usdc);
