@@ -86,13 +86,13 @@ contract('Aave V3 Asset', async () => {
         it('mint and sell sweep', async () => {
             // Mint Sweep
             await expect(aaveAsset.connect(guest).borrow(mintAmount))
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).borrow(mintAmount);
             expect(await aaveAsset.sweep_borrowed()).to.equal(mintAmount);
 
             // Sell Sweep
             await expect(aaveAsset.connect(guest).sellSweepOnAMM(mintAmount, 0))
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await expect(aaveAsset.connect(user).sellSweepOnAMM(0, 0))
                 .to.be.revertedWithCustomError(aaveAsset, 'NotEnoughBalance');
 
@@ -105,7 +105,7 @@ contract('Aave V3 Asset', async () => {
             // Invest usdx
             investAmount = 50e6;
             await expect(aaveAsset.connect(guest).invest(investAmount))
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).invest(investAmount);
             expect(await aaveAsset.assetValue()).to.closeTo(investAmount, 1);
 
@@ -115,7 +115,7 @@ contract('Aave V3 Asset', async () => {
             // Divest usdx
             divestAmount = 600e6;
             await expect(aaveAsset.connect(guest).divest(divestAmount))
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).divest(divestAmount);
             expect(await aaveAsset.assetValue()).to.closeTo(Const.ZERO, 1);
         });
@@ -123,14 +123,14 @@ contract('Aave V3 Asset', async () => {
         it('buy and repay sweep', async () => {
             // Buy Sweep
             await expect(aaveAsset.connect(guest).buySweepOnAMM(divestAmount, Const.ZERO))
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).buySweepOnAMM(divestAmount, Const.ZERO);
 
             expect(await sweep.balanceOf(aaveAsset.address)).to.above(Const.ZERO);
 
             // Repay Sweep
             await expect(aaveAsset.connect(guest).repay(maxBorrow))
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).repay(maxBorrow);
 
             expect(await aaveAsset.sweep_borrowed()).to.equal(Const.ZERO);
@@ -165,13 +165,13 @@ contract('Aave V3 Asset', async () => {
         it('mint and sell sweep', async () => {
             // Mint Sweep
             await expect(aaveAsset.connect(guest).borrow(mintAmount))
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).borrow(mintAmount);
             expect(await aaveAsset.sweep_borrowed()).to.equal(mintAmount);
 
             // Sell Sweep
             await expect(aaveAsset.connect(guest).sellSweepOnAMM(mintAmount, Const.ZERO))
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await expect(aaveAsset.connect(user).sellSweepOnAMM(Const.ZERO, Const.ZERO))
                 .to.be.revertedWithCustomError(aaveAsset, 'NotEnoughBalance');
             await aaveAsset.connect(user).sellSweepOnAMM(mintAmount, Const.ZERO);
@@ -182,7 +182,7 @@ contract('Aave V3 Asset', async () => {
         it('invest to the Aave', async () => {
             investAmount = 50 * 1e6;
             await expect(aaveAsset.connect(guest).invest(investAmount))
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).invest(investAmount);
 
             expect(await aaveAsset.assetValue()).to.equal(investAmount);

@@ -73,29 +73,24 @@ contract("Off-Chain Asset - Settings", async function () {
 				expect(await offChainAsset.wallet()).to.equal(treasury.address);
 			});
 
-			it("Reverts setting when caller is not setting manager", async function () {
-				// Change setting manager into multisig
-				await offChainAsset.setBorrower(multisig.address);
-				expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
-
-				// Now, borrower is not setting manager
-				await expect(offChainAsset.connect(borrower).setWallet(wallet.address))
-					.to.be.revertedWithCustomError(offChainAsset, 'OnlyBorrower');
+			it("Reverts when caller is not the borrower", async function () {
+				await expect(offChainAsset.connect(treasury).setWallet(wallet.address))
+					.to.be.revertedWithCustomError(offChainAsset, 'NotBorrower');
 			});
 		});
 
-		describe("Use collateral agent of Sweep", async function () {
-			it("Update value by collateral agent of sweep", async function () {
+		describe("Use collateral agent", async function () {
+			it("Update value by collateral agent", async function () {
 				// Update value by collateral agent
-				await offChainAsset.connect(multisig).setCollateralAgent(borrower.address)
-				await offChainAsset.connect(borrower).updateValue(amount);
+				await offChainAsset.connect(borrower).setCollateralAgent(wallet.address)
+				await offChainAsset.connect(wallet).updateValue(amount);
 				expect(await offChainAsset.current_value()).to.equal(amount);
 			});
 
 			it("Reverts updating value when caller is not collateral agent", async function () {
 				// Now, borrower is not collateral agent
-				await expect(offChainAsset.connect(multisig).updateValue(amount))
-					.to.be.revertedWithCustomError(offChainAsset, 'OnlyCollateralAgent');
+				await expect(offChainAsset.connect(borrower).updateValue(amount))
+					.to.be.revertedWithCustomError(offChainAsset, 'NotCollateralAgent');
 			});
 		});
 	});

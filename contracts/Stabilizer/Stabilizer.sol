@@ -72,7 +72,6 @@ contract Stabilizer is Owned, Pausable {
     event BoughtSWEEP(uint256 indexed sweep_amount);
     event SoldSWEEP(uint256 indexed usdx_amount);
     event LoanLimitChanged(uint256 loan_limit);
-    event BorrowerChanged(address indexed borrower);
     event Proposed(address indexed borrower);
     event Rejected(address indexed borrower);
 
@@ -97,8 +96,8 @@ contract Stabilizer is Owned, Pausable {
     );
 
     /* ========== Errors ========== */
-    error OnlyBorrower();
-    error OnlyBalancer();
+    error NotBorrower();
+    error NotBalancer();
     error SettingsDisabled();
     error OverZero();
     error InvalidMinter();
@@ -114,12 +113,12 @@ contract Stabilizer is Owned, Pausable {
 
     /* ========== Modifies ========== */
     modifier onlyBorrower() {
-        if (msg.sender != borrower) revert OnlyBorrower();
+        if (msg.sender != borrower) revert NotBorrower();
         _;
     }
 
     modifier onlyBalancer() {
-        if (msg.sender != SWEEP.balancer()) revert OnlyBalancer();
+        if (msg.sender != SWEEP.balancer()) revert NotBalancer();
         _;
     }
 
@@ -237,30 +236,15 @@ contract Stabilizer is Owned, Pausable {
     }
 
     /* ========== Settings ========== */
-
-    /**
-     * @notice Set Borrower
-     * @param _borrower.
-     * @dev Who manages the investment actions.
-     */
-    function setBorrower(
-        address _borrower
-    ) external onlyGov validAddress(_borrower) {
-        borrower = _borrower;
-        settings_enabled = true;
-
-        emit BorrowerChanged(_borrower);
-    }
-
     /**
      * @notice Pause
      * @dev Stops investment actions.
      */
-    function pause() external onlyGov {
+    function pause() external onlyMultisig {
         _pause();
     }
 
-    function unpause() external onlyGov {
+    function unpause() external onlyMultisig {
         _unpause();
     }
 

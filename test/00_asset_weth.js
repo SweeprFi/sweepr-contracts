@@ -64,12 +64,12 @@ contract("WETH Asset", async function () {
     describe("asset constraints", async function () {
         it("only borrower can inveset", async function () {
             await expect(weth_asset.connect(other).invest(depositAmount))
-                .to.be.revertedWithCustomError(weth_asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(weth_asset, 'NotBorrower');
         });
 
         it("only borrower can divest", async function () {
             await expect(weth_asset.connect(other).divest(depositAmount))
-                .to.be.revertedWithCustomError(weth_asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(weth_asset, 'NotBorrower');
         });
     });
 

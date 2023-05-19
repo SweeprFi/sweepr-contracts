@@ -76,7 +76,7 @@ contract('Compound V2 Asset', async () => {
             // Invest usdx
             expect(await compAsset.assetValue()).to.equal(Const.ZERO);
             await expect(compAsset.connect(guest).invest(depositAmount))
-                .to.be.revertedWithCustomError(compAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(compAsset, 'NotBorrower');
             await compAsset.connect(user).invest(depositAmount);
             expect(await compAsset.assetValue()).to.above(Const.ZERO);
 
@@ -90,7 +90,7 @@ contract('Compound V2 Asset', async () => {
 
             // Divest usdx
             await expect(compAsset.connect(guest).divest(divestAmount))
-                .to.be.revertedWithCustomError(compAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(compAsset, 'NotBorrower');
             await compAsset.connect(user).divest(divestAmount);
             expect(await compAsset.assetValue()).to.equal(Const.ZERO);
         });

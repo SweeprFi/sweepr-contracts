@@ -60,7 +60,7 @@ contract('GLP Asset', async () => {
 
         it('invest and divest to the GMX', async () => {
             await expect(asset.invest(depositAmount))
-                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
             user = await impersonate(BORROWER);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
@@ -74,7 +74,7 @@ contract('GLP Asset', async () => {
 
             // Divest usdx
             await expect(asset.divest(divestAmount))
-                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(asset, 'NotBorrower');
             await asset.connect(user).divest(divestAmount);
 
             expect(await asset.assetValue()).to.equal(Const.ZERO);
