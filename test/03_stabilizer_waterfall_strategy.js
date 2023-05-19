@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { addresses } = require('../utils/address');
 const { Const, toBN } = require("../utils/helper_functions");
 
 contract("Stabilizer's waterfall workflow", async function () {

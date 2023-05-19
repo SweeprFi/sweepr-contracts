@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { expect } = require('chai');
+const { addresses } = require('../utils/address');
 
 contract('Treasury', async () => {
   before(async () => {

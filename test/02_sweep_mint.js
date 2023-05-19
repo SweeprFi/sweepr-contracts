@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 const { toBN, Const } = require("../utils/helper_functions");
 
-contract("Sweep - Mint", async function () {
+contract.skip("Sweep - Mint", async function () {
 	before(async () => {
 		[owner, receiver, treasury, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 

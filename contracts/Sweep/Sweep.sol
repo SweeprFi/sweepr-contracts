@@ -9,7 +9,7 @@ import "./BaseSweep.sol";
 import "../Oracle/UniswapOracle.sol";
 
 contract SweepDollarCoin is BaseSweep {
-    UniswapOracle private uniswapOracle;
+    UniswapOracle public uniswapOracle;
 
     // Addresses
     address public balancer;

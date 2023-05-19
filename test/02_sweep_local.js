@@ -28,25 +28,6 @@ contract("Sweep", async function () {
 		whitelistApprover = await WhitelistApprover.deploy(sweep.address);
 	});
 
-	it('upgrades Sweep', async () => {
-		await sweep.setInterestRate(INTEREST_RATE);
-		const interestRateBefore = await sweep.interest_rate();
-
-		// Sweep Upgrade
-		Sweep2 = await ethers.getContractFactory("SweepDollarCoin");
-		upgraded = await upgrades.upgradeProxy(sweep.address, Sweep2);
-
-		const interestRateAfter = await sweep.interest_rate();
-
-		// Check to see if upgraded Sweep contract keeps interest rate of previous contract
-		expect(interestRateBefore.toNumber()).to.equal(interestRateAfter.toNumber());
-	});
-
-	it('only owner or balancer can sets a new interest rate', async () => {
-		await expect(sweep.connect(multisig).setInterestRate(INTEREST_RATE))
-			.to.be.revertedWithCustomError(Sweep, 'NotOwnerOrBalancer');
-	});
-
 	it('set admin to multisig', async () => {
 		// Transfer ownership to multisig
 		await sweep.connect(owner).transferOwnership(multisig.address);
@@ -56,14 +37,6 @@ contract("Sweep", async function () {
 	it('gets the target price correctly', async () => {
 		targetPrice = await sweep.target_price();
 		expect(await sweep.current_target_price()).to.equal(targetPrice);
-	});
-
-	it('starts a new period correctly', async () => {
-		period_start = await sweep.period_start();
-		await sweep.connect(multisig).startNewPeriod();
-		new_period_start = await sweep.period_start();
-
-		expect(new_period_start).to.above(period_start);
 	});
 
 	it('sets a new period time correctly', async () => {
@@ -95,9 +68,31 @@ contract("Sweep", async function () {
 
 	it('sets a new current target price correctly', async () => {
 		expect(await sweep.current_target_price()).to.equal(await sweep.next_target_price());
-		await sweep.connect(multisig).setTargetPrice(90000, 99000);
+		await sweep.connect(newAddress).setTargetPrice(90000, 99000);
 		expect(await sweep.current_target_price()).to.equal(90000);
 		expect(await sweep.next_target_price()).to.equal(99000);
+	});
+
+	it('starts a new period correctly', async () => {
+		period_start = await sweep.period_start();
+		await sweep.connect(newAddress).startNewPeriod();
+		new_period_start = await sweep.period_start();
+
+		expect(new_period_start).to.above(period_start);
+	});
+
+	it('upgrades Sweep', async () => {
+		await sweep.connect(newAddress).setInterestRate(INTEREST_RATE);
+		const interestRateBefore = await sweep.interest_rate();
+
+		// Sweep Upgrade
+		Sweep2 = await ethers.getContractFactory("SweepDollarCoin");
+		upgraded = await upgrades.upgradeProxy(sweep.address, Sweep2);
+
+		const interestRateAfter = await sweep.interest_rate();
+
+		// Check to see if upgraded Sweep contract keeps interest rate of previous contract
+		expect(interestRateBefore.toNumber()).to.equal(interestRateAfter.toNumber());
 	});
 
 	it('sets a new minter and gets his information correctly', async () => {

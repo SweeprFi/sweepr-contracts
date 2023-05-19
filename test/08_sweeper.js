@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { addresses } = require('../utils/address');
 
 contract("Sweeper", async function () {
 	before(async () => {

@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { addresses } = require('../utils/address');
 const { increaseTime, Const, toBN } = require("../utils/helper_functions");
 
 contract("Stabilizer and spread", async function () {
