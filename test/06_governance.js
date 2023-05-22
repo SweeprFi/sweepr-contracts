@@ -18,8 +18,9 @@ contract('Governance', async (accounts) => {
 		OWNER_SWEEPER = addresses.owner;
 		MINT_AMOUNT = toBN("100000", 18);
 		SWEEP_AMOUNT = toBN("1400", 18);
+		SWEEPER_MINT_AMOUNT = toBN("2000", 18);
 		TRANSFER_AMOUNT = toBN("100", 18);
-		REMANENT_AMOUNT = toBN("139600", 18);
+		REMANENT_AMOUNT = toBN("1000", 18);
 		// contracts
 		Sweep = await ethers.getContractFactory("SweepMock");
 		const Proxy = await upgrades.deployProxy(Sweep, [
@@ -35,15 +36,18 @@ contract('Governance', async (accounts) => {
 
 		SWEEPER = await ethers.getContractFactory("SWEEPER");
 		Governance = await ethers.getContractFactory("SweepGovernor");
+		TokenDistributor = await ethers.getContractFactory("TokenDistributor");
 
 		// deploys
-		sweeper = await SWEEPER.deploy(sweep.address, addresses.treasury);
+		sweeper = await SWEEPER.deploy(sweep.address, addresses.approver);
+		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweeper.address);
 		governance = await Governance.deploy(sweeper.address, addresses.timelock, 10);
 
-		await sweeper.setAllowMinting(Const.TRUE);
-		await sweeper.setAllowBurning(Const.TRUE);
-		// Set SWEEPER price to 1: 
-		await sweeper.setSWEEPERPrice(10000);
+		// Sets SWEEPER price to 1 SWEEP: 
+		await sweeper.setPrice(1000000);
+
+		// Mints SWEEPER to TokenDistributor
+		await sweeper.mint(tokenDistributor.address, SWEEPER_MINT_AMOUNT);
 
 		account = await impersonate(OWNER_SWEEPER);
 		await timelock.connect(account).grantRole(Const.PROPOSER_ROLE, governance.address);
@@ -55,8 +59,8 @@ contract('Governance', async (accounts) => {
 		await sweep.addMinter(PROPOSER, MINT_AMOUNT);
 		account = await impersonate(PROPOSER);
 		await sweep.connect(account).minter_mint(PROPOSER, MINT_AMOUNT);
-		await sweep.connect(account).approve(sweeper.address, MINT_AMOUNT);
-		await sweeper.connect(account).buySWEEPER(SWEEP_AMOUNT);
+		await sweep.connect(account).approve(tokenDistributor.address, MINT_AMOUNT);
+		await tokenDistributor.connect(account).buy(SWEEP_AMOUNT);
 
 		await sweeper.connect(account).transfer(USER1, TRANSFER_AMOUNT);
 		await sweeper.connect(account).transfer(USER2, TRANSFER_AMOUNT);
@@ -169,7 +173,7 @@ contract('Governance', async (accounts) => {
 		votes = await governance.proposalVotes(proposal_id)
 		expect(votes.againstVotes).to.equal(Const.ZERO);
 		expect(votes.abstainVotes).to.equal(TRANSFER_AMOUNT);
-		expect(votes.forVotes).to.equal((SWEEP_AMOUNT.mul(100)).sub(TRANSFER_AMOUNT));
+		expect(votes.forVotes).to.equal(REMANENT_AMOUNT.add(TRANSFER_AMOUNT.mul(3)));
 	});
 
 	it('queues proposal correctly', async () => {
