@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { Const, toBN } = require("../utils/helper_functions");
+const { addresses } = require('../utils/address');
+const { Const, toBN, impersonate } = require("../utils/helper_functions");
 
 contract("Stabilizer - Isolated Functions", async function () {
   before(async () => {
@@ -13,9 +14,14 @@ contract("Stabilizer - Isolated Functions", async function () {
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+    const Proxy = await upgrades.deployProxy(Sweep, [
+      lzEndpoint.address,
+      addresses.owner,
+      2500 // 0.25%
+    ]);
     sweep = await Proxy.deployed();
-    await sweep.setTreasury(treasury.address);
+    user = await impersonate(addresses.owner);
+    await sweep.connect(user).setTreasury(addresses.treasury);
 
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();

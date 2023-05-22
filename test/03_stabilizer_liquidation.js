@@ -18,9 +18,14 @@ contract("Stabilizer - Liquidation", async function () {
     await sendEth(Const.WETH_HOLDER);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+    const Proxy = await upgrades.deployProxy(Sweep, [
+      lzEndpoint.address,
+      addresses.owner,
+      2500 // 0.25%
+    ]);
     sweep = await Proxy.deployed();
-    await sweep.setTreasury(treasury.address);
+    user = await impersonate(addresses.owner);
+    await sweep.connect(user).setTreasury(addresses.treasury);
 
     USDC = await ethers.getContractFactory("ERC20");
     WETH = await ethers.getContractFactory("ERC20");

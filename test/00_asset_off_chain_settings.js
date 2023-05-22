@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { addresses } = require("../utils/address");
 const { Const, toBN } = require("../utils/helper_functions");
 
 contract("Off-Chain Asset - Settings", async function () {
@@ -13,7 +14,11 @@ contract("Off-Chain Asset - Settings", async function () {
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
-		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+		const Proxy = await upgrades.deployProxy(Sweep, [
+			lzEndpoint.address,
+            addresses.owner,
+            2500 // 0.25%
+		]);
 		sweep = await Proxy.deployed();
 
 		Token = await ethers.getContractFactory("USDCMock");
@@ -81,26 +86,15 @@ contract("Off-Chain Asset - Settings", async function () {
 
 		describe("Use collateral agent of Sweep", async function () {
 			it("Update value by collateral agent of sweep", async function () {
-				// Check to see if collateral agent is set.
-				sweep_owner = await sweep.owner();
-				expect(await sweep.collateral_agency()).to.equal(sweep_owner);
-
-				// Set collateral agent to borrower
-				await sweep.setCollateralAgent(borrower.address);
-				expect(await sweep.collateral_agency()).to.equal(borrower.address);
-
 				// Update value by collateral agent
+				await offChainAsset.connect(multisig).setCollateralAgent(borrower.address)
 				await offChainAsset.connect(borrower).updateValue(amount);
 				expect(await offChainAsset.current_value()).to.equal(amount);
 			});
 
 			it("Reverts updating value when caller is not collateral agent", async function () {
-				// Set collateral agent to wallet
-				await sweep.setCollateralAgent(wallet.address);
-				expect(await sweep.collateral_agency()).to.equal(wallet.address);
-
 				// Now, borrower is not collateral agent
-				await expect(offChainAsset.connect(borrower).updateValue(amount))
+				await expect(offChainAsset.connect(multisig).updateValue(amount))
 					.to.be.revertedWithCustomError(offChainAsset, 'OnlyCollateralAgent');
 			});
 		});

@@ -14,9 +14,14 @@ contract('GLP Asset', async () => {
         divestAmount = 200e6;
 
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+        const Proxy = await upgrades.deployProxy(Sweep, [
+            lzEndpoint.address,
+            addresses.owner,
+            2500 // 0.25%
+        ]);
         sweep = await Proxy.deployed();
-        await sweep.setTreasury(addresses.treasury);
+        user = await impersonate(addresses.owner);
+        await sweep.connect(user).setTreasury(addresses.treasury);
 
         ERC20 = await ethers.getContractFactory("ERC20");
         usdx = await ERC20.attach(addresses.usdc);

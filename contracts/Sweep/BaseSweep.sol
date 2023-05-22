@@ -9,14 +9,9 @@ import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/of
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./TransferApprover/ITransferApprover.sol";
 
-contract BaseSweep is
-    Initializable,
-    OFTUpgradeable,
-    PausableUpgradeable
-{
+contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     // Addresses
-    address public transfer_approver_address;
-    address public DEFAULT_ADMIN_ADDRESS;
+    address public fast_multisig;
 
     ITransferApprover private transferApprover;
 
@@ -33,7 +28,6 @@ contract BaseSweep is
     // Minter Addresses
     address[] public minter_addresses;
 
-
     /* ========== Events ========== */
 
     event TokenBurned(address indexed from, uint256 amount);
@@ -46,6 +40,8 @@ contract BaseSweep is
     /* ========== Errors ========== */
 
     error InvalidMinter();
+    error NotGovernance();
+    error NotMultisig();
     error ZeroAmountDetected();
     error ZeroAddressDetected();
     error MintDisabled();
@@ -61,17 +57,29 @@ contract BaseSweep is
         _;
     }
 
+    modifier onlyGov() {
+        if (msg.sender != owner()) revert NotGovernance();
+        _;
+    }
+
+    modifier onlyMultisig() {
+        if (msg.sender != owner() && msg.sender != fast_multisig)
+            revert NotMultisig();
+        _;
+    }
+
     /* ========== CONSTRUCTOR ========== */
 
     function __Sweep_init(
         string memory _name,
         string memory _symbol,
-        address _lzEndpoint
+        address _lzEndpoint,
+        address _fast_multisig
     ) public onlyInitializing {
         __OFTUpgradeable_init(_name, _symbol, _lzEndpoint);
         __Pausable_init();
 
-        DEFAULT_ADMIN_ADDRESS = _msgSender();
+        fast_multisig = _fast_multisig;
     }
 
     /* ========== VIEWS ========== */
@@ -85,14 +93,14 @@ contract BaseSweep is
     /**
      * @notice Pause Sweep
      */
-    function pause() external onlyOwner whenNotPaused {
+    function pause() external onlyMultisig whenNotPaused {
         _pause();
     }
 
     /**
      * @notice Unpause Sweep
      */
-    function unpause() external onlyOwner whenPaused {
+    function unpause() external onlyMultisig whenPaused {
         _unpause();
     }
 
@@ -104,13 +112,13 @@ contract BaseSweep is
         return minter_addresses;
     }
 
-        /**
+    /**
      * @notice Add Minter
      * Adds whitelisted minters.
      * @param _minter Address to be added.
      * @param _amount Max Amount for mint.
      */
-    function addMinter(address _minter, uint256 _amount) external onlyOwner {
+    function addMinter(address _minter, uint256 _amount) external onlyGov {
         if (_minter == address(0)) revert ZeroAddressDetected();
         if (_amount == 0) revert ZeroAmountDetected();
         if (minters[_minter].is_listed) revert MinterExist();
@@ -128,14 +136,14 @@ contract BaseSweep is
         emit MinterAdded(_minter, new_minter);
     }
 
-     /**
+    /**
      * @notice Remove Minter
      * A minter will be removed from the list.
      * @param _minter Address to be removed.
      */
     function removeMinter(
         address _minter
-    ) external onlyOwner validMinter(_minter) {
+    ) external onlyGov validMinter(_minter) {
         delete minters[_minter]; // Delete minter from the mapping
 
         for (uint256 i = 0; i < minter_addresses.length; i++) {
@@ -160,7 +168,7 @@ contract BaseSweep is
     function setMinterMaxAmount(
         address _minter,
         uint256 _amount
-    ) external onlyOwner validMinter(_minter) {
+    ) external onlyGov validMinter(_minter) {
         minters[_minter].max_amount = _amount;
 
         emit MinterUpdated(_minter, minters[_minter]);
@@ -175,7 +183,7 @@ contract BaseSweep is
     function setMinterEnabled(
         address _minter,
         bool _is_enabled
-    ) external onlyOwner validMinter(_minter) {
+    ) external onlyGov validMinter(_minter) {
         minters[_minter].is_enabled = _is_enabled;
 
         emit MinterUpdated(_minter, minters[_minter]);
@@ -185,9 +193,8 @@ contract BaseSweep is
      * @notice Set Transfer Approver
      * @param _approver Address of a Approver.
      */
-    function setTransferApprover(address _approver) external onlyOwner {
+    function setTransferApprover(address _approver) external onlyGov {
         if (_approver == address(0)) revert ZeroAddressDetected();
-        transfer_approver_address = _approver;
         transferApprover = ITransferApprover(_approver);
 
         emit ApproverSet(_approver);
@@ -246,7 +253,7 @@ contract BaseSweep is
         uint256 _amount
     ) internal override whenNotPaused {
         if (
-            transfer_approver_address != address(0) &&
+            address(transferApprover) != address(0) &&
             !transferApprover.checkTransfer(_from, _to)
         ) revert TransferNotAllowed();
 
@@ -254,18 +261,18 @@ contract BaseSweep is
     }
 
     function _debitFrom(
-        address _from, 
-        uint16 _dstChainId, 
-        bytes memory _toAddress, 
+        address _from,
+        uint16 _dstChainId,
+        bytes memory _toAddress,
         uint _amount
-    ) internal override returns(uint) {
+    ) internal override returns (uint) {
         address toAddress;
         assembly {
             toAddress := mload(add(_toAddress, 20))
         }
 
         if (
-            transfer_approver_address != address(0) &&
+            address(transferApprover) != address(0) &&
             !transferApprover.checkTransfer(_from, toAddress)
         ) revert TransferNotAllowed();
 
@@ -274,12 +281,12 @@ contract BaseSweep is
     }
 
     function _creditTo(
-        uint16 _srcChainId, 
-        address _toAddress, 
+        uint16 _srcChainId,
+        address _toAddress,
         uint _amount
-    ) internal override returns(uint) {
+    ) internal override returns (uint) {
         if (
-            transfer_approver_address != address(0) &&
+            address(transferApprover) != address(0) &&
             !transferApprover.checkTransfer(_toAddress, _toAddress)
         ) revert TransferNotAllowed();
 

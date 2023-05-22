@@ -22,9 +22,14 @@ contract('Governance', async (accounts) => {
 		REMANENT_AMOUNT = toBN("139600", 18);
 		// contracts
 		Sweep = await ethers.getContractFactory("SweepMock");
-		const Proxy = await upgrades.deployProxy(Sweep, [LZENDPOINT]);
+		const Proxy = await upgrades.deployProxy(Sweep, [
+			LZENDPOINT,
+            addresses.owner,
+            2500 // 0.25%
+		]);
 		sweep = await Proxy.deployed(Sweep);
-		await sweep.setTreasury(addresses.treasury);
+		user = await impersonate(addresses.owner);
+		await sweep.connect(user).setTreasury(addresses.treasury);
 
 		timelock = await ethers.getContractAt("TimelockController", addresses.timelock);
 

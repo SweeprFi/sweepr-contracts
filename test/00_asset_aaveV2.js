@@ -17,7 +17,11 @@ contract('Aave V2 Asset', async () => {
         [guest, lzEndpoint] = await ethers.getSigners();
 
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+        const Proxy = await upgrades.deployProxy(Sweep, [
+            lzEndpoint.address,
+            addresses.owner,
+            2500 // 0.25%
+        ]);
         sweep = await Proxy.deployed();
 
         ERC20 = await ethers.getContractFactory("ERC20");

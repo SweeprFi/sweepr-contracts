@@ -21,7 +21,11 @@ contract('Balancer - Auto Invests', async () => {
 
         // Deploys
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+        const Proxy = await upgrades.deployProxy(Sweep, [
+            lzEndpoint.address,
+            addresses.owner,
+            2500 // 0.25%
+        ]);
         sweep = await Proxy.deployed();
 
         ERC20 = await ethers.getContractFactory("ERC20");
@@ -102,7 +106,8 @@ contract('Balancer - Auto Invests', async () => {
 
             // Set Balancer in the Sweep
             await sweep.setBalancer(balancer.address);
-            await sweep.setTreasury(TREASURY);
+            user = await impersonate(addresses.owner);
+            await sweep.connect(user).setTreasury(TREASURY);
 
             // Add the assets to the minter list
             await Promise.all(

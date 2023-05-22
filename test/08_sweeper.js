@@ -1,9 +1,10 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { addresses } = require('../utils/address');
 
 contract("Sweeper", async function () {
 	before(async () => {
-		[owner, newAddress, newMinter, lzEndpoint, mintBurn] = await ethers.getSigners();
+		[owner, newAddress, newMinter, lzEndpoint, mintBurn, multisig] = await ethers.getSigners();
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
 		Sweeper = await ethers.getContractFactory("SWEEPER");
@@ -13,12 +14,16 @@ contract("Sweeper", async function () {
 		PRECISION = 1000000;
 		ZERO = 0;
 
-		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+		const Proxy = await upgrades.deployProxy(Sweep, [
+			lzEndpoint.address,
+			multisig.address,
+			2500 // 0.25%
+		]);
 		old_sweep = await Proxy.deployed();
 		sweep = await Proxy.deployed();
 
-    	treasury = await Treasury.deploy(sweep.address);
-		sweeper = await Sweeper.deploy(old_sweep.address, owner.address);
+		treasury = await Treasury.deploy(sweep.address);
+		sweeper = await Sweeper.deploy(old_sweep.address, treasury.address);
 	});
 
 	it('sets new config correctly', async () => {
@@ -28,11 +33,6 @@ contract("Sweeper", async function () {
 		await sweeper.setSWEEP(sweep.address);
 		expect(await sweeper.SWEEP()).to.be.equal(sweep.address);
 
-		expect(await sweeper.treasury()).to.be.equal(owner.address);
-		await expect(sweeper.setTreasury(ethers.constants.AddressZero))
-			.to.be.revertedWithCustomError(sweeper, "ZeroAddressDetected");
-		await sweeper.setTreasury(treasury.address);
-		expect(await sweeper.treasury()).to.be.equal(treasury.address);
 		expect(await sweeper.mintBurnAddress()).to.be.equal(owner.address);
 
 		await sweeper.setMintBurnAddress(mintBurn.address);
@@ -56,17 +56,16 @@ contract("Sweeper", async function () {
 		sweepTotal = await sweep.totalSupply();
 		targetPrice = await sweep.target_price();
 		sweeperPrice = await sweeper.price();
-
 		treasuryPercent = ((treasurySweep + TRANSFER_AMOUNT) * PRECISION) / sweepTotal;
 		expect(await sweeper.targetTreasury()).to.lessThanOrEqual(treasuryPercent);
 
 		await expect(sweeper.connect(owner).buySWEEPER(TRANSFER_AMOUNT))
-              .to.be.revertedWithCustomError(Sweeper, 'GreaterThanTargetTreasury');
+			.to.be.revertedWithCustomError(Sweeper, 'GreaterThanTargetTreasury');
 	});
 
 	it('reverts buy Sweeper when caller is not sweep owner in batch sell', async () => {
 		await expect(sweeper.connect(newAddress).buySWEEPER(TRANSFER_AMOUNT))
-              .to.be.revertedWithCustomError(Sweeper, 'ExchangesNotPermitted');
+			.to.be.revertedWithCustomError(Sweeper, 'ExchangesNotPermitted');
 	});
 
 	it('can not buys Sweeper when contract has been paused', async () => {
@@ -115,7 +114,7 @@ contract("Sweeper", async function () {
 		expect(await sweeper.targetTreasury()).to.greaterThanOrEqual(treasuryPercent);
 
 		await expect(sweeper.connect(owner).sellSWEEPER(TRANSFER_AMOUNT))
-              .to.be.revertedWithCustomError(Sweeper, 'SmallerThanTargetTreasury');
+			.to.be.revertedWithCustomError(Sweeper, 'SmallerThanTargetTreasury');
 	});
 
 	it('reverts sell Sweeper when sweeper address is not set in treasury', async () => {
@@ -125,12 +124,12 @@ contract("Sweeper", async function () {
 		TRANSFER_AMOUNT = ethers.utils.parseUnits("500", 18);
 
 		await expect(sweeper.connect(owner).sellSWEEPER(TRANSFER_AMOUNT))
-              .to.be.revertedWithCustomError(Treasury, 'NotSWEEPER');
+			.to.be.revertedWithCustomError(Treasury, 'NotSWEEPER');
 	});
 
 	it('reverts sell Sweeper when caller is not sweep owner in batch sell', async () => {
 		await expect(sweeper.connect(newAddress).sellSWEEPER(TRANSFER_AMOUNT))
-              .to.be.revertedWithCustomError(Sweeper, 'ExchangesNotPermitted');
+			.to.be.revertedWithCustomError(Sweeper, 'ExchangesNotPermitted');
 	});
 
 	it('sells Sweeper', async () => {
@@ -142,7 +141,7 @@ contract("Sweeper", async function () {
 		// set sweewper address in treasury
 		await treasury.connect(owner).setSWEEPER(sweeper.address);
 
-		treasurySweepBeforeBalance = await sweep.balanceOf(treasury.address) / 1e18; 
+		treasurySweepBeforeBalance = await sweep.balanceOf(treasury.address) / 1e18;
 		ownerSweepBeforeBalance = await sweep.balanceOf(owner.address) / 1e18;
 		ownerSweeperBeforeBalance = await sweeper.balanceOf(owner.address) / 1e18;
 
@@ -155,6 +154,6 @@ contract("Sweeper", async function () {
 
 		expect(ownerSweepAfterBalance).to.equal(ownerSweepBeforeBalance + sweepAmount);
 		expect(treasurySweepAfterBalance).to.equal(treasurySweepBeforeBalance - sweepAmount);
-		expect(ownerSweeperAfterBalance).to.equal(ownerSweeperBeforeBalance - TRANSFER_AMOUNT/1e18);
+		expect(ownerSweeperAfterBalance).to.equal(ownerSweeperBeforeBalance - TRANSFER_AMOUNT / 1e18);
 	});
 });

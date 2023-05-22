@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers, upgrades } = require("hardhat");
+const { addresses } = require('../utils/address');
 const { toBN, Const } = require("../utils/helper_functions");
 
 const chainIdSrc = 1;
@@ -19,13 +20,19 @@ contract("Sweep - OFT", async function () {
         lzEndpointDstMock = await LZEndpointMock.deploy(chainIdDst);
         Sweep = await ethers.getContractFactory("SweepDollarCoin");
 
-        const srcProxy = await upgrades.deployProxy(Sweep, [lzEndpointSrcMock.address]);
+        const srcProxy = await upgrades.deployProxy(Sweep, [
+            lzEndpointSrcMock.address,
+            addresses.owner,
+            2500 // 0.25%
+        ]);
         OFTSrc = await srcProxy.deployed(Sweep);
-        await OFTSrc.setTreasury(treasury.address);
 
-        const dstProxy = await upgrades.deployProxy(Sweep, [lzEndpointDstMock.address]);
+        const dstProxy = await upgrades.deployProxy(Sweep, [
+            lzEndpointDstMock.address,
+            addresses.owner,
+            2500 // 0.25%
+        ]);
         OFTDst = await dstProxy.deployed(Sweep);
-        await OFTDst.setTreasury(treasury.address);
 
         await OFTSrc.connect(deployer).addMinter(deployer.address, TRANSFER_AMOUNT);
         await OFTSrc.connect(deployer).minter_mint(deployer.address, TRANSFER_AMOUNT);

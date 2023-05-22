@@ -18,7 +18,11 @@ contract("Off-Chain Asset", async function (accounts) {
         usdx = await Token.attach(addresses.usdc);
 
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [LZENDPOINT]);
+        const Proxy = await upgrades.deployProxy(Sweep, [
+            LZENDPOINT,
+            addresses.owner,
+            2500 // 0.25%
+        ]);
         sweep = await Proxy.deployed();
 
         USDOracle = await ethers.getContractFactory("AggregatorMock");

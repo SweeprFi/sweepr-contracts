@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { addresses } = require('../utils/address');
 const { Const, toBN } = require("../utils/helper_functions");
 
 contract("Test Equity Ratio of Stabilizer", async function () {
@@ -13,7 +14,11 @@ contract("Test Equity Ratio of Stabilizer", async function () {
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+    const Proxy = await upgrades.deployProxy(Sweep, [
+      lzEndpoint.address,
+      addresses.owner,
+      2500 // 0.25%
+    ]);
     sweep = await Proxy.deployed();
 
     Token = await ethers.getContractFactory("USDCMock");

@@ -14,7 +14,11 @@ contract("Balancer", async function () {
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
-		SweepProxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+		SweepProxy = await upgrades.deployProxy(Sweep, [
+			lzEndpoint.address,
+            addresses.owner,
+            2500 // 0.25%
+		]);
 		sweep = await SweepProxy.deployed();
 
 		Balancer = await ethers.getContractFactory("Balancer");

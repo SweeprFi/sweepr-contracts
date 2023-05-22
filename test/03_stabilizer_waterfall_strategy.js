@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { Const, toBN } = require("../utils/helper_functions");
+const { addresses } = require('../utils/address');
+const { Const, toBN, impersonate } = require("../utils/helper_functions");
 
 contract("Stabilizer's waterfall workflow", async function () {
   before(async () => {
@@ -14,9 +15,14 @@ contract("Stabilizer's waterfall workflow", async function () {
     maxBorrow = toBN("100", 18);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+    const Proxy = await upgrades.deployProxy(Sweep, [
+      lzEndpoint.address,
+      addresses.owner,
+      2500 // 0.25%
+    ]);
     sweep = await Proxy.deployed();
-    await sweep.setTreasury(treasury.address);
+    user = await impersonate(addresses.owner);
+    await sweep.connect(user).setTreasury(addresses.treasury);
 
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
@@ -59,6 +65,9 @@ contract("Stabilizer's waterfall workflow", async function () {
 
     // add offChainAsset to minter list
     await sweep.addMinter(offChainAsset.address, maxBorrow);
+
+    // set collateral agent
+    await offChainAsset.connect(borrower).setCollateralAgent(borrower.address)
   });
 
   describe("initial state", async function () {
@@ -111,8 +120,6 @@ contract("Stabilizer's waterfall workflow", async function () {
 
     describe("repaying in 3 payments", async function () {
       it("simulates change of usdx for sweep and 10% interest", async function () {
-        await sweep.setCollateralAgent(borrower.address);
-
         amount = toBN("20", 18);
         await sweep.transfer(wallet.address, amount);
         balance = await sweep.balanceOf(wallet.address);
