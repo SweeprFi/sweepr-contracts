@@ -34,13 +34,13 @@ contract SWEEPER is ERC20, ERC20Burnable, Owned, ERC20Permit, ERC20Votes {
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */
-    function mint(address _receiver, uint256 _amount) external onlyAdmin {
+    function mint(address _receiver, uint256 _amount) external onlyGov {
         _mint(_receiver, _amount);
 
         emit TokenMinted(_receiver, _amount);
     }
 
-    function setPrice(uint256 _new_price) external onlyAdmin {
+    function setPrice(uint256 _new_price) external onlyGov {
         price = _new_price;
 
         emit SweeperPriceSet(_new_price);

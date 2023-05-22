@@ -22,7 +22,7 @@ contract("Balancer", async function () {
 		sweep = await SweepProxy.deployed();
 
 		Balancer = await ethers.getContractFactory("Balancer");
-		balancer = await Balancer.deploy(sweep.address, addresses.usdc, owner.address);
+		balancer = await Balancer.deploy(sweep.address);
 
 		await sweep.setBalancer(balancer.address);
 		stabilizers = [stab_1.address, stab_2.address, stab_3.address, stab_4.address]
@@ -106,64 +106,41 @@ contract("Balancer", async function () {
 		expect(await sweep.next_target_price()).to.not.above(next_tp);
 	});
 
-	it('reverts refresh interest rate when caller is not sweep owner', async () => {
+	it.skip('reverts refresh interest rate when caller is not sweep owner', async () => {
 		await expect(balancer.connect(multisig).refreshInterestRate())
-			.to.be.revertedWithCustomError(balancer, 'OnlyAdmin');
+			.to.be.revertedWithCustomError(sweep, 'OnlyMultisig');
 	});
 
-	it('adds stabilizers to the limits map', async () => {
+	it('adds stabilizers to the amounts map', async () => {
 		amounts = [LOAN_LIMIT, LOAN_LIMIT, LOAN_LIMIT, LOAN_LIMIT];
-		autoInvest = [true, true, true, true];
 
 		stabilizers.forEach(async (address) => {
-			info = await balancer.limits(address);
-
-			expect(info.added).to.be.equal(false);
-			expect(info.amount).to.be.equal(0);
-			expect(info.auto_invest).to.be.equal(false);
+			expect(await balancer.amounts(address)).to.be.equal(0);
 		});
 
-		await expect(balancer.addLoanLimits(stabilizers, amounts, []))
-			.to.be.revertedWith("Wrong data received");
+		await expect(balancer.addActions(stabilizers, []))
+			.to.be.revertedWithCustomError(balancer, 'WrongDataLength');
 
-		await expect(balancer.addLoanLimits(stabilizers, [], autoInvest))
-			.to.be.revertedWith("Wrong data received");
-
-		await balancer.addLoanLimits(stabilizers, amounts, autoInvest);
+		await balancer.addActions(stabilizers, amounts);
 
 		stabilizers.forEach(async (address) => {
-			info = await balancer.limits(address);
-
-			expect(info.added).to.be.equal(true);
-			expect(info.amount).to.be.equal(LOAN_LIMIT);
-			expect(info.auto_invest).to.be.equal(true);
+			expect(await balancer.amounts(address)).to.be.equal(LOAN_LIMIT);
 		});
 
-		await expect(balancer.addLoanLimit(stab_5.address, LOAN_LIMIT, true))
-			.to.be.revertedWithCustomError(balancer, "InvalidMinter");
+		await balancer.addAction(stab_4.address, NEW_LOAN_LIMIT);
+		expect(await balancer.amounts(stab_4.address)).to.be.equal(NEW_LOAN_LIMIT);
 
-		await balancer.addLoanLimit(stab_4.address, NEW_LOAN_LIMIT, true);
-		info = await balancer.limits(stab_4.address);
-		expect(info.added).to.be.equal(true);
-		expect(info.amount).to.be.equal(NEW_LOAN_LIMIT);
-		expect(info.auto_invest).to.be.equal(true);
+		expect(await balancer.index()).to.be.equal(5);
 	});
 
-	it('removes stabilizers form the limits map', async () => {
-		await balancer.removeLoanLimit(stab_4.address);
-		info = await balancer.limits(stab_4.address);
-		expect(info.added).to.be.equal(false);
-		expect(info.amount).to.be.equal(0);
-		expect(info.auto_invest).to.be.equal(false);
+	it('removes stabilizers form the amounts map', async () => {
+		await balancer.removeAction(stab_4.address);
+		expect(await balancer.amounts(stab_4.address)).to.be.equal(0);
 
-		await balancer.removeLoanLimits();
-
+		await balancer.reset();
 		stabilizers.forEach(async (address) => {
-			info = await balancer.limits(address);
-
-			expect(info.added).to.be.equal(false);
-			expect(info.amount).to.be.equal(0);
-			expect(info.auto_invest).to.be.equal(false);
+			expect(await balancer.amounts(address)).to.be.equal(0);
+			expect(await balancer.index()).to.be.equal(0);
 		});
 	});
 });

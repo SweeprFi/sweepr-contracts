@@ -49,7 +49,7 @@ contract TransferApproverWhitelist is Owned {
      * @dev Adds account to whitelist
      * @param _account The address to whitelist
      */
-    function whitelist(address _account) external onlyAdmin {
+    function whitelist(address _account) external onlyGov {
         whitelisted[_account] = true;
 
         emit Whitelisted(_account);
@@ -59,7 +59,7 @@ contract TransferApproverWhitelist is Owned {
      * @dev Removes account from whitelist
      * @param _account The address to remove from the blacklist
      */
-    function unWhitelist(address _account) external onlyAdmin {
+    function unWhitelist(address _account) external onlyGov {
         whitelisted[_account] = false;
 
         emit UnWhitelisted(_account);

@@ -29,7 +29,7 @@ contract("Uniswap AMM", async function () {
         expect(await amm.poolFee()).to.be.equal(Const.FEE);
 
         await expect(amm.setPoolFee(Const.NEW_FEE))
-            .to.be.revertedWithCustomError(UniswapAMM, 'OnlyAdmin');
+            .to.be.revertedWithCustomError(UniswapAMM, 'NotGovernance');
 
         user = await impersonate(sweep_owner);
         await amm.connect(user).setPoolFee(Const.NEW_FEE);

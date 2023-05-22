@@ -36,7 +36,7 @@ contract('Treasury', async () => {
       expect(await ethers.provider.getBalance(treasury.address)).to.equal(deposit_ethAmount);
 
       await expect(treasury.connect(lzEndpoint).sendEth(receiver.address, deposit_ethAmount))
-        .to.be.revertedWithCustomError(treasury, "OnlyAdmin");
+        .to.be.revertedWithCustomError(treasury, "NotGovernance");
       await treasury.sendEth(receiver.address, deposit_ethAmount);
 
       expect(await ethers.provider.getBalance(treasury.address)).to.equal(ZERO);
@@ -64,7 +64,7 @@ contract('Treasury', async () => {
       expect(await usdx.balanceOf(receiver.address)).to.equal(ZERO);
 
       await expect(treasury.connect(lzEndpoint).sendToken(usdx.address, receiver.address, deposit_usdxAmount))
-        .to.be.revertedWithCustomError(treasury, "OnlyAdmin");
+        .to.be.revertedWithCustomError(treasury, "NotGovernance");
 
       await treasury.sendToken(usdx.address, receiver.address, deposit_usdxAmount);
 

@@ -49,7 +49,7 @@ contract TransferApproverBlacklist is Owned {
      * @dev Adds account to blacklist
      * @param _account The address to blacklist
      */
-    function blacklist(address _account) external onlyAdmin {
+    function blacklist(address _account) external onlyGov {
         blacklisted[_account] = true;
         
         emit Blacklisted(_account);
@@ -59,7 +59,7 @@ contract TransferApproverBlacklist is Owned {
      * @dev Removes account from blacklist
      * @param _account The address to remove from the blacklist
      */
-    function unBlacklist(address _account) external onlyAdmin {
+    function unBlacklist(address _account) external onlyGov {
         blacklisted[_account] = false;
 
         emit UnBlacklisted(_account);
