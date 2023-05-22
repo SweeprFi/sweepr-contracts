@@ -51,12 +51,6 @@ contract SweepDollarCoin is BaseSweep {
 
     /* ======= MODIFIERS ====== */
 
-    modifier onlyOwnerOrBalancer() {
-        if (msg.sender != owner() && msg.sender != balancer)
-            revert NotOwnerOrBalancer();
-        _;
-    }
-
     modifier onlyBalancer() {
         if (msg.sender != balancer) revert NotBalancer();
         _;
@@ -66,15 +60,13 @@ contract SweepDollarCoin is BaseSweep {
     function initialize(
         address _lzEndpoint,
         address _fast_multisig,
-        address _transfer_approver,
         int256 _step_value
     ) public initializer {
         BaseSweep.__Sweep_init(
             "SWEEP Dollar Coin",
             "SWEEP",
             _lzEndpoint,
-            _fast_multisig,
-            _transfer_approver
+            _fast_multisig
         );
 
         step_value = _step_value;
@@ -151,7 +143,7 @@ contract SweepDollarCoin is BaseSweep {
      * @notice Set Period Time
      * @param _period_time.
      */
-    function setPeriodTime(uint256 _period_time) external onlyOwner {
+    function setPeriodTime(uint256 _period_time) external onlyGov {
         period_time = _period_time;
 
         emit PeriodTimeSet(_period_time);
@@ -161,7 +153,7 @@ contract SweepDollarCoin is BaseSweep {
      * @notice Set Balancer Address
      * @param _balancer.
      */
-    function setBalancer(address _balancer) external onlyOwner {
+    function setBalancer(address _balancer) external onlyGov {
         if (_balancer == address(0)) revert ZeroAddressDetected();
         balancer = _balancer;
 
@@ -172,7 +164,7 @@ contract SweepDollarCoin is BaseSweep {
      * @notice Set arbitrage spread ratio
      * @param _new_arb_spread.
      */
-    function setArbSpread(uint256 _new_arb_spread) external onlyOwner {
+    function setArbSpread(uint256 _new_arb_spread) external onlyGov {
         arb_spread = _new_arb_spread;
 
         emit ArbSpreadSet(_new_arb_spread);
@@ -184,7 +176,7 @@ contract SweepDollarCoin is BaseSweep {
      */
     function setUniswapOracle(
         address _uniswap_oracle_address
-    ) external onlyOwner {
+    ) external onlyGov {
         if (_uniswap_oracle_address == address(0)) revert ZeroAddressDetected();
         uniswapOracle = UniswapOracle(_uniswap_oracle_address);
 

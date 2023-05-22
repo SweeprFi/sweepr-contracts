@@ -21,7 +21,6 @@ contract("Off-Chain Asset", async function (accounts) {
         const Proxy = await upgrades.deployProxy(Sweep, [
             LZENDPOINT,
             addresses.owner,
-            addresses.approver,
             2500 // 0.25%
         ]);
         sweep = await Proxy.deployed();

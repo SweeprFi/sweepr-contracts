@@ -17,7 +17,6 @@ contract("Sweeper", async function () {
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
 			multisig.address,
-			addresses.approver,
 			2500 // 0.25%
 		]);
 		old_sweep = await Proxy.deployed();

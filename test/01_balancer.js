@@ -17,7 +17,6 @@ contract("Balancer", async function () {
 		SweepProxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
             addresses.owner,
-            addresses.approver,
             2500 // 0.25%
 		]);
 		sweep = await SweepProxy.deployed();

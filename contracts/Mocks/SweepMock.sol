@@ -63,15 +63,13 @@ contract SweepMock is BaseSweep {
     function initialize(
         address _lzEndpoint,
         address _fast_multisig,
-        address _transfer_approver,
         int256 _step_value
     ) public initializer {
         BaseSweep.__Sweep_init(
             "SWEEP Dollar Coin",
             "SWEEP",
             _lzEndpoint,
-            _fast_multisig,
-            _transfer_approver
+            _fast_multisig
         );
         _mint(msg.sender, GENESIS_SUPPLY);
 
@@ -144,7 +142,7 @@ contract SweepMock is BaseSweep {
      * @notice Set Period Time
      * @param _period_time.
      */
-    function setPeriodTime(uint256 _period_time) external onlyOwner {
+    function setPeriodTime(uint256 _period_time) external onlyGov {
         period_time = _period_time;
 
         emit PeriodTimeSet(_period_time);
@@ -181,7 +179,7 @@ contract SweepMock is BaseSweep {
      * @notice Set Balancer Address
      * @param _balancer.
      */
-    function setBalancer(address _balancer) external onlyOwner {
+    function setBalancer(address _balancer) external onlyGov {
         if (_balancer == address(0)) revert ZeroAddressDetected();
         balancer = _balancer;
 
@@ -192,7 +190,7 @@ contract SweepMock is BaseSweep {
      * @notice Set AMM price
      * @param _amm_price.
      */
-    function setAMMPrice(uint256 _amm_price) public onlyOwner {
+    function setAMMPrice(uint256 _amm_price) public onlyGov {
         current_amm_price = _amm_price;
 
         emit AMMPriceSet(_amm_price);
@@ -202,7 +200,7 @@ contract SweepMock is BaseSweep {
      * @notice Set arbitrage spread ratio
      * @param _new_arb_spread.
      */
-    function setArbSpread(uint256 _new_arb_spread) external onlyOwner {
+    function setArbSpread(uint256 _new_arb_spread) external onlyGov {
         arb_spread = _new_arb_spread;
 
         emit ArbSpreadSet(_new_arb_spread);

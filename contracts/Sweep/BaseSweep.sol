@@ -35,10 +35,12 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     event MinterAdded(address indexed minter_address, Minter minter);
     event MinterUpdated(address indexed minter_address, Minter minter);
     event MinterRemoved(address indexed minter_address);
+    event ApproverSet(address indexed approver);
 
     /* ========== Errors ========== */
 
     error InvalidMinter();
+    error NotGovernance();
     error NotMultisig();
     error ZeroAmountDetected();
     error ZeroAddressDetected();
@@ -55,6 +57,11 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
         _;
     }
 
+    modifier onlyGov() {
+        if (msg.sender != owner()) revert NotGovernance();
+        _;
+    }
+
     modifier onlyMultisig() {
         if (msg.sender != owner() && msg.sender != fast_multisig)
             revert NotMultisig();
@@ -67,13 +74,11 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
         string memory _name,
         string memory _symbol,
         address _lzEndpoint,
-        address _fast_multisig,
-        address _transfer_approver
+        address _fast_multisig
     ) public onlyInitializing {
         __OFTUpgradeable_init(_name, _symbol, _lzEndpoint);
         __Pausable_init();
 
-        transferApprover = ITransferApprover(_transfer_approver);
         fast_multisig = _fast_multisig;
     }
 
@@ -113,7 +118,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
      * @param _minter Address to be added.
      * @param _amount Max Amount for mint.
      */
-    function addMinter(address _minter, uint256 _amount) external onlyOwner {
+    function addMinter(address _minter, uint256 _amount) external onlyGov {
         if (_minter == address(0)) revert ZeroAddressDetected();
         if (_amount == 0) revert ZeroAmountDetected();
         if (minters[_minter].is_listed) revert MinterExist();
@@ -138,7 +143,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
      */
     function removeMinter(
         address _minter
-    ) external onlyOwner validMinter(_minter) {
+    ) external onlyGov validMinter(_minter) {
         delete minters[_minter]; // Delete minter from the mapping
 
         for (uint256 i = 0; i < minter_addresses.length; i++) {
@@ -163,7 +168,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     function setMinterMaxAmount(
         address _minter,
         uint256 _amount
-    ) external onlyOwner validMinter(_minter) {
+    ) external onlyGov validMinter(_minter) {
         minters[_minter].max_amount = _amount;
 
         emit MinterUpdated(_minter, minters[_minter]);
@@ -178,10 +183,21 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     function setMinterEnabled(
         address _minter,
         bool _is_enabled
-    ) external onlyOwner validMinter(_minter) {
+    ) external onlyGov validMinter(_minter) {
         minters[_minter].is_enabled = _is_enabled;
 
         emit MinterUpdated(_minter, minters[_minter]);
+    }
+
+    /**
+     * @notice Set Transfer Approver
+     * @param _approver Address of a Approver.
+     */
+    function setTransferApprover(address _approver) external onlyGov {
+        if (_approver == address(0)) revert ZeroAddressDetected();
+        transferApprover = ITransferApprover(_approver);
+
+        emit ApproverSet(_approver);
     }
 
     /* ========== Actions ========== */

@@ -24,7 +24,6 @@ async function main() {
 	const sweep = await upgrades.deployProxy(sweepInstance, [
 		lzEndpointAddress,
 		addresses.owner,
-		addresses.approver,
 		2500 // 0.25%
 	], { initializer: 'initialize' });
 

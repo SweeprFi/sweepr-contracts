@@ -19,7 +19,6 @@ contract('Compound V2 Asset', async () => {
         const Proxy = await upgrades.deployProxy(Sweep, [
             lzEndpoint.address,
             addresses.owner,
-            addresses.approver,
             2500 // 0.25%
         ]);
         sweep = await Proxy.deployed();
