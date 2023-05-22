@@ -94,7 +94,7 @@ contract.skip('Uniswap V3 Asset', async () => {
 
         it('borrow sweep', async () => {
             await expect(asset.connect(guest).borrow(sweepAmount))
-                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(asset, 'NotBorrower');
             expect(await asset.sweep_borrowed()).to.equal(Const.ZERO);
             await asset.borrow(sweepAmount);
             expect(await asset.sweep_borrowed()).to.equal(sweepAmount);
@@ -140,7 +140,7 @@ contract.skip('Uniswap V3 Asset', async () => {
 
         it('withdraws rewards', async () => {
             await expect(asset.connect(guest).collect())
-                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(asset, 'NotBorrower');
             await asset.collect();
         });
 
@@ -148,7 +148,7 @@ contract.skip('Uniswap V3 Asset', async () => {
             liquidity = await asset.liquidity();
             withdrawAmount = liquidity.div(2);
             await expect(asset.connect(guest).divest(withdrawAmount))
-                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(asset, 'NotBorrower');
             await asset.divest(withdrawAmount);
         });
 

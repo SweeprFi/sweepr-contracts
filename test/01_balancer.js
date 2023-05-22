@@ -106,9 +106,9 @@ contract("Balancer", async function () {
 		expect(await sweep.next_target_price()).to.not.above(next_tp);
 	});
 
-	it.skip('reverts refresh interest rate when caller is not sweep owner', async () => {
+	it('reverts refresh interest rate when caller is not sweep owner', async () => {
 		await expect(balancer.connect(multisig).refreshInterestRate())
-			.to.be.revertedWithCustomError(sweep, 'OnlyMultisig');
+			.to.be.revertedWithCustomError(sweep, 'NotMultisig');
 	});
 
 	it('adds stabilizers to the amounts map', async () => {

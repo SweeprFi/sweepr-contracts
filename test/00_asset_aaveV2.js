@@ -75,7 +75,7 @@ contract('Aave V2 Asset', async () => {
             // Invest usdx
             expect(await aaveAsset.assetValue()).to.equal(Const.ZERO);
             await expect(aaveAsset.connect(guest).invest(depositAmount))
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).invest(depositAmount);
             expect(await aaveAsset.assetValue()).to.above(Const.ZERO);
 
@@ -84,7 +84,7 @@ contract('Aave V2 Asset', async () => {
 
             // Divest usdx
             await expect(aaveAsset.connect(guest).divest(divestAmount)) 
-                .to.be.revertedWithCustomError(aaveAsset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).divest(divestAmount);
             expect(await aaveAsset.assetValue()).to.equal(Const.ZERO);
         });

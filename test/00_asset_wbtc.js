@@ -63,12 +63,12 @@ contract("WBTC Asset", async function () {
     describe("asset constraints", async function () {
         it("only borrower can inveset", async function () {
             await expect(wbtc_asset.connect(other).invest(depositAmount))
-                .to.be.revertedWithCustomError(wbtc_asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(wbtc_asset, 'NotBorrower');
         });
 
         it("only borrower can divest", async function () {
             await expect(wbtc_asset.connect(other).divest(depositAmount))
-                .to.be.revertedWithCustomError(wbtc_asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(wbtc_asset, 'NotBorrower');
         });
     });
 

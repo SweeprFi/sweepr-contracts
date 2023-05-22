@@ -38,7 +38,7 @@ contract("Stabilizer - Management Functions", async function () {
       usdx.address,
       wallet.address,
       amm.address,
-      owner.address
+      borrower.address
     );
 
     await usdx.connect(borrower).approve(offChainAsset.address, 10000e6);
@@ -47,34 +47,22 @@ contract("Stabilizer - Management Functions", async function () {
   describe("management constraints", async function () {
     it("only borrower can mint", async function () {
       amount = toBN("40", 18);
-      await expect(offChainAsset.connect(borrower).borrow(amount))
-        .to.be.revertedWithCustomError(offChainAsset, 'OnlyBorrower');
+      await expect(offChainAsset.connect(owner).borrow(amount))
+        .to.be.revertedWithCustomError(offChainAsset, 'NotBorrower');
     });
 
-    it("only admin can pause the stabilizer", async function () {
+    it("only multisig can pause the stabilizer", async function () {
       await expect(offChainAsset.connect(borrower).pause())
-        .to.be.revertedWithCustomError(offChainAsset, 'NotGovernance');
-    });
-
-    it("only admin can change the borrower", async function () {
-      await expect(offChainAsset.connect(borrower).setBorrower(borrower.address))
-        .to.be.revertedWithCustomError(offChainAsset, 'NotGovernance');
+        .to.be.revertedWithCustomError(offChainAsset, 'NotMultisig');
     });
 
     it("only balancer can change the loan limit", async function () {
       await expect(offChainAsset.connect(borrower).setLoanLimit(maxBorrow))
-        .to.be.revertedWithCustomError(offChainAsset, 'OnlyBalancer');
+        .to.be.revertedWithCustomError(offChainAsset, 'NotBalancer');
     });
   });
 
   describe("management settings correctly", async function () {
-    it("set a new borrower", async function () {
-      expect(await offChainAsset.borrower()).to.equal(owner.address);
-      await offChainAsset.setBorrower(borrower.address);
-      expect(await offChainAsset.borrower()).to.equal(borrower.address);
-      expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
-    });
-
     it("set a new configuration", async function () {
       expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
       expect(await offChainAsset.min_equity_ratio()).to.equal(Const.ZERO);
@@ -96,7 +84,7 @@ contract("Stabilizer - Management Functions", async function () {
           Const.TRUE,
           Const.URL
         )
-      ).to.be.revertedWithCustomError(offChainAsset, 'OnlyBorrower');
+      ).to.be.revertedWithCustomError(offChainAsset, 'NotBorrower');
 
       await offChainAsset.connect(borrower)
         .configure(
@@ -197,12 +185,12 @@ contract("Stabilizer - Management Functions", async function () {
 
     it("only borrower can invest", async function () {
       await expect(offChainAsset.invest(sweep.address, amount))
-        .to.be.revertedWithCustomError(offChainAsset, 'OnlyBorrower');
+        .to.be.revertedWithCustomError(offChainAsset, 'NotBorrower');
     });
 
     it("only borrower can burn sweep", async function () {
       await expect(offChainAsset.connect(wallet).repay(amount))
-        .to.be.revertedWithCustomError(offChainAsset, 'OnlyBorrower');
+        .to.be.revertedWithCustomError(offChainAsset, 'NotBorrower');
     });
 
     it("tries to withdraw all balance", async function () {

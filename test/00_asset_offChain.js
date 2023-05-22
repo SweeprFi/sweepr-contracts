@@ -56,7 +56,7 @@ contract("Off-Chain Asset", async function (accounts) {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
             expect(await asset.valuation_time()).to.equal(Const.ZERO);
             await expect(asset.connect(user).invest(usdxAmount, sweepAmount))
-                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
             user = await impersonate(BORROWER);
             await asset.connect(user).invest(usdxAmount, sweepAmount);
@@ -68,7 +68,7 @@ contract("Off-Chain Asset", async function (accounts) {
         it("divests correctly", async function () {
             user = await impersonate(GUEST);
             await expect(asset.connect(user).divest(usdxAmount))
-                .to.be.revertedWithCustomError(asset, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
             user = await impersonate(BORROWER);
             await asset.connect(user).divest(usdxAmount);

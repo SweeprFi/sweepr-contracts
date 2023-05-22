@@ -25,14 +25,14 @@ contract OffChainAsset is Stabilizer {
     // Events
     event Payback(address token, uint256 amount);
     event CollateralAgentSet(address agent_address);
-    error OnlyCollateralAgent();
+    error NotCollateralAgent();
 
     // Errors
     error NotEnoughAmount();
 
     modifier onlyCollateralAgent() {
-        if (msg.sender != collateral_agent)
-            revert OnlyCollateralAgent();
+        if (msg.sender != collateral_agency())
+            revert NotCollateralAgent();
         _;
     }
 
@@ -77,7 +77,7 @@ contract OffChainAsset is Stabilizer {
      * @notice Get Collateral Agent Address
      * @return address
      */
-    function collateral_agency() external view returns (address) {
+    function collateral_agency() public view returns (address) {
         return
             collateral_agent != address(0) ? collateral_agent : SWEEP.owner();
     }
@@ -100,7 +100,7 @@ contract OffChainAsset is Stabilizer {
      */
     function setCollateralAgent(
         address _agent_address
-    ) external onlyBorrower validAddress(_agent_address) {
+    ) external onlyBorrower validAddress(_agent_address) onlySettingsEnabled {
         collateral_agent = _agent_address;
 
         emit CollateralAgentSet(_agent_address);
