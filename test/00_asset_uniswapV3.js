@@ -106,8 +106,7 @@ contract.skip('Uniswap V3 Asset', async () => {
             await expect(asset.collect())
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
 
-            // Check retrieveNFT
-            await expect(asset.retrieveNFT())
+            await expect(asset.burnNFT())
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
         });
 
@@ -152,11 +151,18 @@ contract.skip('Uniswap V3 Asset', async () => {
             await asset.divest(withdrawAmount);
         });
 
-        it('retrieve LP token', async () => {
+        it('burn LP token', async () => {
             expect(await asset.tokenId()).to.not.equal(Const.ZERO);
-            await expect(asset.connect(guest).retrieveNFT())
-                .to.be.revertedWithCustomError(asset, 'NotGovernance');
-            await asset.retrieveNFT();
+            await expect(asset.connect(guest).burnNFT())
+                .to.be.revertedWithCustomError(asset, 'NotBorrower');
+
+            liquidity = await asset.liquidity();
+            if(liquidity > 0) {
+                await expect(asset.burnNFT()).to.be.revertedWith('Not cleared');
+                await asset.divest(liquidity);
+            }
+
+            await asset.burnNFT();
             expect(await asset.tokenId()).to.equal(Const.ZERO);
         });
     })
