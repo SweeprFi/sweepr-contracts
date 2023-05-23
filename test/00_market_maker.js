@@ -10,7 +10,7 @@ let poolAddress;
 
 contract('Market Maker', async () => {
     before(async () => {
-        [owner, borrower, treasury, guest, lzEndpoint] = await ethers.getSigners();
+        [owner, borrower, treasury, guest, lzEndpoint, multisig] = await ethers.getSigners();
 
         usdxAmount = ethers.utils.parseUnits("10000", 6);
         mintLPUsdxAmount = 100e6;
@@ -24,7 +24,7 @@ contract('Market Maker', async () => {
         BORROWER = borrower.address;
 
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address]);
+        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, multisig.address, 2500]);
         sweep = await Proxy.deployed();
         await sweep.setTreasury(treasury.address);
 
@@ -144,7 +144,7 @@ contract('Market Maker', async () => {
 
         it('revert calling execute if caller is not borrower', async () => {
             await expect(marketmaker.connect(guest).execute(sweepAmount))
-                .to.be.revertedWithCustomError(MarketMaker, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(MarketMaker, 'NotBorrower');
         });
 
         it('sell sweep', async () => {
@@ -202,7 +202,7 @@ contract('Market Maker', async () => {
 
         it('revert calling setTopSpread when caller is not borrower', async () => {
             await expect(marketmaker.connect(guest).setTopSpread(1100))
-                .to.be.revertedWithCustomError(MarketMaker, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(MarketMaker, 'NotBorrower');
         });
 
         it('setTopSpread correctly', async () => {
@@ -214,7 +214,7 @@ contract('Market Maker', async () => {
 
         it('revert calling setBottomSpread when caller is not borrower', async () => {
             await expect(marketmaker.connect(guest).setBottomSpread(1000))
-                .to.be.revertedWithCustomError(MarketMaker, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(MarketMaker, 'NotBorrower');
         });
 
         it('setTopSpread correctly', async () => {
@@ -232,7 +232,7 @@ contract('Market Maker', async () => {
                     usdxAmount,
                     sweepAmount
                 )
-            ).to.be.revertedWithCustomError(MarketMaker, 'OnlyBorrower');
+            ).to.be.revertedWithCustomError(MarketMaker, 'NotBorrower');
         });
 
         it('revert calling addSingleLiquidity when adding 2 tokens', async () => {
@@ -281,12 +281,12 @@ contract('Market Maker', async () => {
 
         it('revert calling removeLiquidity() when caller is not borrower', async () => {
             await expect(marketmaker.connect(guest).removeLiquidity(0))
-                .to.be.revertedWithCustomError(MarketMaker, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(MarketMaker, 'NotBorrower');
         });
 
         it('revert calling removeClosedPositions() when caller is not borrower', async () => {
             await expect(marketmaker.connect(guest).removeOutOfPositions())
-                .to.be.revertedWithCustomError(MarketMaker, 'OnlyBorrower');
+                .to.be.revertedWithCustomError(MarketMaker, 'NotBorrower');
         });
 
         it('removes closed positions', async () => {
