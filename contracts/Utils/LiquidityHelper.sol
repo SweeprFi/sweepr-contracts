@@ -99,4 +99,26 @@ contract LiquidityHelper {
 
         tick = (tick / tickSpacing) * tickSpacing;
     }
+
+    function getTickSpacing(
+        address token0,
+        address token1,
+        uint24 fee   
+    ) external view returns (int24 tickSpacing) {
+        address pool_address = uniswapV3Factory.getPool(token0, token1, fee);
+        IUniswapV3Pool pool = IUniswapV3Pool(pool_address);   
+
+        tickSpacing = pool.tickSpacing();
+    }
+
+    function getCurrentTick(
+        address token0,
+        address token1,
+        uint24 fee   
+    ) external view returns (int24 tickCurrent) {
+        address pool_address = uniswapV3Factory.getPool(token0, token1, fee);
+        IUniswapV3Pool pool = IUniswapV3Pool(pool_address);   
+
+        (, tickCurrent, , , , , ) = pool.slot0();
+    }
 }
