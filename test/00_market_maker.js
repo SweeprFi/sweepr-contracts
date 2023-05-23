@@ -56,12 +56,12 @@ contract('Market Maker', async () => {
             BOTTOM_SPREAD
         );
 
-        await sweep.addMinter(owner.address, sweepAmount.mul(2));
+        await sweep.addMinter(owner.address, sweepAmount.mul(5));
         await sweep.addMinter(marketmaker.address, sweepAmount);
 
         // sends sweep and usdx to owner for creating liquidity position in uniswap v3 pool
-        await sweep.minter_mint(owner.address, sweepAmount.mul(2));
-        await usdc.transfer(owner.address, usdxAmount.mul(2));
+        await sweep.minter_mint(owner.address, sweepAmount.mul(5));
+        await usdc.transfer(owner.address, usdxAmount.mul(5));
 
         // config market maker
         await marketmaker.connect(borrower).configure(
@@ -138,8 +138,8 @@ contract('Market Maker', async () => {
 
         it('deposit usdc to the Marketmaker', async () => {
             expect(await usdc.balanceOf(marketmaker.address)).to.equal(Const.ZERO);
-            await usdc.transfer(marketmaker.address, usdxAmount.mul(3));
-            expect(await usdc.balanceOf(marketmaker.address)).to.equal(usdxAmount.mul(3));
+            await usdc.transfer(marketmaker.address, usdxAmount.mul(4));
+            expect(await usdc.balanceOf(marketmaker.address)).to.equal(usdxAmount.mul(4));
         });
 
         it('revert calling execute if caller is not borrower', async () => {
@@ -272,11 +272,11 @@ contract('Market Maker', async () => {
             expect(tokenId).to.not.equal(Const.ZERO);
             expect(liquidity).to.above(Const.ZERO);
 
-            const position_mapping = await marketmaker.positions_mapping(tokenId);
-            expect(position_mapping.liquidity).to.above(Const.ZERO);
-            expect(position_mapping.liquidity).to.equal(liquidity);
-            expect(position_mapping.tick_lower).to.not.equal(Const.ZERO);
-            expect(position_mapping.tick_upper).to.not.equal(Const.ZERO);
+            const positionMapping = await marketmaker.positions_mapping(tokenId);
+            expect(positionMapping.liquidity).to.above(Const.ZERO);
+            expect(positionMapping.liquidity).to.equal(liquidity);
+            expect(positionMapping.tick_lower).to.not.equal(Const.ZERO);
+            expect(positionMapping.tick_upper).to.not.equal(Const.ZERO);
         });
 
         it('revert calling removeLiquidity() when caller is not borrower', async () => {
@@ -285,15 +285,15 @@ contract('Market Maker', async () => {
         });
 
         it('revert calling removeClosedPositions() when caller is not borrower', async () => {
-            await expect(marketmaker.connect(guest).removeClosedPositions())
+            await expect(marketmaker.connect(guest).removeOutOfPositions())
                 .to.be.revertedWithCustomError(MarketMaker, 'OnlyBorrower');
         });
 
         it('removes closed positions', async () => {
             swapAmount = ethers.utils.parseUnits("10000", 18);
 
-            await sweep.approve(swapRouter.address, swapAmount.mul(5));
-		    await usdc.approve(swapRouter.address, usdxAmount.mul(5));
+            await sweep.approve(swapRouter.address, swapAmount.mul(7));
+		    await usdc.approve(swapRouter.address, usdxAmount.mul(7));
 
             // swap 10K sweep
             await swapRouter.exactInputSingle({
@@ -326,7 +326,7 @@ contract('Market Maker', async () => {
            
             // Call removeClosedPositions(), but it willl not remove liquidity,
             // because there is no closed position(2nd position is still active)
-            await marketmaker.connect(borrower).removeClosedPositions();
+            await marketmaker.connect(borrower).removeOutOfPositions();
 
             expect(await marketmaker.numPositions()).to.equal(1);
 
@@ -338,8 +338,14 @@ contract('Market Maker', async () => {
                 0
             );
 
-            // swap 10K sweep again
-            swapAmount = ethers.utils.parseUnits("10000", 18);
+            expect(await marketmaker.numPositions()).to.equal(2);
+
+            const tokenId2 = (await positionManager.tokenOfOwnerByIndex(marketmaker.address, 2)).toNumber();
+            const positionMapping2 = await marketmaker.positions_mapping(tokenId2);
+		    expect(positionMapping2.liquidity).to.above(Const.ZERO);
+
+            // swap 15K sweep
+            swapAmount = ethers.utils.parseUnits("15000", 18);
             await swapRouter.exactInputSingle({
                 tokenIn: sweep.address,
                 tokenOut: usdc.address,
@@ -356,13 +362,21 @@ contract('Market Maker', async () => {
             poolData = await pool.slot0();
             currentTick = poolData.tick;
 
-            console.log("--- current tick ---", currentTick);
-
             // check currentTick is out of 2st position range [-278550,-277370] (0.8, 0.9)
             tokenId1 = (await positionManager.tokenOfOwnerByIndex(marketmaker.address, 1)).toNumber();
 		    position1 = await positionManager.positions(tokenId1);
             expect(currentTick).to.below(position1.tickUpper)
             expect(currentTick).to.below(position1.tickLower)
+
+            // Call removeClosedPositions(), but it willl remove 2nd position,
+            // because 2nd position is out of range.
+            await marketmaker.connect(borrower).removeOutOfPositions();
+            expect(await marketmaker.numPositions()).to.equal(1);
+
+            // confirm 2nd position was removed
+            const positionMapping1 = await marketmaker.positions_mapping(tokenId1);
+            expect(positionMapping1.liquidity).to.equal(Const.ZERO);
+		    expect(positionMapping1.tokenId).to.equal(undefined);
         });
     })
 });

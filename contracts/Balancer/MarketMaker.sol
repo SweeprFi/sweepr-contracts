@@ -16,7 +16,6 @@ import "../Stabilizer/Stabilizer.sol";
 import "../Utils/LiquidityHelper.sol";
 import "../Oracle/UniswapOracle.sol";
 
-
 contract MarketMaker is Stabilizer {
     // Details about position
     struct Position {
@@ -231,9 +230,9 @@ contract MarketMaker is Stabilizer {
     }
 
     /**
-     * @notice Remove closed poisitions
+     * @notice Remove out-of-range poisitions
      */
-    function removeClosedPositions() external onlyBorrower {
+    function removeOutOfPositions() external onlyBorrower {
         for (uint i = 0; i < positions_array.length; i++) {
             int24 tick_current = liquidityHelper.getCurrentTick(token0, token1, amm.poolFee());
             Position memory position = positions_array[i];
@@ -252,15 +251,6 @@ contract MarketMaker is Stabilizer {
     function removeLiquidity(uint256 _index) public onlyBorrower {
         Position memory position = positions_array[_index];
 
-        (uint256 c_amount0, uint256 c_amount1) = nonfungiblePositionManager.collect(
-            INonfungiblePositionManager.CollectParams({
-                tokenId: position.token_id,
-                recipient: address(this),
-                amount0Max: type(uint128).max,
-                amount1Max: type(uint128).max
-            })
-        );
-
         (uint256 d_amount0, uint256 d_amount1) = nonfungiblePositionManager.decreaseLiquidity(
             INonfungiblePositionManager.DecreaseLiquidityParams({
                 tokenId: position.token_id,
@@ -268,6 +258,15 @@ contract MarketMaker is Stabilizer {
                 amount0Min: 0,
                 amount1Min: 0,
                 deadline: block.timestamp
+            })
+        );
+
+        (uint256 c_amount0, uint256 c_amount1) = nonfungiblePositionManager.collect(
+            INonfungiblePositionManager.CollectParams({
+                tokenId: position.token_id,
+                recipient: address(this),
+                amount0Max: type(uint128).max,
+                amount1Max: type(uint128).max
             })
         );
 
