@@ -17,9 +17,16 @@ interface IAMM {
         external
         returns (uint256);
 
-    function poolFee() external view returns (uint24);
+    function sequencer() external view returns(address);
 
-    function usdOracle() external view returns(address);
-    
-    function sequencerUptimeFeed() external view returns(address);
+    function poolFee() external view returns(uint24);
+
+    function getTWAPrice() external view returns (uint256 amountOut);
+
+    function getPrice() external view returns (uint256 amountOut);
+
+    function tokenToUSD(uint256 tokenAmount) external view returns (uint256 usdAmount);
+
+    function USDtoToken(uint256 usdAmount) external view returns (uint256 tokenAmount);
+
 }

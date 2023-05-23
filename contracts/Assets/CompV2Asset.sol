@@ -40,14 +40,12 @@ contract CompV2Asset is Stabilizer {
         address _cusdc_address,
         address _controller_address,
         address _oracle_comp_address,
-        address _amm_address,
         address _borrower
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
-            _amm_address,
             _borrower
         )
     {
@@ -76,7 +74,7 @@ contract CompV2Asset is Stabilizer {
         uint256 comp_balance = comp.balanceOf(address(this));
         (int256 answer, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             comp_oracle,
-            sequencer_feed,
+            amm.sequencer(),
             COMP_FREQUENCY
         );
 
@@ -148,7 +146,7 @@ contract CompV2Asset is Stabilizer {
 
     function _invest(uint256 _usdx_amount, uint256) internal override {
         (uint256 usdx_balance, ) = _balances();
-        _usdx_amount = _min(_usdx_amount, usdx_balance);
+        if(usdx_balance < _usdx_amount) _usdx_amount = usdx_balance;
 
         TransferHelper.safeApprove(address(usdx), address(cUSDC), _usdx_amount);
         if(cUSDC.mint(_usdx_amount) > 0) revert TransferFailure();
@@ -160,7 +158,7 @@ contract CompV2Asset is Stabilizer {
         uint256 cusdc_amount = (_usdx_amount * (1e18)) /
             cUSDC.exchangeRateStored();
         uint256 staked_amount = cUSDC.balanceOf(address(this));
-        cusdc_amount = _min(cusdc_amount, staked_amount);
+        if(staked_amount < cusdc_amount) cusdc_amount = staked_amount;
 
         uint256 divestedAmount = cUSDC.redeem(cusdc_amount);
 

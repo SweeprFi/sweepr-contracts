@@ -25,11 +25,9 @@ contract("Off-Chain Asset", async function (accounts) {
         ]);
         sweep = await Proxy.deployed();
 
-        USDOracle = await ethers.getContractFactory("AggregatorMock");
-        usdOracle = await USDOracle.deploy();
-
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, Const.FEE);
+        await sweep.setAMM(amm.address);
 
         OffChainAsset = await ethers.getContractFactory("OffChainAsset");
         asset = await OffChainAsset.deploy(

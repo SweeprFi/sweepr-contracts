@@ -8,7 +8,6 @@ async function main() {
 	const usdc = addresses.usdc;
 	const reward_router = addresses.glp_reward_router;
 	const oracle_weth_usdc = addresses.oracle_weth_usdc;
-	const amm = addresses.uniswap_amm;
 	const borrower = addresses.borrower;
 
 	if (network.type === "0") { // local
@@ -27,13 +26,12 @@ async function main() {
 		usdc,
 		reward_router,
 		oracle_weth_usdc,
-		amm,
 		borrower
 	);
 	await glpAsset.deployed();
 
 	console.log("GlpAsset deployed to: ", glpAsset.address);
-	console.log(`\nnpx hardhat verify --network ${network.name} ${glpAsset.address} "${assetName}" ${sweep} ${usdc} ${reward_router} ${oracle_weth_usdc} ${amm} ${borrower}`);
+	console.log(`\nnpx hardhat verify --network ${network.name} ${glpAsset.address} "${assetName}" ${sweep} ${usdc} ${reward_router} ${oracle_weth_usdc} ${borrower}`);
 }
 
 main();

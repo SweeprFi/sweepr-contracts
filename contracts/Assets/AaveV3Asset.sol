@@ -24,14 +24,12 @@ contract AaveV3Asset is Stabilizer {
         address _usdx_address,
         address _aave_usdx_address,
         address _aaveV3_pool_address,
-        address _amm_address,
         address _borrower
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
-            _amm_address,
             _borrower
         )
     {
@@ -101,7 +99,7 @@ contract AaveV3Asset is Stabilizer {
      */
     function _invest(uint256 _usdx_amount, uint256) internal override {
         (uint256 usdx_balance, ) = _balances();
-        _usdx_amount = _min(_usdx_amount, usdx_balance);
+        if(usdx_balance < _usdx_amount) _usdx_amount = usdx_balance;
 
         TransferHelper.safeApprove(
             address(usdx),

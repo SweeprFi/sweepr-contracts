@@ -8,7 +8,6 @@ async function main() {
   usdcAddress = addresses.usdc;
   aaveUsdc = addresses.aave_usdc;
   aaveV3_pool = addresses.aaveV3_pool;
-  uniswapAMM = addresses.uniswap_amm;
   borrower = addresses.borrower;
 
   if (network.type === "0") { // local
@@ -27,12 +26,11 @@ async function main() {
     usdcAddress,
     aaveUsdc,
     aaveV3_pool,
-    uniswapAMM,
     borrower
   );
 
   console.log("AaveV3Asset deployed to: ", AaveV3Asset.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${AaveV3Asset.address} "${assetName}" ${sweepAddress} ${usdcAddress} ${aaveUsdc} ${aaveV3_pool} ${uniswapAMM} ${borrower}`);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${AaveV3Asset.address} "${assetName}" ${sweepAddress} ${usdcAddress} ${aaveUsdc} ${aaveV3_pool} ${borrower}`);
 }
 
 main();

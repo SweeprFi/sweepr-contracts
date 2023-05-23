@@ -30,11 +30,12 @@ contract("WBTC Asset", async function () {
         wbtc = await Token.attach(addresses.wbtc);
 
         Oracle = await ethers.getContractFactory("AggregatorMock");
-        usdOracle = await Oracle.deploy();
         wbtcOracle = await Oracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, Const.FEE);
+        await sweep.setAMM(amm.address);
+
         await amm.setPrice(Const.WBTC_PRICE);
         await wbtcOracle.setPrice(Const.WBTC_PRICE);
 
@@ -45,7 +46,6 @@ contract("WBTC Asset", async function () {
             addresses.usdc,
             addresses.wbtc,
             wbtcOracle.address,
-            amm.address,
             BORROWER
         );
 

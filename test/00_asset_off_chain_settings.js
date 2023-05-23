@@ -24,11 +24,9 @@ contract("Off-Chain Asset - Settings", async function () {
 		Token = await ethers.getContractFactory("USDCMock");
 		usdx = await Token.deploy();
 
-        USDOracle = await ethers.getContractFactory("AggregatorMock");
-        usdOracle = await USDOracle.deploy();
-
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, Const.FEE);
+        await sweep.setAMM(amm.address);
 
 		OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 		offChainAsset = await OffChainAsset.deploy(

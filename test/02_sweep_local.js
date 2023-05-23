@@ -46,13 +46,15 @@ contract("Sweep", async function () {
 		expect(new_period_time).to.equal(Const.ZERO);
 	});
 
-	it('sets a new oracle and gets price correctly', async () => {
-		expect(await sweep.uniswapOracle()).to.equal(Const.ADDRESS_ZERO);
-		oracle = addresses.uniswap_oracle;
+	it('sets a new AMM and gets price correctly', async () => {
+		expect(await sweep.amm()).to.equal(Const.ADDRESS_ZERO);
+		
+		//TODO: change to _amm after new deployment
+		amm = addresses.uniswap_oracle;
 
-		await sweep.connect(multisig).setUniswapOracle(oracle);
+		await sweep.connect(multisig).setAMM(amm);
 
-		expect(await sweep.uniswapOracle()).to.equal(oracle);
+		expect(await sweep.amm()).to.equal(amm);
 
 		price = await sweep.amm_price();
 		expect(price).to.above(Const.ZERO);

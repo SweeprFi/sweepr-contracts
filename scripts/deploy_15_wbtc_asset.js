@@ -8,7 +8,6 @@ async function main() {
   const usdc = addresses.usdc;
   const wbtc = addresses.wbtc;
   const oracle = addresses.oracle_wbtc_usd;
-  const uniswap_amm = addresses.uniswap_amm;
   const borrower = addresses.borrower;
 
   if (network.type === "0") { // local
@@ -21,10 +20,10 @@ async function main() {
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
   const WBTCAsset = await ethers.getContractFactory("TokenAsset");
-  const wbtcAsset = await WBTCAsset.deploy(assetName, sweep, usdc, wbtc, oracle, uniswap_amm, borrower);
+  const wbtcAsset = await WBTCAsset.deploy(assetName, sweep, usdc, wbtc, oracle, borrower);
 
   console.log("WBTC Asset deployed to:", wbtcAsset.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${wbtcAsset.address} "${assetName}" ${sweep} ${usdc} ${wbtc} ${oracle} ${uniswap_amm} ${borrower}`)
+  console.log(`\nnpx hardhat verify --network ${network.name} ${wbtcAsset.address} "${assetName}" ${sweep} ${usdc} ${wbtc} ${oracle} ${borrower}`)
 }
 
 main();

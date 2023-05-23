@@ -5,7 +5,7 @@ const { Const, toBN, impersonate } = require("../utils/helper_functions");
 
 contract("Stabilizer's waterfall workflow", async function () {
   before(async () => {
-    [owner, borrower, wallet, treasury, multisig, lzEndpoint] = await ethers.getSigners();
+    [owner, borrower, wallet, treasury, multisig, lzEndpoint, agent] = await ethers.getSigners();
     priceHigh = 1.01e6;
     priceLow = 0.99e6;
     price = 1e6;
@@ -27,11 +27,9 @@ contract("Stabilizer's waterfall workflow", async function () {
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
-    USDOracle = await ethers.getContractFactory("AggregatorMock");
-    usdOracle = await USDOracle.deploy();
-
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    await sweep.setAMM(amm.address);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
     offChainAsset = await OffChainAsset.deploy(
@@ -39,7 +37,7 @@ contract("Stabilizer's waterfall workflow", async function () {
       sweep.address,
       usdx.address,
       wallet.address,
-      amm.address,
+      agent.address,
       borrower.address
     );
 

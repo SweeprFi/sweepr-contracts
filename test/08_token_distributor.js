@@ -5,7 +5,7 @@ contract("TokenDistributor", async function () {
 	before(async () => {
 		[owner, sender, lzEndpoint] = await ethers.getSigners();
 		// ------------- Deployment of contracts -------------
-		Sweep = await ethers.getContractFactory("SweepDollarCoin");
+		Sweep = await ethers.getContractFactory("SweepMock");
 		Sweeper = await ethers.getContractFactory("SWEEPER");
 		Treasury = await ethers.getContractFactory("Treasury");
 		TokenDistributor = await ethers.getContractFactory("TokenDistributor");

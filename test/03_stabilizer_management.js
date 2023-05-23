@@ -5,7 +5,7 @@ const { Const, toBN, impersonate } = require("../utils/helper_functions");
 
 contract("Stabilizer - Management Functions", async function () {
   before(async () => {
-    [owner, borrower, wallet, treasury, multisig, lzEndpoint, balancer] = await ethers.getSigners();
+    [owner, borrower, wallet, treasury, multisig, lzEndpoint, balancer, agent] = await ethers.getSigners();
     maxBorrow = toBN("100", 18);
     newLoanLimit = toBN("90", 18);
     autoInvestAmount = toBN("10", 18);
@@ -24,11 +24,9 @@ contract("Stabilizer - Management Functions", async function () {
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
-    USDOracle = await ethers.getContractFactory("AggregatorMock");
-    usdOracle = await USDOracle.deploy();
-
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    await sweep.setAMM(amm.address);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
     // ------------- Initialize context -------------
@@ -37,7 +35,7 @@ contract("Stabilizer - Management Functions", async function () {
       sweep.address,
       usdx.address,
       wallet.address,
-      amm.address,
+      agent.address,
       borrower.address
     );
 
