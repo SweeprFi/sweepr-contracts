@@ -41,6 +41,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     error NotMinted();
     error AlreadyMinted();
     error InvalidTokenID();
+    error NonEmptyLiquidity();
 
     /* ========== Modifies ========== */
 
@@ -171,16 +172,10 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     }
 
     /**
-     * @notice Transfers the NFT to the owner
+     * @notice Burn NFT
      */
-    function retrieveNFT() external onlyGov isMinted {
-        // transfer ownership to original owner
-        nonfungiblePositionManager.safeTransferFrom(
-            address(this),
-            msg.sender,
-            tokenId
-        );
-
+    function burnNFT() external onlyBorrower isMinted {
+        nonfungiblePositionManager.burn(tokenId);
         tokenId = 0;
     }
 
