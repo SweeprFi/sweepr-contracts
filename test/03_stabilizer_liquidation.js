@@ -33,12 +33,12 @@ contract("Stabilizer - Liquidation", async function () {
     weth = await WETH.attach(addresses.weth);
 
     Oracle = await ethers.getContractFactory("AggregatorMock");
-    usdOracle = await Oracle.deploy();
     wethOracle = await Oracle.deploy();
     await wethOracle.setPrice(Const.WETH_PRICE);
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    await sweep.setAMM(amm.address);
 
     WETHAsset = await ethers.getContractFactory("TokenAsset");
     // ------------- Initialize context -------------
@@ -48,7 +48,6 @@ contract("Stabilizer - Liquidation", async function () {
       addresses.usdc,
       addresses.weth,
       wethOracle.address,
-      amm.address,
       addresses.borrower
     );
 

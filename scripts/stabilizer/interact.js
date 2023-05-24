@@ -403,7 +403,7 @@ async function main() {
     greenlog("ok");
   }
 
-  async function marginCalls(amount) { // TODO
+  async function marginCalls(amount) {
     await impersonate(addresses.multisig);
     targets = [];
     percentages = [];

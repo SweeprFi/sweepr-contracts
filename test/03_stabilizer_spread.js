@@ -5,7 +5,7 @@ const { increaseTime, impersonate, Const, toBN } = require("../utils/helper_func
 
 contract("Stabilizer and spread", async function () {
   before(async () => {
-    [owner, borrower, liquidater, wallet, treasury, multisig, lzEndpoint] = await ethers.getSigners();
+    [owner, borrower, liquidater, wallet, treasury, multisig, lzEndpoint, agent] = await ethers.getSigners();
     usdxAmount = 1000e6;
     investAmount = 10e6;
     sweepAmount = toBN("1000", 18);
@@ -29,11 +29,9 @@ contract("Stabilizer and spread", async function () {
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
-    USDOracle = await ethers.getContractFactory("AggregatorMock");
-    usdOracle = await USDOracle.deploy();
-
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    await sweep.setAMM(amm.address);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
   });
@@ -44,7 +42,7 @@ contract("Stabilizer and spread", async function () {
       sweep.address,
       usdx.address,
       wallet.address,
-      amm.address,
+      agent.address,
       borrower.address
     );
 

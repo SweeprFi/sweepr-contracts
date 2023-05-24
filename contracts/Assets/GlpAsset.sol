@@ -36,14 +36,12 @@ contract GlpAsset is Stabilizer {
         address _usdx_address,
         address _reward_router_address,
         address _reward_oracle_oracle_address,
-        address _amm_address,
         address _borrower
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
-            _amm_address,
             _borrower
         )
     {
@@ -80,7 +78,7 @@ contract GlpAsset is Stabilizer {
         uint256 reward = feeGlpTracker.claimable(address(this));
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             reward_oracle,
-            sequencer_feed,
+            amm.sequencer(),
             REWARDS_FREQUENCY
         );
 
@@ -138,7 +136,7 @@ contract GlpAsset is Stabilizer {
 
     function _invest(uint256 _usdx_amount, uint256) internal override {
         (uint256 usdx_balance, ) = _balances();
-        _usdx_amount = _min(_usdx_amount, usdx_balance);
+        if(usdx_balance < _usdx_amount) _usdx_amount = usdx_balance;
 
         TransferHelper.safeApprove(
             address(usdx),
@@ -158,7 +156,7 @@ contract GlpAsset is Stabilizer {
         uint256 glp_amount = (_usdx_amount *
             10 ** stakedGlpTracker.decimals()) / glp_price;
 
-        glp_amount = _min(glp_balance, glp_amount);
+        if (glp_balance < glp_amount) glp_amount = glp_balance;
 
         rewardRouter.unstakeAndRedeemGlp(
             address(usdx),

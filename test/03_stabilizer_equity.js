@@ -24,11 +24,9 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
-    USDOracle = await ethers.getContractFactory("AggregatorMock");
-    usdOracle = await USDOracle.deploy();
-
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    await sweep.setAMM(amm.address);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
     offChainAsset = await OffChainAsset.deploy(
@@ -80,13 +78,13 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     // Sell Sweep
     await st.sellSweepOnAMM(mintAmount, 0);
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(187807); // expected 18.78%
+    expect(equity_ratio.toNumber()).to.equal(189635); // expected 18.96%
 
     // Set Target Price to 1.2
     target_price = await sweep.target_price();
     await sweep.setTargetPrice(target_price, 1.2e6);
 
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(-82923); // expected -18.99%
+    expect(equity_ratio.toNumber()).to.equal(-80486); // expected -18.99%
   });
 });

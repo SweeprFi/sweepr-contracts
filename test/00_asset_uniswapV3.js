@@ -67,7 +67,7 @@ contract.skip('Uniswap V3 Asset', async () => {
 
     describe("main functions", async function () {
         it('creates the pool', async () => {
-            expect(await factory.getPool(usdc.address, sweep.address, 500)).to.equal(Const.ADDRESS_ZERO);
+            expect(await factory.getPool(usdc.address, sweep.address, Const.FEE)).to.equal(Const.ADDRESS_ZERO);
 
             let token0, token1;
             const sqrtPriceX96 = toBN("79243743360848080207210863491", 6);
@@ -80,8 +80,8 @@ contract.skip('Uniswap V3 Asset', async () => {
                 token1 = usdc.address;
             }
 
-            await positionManager.createAndInitializePoolIfNecessary(token0, token1, 500, sqrtPriceX96)
-            pool_address = await factory.getPool(usdc.address, sweep.address, 500);
+            await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
+            pool_address = await factory.getPool(usdc.address, sweep.address, Const.FEE);
 
             expect(pool_address).to.not.equal(Const.ADDRESS_ZERO);
         });

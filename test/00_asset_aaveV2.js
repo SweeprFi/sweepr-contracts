@@ -31,7 +31,8 @@ contract('Aave V2 Asset', async () => {
         usdOracle = await USDOracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, poolFee);
+        await sweep.setAMM(amm.address);
         
         AaveAsset = await ethers.getContractFactory("AaveAsset");
         aaveAsset = await AaveAsset.deploy(
@@ -40,7 +41,6 @@ contract('Aave V2 Asset', async () => {
             addresses.usdc,
             addresses.aave_usdc,
             addresses.aaveV2_pool,
-            amm.address,
             addresses.multisig
         );
 

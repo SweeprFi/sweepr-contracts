@@ -6,10 +6,13 @@ pragma solidity 0.8.19;
 // ====================================================================
 
 import "./BaseSweep.sol";
-import "../Oracle/UniswapOracle.sol";
+import "../AMM/IAMM.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract SweepDollarCoin is BaseSweep {
-    UniswapOracle public uniswapOracle;
+    using Math for uint256;
+
+    IAMM public amm;
 
     // Addresses
     address public balancer;
@@ -32,7 +35,7 @@ contract SweepDollarCoin is BaseSweep {
     event PeriodTimeSet(uint256 new_period_time);
     event ArbSpreadSet(uint256 new_arb_spread);
     event InterestRateSet(int256 new_interest_rate);
-    event UniswapOracleSet(address uniswap_oracle_address);
+    event AMMSet(address ammAddress);
     event BalancerSet(address balancer_address);
     event TreasurySet(address treasury_address);
     event NewPeriodStarted(uint256 period_start);
@@ -81,25 +84,26 @@ contract SweepDollarCoin is BaseSweep {
 
     /**
      * @notice Get Sweep Price
-     * The Sweep Price comes from UniswapOracle.
+     * The Sweep Price comes from the AMM.
      * @return uint256 Sweep price
      */
     function amm_price() public view returns (uint256) {
-        return uniswapOracle.getPrice();
+        return amm.getPrice();
     }
 
     /**
      * @notice Get Sweep Time Weighted Averate Price
-     * The Sweep Price comes from UniswapOracle.
+     * The Sweep Price comes from the AMM.
      * @return uint256 Sweep price
      */
     function twa_price() external view returns (uint256) {
-        return uniswapOracle.getTWAPrice();
+        return amm.getTWAPrice();
     }
 
     /**
      * @notice Get Sweep Target Price
      * Target Price will be used to peg the Sweep Price safely.
+     * It must have 6 decimals as USD_DECIMALS in IAMM.
      * @return uint256 Sweep target price
      */
     function target_price() public view returns (uint256) {
@@ -133,7 +137,7 @@ contract SweepDollarCoin is BaseSweep {
         address _minter,
         uint256 _amount
     ) public override validMinter(msg.sender) whenNotPaused {
-        if (address(uniswapOracle) != address(0) && !is_minting_allowed())
+        if (address(amm) != address(0) && !is_minting_allowed())
             revert MintNotAllowed();
 
         super.minter_mint(_minter, _amount);
@@ -171,16 +175,16 @@ contract SweepDollarCoin is BaseSweep {
     }
 
     /**
-     * @notice Set Uniswap Oracle
-     * @param _uniswap_oracle_address.
+     * @notice Set AMM
+     * @param ammAddress.
      */
-    function setUniswapOracle(
-        address _uniswap_oracle_address
+    function setAMM(
+        address ammAddress
     ) external onlyGov {
-        if (_uniswap_oracle_address == address(0)) revert ZeroAddressDetected();
-        uniswapOracle = UniswapOracle(_uniswap_oracle_address);
+        if (ammAddress == address(0)) revert ZeroAddressDetected();
+        amm = IAMM(ammAddress);
 
-        emit UniswapOracleSet(_uniswap_oracle_address);
+        emit AMMSet(ammAddress);
     }
 
     /**
@@ -235,20 +239,20 @@ contract SweepDollarCoin is BaseSweep {
     /**
      * @notice SWEEP in USD
      * Calculate the amount of USDX that are equivalent to the SWEEP input.
-     * @param _amount Amount of SWEEP.
-     * @return amount of USDX.
+     * @param sweepAmount Amount of SWEEP.
+     * @return usdAmount of USDX.
      */
-    function convertToUSD(uint256 _amount) external view returns (uint256) {
-        return (_amount * target_price()) / 10 ** decimals();
+    function convertToUSD(uint256 sweepAmount) external view returns (uint256 usdAmount) {
+        usdAmount = sweepAmount.mulDiv(target_price(), 10 ** decimals());
     }
 
     /**
-     * @notice USDX in SWEEP
+     * @notice USD in SWEEP
      * Calculate the amount of SWEEP that are equivalent to the USDX input.
-     * @param _amount Amount of USDX.
-     * @return amount of SWEEP.
+     * @param usdAmount Amount of USDX.
+     * @return sweepAmount of SWEEP.
      */
-    function convertToSWEEP(uint256 _amount) external view returns (uint256) {
-        return (_amount * 10 ** decimals()) / target_price();
+    function convertToSWEEP(uint256 usdAmount) external view returns (uint256 sweepAmount) {
+        sweepAmount = usdAmount.mulDiv(10 ** decimals(), target_price());
     }
 }
