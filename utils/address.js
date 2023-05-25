@@ -62,6 +62,7 @@ const addresses = {
   governance: contracts.governance[chainId],
   balancer: contracts.balancer[chainId],
   uniswap_amm: contracts.uniswap_amm[chainId],
+  token_distributor: contracts.distributor[chainId],
   
   // Assets + Stabilizers
   asset_offChain: assets.off_chain[chainId],

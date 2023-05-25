@@ -3,7 +3,7 @@ const { addresses, network } = require("../utils/address");
 
 async function main() {
   let deployer = '';
-	assetName = 'Aave Asset';
+	assetName = 'Aave V3 Asset';
   sweepAddress = addresses.sweep;
   usdcAddress = addresses.usdc;
   aaveUsdc = addresses.aave_usdc;

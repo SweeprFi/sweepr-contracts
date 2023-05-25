@@ -28,8 +28,6 @@ async function main() {
 	], { initializer: 'initialize' });
 
 	console.log("Sweep deployed to:", sweep.address);
-
-	
 }
 
 main();

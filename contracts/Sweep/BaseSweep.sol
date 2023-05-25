@@ -36,6 +36,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     event MinterUpdated(address indexed minter_address, Minter minter);
     event MinterRemoved(address indexed minter_address);
     event ApproverSet(address indexed approver);
+    event FastMultisigSet(address indexed multisig);
 
     /* ========== Errors ========== */
 
@@ -102,6 +103,14 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
      */
     function unpause() external onlyMultisig whenPaused {
         _unpause();
+    }
+
+    /**
+     * @notice Unpause Sweep
+     */
+    function setFastMultisig(address multisig) external onlyGov {
+        fast_multisig = multisig;
+        emit FastMultisigSet(multisig);
     }
 
     /**

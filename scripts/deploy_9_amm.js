@@ -8,7 +8,7 @@ async function main() {
   const oracle = addresses.oracle_usdc_usd;
   const sequencer = addresses.sequencer_feed;
   const fee = 500;
-  const frequency = 3600;
+  const frequency = 86400;
 
   if (network.type === "0") { // local
     [deployer] = await ethers.getSigners();
@@ -20,17 +20,10 @@ async function main() {
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
   const uniswapAMMInstance = await ethers.getContractFactory("UniswapAMM");
-  const amm = await uniswapAMMInstance.deploy(
-    sweep,
-    sequencer,
-    fee,
-    usdc,
-    oracle,
-    frequency
-  );
+  const amm = await uniswapAMMInstance.deploy(sweep, sequencer, fee, usdc, oracle, frequency);
 
   console.log(`UniswapAMM Deployed to:${amm.address}`);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${sequencer} ${fee} ${usdc} ${oracle} ${sequencer} ${frequency}`);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${sequencer} ${fee} ${usdc} ${oracle} ${frequency}`);
 
   const SweepCoin = await ethers.getContractAt("SweepDollarCoin", sweep);
   await SweepCoin.setAMM(amm.address);

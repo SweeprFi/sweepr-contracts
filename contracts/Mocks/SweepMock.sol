@@ -66,7 +66,7 @@ contract SweepMock is BaseSweep {
         int256 _step_value
     ) public initializer {
         BaseSweep.__Sweep_init(
-            "SWEEP Dollar Coin",
+            "SWEEP Coin",
             "SWEEP",
             _lzEndpoint,
             _fast_multisig
