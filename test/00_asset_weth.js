@@ -31,11 +31,12 @@ contract("WETH Asset", async function () {
         weth = await Token.attach(addresses.weth);
 
         Oracle = await ethers.getContractFactory("AggregatorMock");
-        usdOracle = await Oracle.deploy();
         wethOracle = await Oracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, Const.FEE);
+        await sweep.setAMM(amm.address);
+
         await amm.setPrice(Const.WETH_PRICE);
         await wethOracle.setPrice(Const.WETH_PRICE);
 
@@ -46,7 +47,6 @@ contract("WETH Asset", async function () {
             addresses.usdc,
             addresses.weth,
             wethOracle.address,
-            amm.address,
             BORROWER
         );
 

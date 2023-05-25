@@ -7,36 +7,30 @@ let user;
 contract("Uniswap AMM", async function () {
   before(async () => {
     OWNER = addresses.owner;
-    USDC_ADDRESS = addresses.usdc;
     USDC_AMOUNT = 100e6;
     SWEEP_AMOUNT = toBN("80", 18);
     // ------------- Deployment of contracts -------------
     Token = await ethers.getContractFactory("ERC20");
-    usdc = await Token.attach(USDC_ADDRESS);
+    usdc = await Token.attach(addresses.usdc);
 
     Sweep = await ethers.getContractFactory("SweepDollarCoin");
     sweep = await Sweep.attach(addresses.sweep);
 
     UniswapAMM = await ethers.getContractFactory("UniswapAMM");
-    amm = await UniswapAMM.deploy(addresses.sweep, Const.FEE, addresses.oracle_usdc_usd, addresses.sequencer_feed);
+    amm = await UniswapAMM.deploy(
+      addresses.sweep,
+      addresses.sequencer_feed,
+      3000, // TODO: create 500 pool and use Const.FEE
+      addresses.usdc,
+      addresses.oracle_usdc_usd,
+      3600 // oracle update frequency
+    );
 
-    user = await impersonate(USDC_ADDRESS);
+    user = await impersonate(addresses.usdc);
     await usdc.connect(user).transfer(OWNER, USDC_AMOUNT)
   });
 
   describe("main functions", async function() {
-    it("sets a new pool fee correctly", async function() {
-        expect(await amm.poolFee()).to.be.equal(Const.FEE);
-
-        await expect(amm.setPoolFee(Const.NEW_FEE))
-            .to.be.revertedWithCustomError(UniswapAMM, 'NotGovernance');
-
-        user = await impersonate(sweep_owner);
-        await amm.connect(user).setPoolFee(Const.NEW_FEE);
-
-        expect(await amm.poolFee()).to.be.equal(Const.NEW_FEE);
-    });
-
     it("buys 5 sweep correctly", async function() {
         user = await impersonate(OWNER);
         sweepBefore = await sweep.balanceOf(OWNER);

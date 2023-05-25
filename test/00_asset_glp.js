@@ -31,7 +31,8 @@ contract('GLP Asset', async () => {
         wethOracle = await Oracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, Const.FEE);
+        await sweep.setAMM(amm.address);
 
         await amm.setPrice(Const.WETH_PRICE);
         await wethOracle.setPrice(Const.WETH_PRICE);
@@ -43,7 +44,6 @@ contract('GLP Asset', async () => {
             addresses.usdc,
             addresses.glp_reward_router,
             wethOracle.address,
-            amm.address,
             addresses.multisig
         );
 

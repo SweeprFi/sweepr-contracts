@@ -29,6 +29,8 @@ interface ISweep {
 
     function isValidMinter(address) external view returns (bool);
 
+    function amm() external view returns (address);
+
     function amm_price() external view returns (uint256);
 
     function twa_price() external view returns (uint256);

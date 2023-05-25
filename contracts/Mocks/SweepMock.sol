@@ -6,10 +6,10 @@ pragma solidity 0.8.19;
 // ====================================================================
 
 import "../Sweep/BaseSweep.sol";
-import "../Oracle/UniswapOracle.sol";
 
 contract SweepMock is BaseSweep {
     // Addresses
+    address public amm;
     address public balancer;
     address public treasury;
 
@@ -90,7 +90,7 @@ contract SweepMock is BaseSweep {
 
     /**
      * @notice Get Sweep Price
-     * The Sweep Price comes from UniswapOracle.
+     * The Sweep Price comes from the AMM.
      * @return uint256 Sweep price
      */
     function amm_price() public view returns (uint256) {
@@ -123,6 +123,10 @@ contract SweepMock is BaseSweep {
     }
 
     /* ========== Actions ========== */
+
+    function setAMM(address ammAddress) external {
+        amm = ammAddress;
+    }
 
     /**
      * @notice Mint (Override)

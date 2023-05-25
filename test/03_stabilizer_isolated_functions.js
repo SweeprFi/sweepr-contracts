@@ -5,7 +5,7 @@ const { Const, toBN, impersonate } = require("../utils/helper_functions");
 
 contract("Stabilizer - Isolated Functions", async function () {
   before(async () => {
-    [owner, borrower, wallet, treasury, other, multisig, lzEndpoint] = await ethers.getSigners();
+    [owner, borrower, wallet, treasury, other, multisig, lzEndpoint, agent] = await ethers.getSigners();
     usdxAmount = 10000e6;
     sweepAmount = toBN("10000", 18);
     mintAmount = toBN("90", 18);
@@ -26,11 +26,9 @@ contract("Stabilizer - Isolated Functions", async function () {
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
-    USDOracle = await ethers.getContractFactory("AggregatorMock");
-    usdOracle = await USDOracle.deploy();
-
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    await sweep.setAMM(amm.address);
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 
@@ -39,7 +37,7 @@ contract("Stabilizer - Isolated Functions", async function () {
       sweep.address,
       usdx.address,
       wallet.address,
-      amm.address,
+      agent.address,
       borrower.address
     );
 
@@ -179,13 +177,13 @@ contract("Stabilizer - Isolated Functions", async function () {
       balance = await sweep.balanceOf(offChainAsset.address);
       await offChainAsset.connect(borrower).sellSweepOnAMM(balance, 0);
 
-      expect(await usdx.balanceOf(offChainAsset.address)).to.equal(89880000);
+      expect(await usdx.balanceOf(offChainAsset.address)).to.equal(89980000);
       expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
     });
 
     it("buy SWEEP through the AMM", async function () {
       usdxAmount = toBN("50", 6);
-      sweepAmount = toBN("49.85", 18); // 50 * 0.997 (0.03% fee of uniswap)
+      sweepAmount = toBN("49.975", 18); // 50 * 0.9995 (0.05% fee of uniswap)
       balanceBefore = await usdx.balanceOf(offChainAsset.address);
 
       await offChainAsset.connect(borrower).buySweepOnAMM(usdxAmount, 0);

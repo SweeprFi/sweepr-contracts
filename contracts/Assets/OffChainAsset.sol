@@ -41,18 +41,18 @@ contract OffChainAsset is Stabilizer {
         address _sweep_address,
         address _usdx_address,
         address _wallet,
-        address _amm_address,
+        address _collateral_agent,
         address _borrower
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
-            _amm_address,
             _borrower
         )
     {
         wallet = _wallet;
+        collateral_agent = _collateral_agent;
         redeem_mode = false;
     }
 
@@ -176,8 +176,8 @@ contract OffChainAsset is Stabilizer {
         uint256 _sweep_amount
     ) internal override {
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
-        _usdx_amount = _min(_usdx_amount, usdx_balance);
-        _sweep_amount = _min(_sweep_amount, sweep_balance);
+        if(usdx_balance < _usdx_amount) _usdx_amount = usdx_balance;
+        if(sweep_balance < _sweep_amount) _sweep_amount = sweep_balance;
 
         TransferHelper.safeTransfer(address(usdx), wallet, _usdx_amount);
 

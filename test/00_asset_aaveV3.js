@@ -29,11 +29,9 @@ contract('Aave V3 Asset', async () => {
         usdx = await ERC20.attach(addresses.usdc);
         aave_usdx = await ERC20.attach(addresses.aave_usdc);
 
-        USDOracle = await ethers.getContractFactory("AggregatorMock");
-        usdOracle = await USDOracle.deploy();
-
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        uniswap_amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+        uniswap_amm = await Uniswap.deploy(sweep.address, Const.FEE);
+        await sweep.setAMM(uniswap_amm.address);
 
         AaveAsset = await ethers.getContractFactory("AaveV3Asset");
         aaveAsset = await AaveAsset.deploy(
@@ -42,7 +40,6 @@ contract('Aave V3 Asset', async () => {
             addresses.usdc,
             addresses.aave_usdc,
             addresses.aaveV3_pool,
-            uniswap_amm.address,
             addresses.multisig
         );
 

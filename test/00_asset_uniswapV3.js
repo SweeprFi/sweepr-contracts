@@ -67,7 +67,7 @@ contract.skip('Uniswap V3 Asset', async () => {
 
     describe("main functions", async function () {
         it('creates the pool', async () => {
-            expect(await factory.getPool(usdc.address, sweep.address, 500)).to.equal(Const.ADDRESS_ZERO);
+            expect(await factory.getPool(usdc.address, sweep.address, Const.FEE)).to.equal(Const.ADDRESS_ZERO);
 
             let token0, token1;
             const sqrtPriceX96 = toBN("79243743360848080207210863491", 6);
@@ -80,8 +80,8 @@ contract.skip('Uniswap V3 Asset', async () => {
                 token1 = usdc.address;
             }
 
-            await positionManager.createAndInitializePoolIfNecessary(token0, token1, 500, sqrtPriceX96)
-            pool_address = await factory.getPool(usdc.address, sweep.address, 500);
+            await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
+            pool_address = await factory.getPool(usdc.address, sweep.address, Const.FEE);
 
             expect(pool_address).to.not.equal(Const.ADDRESS_ZERO);
         });
@@ -106,8 +106,7 @@ contract.skip('Uniswap V3 Asset', async () => {
             await expect(asset.collect())
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
 
-            // Check retrieveNFT
-            await expect(asset.retrieveNFT())
+            await expect(asset.burnNFT())
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
         });
 
@@ -152,11 +151,18 @@ contract.skip('Uniswap V3 Asset', async () => {
             await asset.divest(withdrawAmount);
         });
 
-        it('retrieve LP token', async () => {
+        it('burn LP token', async () => {
             expect(await asset.tokenId()).to.not.equal(Const.ZERO);
-            await expect(asset.connect(guest).retrieveNFT())
-                .to.be.revertedWithCustomError(asset, 'NotGovernance');
-            await asset.retrieveNFT();
+            await expect(asset.connect(guest).burnNFT())
+                .to.be.revertedWithCustomError(asset, 'NotBorrower');
+
+            liquidity = await asset.liquidity();
+            if(liquidity > 0) {
+                await expect(asset.burnNFT()).to.be.revertedWith('Not cleared');
+                await asset.divest(liquidity);
+            }
+
+            await asset.burnNFT();
             expect(await asset.tokenId()).to.equal(Const.ZERO);
         });
     })

@@ -17,9 +17,8 @@ import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 
 contract Treasury is Owned {
     // Events
-    event Execute(address indexed to, bytes data);
-    event RecoverEth(address to, uint256 amount);
-    event RecoverToken(address token, address to, uint256 amount);
+    event SendEther(address to, uint256 amount);
+    event SendToken(address token, address to, uint256 amount);
 
     constructor(address _sweep) Owned(_sweep) {}
 
@@ -35,13 +34,13 @@ contract Treasury is Owned {
      * @param _receiver address
      * @param _amount Eth amount
      */
-    function sendEth(address _receiver, uint256 _amount) external onlyGov {
+    function sendEther(address _receiver, uint256 _amount) external onlyGov {
         uint256 eth_balance = address(this).balance;
         if (_amount > eth_balance) _amount = eth_balance;
 
         TransferHelper.safeTransferETH(_receiver, _amount);
 
-        emit RecoverEth(_receiver, _amount);
+        emit SendEther(_receiver, _amount);
     }
 
     /**
@@ -56,6 +55,6 @@ contract Treasury is Owned {
 
         TransferHelper.safeTransfer(_token, _receiver, _amount);
 
-        emit RecoverToken(_token, _receiver, _amount);
+        emit SendToken(_token, _receiver, _amount);
     }
 }

@@ -29,14 +29,12 @@ contract TokenAsset is Stabilizer {
         address _usdx_address,
         address _token_address,
         address _token_oracle_address,
-        address _amm_address,
         address _borrower
     )
         Stabilizer(
             _name,
             _sweep_address,
             _usdx_address,
-            _amm_address,
             _borrower
         )
     {
@@ -63,7 +61,7 @@ contract TokenAsset is Stabilizer {
         uint256 token_balance = token.balanceOf(address(this));
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             token_oracle,
-            sequencer_feed,
+            amm.sequencer(),
             TOKEN_FREQUENCY
         );
 
@@ -109,7 +107,7 @@ contract TokenAsset is Stabilizer {
 
     function _invest(uint256 _usdx_amount, uint256) internal override {
         (uint256 usdx_balance, ) = _balances();
-        _usdx_amount = _min(_usdx_amount, usdx_balance);
+        if(usdx_balance < _usdx_amount) _usdx_amount = usdx_balance;
 
         TransferHelper.safeApprove(address(usdx), address(amm), _usdx_amount);
         uint256 investedAmount = amm.swapExactInput(address(usdx), address(token), _usdx_amount, 0);
@@ -120,7 +118,7 @@ contract TokenAsset is Stabilizer {
     function _divest(uint256 _usdx_amount) internal override {
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             token_oracle,
-            sequencer_feed,
+            amm.sequencer(),
             TOKEN_FREQUENCY
         );
 
@@ -129,7 +127,7 @@ contract TokenAsset is Stabilizer {
             (uint256(price) * 10 ** usdx.decimals());
 
         uint256 token_balance = token.balanceOf(address(this));
-        token_amount = _min(token_amount, token_balance);
+        if(token_balance < token_amount) token_amount = token_balance;
 
         TransferHelper.safeApprove(address(token), address(amm), token_amount);
         uint256 usdx_amount = amm.swapExactInput(
