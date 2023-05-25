@@ -14,12 +14,11 @@ async function main() {
 
 	console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
-	// const approverInstance = await ethers.getContractFactory("TransferApproverBlacklist");
-	const approverInstance = await ethers.getContractFactory("TransferApproverWhitelist");
-	const approverContract = await approverInstance.deploy(sweep);
+	const WhiteInstance = await ethers.getContractFactory("Whitelist");
+	const whitelistContract = await WhiteInstance.deploy(sweep);
 
-	console.log("Transfer approver deployed to:", approverContract.address);
-	console.log(`\nnpx hardhat verify --network ${network.name} ${approverContract.address} "${sweep}"`);
+	console.log("Whitelist deployed to:", whitelistContract.address);
+	console.log(`\nnpx hardhat verify --network ${network.name} ${whitelistContract.address} "${sweep}"`);
 }
 
 main();

@@ -125,6 +125,11 @@ const libraries = {
     421613: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
     42161: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
   },
+  whitelist: {
+    1: '',
+    5: '',
+    42161: ''
+  },
   approver: {
     1: '',
     5: '0xF353CD895643F20ee4c5DC71364c211cE13a1E52',

@@ -38,6 +38,7 @@ const addresses = {
   // Libraries
   liquidity_helper: libraries.liquidity_helper[chainId],
   timelock: libraries.timelock[chainId],
+  whitelist: libraries.whitelist[chainId],
   approver: libraries.approver[chainId],
   uniswap_pool: libraries.uniswap_pool[chainId],
   uniswap_oracle: libraries.uniswap_oracle[chainId],
