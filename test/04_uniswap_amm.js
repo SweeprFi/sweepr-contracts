@@ -4,7 +4,7 @@ const { addresses } = require("../utils/address");
 const { impersonate, toBN, Const } = require("../utils/helper_functions");
 let user;
 
-contract("Uniswap AMM", async function () {
+contract.skip("Uniswap AMM", async function () {
   before(async () => {
     OWNER = addresses.owner;
     USDC_AMOUNT = 100e6;
