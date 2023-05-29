@@ -23,7 +23,8 @@ contract("Sweeper", async function () {
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 		blacklistApprover = await BlacklistApprover.deploy(sweep.address);
 
-		sweeper = await Sweeper.deploy(sweep.address, blacklistApprover.address);
+		sweeper = await Sweeper.deploy(sweep.address);
+		await sweeper.setTransferApprover(blacklistApprover.address);
 	});
 
 	it('reverts mint when caller is not owner', async () => {

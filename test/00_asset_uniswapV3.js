@@ -73,14 +73,10 @@ contract('Uniswap V3 Asset', async () => {
                 token0 = usdc.address;
                 token1 = sweep.address;
                 sqrtPriceX96 = toBN("79228162514264337593543950336000000", 0);
-                console.log("token0 - usdc:", usdc.address);
-                console.log("token1 - sweep:", sweep.address);
             } else {
                 token0 = sweep.address;
                 token1 = usdc.address;
                 sqrtPriceX96 = toBN("79228162514264334008320", 0);
-                console.log("token0 - sweep:", sweep.address);
-                console.log("token1 - usdc:", usdc.address);
             }
 
             await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
@@ -125,9 +121,6 @@ contract('Uniswap V3 Asset', async () => {
             expect(await usdc.balanceOf(pool_address)).to.equal(Const.ZERO);
 
             await asset.invest(mintLPUsdxAmount, mintLPSweepAmount);
-
-            console.log(await sweep.balanceOf(pool_address));
-            console.log(await usdc.balanceOf(pool_address));
 
             expect(await asset.tokenId()).to.not.equal(Const.ZERO);
             expect(await asset.liquidity()).to.above(Const.ZERO);
