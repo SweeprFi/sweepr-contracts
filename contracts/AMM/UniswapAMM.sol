@@ -25,8 +25,11 @@ contract UniswapAMM {
     using Math for uint256;
 
     uint8 private constant USD_DECIMALS = 6;
+
     // Uniswap V3
-    uint32 private constant LOOKBACK = 3600 * 24; // seconds
+    uint32 private constant LOOKBACK = 1 days;
+    uint16 private constant DEADLINE_GAP = 15 minutes;
+
     ISwapRouter private constant ROUTER = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
     IUniswapV3Factory private constant FACTORY = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
 
@@ -186,7 +189,7 @@ contract UniswapAMM {
                 fee: poolFee,
                 recipient: msg.sender,
                 // TODO: will this hardcoded 200 work for every network?
-                deadline: block.timestamp + 200,
+                deadline: block.timestamp + DEADLINE_GAP,
                 amountIn: amountIn,
                 amountOutMinimum: amountOutMin,
                 sqrtPriceLimitX96: 0
