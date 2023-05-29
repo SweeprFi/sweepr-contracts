@@ -14,7 +14,7 @@ async function main() {
 	console.log(`Updating contracts on ${network.name} with the account: ${deployer}`);
 
 	let proxyAddress = addresses.sweep;
-	const sweepInstance = await ethers.getContractFactory("SweepDollarCoin");
+	const sweepInstance = await ethers.getContractFactory("SweepCoin");
 	// await upgrades.forceImport(proxyAddress, sweepInstance);
 	await upgrades.upgradeProxy(proxyAddress, sweepInstance);
 	

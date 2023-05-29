@@ -3,7 +3,7 @@ const { addresses } = require("../../../../utils/address");
 
 async function main() {
 	const sweepAddress = addresses.sweep;
-	const sweep_token = await ethers.getContractAt('SweepDollarCoin', sweepAddress);
+	const sweep_token = await ethers.getContractAt('SweepCoin', sweepAddress);
 	const calldata = sweep_token.interface.encodeFunctionData('startNewPeriod', []);
 	const proposeDescription = "Proposal #3: Start new period";
 

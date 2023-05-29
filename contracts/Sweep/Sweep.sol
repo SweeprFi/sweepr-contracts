@@ -2,14 +2,14 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ======================= SWEEP Dollar Coin (SWEEP) ==================
+// ======================= SWEEP Coin (SWEEP) ==================
 // ====================================================================
 
 import "./BaseSweep.sol";
 import "../AMM/IAMM.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract SweepDollarCoin is BaseSweep {
+contract SweepCoin is BaseSweep {
     using Math for uint256;
 
     IAMM public amm;

@@ -4,7 +4,7 @@ const { addresses, roles, network } = require("../utils/address");
 async function main() {
   let deployer = '';
   const timelockAddress = addresses.timelock;
-  const sweeperAddress = addresses.sweeper;
+  const sweeprAddress = addresses.sweepr;
   const delay = 50400; // 1 week
 
   if (network.type === "0") { // local
@@ -17,10 +17,10 @@ async function main() {
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
   const governanceInstance = await ethers.getContractFactory("SweepGovernor");
-  const governanceContract = await governanceInstance.deploy(sweeperAddress, timelockAddress, delay);
+  const governanceContract = await governanceInstance.deploy(sweeprAddress, timelockAddress, delay);
 
   console.log("Governance deployed to:", governanceContract.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${governanceContract.address} ${sweeperAddress} ${timelockAddress} ${delay}`);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${governanceContract.address} ${sweeprAddress} ${timelockAddress} ${delay}`);
 
   // Grant governor as proposer and executor
   PROPOSER_ROLE = roles.PROPOSER_ROLE;

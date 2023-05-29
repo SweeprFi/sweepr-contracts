@@ -14,11 +14,11 @@ async function main() {
 
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
-  const sweeperInstance = await ethers.getContractFactory("SWEEPER");
-  const sweeperContract = await sweeperInstance.deploy(sweepAddress);
+  const sweeprInstance = await ethers.getContractFactory("SweeprCoin");
+  const sweeprContract = await sweeprInstance.deploy(sweepAddress);
 
-  console.log("SWEEPER deployed to:", sweeperContract.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${sweeperContract.address} ${sweepAddress}`);
+  console.log("SweeprCoin deployed to:", sweeprContract.address);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${sweeprContract.address} ${sweepAddress}`);
 }
 
 main();

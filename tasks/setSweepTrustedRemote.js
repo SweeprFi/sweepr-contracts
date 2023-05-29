@@ -7,7 +7,7 @@ module.exports = async function (taskArgs, hre) {
     const remoteAddress = getDeployedAddress(taskArgs.targetNetwork, 'sweep');
 
     // get local contract
-    const localSweepInstance = await ethers.getContractAt("SweepDollarCoin", localAddress);
+    const localSweepInstance = await ethers.getContractAt("SweepCoin", localAddress);
 
     // get remote chain id
     const remoteChainId = CHAIN_ID[taskArgs.targetNetwork]

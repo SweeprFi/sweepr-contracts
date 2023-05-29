@@ -8,20 +8,20 @@ pragma solidity 0.8.19;
 /**
  * @title Token Distributor
  * @dev Implementation:
- * Buy & sell SWEEPER.
- * Send remaining tokens to treasury after SWEEPER distribution.
+ * Buy & sell SWEEPR.
+ * Send remaining tokens to treasury after SWEEPR distribution.
  */
 
-import "./Sweeper.sol";
+import "./Sweepr.sol";
 import "../Common/Owned.sol";
 
 contract TokenDistributor is Owned {
-    SWEEPER public sweeper;
+    SweeprCoin public sweepr;
     uint256 private constant PRECISION = 1e6;
 
     /* ========== EVENTS ========== */
-    event SweeperBought(address indexed to, uint256 sweeper_amount);
-    event SweeperSold(address indexed to, uint256 sweep_amount);
+    event SweeprBought(address indexed to, uint256 sweepr_amount);
+    event SweeprSold(address indexed to, uint256 sweep_amount);
 
     /* ========== Errors ========== */
     error NotEnoughBalance();
@@ -29,42 +29,42 @@ contract TokenDistributor is Owned {
     /* ========== CONSTRUCTOR ========== */
     constructor(
         address _sweep_address, 
-        address _sweeper_address
+        address _sweepr_address
     ) Owned(_sweep_address) {
-        sweeper = SWEEPER(_sweeper_address);
+        sweepr = SweeprCoin(_sweepr_address);
     }
 
     /* ========== PUBLIC FUNCTIONS ========== */
     /**
-     * @notice A function to buy sweeper.
-     * @param _sweep_amount sweep Amount to buy sweeper
+     * @notice A function to buy sweepr.
+     * @param _sweep_amount sweep Amount to buy sweepr
      */
     function buy(uint256 _sweep_amount) external {
-        uint256 sweeper_balance = sweeper.balanceOf(address(this));
-        uint256 sweeper_amount = (_sweep_amount * sweeper.price()) / PRECISION;
+        uint256 sweepr_balance = sweepr.balanceOf(address(this));
+        uint256 sweepr_amount = (_sweep_amount * sweepr.price()) / PRECISION;
 
-        if (sweeper_amount > sweeper_balance) revert NotEnoughBalance();
+        if (sweepr_amount > sweepr_balance) revert NotEnoughBalance();
         
         TransferHelper.safeTransferFrom(address(SWEEP), msg.sender, address(this), _sweep_amount);
-        TransferHelper.safeTransfer(address(sweeper), msg.sender, sweeper_amount);
+        TransferHelper.safeTransfer(address(sweepr), msg.sender, sweepr_amount);
 
-        emit SweeperBought(msg.sender, sweeper_amount);
+        emit SweeprBought(msg.sender, sweepr_amount);
     }
 
     /**
-     * @notice A function to sell sweeper.
-     * @param _sweeper_amount sweeper Amount to sell
+     * @notice A function to sell sweepr.
+     * @param _sweepr_amount sweepr Amount to sell
      */
-    function sell(uint256 _sweeper_amount) external {
+    function sell(uint256 _sweepr_amount) external {
         uint256 sweep_balance = SWEEP.balanceOf(address(this));
-        uint256 sweep_amount = (_sweeper_amount * PRECISION) / sweeper.price();
+        uint256 sweep_amount = (_sweepr_amount * PRECISION) / sweepr.price();
 
         if (sweep_amount > sweep_balance) revert NotEnoughBalance();
         
-        TransferHelper.safeTransferFrom(address(sweeper), msg.sender, address(this), _sweeper_amount);
+        TransferHelper.safeTransferFrom(address(sweepr), msg.sender, address(this), _sweepr_amount);
         TransferHelper.safeTransfer(address(SWEEP), msg.sender, sweep_amount);
 
-        emit SweeperBought(msg.sender, sweep_amount);
+        emit SweeprBought(msg.sender, sweep_amount);
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */

@@ -2,12 +2,12 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 
-contract("Sweeper", async function () {
+contract("Sweepr", async function () {
 	before(async () => {
 		[owner, sender, receiver, lzEndpoint] = await ethers.getSigners();
 		// ------------- Deployment of contracts -------------
-		Sweep = await ethers.getContractFactory("SweepDollarCoin");
-		Sweeper = await ethers.getContractFactory("SWEEPER");
+		Sweep = await ethers.getContractFactory("SweepCoin");
+		Sweepr = await ethers.getContractFactory("SweeprCoin");
 
 		TRANSFER_AMOUNT = ethers.utils.parseUnits("1000", 18);
 		PRECISION = 1000000;
@@ -23,22 +23,22 @@ contract("Sweeper", async function () {
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 		blacklistApprover = await BlacklistApprover.deploy(sweep.address);
 
-		sweeper = await Sweeper.deploy(sweep.address);
-		await sweeper.setTransferApprover(blacklistApprover.address);
+		sweepr = await Sweepr.deploy(sweep.address);
+		await sweepr.setTransferApprover(blacklistApprover.address);
 	});
 
 	it('reverts mint when caller is not owner', async () => {
-		await expect(sweeper.connect(sender).mint(sender.address, TRANSFER_AMOUNT))
-			.to.be.revertedWithCustomError(Sweeper, 'NotGovernance');
+		await expect(sweepr.connect(sender).mint(sender.address, TRANSFER_AMOUNT))
+			.to.be.revertedWithCustomError(Sweepr, 'NotGovernance');
 	});
 
 	it('mints correctly by owner', async () => {
-		senderBalance = await sweeper.balanceOf(sender.address);
+		senderBalance = await sweepr.balanceOf(sender.address);
 		expect(senderBalance).to.equal(ZERO);
 
-		await sweeper.connect(owner).mint(sender.address, TRANSFER_AMOUNT);
+		await sweepr.connect(owner).mint(sender.address, TRANSFER_AMOUNT);
 
-		senderBalance = await sweeper.balanceOf(sender.address);
+		senderBalance = await sweepr.balanceOf(sender.address);
 		expect(senderBalance).to.equal(TRANSFER_AMOUNT);
 	});
 
@@ -49,8 +49,8 @@ contract("Sweeper", async function () {
 		await blacklistApprover.connect(owner).blacklist(receiver.address);
 		expect(await blacklistApprover.isBlacklisted(receiver.address)).to.equal(true);
 
-		await expect(sweeper.connect(sender).transfer(receiver.address, TRANSFER_AMOUNT))
-			.to.be.revertedWithCustomError(Sweeper, 'TransferNotAllowed');
+		await expect(sweepr.connect(sender).transfer(receiver.address, TRANSFER_AMOUNT))
+			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
 	});
 
 	it('transfers successfully when receiver is unblacklisted', async () => {
@@ -58,12 +58,12 @@ contract("Sweeper", async function () {
 		await blacklistApprover.connect(owner).unBlacklist(receiver.address);
 		expect(await blacklistApprover.isBlacklisted(receiver.address)).to.equal(false);
 
-		receiverBalance = await sweeper.balanceOf(receiver.address);
+		receiverBalance = await sweepr.balanceOf(receiver.address);
 		expect(receiverBalance).to.equal(ZERO);
 
-		await sweeper.connect(sender).transfer(receiver.address, TRANSFER_AMOUNT)
+		await sweepr.connect(sender).transfer(receiver.address, TRANSFER_AMOUNT)
 
-		receiverBalance = await sweeper.balanceOf(receiver.address);
+		receiverBalance = await sweepr.balanceOf(receiver.address);
 		expect(receiverBalance).to.equal(TRANSFER_AMOUNT);
 	});
 });

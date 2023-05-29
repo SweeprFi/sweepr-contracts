@@ -22,7 +22,7 @@ async function binary_search() {
     const USDC_AMOUNT = ethers.utils.parseUnits("50000", 6);
 
     amm = await ethers.getContractAt("UniswapAMM", addresses.uniswap_amm);
-    sweep = await ethers.getContractAt("SweepDollarCoin", addresses.sweep);
+    sweep = await ethers.getContractAt("SweepCoin", addresses.sweep);
     usdc = await ethers.getContractAt("ERC20", addresses.usdc);
 
     const sweepOwner = await sweep.owner();

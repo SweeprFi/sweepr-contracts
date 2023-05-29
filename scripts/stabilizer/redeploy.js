@@ -67,7 +67,7 @@ async function main() {
   console.log(`ON_CHAIN_ASSET=${aaveAMO.address}`);
 
 	// CONFIGURE
-  const _sweep = await ethers.getContractFactory("SweepDollarCoin");
+  const _sweep = await ethers.getContractFactory("SweepCoin");
   const sweep = await _sweep.attach(SWEEP_ADDRESS);
 
   txn = await stabilizerOff.setAsset(offChainAsset.address);

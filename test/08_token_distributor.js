@@ -6,13 +6,13 @@ contract("TokenDistributor", async function () {
 		[owner, sender, lzEndpoint] = await ethers.getSigners();
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
-		Sweeper = await ethers.getContractFactory("SWEEPER");
+		Sweepr = await ethers.getContractFactory("SweeprCoin");
 		Treasury = await ethers.getContractFactory("Treasury");
 		TokenDistributor = await ethers.getContractFactory("TokenDistributor");
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 
 		SWEEP_MINT_AMOUNT = ethers.utils.parseUnits("100000", 18);
-		SWEEPER_MINT_AMOUNT = ethers.utils.parseUnits("10000", 18);
+		SWEEPR_MINT_AMOUNT = ethers.utils.parseUnits("10000", 18);
 		PRECISION = 1000000;
 		ZERO = 0;
 
@@ -23,8 +23,8 @@ contract("TokenDistributor", async function () {
 		]);
 		sweep = await Proxy.deployed();
 
-		sweeper = await Sweeper.deploy(sweep.address);
-		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweeper.address);
+		sweepr = await Sweepr.deploy(sweep.address);
+		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
 		treasury = await Treasury.deploy(sweep.address);
 
 		await sweep.setTreasury(treasury.address);
@@ -33,35 +33,35 @@ contract("TokenDistributor", async function () {
 		await sweep.connect(owner).addMinter(sender.address, SWEEP_MINT_AMOUNT);
 		await sweep.connect(sender).minter_mint(sender.address, SWEEP_MINT_AMOUNT);
 
-		// mint sweeper for TokenDstributor contract
-		await sweeper.connect(owner).mint(tokenDistributor.address, SWEEPER_MINT_AMOUNT);
-		await sweeper.connect(owner).setPrice(1100000); // 1.1 SWEEP
+		// mint sweepr for TokenDstributor contract
+		await sweepr.connect(owner).mint(tokenDistributor.address, SWEEPR_MINT_AMOUNT);
+		await sweepr.connect(owner).setPrice(1100000); // 1.1 SWEEP
 	});
 
-	it('buys sweeper', async () => {
-		expect(await sweeper.balanceOf(sender.address)).to.equal(ZERO);
+	it('buys sweepr', async () => {
+		expect(await sweepr.balanceOf(sender.address)).to.equal(ZERO);
 
 		sweepAmount = ethers.utils.parseUnits("7000", 18);
-		sweeperPrice = await sweeper.price();
+		sweeprPrice = await sweepr.price();
 
 		await sweep.connect(sender).approve(tokenDistributor.address, sweepAmount);
 		await tokenDistributor.connect(sender).buy(sweepAmount);
 
-		sweeperAmount = Math.round(((sweepAmount * sweeperPrice) / PRECISION) / 1e18);
-		senderSweeperBalance = (await sweeper.balanceOf(sender.address)) / 1e18;
+		sweeprAmount = Math.round(((sweepAmount * sweeprPrice) / PRECISION) / 1e18);
+		senderSweeprBalance = (await sweepr.balanceOf(sender.address)) / 1e18;
 
 		expect(await sweep.balanceOf(tokenDistributor.address)).to.equal(sweepAmount);
-		expect(senderSweeperBalance).to.equal(sweeperAmount);
+		expect(senderSweeprBalance).to.equal(sweeprAmount);
 	});
 
-	it('reverts buying sweeper when sweeper balancer of contract is not enough', async () => {
+	it('reverts buying sweepr when sweepr balancer of contract is not enough', async () => {
 		sweepAmount = ethers.utils.parseUnits("7000", 18);
-		sweeperPrice = await sweeper.price();
+		sweeprPrice = await sweepr.price();
 
-		sweeperAmount = Math.round(((sweepAmount * sweeperPrice) / PRECISION) / 1e18);
-		distributorSweeperBalance = (await sweeper.balanceOf(tokenDistributor.address)) / 1e18;
+		sweeprAmount = Math.round(((sweepAmount * sweeprPrice) / PRECISION) / 1e18);
+		distributorSweeprBalance = (await sweepr.balanceOf(tokenDistributor.address)) / 1e18;
 
-		expect(distributorSweeperBalance).to.lessThan(sweeperAmount);
+		expect(distributorSweeprBalance).to.lessThan(sweeprAmount);
 
 		await sweep.connect(sender).approve(tokenDistributor.address, sweepAmount);
 
@@ -69,43 +69,43 @@ contract("TokenDistributor", async function () {
 			.to.be.revertedWithCustomError(TokenDistributor, 'NotEnoughBalance');
 	});
 
-	it('sells sweeper', async () => {
-		sellAmount = ethers.utils.parseUnits("1000", 18); // 1000 SWEEPER
+	it('sells sweepr', async () => {
+		sellAmount = ethers.utils.parseUnits("1000", 18); // 1000 SWEEPR
 
 		senderSweepBeforeBalance = await sweep.balanceOf(sender.address) / 1e18;
-		distributorSweeperBeforeBalance = await sweeper.balanceOf(tokenDistributor.address) / 1e18;
+		distributorSweeprBeforeBalance = await sweepr.balanceOf(tokenDistributor.address) / 1e18;
 
-		await sweeper.connect(sender).approve(tokenDistributor.address, sellAmount);
+		await sweepr.connect(sender).approve(tokenDistributor.address, sellAmount);
 		await tokenDistributor.connect(sender).sell(sellAmount);
 
-		sweepAmount = Math.round(((sellAmount * PRECISION) / sweeperPrice) / 1e18);
+		sweepAmount = Math.round(((sellAmount * PRECISION) / sweeprPrice) / 1e18);
 
 		senderSweepAfterBalance = Math.round(((await sweep.balanceOf(sender.address)) / 1e18));
-		distributorSweeperAfterBalance = Math.round(((await sweeper.balanceOf(tokenDistributor.address)) / 1e18));
+		distributorSweeprAfterBalance = Math.round(((await sweepr.balanceOf(tokenDistributor.address)) / 1e18));
 
 		expect(senderSweepAfterBalance).to.equal(senderSweepBeforeBalance + sweepAmount);
-		expect(distributorSweeperAfterBalance).to.equal(distributorSweeperBeforeBalance + (sellAmount / 1e18));
+		expect(distributorSweeprAfterBalance).to.equal(distributorSweeprBeforeBalance + (sellAmount / 1e18));
 	});
 
 	it('reverts calling recover() function when caller is not owner', async () => {
-		sweeperAmount = await sweeper.balanceOf(tokenDistributor.address);
+		sweeprAmount = await sweepr.balanceOf(tokenDistributor.address);
 
-		await expect(tokenDistributor.connect(sender).recover(sweeper.address, sweeperAmount))
-			.to.be.revertedWithCustomError(Sweeper, 'NotGovernance');
+		await expect(tokenDistributor.connect(sender).recover(sweepr.address, sweeprAmount))
+			.to.be.revertedWithCustomError(Sweepr, 'NotGovernance');
 	});
 
-	it('sends all sweeper amount to treasury', async () => {
-		sweeperAmount = await sweeper.balanceOf(tokenDistributor.address);
+	it('sends all sweepr amount to treasury', async () => {
+		sweeprAmount = await sweepr.balanceOf(tokenDistributor.address);
 
-		treasurySweeperBeforeBalance = Math.round(((await sweeper.balanceOf(treasury.address)) / 1e18));
-		expect(treasurySweeperBeforeBalance).to.equal(ZERO);
+		treasurySweeprBeforeBalance = Math.round(((await sweepr.balanceOf(treasury.address)) / 1e18));
+		expect(treasurySweeprBeforeBalance).to.equal(ZERO);
 
-		await tokenDistributor.connect(owner).recover(sweeper.address, sweeperAmount)
+		await tokenDistributor.connect(owner).recover(sweepr.address, sweeprAmount)
 
-		distributorSweeperAfterBalance = Math.round(((await sweeper.balanceOf(tokenDistributor.address)) / 1e18));
-		treasurySweeperAfterBalance = Math.round(((await sweeper.balanceOf(treasury.address)) / 1e18));
+		distributorSweeprAfterBalance = Math.round(((await sweepr.balanceOf(tokenDistributor.address)) / 1e18));
+		treasurySweeprAfterBalance = Math.round(((await sweepr.balanceOf(treasury.address)) / 1e18));
 
-		expect(distributorSweeperAfterBalance).to.equal(ZERO);
-		expect(treasurySweeperAfterBalance).to.equal(sweeperAmount / 1e18);
+		expect(distributorSweeprAfterBalance).to.equal(ZERO);
+		expect(treasurySweeprAfterBalance).to.equal(sweeprAmount / 1e18);
 	});
 });

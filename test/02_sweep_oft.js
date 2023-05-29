@@ -18,7 +18,7 @@ contract("Sweep - OFT", async function () {
         LZEndpointMock = await ethers.getContractFactory("LZEndpointMock");
         lzEndpointSrcMock = await LZEndpointMock.deploy(chainIdSrc);
         lzEndpointDstMock = await LZEndpointMock.deploy(chainIdDst);
-        Sweep = await ethers.getContractFactory("SweepDollarCoin");
+        Sweep = await ethers.getContractFactory("SweepCoin");
 
         const srcProxy = await upgrades.deployProxy(Sweep, [
             lzEndpointSrcMock.address,

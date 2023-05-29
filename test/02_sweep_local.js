@@ -8,7 +8,7 @@ contract("Sweep", async function () {
 		[owner, multisig, receiver, treasury, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 
 		// ------------- Deployment of contracts -------------
-		Sweep = await ethers.getContractFactory("SweepDollarCoin");
+		Sweep = await ethers.getContractFactory("SweepCoin");
 
 		TRANSFER_AMOUNT = toBN("100", 18);
 		INTEREST_RATE = 5e4; // 5%
@@ -86,7 +86,7 @@ contract("Sweep", async function () {
 		const interestRateBefore = await sweep.interest_rate();
 
 		// Sweep Upgrade
-		Sweep2 = await ethers.getContractFactory("SweepDollarCoin");
+		Sweep2 = await ethers.getContractFactory("SweepCoin");
 		upgraded = await upgrades.upgradeProxy(sweep.address, Sweep2);
 
 		const interestRateAfter = await sweep.interest_rate();

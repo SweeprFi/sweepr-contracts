@@ -2,8 +2,8 @@ const { artifacts } = require('hardhat');
 const { addresses } = require("../utils/address");
 const { sendEth } = require("../utils/helper_functions");
 
-const SWEEP = artifacts.require("contracts/Sweep/Sweep.sol:SweepDollarCoin");
-const SWEEPER = artifacts.require("SWEEPER");
+const SWEEP = artifacts.require("contracts/Sweep/Sweep.sol:SweepCoin");
+const SWEEPR = artifacts.require("SweeprCoin");
 const Governance = artifacts.require("SweepGovernor");
 const USDC = artifacts.require("ERC20");
 // const UniswapOracle = artifacts.require("Oracle/UniswapOracle");
@@ -13,13 +13,13 @@ module.exports = async () => {
   // ======================================================
   usdc_instance = await USDC.at(addresses.usdc);
   sweep_instance = await SWEEP.at(addresses.sweep);
-  sweeper_instance = await SWEEPER.at(addresses.sweeper);
+  sweepr_instance = await SWEEPR.at(addresses.sweepr);
   governance_instance = await Governance.at(addresses.governance);
   // uniswap_oracle_instance = await UniswapOracle.at(addresses.uniswapOracle);
   // ----------------------------------------------
   USDC.setAsDeployed(usdc_instance);
   SWEEP.setAsDeployed(sweep_instance);
-  SWEEPER.setAsDeployed(sweeper_instance);
+  SWEEPR.setAsDeployed(sweepr_instance);
   Governance.setAsDeployed(governance_instance);
   // UniswapOracle.setAsDeployed(uniswap_oracle_instance);
   // ----------------------------------------------

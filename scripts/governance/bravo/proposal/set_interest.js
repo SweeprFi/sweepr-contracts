@@ -4,7 +4,7 @@ const { addresses } = require("../../../../utils/address");
 async function main() {
 	const NEW_INTEREST =  10000; // 1%
 	const sweepAddress = addresses.sweep;
-	const sweep_token = await ethers.getContractAt('SweepDollarCoin', sweepAddress);
+	const sweep_token = await ethers.getContractAt('SweepCoin', sweepAddress);
 	const calldata = sweep_token.interface.encodeFunctionData('setInterestRate', [NEW_INTEREST]);
 	const proposeDescription = "Proposal #5: Set interest rate";
 

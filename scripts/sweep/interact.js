@@ -12,7 +12,7 @@ async function main() {
   });
 
   const admin = await ethers.getSigner(owner);
-  const _sweep = await ethers.getContractFactory("SweepDollarCoin");
+  const _sweep = await ethers.getContractFactory("SweepCoin");
   const sweep = await _sweep.attach(addresses.sweep);
 
   function greenlog(msg) { console.log(`\x1b[32m${msg}\x1b[0m`) }

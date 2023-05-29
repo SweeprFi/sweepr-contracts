@@ -13,7 +13,7 @@ contract.skip("Uniswap AMM", async function () {
     Token = await ethers.getContractFactory("ERC20");
     usdc = await Token.attach(addresses.usdc);
 
-    Sweep = await ethers.getContractFactory("SweepDollarCoin");
+    Sweep = await ethers.getContractFactory("SweepCoin");
     sweep = await Sweep.attach(addresses.sweep);
 
     UniswapAMM = await ethers.getContractFactory("UniswapAMM");

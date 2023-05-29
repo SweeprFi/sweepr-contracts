@@ -20,7 +20,7 @@ async function main() {
   console.log("Balancer deployed to:", balancer.address);
   console.log(`\nnpx hardhat verify --network ${network.name} ${balancer.address} ${sweep}`)
 
-  const SweepCoin = await ethers.getContractAt("SweepDollarCoin", sweep);
+  const SweepCoin = await ethers.getContractAt("SweepCoin", sweep);
   await SweepCoin.setBalancer(balancer.address);
 }
 

@@ -66,7 +66,7 @@ const tokens = {
     421613: '0xdAd3fECde16f4c3f5F55781a4Ee5701732919a89', // Arbitrum Goerli
     42161: '0x4F4219c9B851AEbB652DD182D944A99b0b68edcf',
   },
-  sweeper: {
+  sweepr: {
     1: '',
     5: '0x3535eF56511C676a1f12b8b1f208E7757Cd0f731',
     42161: '0x4d20a1d57435bA91614c215F843362e6E95555Bd',

@@ -6,7 +6,7 @@ async function main() {
 	const NEW_MINTER = addresses.stabilizer_aave;
 	const maxMintAmount = ethers.utils.parseUnits("100000", 18);
 
-	const sweep_token = await ethers.getContractAt('SweepDollarCoin', sweepAddress);
+	const sweep_token = await ethers.getContractAt('SweepCoin', sweepAddress);
 	const calldata = sweep_token.interface.encodeFunctionData('addMinter', [NEW_MINTER, maxMintAmount]);
 	const proposeDescription = "Proposal #2: Adding new minter";
 

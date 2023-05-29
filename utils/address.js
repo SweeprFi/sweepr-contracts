@@ -26,7 +26,7 @@ const addresses = {
 
   // Tokens
   sweep: tokens.sweep[chainId],
-  sweeper: tokens.sweeper[chainId],
+  sweepr: tokens.sweepr[chainId],
   usdc: tokens.usdc[chainId],
   usdt: tokens.usdt[chainId],
   aave_usdc: tokens.aave_usdc[chainId],
