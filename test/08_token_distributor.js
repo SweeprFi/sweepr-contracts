@@ -23,8 +23,7 @@ contract("TokenDistributor", async function () {
 		]);
 		sweep = await Proxy.deployed();
 
-		blacklistApprover = await BlacklistApprover.deploy(sweep.address);
-		sweeper = await Sweeper.deploy(sweep.address, blacklistApprover.address);
+		sweeper = await Sweeper.deploy(sweep.address);
 		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweeper.address);
 		treasury = await Treasury.deploy(sweep.address);
 

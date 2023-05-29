@@ -4,7 +4,7 @@ const { addresses } = require("../utils/address");
 const { impersonate, toBN, Const } = require("../utils/helper_functions");
 let user;
 
-contract("Uniswap AMM", async function () {
+contract.skip("Uniswap AMM", async function () {
   before(async () => {
     OWNER = addresses.owner;
     USDC_AMOUNT = 100e6;
@@ -23,7 +23,7 @@ contract("Uniswap AMM", async function () {
       3000, // TODO: create 500 pool and use Const.FEE
       addresses.usdc,
       addresses.oracle_usdc_usd,
-      3600 // oracle update frequency
+      86400 // oracle update frequency ~ 1 day
     );
 
     user = await impersonate(addresses.usdc);

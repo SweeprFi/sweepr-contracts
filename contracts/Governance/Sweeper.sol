@@ -21,17 +21,15 @@ contract SWEEPER is ERC20, ERC20Burnable, Owned, ERC20Permit, ERC20Votes {
     /* ========== EVENTS ========== */
     event TokenMinted(address indexed to, uint256 amount);
     event SweeperPriceSet(uint256 price);
+    event ApproverSet(address indexed approver);
 
     /* ========== Errors ========== */
     error TransferNotAllowed();
 
     /* ========== CONSTRUCTOR ========== */
     constructor(
-        address _sweep_address, 
-        address _approver_address
-    ) ERC20("SWEEPER", "SWEEPER") ERC20Permit("SWEEPER") Owned(_sweep_address) {
-        transferApprover = ITransferApprover(_approver_address);
-    }
+        address _sweep_address
+    ) ERC20("SweeprCoin", "SWEEPER") ERC20Permit("SWEEPER") Owned(_sweep_address) {}
 
     /* ========== RESTRICTED FUNCTIONS ========== */
     function mint(address _receiver, uint256 _amount) external onlyGov {
@@ -44,6 +42,13 @@ contract SWEEPER is ERC20, ERC20Burnable, Owned, ERC20Permit, ERC20Votes {
         price = _new_price;
 
         emit SweeperPriceSet(_new_price);
+    }
+
+    function setTransferApprover(address _approver) external onlyGov {
+        if (_approver == address(0)) revert ZeroAddressDetected();
+        transferApprover = ITransferApprover(_approver);
+
+        emit ApproverSet(_approver);
     }
 
     /* ========== OVERRIDDEN FUNCTIONS ========== */

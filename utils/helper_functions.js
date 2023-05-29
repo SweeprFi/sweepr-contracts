@@ -51,7 +51,6 @@ const Const = {
     ADDRESS_ZERO: ethers.constants.AddressZero,
     WBTC_HOLDER: '0x489ee077994b6658eafa855c308275ead8097c4a',
     WETH_HOLDER: '0xe50fa9b3c56ffb159cb0fca61f5c9d750e8128c8',
-    NFT_POSITION_MANAGER: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
 }
 
 module.exports = {

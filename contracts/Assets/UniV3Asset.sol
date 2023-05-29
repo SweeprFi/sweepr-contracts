@@ -25,7 +25,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     address public token0;
     address public token1;
     uint128 public liquidity;
-    int24 public constant tickSpacing = 60; // TickSpacings are 10, 60, 200
+    int24 public constant tickSpacing = 10; // TickSpacings are 10, 60, 200
     bool private immutable flag; // The sort status of tokens
 
     // Uniswap V3 Position Manager

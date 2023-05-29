@@ -39,7 +39,9 @@ contract('Governance', async (accounts) => {
 		TokenDistributor = await ethers.getContractFactory("TokenDistributor");
 
 		// deploys
-		sweeper = await SWEEPER.deploy(sweep.address, addresses.approver);
+		sweeper = await SWEEPER.deploy(sweep.address);
+		// await sweeper.setTransferApprover(addresses.approver);
+
 		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweeper.address);
 		governance = await Governance.deploy(sweeper.address, addresses.timelock, 10);
 

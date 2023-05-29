@@ -5,7 +5,7 @@ const { toBN, Const } = require("../utils/helper_functions");
 
 let pool_address;
 
-contract.skip('Uniswap V3 Asset', async () => {
+contract('Uniswap V3 Asset', async () => {
     before(async () => {
         [borrower, guest, lzEndpoint] = await ethers.getSigners();
 
@@ -31,14 +31,12 @@ contract.skip('Uniswap V3 Asset', async () => {
         LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
         liquidityHelper = await LiquidityHelper.deploy();
 
-        USDOracle = await ethers.getContractFactory("AggregatorMock");
-        usdOracle = await USDOracle.deploy();
-
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, usdOracle.address, Const.ADDRESS_ZERO);
+        amm = await Uniswap.deploy(sweep.address, Const.FEE);
+        await sweep.setAMM(amm.address);
 
         factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
-        positionManager = await ethers.getContractAt("INonfungiblePositionManager", Const.NFT_POSITION_MANAGER);
+        positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniV3Positions);
 
         UniV3Asset = await ethers.getContractFactory("UniV3Asset");
         asset = await UniV3Asset.deploy(
@@ -46,7 +44,6 @@ contract.skip('Uniswap V3 Asset', async () => {
             sweep.address,
             usdc.address,
             liquidityHelper.address,
-            amm.address,
             BORROWER
         );
 
@@ -70,19 +67,25 @@ contract.skip('Uniswap V3 Asset', async () => {
             expect(await factory.getPool(usdc.address, sweep.address, Const.FEE)).to.equal(Const.ADDRESS_ZERO);
 
             let token0, token1;
-            const sqrtPriceX96 = toBN("79243743360848080207210863491", 6);
+            let sqrtPriceX96;
 
-            if (usdc.address < sweep.address) {
+            if (usdc.address.toString().toLowerCase() < sweep.address.toString().toLowerCase()) {
                 token0 = usdc.address;
                 token1 = sweep.address;
+                sqrtPriceX96 = toBN("79228162514264337593543950336000000", 0);
             } else {
                 token0 = sweep.address;
                 token1 = usdc.address;
+                sqrtPriceX96 = toBN("79228162514264334008320", 0);
             }
 
             await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
             pool_address = await factory.getPool(usdc.address, sweep.address, Const.FEE);
 
+            pool = await ethers.getContractAt("IUniswapV3Pool", pool_address);
+            slot0 = await pool.slot0();
+
+            expect(slot0.sqrtPriceX96).to.equal(sqrtPriceX96);
             expect(pool_address).to.not.equal(Const.ADDRESS_ZERO);
         });
 

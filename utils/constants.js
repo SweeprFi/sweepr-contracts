@@ -39,7 +39,7 @@ const wallets = {
   },
   treasury: {
     1: '',
-    5: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
+    5: '0x44a0414409D83D34F0B2c65720bE79E769D00423',
     42161: '0x0d6fF486F1cdBb024942f62E5AD8c07091A53772',
   },
   usdc_holder: {
@@ -62,28 +62,28 @@ const wallets = {
 const tokens = {
   sweep: {
     1: '',
-    5: '0x5729dc3190d2c2E82e7Be0F3FE92fD77BA249b2c',
+    5: '0xa17DDf49c930f14981aF83a38de9e6E89fa2F0C8',
     421613: '0xdAd3fECde16f4c3f5F55781a4Ee5701732919a89', // Arbitrum Goerli
     42161: '0x4F4219c9B851AEbB652DD182D944A99b0b68edcf',
   },
   sweeper: {
     1: '',
-    5: '0xFDB2901ECa193Fc2d652624839B0cC1BC4a92C3c',
+    5: '0x3535eF56511C676a1f12b8b1f208E7757Cd0f731',
     42161: '0x4d20a1d57435bA91614c215F843362e6E95555Bd',
   },
   usdc: {
     1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    5: '0x07865c6E87B9F70255377e024ace6630C1Eaa37F',
+    5: '0x65aFADD39029741B3b8f0756952C74678c9cEC93', // Faucet: 0xA70D8aD6d26931d0188c642A66de3B6202cDc5FA
     42161: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
   },
   usdt: {
     1: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    5: '0xe802376580c10fE23F027e1E19Ed9D54d4C9311e',
+    5: '0x2E8D98fd126a32362F2Bd8aA427E59a1ec63F780', // Faucet: 0xA70D8aD6d26931d0188c642A66de3B6202cDc5FA
     42161: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
   },
   aave_usdc: {
     1: '0xBcca60bB61934080951369a648Fb03DF4F96263C',
-    5: '0x935c0F6019b05C787573B5e6176681282A3f3E05',
+    5: '0x8Be59D90A7Dc679C5cE5a7963cD1082dAB499918', // aave eth USDC
     42161: '0x625E7708f30cA75bfd92586e17077590C60eb4cD',
   },
   comp: {
@@ -111,12 +111,12 @@ const tokens = {
 const libraries = {
   liquidity_helper: {
     1: '',
-    5: '',
+    5: '0xD6eDDb13aD13767a2b4aD89eA94fcA0C6aB0f8D2',
     42161: '0x08D052d1CAc852905E4C0cAddF782e1af2b8B214',
   },
   timelock: {
     1: '',
-    5: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
+    5: '0x2E0D0086672A87fE9CC7Ad823466a5a52a82b23F',
     421613: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
     42161: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
   },
@@ -128,7 +128,7 @@ const libraries = {
   },
   uniswap_pool: {
     1: '',
-    5: '0x3aA3633bc4d514CcfB052FD9Db2f978500A387af',
+    5: '0xde5789B9690298C8D7418CC6eCE24f6EBce55aC2',
     42161: '0xF75F92BF819FcBA96209990aE040DABd9Fd1c067',
   },
   uniswap_oracle: {
@@ -151,14 +151,9 @@ const libraries = {
     5: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
     42161: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
   },
-  aaveV2_pool: {
-    1: '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9',
-    5: '0x4bd5643ac6f66a5237E18bfA7d47cF22f1c9F210',
-    42161: '',
-  },
   aaveV3_pool: {
     1: '',
-    5: '',
+    5: '0x7b5C526B7F8dfdff278b4a3e045083FBA4028790',
     42161: '0x794a61358D6845594F94dc1DB02A252b5b4814aD',
   },
   comp_control: {
@@ -205,17 +200,22 @@ const chainlink_oracle = {
 const contracts = {
   governance: {
     1: '',
-    5: '0xDF4Fe71f494D1Db41c073a7629A788cA5A80e8f0',
+    5: '0x9C5A24302562cEfbdbeEAAbdE56CF9930Db3d615',
     42161: '0xD013237b30e5Bcd8924b85aCA7b2254DF06D5B92'
   },
   balancer: {
     1: '',
-    5: '0xA8aEDDB1c514977700609e886dA7814A311499F2',
+    5: '0x74Cc1bB5B94D4A9F4Fe8b83a9fFa76E04c50B4F5',
     42161: '0xd5268b0Eb94bC7507175046221f0f363e30596f0',
+  },
+  distributor: {
+    1: '',
+    5: '0x2C16b6d715af41C7AB01E7BFEBA497768982b906',
+    42161: '',
   },
   uniswap_amm: {
     1: '',
-    5: '0x1aE97B3897eFC558955FB980B319D0ac8E22021B',
+    5: '0xd895F3549aBE7614db2C2B82a304aaA06253C66f',
     42161: '0x57F45f0F38A9eEC3Db698b19eabF613a9207a9c7',
   },
   omnichain_proposal_sender: {
@@ -235,18 +235,18 @@ const contracts = {
 const assets = {
   off_chain: {
     1: '',
-    5: '',
+    5: '0xC9F1dB9cb74E6f34C6983847c93D5CA3e40cFb48',
     42161: '0xecA8FCe753e10B87E40EDca2B6810Ae5Ea508FA4'
     // OLD: '0x7D009f68cc4323246cC563BF4Ec6db3d88A69384',
   },
-  aave:{
+  aave:{ // V3
     1: '',
-    5: '',
+    5: '0x6bE8ddC4543bCD842CB8602a158cCa1555CF62Bf',
     42161: '0x99fb540EA905Ac084F938c4aC7cDBAb88d650e25',
   },
   uniswap: {
     1: '',
-    5: '',
+    5: '0x26CC4A46484da4686c4D6E77767A6d7740F63f63',
     42161: '0x6Cd2f49d74dd5A0f16105B4563a5887aC14e096D',
     // OLD: '0x843aCEBB52B2B91DE9818DEE873103466379CaA1',
   },

@@ -24,11 +24,11 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 contract UniswapAMM {
     using Math for uint256;
 
-    uint8 public constant USD_DECIMALS = 6;
+    uint8 private constant USD_DECIMALS = 6;
     // Uniswap V3
-    uint32 public constant LOOKBACK = 3600 * 24; // seconds
-    ISwapRouter public constant ROUTER = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
-    IUniswapV3Factory public constant FACTORY = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
+    uint32 private constant LOOKBACK = 3600 * 24; // seconds
+    ISwapRouter private constant ROUTER = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    IUniswapV3Factory private constant FACTORY = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
 
     address public immutable sequencer;
     uint24 public immutable poolFee;

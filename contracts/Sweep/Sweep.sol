@@ -66,7 +66,7 @@ contract SweepDollarCoin is BaseSweep {
         int256 _step_value
     ) public initializer {
         BaseSweep.__Sweep_init(
-            "SWEEP Dollar Coin",
+            "SweepCoin",
             "SWEEP",
             _lzEndpoint,
             _fast_multisig
@@ -228,7 +228,7 @@ contract SweepDollarCoin is BaseSweep {
      * @notice Set Treasury Address
      * @param _treasury.
      */
-    function setTreasury(address _treasury) external onlyMultisig {
+    function setTreasury(address _treasury) external onlyGov {
         if (_treasury == address(0)) revert ZeroAddressDetected();
         if (treasury != address(0)) revert AlreadyExist();
         treasury = _treasury;

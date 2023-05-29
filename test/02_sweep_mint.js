@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 const { toBN, Const } = require("../utils/helper_functions");
 
-contract.skip("Sweep - Mint", async function () {
+contract("Sweep - Mint", async function () {
 	before(async () => {
 		[owner, receiver, treasury, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 
@@ -86,6 +86,8 @@ contract.skip("Sweep - Mint", async function () {
 
 	it('reverts transfer when receiver is blacklisted', async () => {
 		await sweep.connect(owner).unpause();
+		await sweep.setTransferApprover(blacklistApprover.address);
+
 		let receiverBalance = await sweep.balanceOf(receiver.address);
 		expect(receiverBalance).to.equal(TRANSFER_AMOUNT);
 		expect(await blacklistApprover.isBlacklisted(receiver.address)).to.equal(false);
@@ -113,6 +115,8 @@ contract.skip("Sweep - Mint", async function () {
 	});
 
 	it('transfers token when receiver is whitelisted', async () => {
+		await sweep.setTransferApprover(whitelistApprover.address);
+
 		// whitelist receiver
 		expect(await whitelistApprover.isWhitelisted(receiver.address)).to.equal(Const.FALSE);
 		await whitelistApprover.connect(owner).whitelist(receiver.address);
