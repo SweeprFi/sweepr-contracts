@@ -35,6 +35,7 @@ const addresses = {
   comp_cusdc: tokens.comp_cusdc[chainId],
   weth: tokens.weth[chainId],
   wbtc: tokens.wbtc[chainId],
+  backed: tokens.backed[chainId],
 
   // Libraries
   liquidity_helper: libraries.liquidity_helper[chainId],
@@ -42,12 +43,15 @@ const addresses = {
   aaveV3_pool: libraries.aaveV3_pool[chainId],
   comp_control: libraries.comp_control[chainId],
   glp_reward_router: libraries.glp_reward_router[chainId],
+  backed_mint: libraries.backed_mint[chainId],
+  backed_redeem: libraries.backed_redeem[chainId],
 
   // Oracles - ChainLink
   oracle_comp_usd: chainlink_oracle.comp_usd[chainId],
   oracle_weth_usd: chainlink_oracle.weth_usd[chainId],
   oracle_wbtc_usd: chainlink_oracle.wbtc_usd[chainId],
   oracle_usdc_usd: chainlink_oracle.usdc_usd[chainId],
+  oracle_backed_usd: chainlink_oracle.backed_usd[chainId],
 
   // Sequencer Feed
   sequencer_feed: chainlink_oracle.sequencer_feed[chainId],

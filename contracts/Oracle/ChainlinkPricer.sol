@@ -32,7 +32,8 @@ library ChainlinkPricer {
 
         if (_price <= 0 || roundId == 0) revert InvalidPrice();
         if (updatedAt == 0 || updatedAt == 0) revert InvalidPrice();
-        if (block.timestamp - updatedAt > frequency) revert StalePrice();
+        if (frequency > 0 && (block.timestamp - updatedAt > frequency))
+            revert StalePrice();
         price = _price;
     }
 
