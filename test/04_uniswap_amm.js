@@ -30,7 +30,7 @@ contract("Uniswap AMM", async function () {
     await sweep.setAMM(amm.address);
 
     factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
-    positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniV3Positions);
+    positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniswap_position_manager);
 
     UniV3Asset = await ethers.getContractFactory("UniV3Asset");
     asset = await UniV3Asset.deploy(

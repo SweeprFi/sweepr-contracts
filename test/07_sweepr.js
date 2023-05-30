@@ -23,7 +23,7 @@ contract("Sweepr", async function () {
 		sweep = await Proxy.deployed();
 
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
-		blacklistApprover = await BlacklistApprover.deploy(sweep.address);
+		blacklistApprover = await BlacklistApprover.deploy();
 
 		sweepr = await Sweepr.deploy(sweep.address);
 	});

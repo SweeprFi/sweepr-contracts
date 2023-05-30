@@ -2,24 +2,20 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ======================= Transfer Approver ======================
+// ========================= Transfer Approver ========================
 // ====================================================================
 
-import "../../Common/Owned.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title Sweep Transfer Approver
  * @dev Allows accounts to be blacklisted by admin role
  */
-contract TransferApproverBlacklist is Owned {
+contract TransferApproverBlacklist is Ownable2Step {
     mapping(address => bool) internal blacklisted;
 
     event Blacklisted(address indexed _account);
     event UnBlacklisted(address indexed _account);
-
-    /* ========== CONSTRUCTOR ========== */
-
-    constructor(address _sweep) Owned(_sweep) {}
 
     /**
      * @notice Returns token transferability
@@ -34,7 +30,7 @@ contract TransferApproverBlacklist is Owned {
     {
         if (_from == address(0) || _to == address(0)) return true;
 
-        return (!blacklisted[_from] && !blacklisted[_to]) ? true : false;
+        return (!blacklisted[_from] && !blacklisted[_to]);
     }
 
     /**
@@ -49,7 +45,7 @@ contract TransferApproverBlacklist is Owned {
      * @dev Adds account to blacklist
      * @param _account The address to blacklist
      */
-    function blacklist(address _account) external onlyGov {
+    function blacklist(address _account) external onlyOwner {
         blacklisted[_account] = true;
         
         emit Blacklisted(_account);
@@ -59,7 +55,7 @@ contract TransferApproverBlacklist is Owned {
      * @dev Removes account from blacklist
      * @param _account The address to remove from the blacklist
      */
-    function unBlacklist(address _account) external onlyGov {
+    function unBlacklist(address _account) external onlyOwner {
         blacklisted[_account] = false;
 
         emit UnBlacklisted(_account);
