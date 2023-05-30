@@ -2,24 +2,20 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ======================= Transfer Approver ======================
+// ========================= Transfer Approver ========================
 // ====================================================================
 
-import "../../Common/Owned.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title Sweep Transfer Approver
  * @dev Allows accounts to be whitelisted by admin role
  */
-contract TransferApproverWhitelist is Owned {
+contract TransferApproverWhitelist is Ownable2Step {
     mapping(address => bool) internal whitelisted;
 
     event Whitelisted(address indexed _account);
     event UnWhitelisted(address indexed _account);
-
-    /* ========== CONSTRUCTOR ========== */
-
-    constructor(address _sweep) Owned(_sweep) {}
 
     /**
      * @notice Returns token transferability
@@ -34,7 +30,7 @@ contract TransferApproverWhitelist is Owned {
     {
         if (_from == address(0) || _to == address(0)) return true;
 
-        return whitelisted[_to] ? true : false;
+        return whitelisted[_to];
     }
 
     /**
@@ -49,7 +45,7 @@ contract TransferApproverWhitelist is Owned {
      * @dev Adds account to whitelist
      * @param _account The address to whitelist
      */
-    function whitelist(address _account) external onlyGov {
+    function whitelist(address _account) external onlyOwner {
         whitelisted[_account] = true;
 
         emit Whitelisted(_account);
@@ -59,7 +55,7 @@ contract TransferApproverWhitelist is Owned {
      * @dev Removes account from whitelist
      * @param _account The address to remove from the blacklist
      */
-    function unWhitelist(address _account) external onlyGov {
+    function unWhitelist(address _account) external onlyOwner {
         whitelisted[_account] = false;
 
         emit UnWhitelisted(_account);

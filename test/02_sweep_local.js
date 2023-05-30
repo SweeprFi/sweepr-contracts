@@ -22,8 +22,8 @@ contract("Sweep", async function () {
 
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 		WhitelistApprover = await ethers.getContractFactory("TransferApproverWhitelist");
-		blacklistApprover = await BlacklistApprover.deploy(sweep.address);
-		whitelistApprover = await WhitelistApprover.deploy(sweep.address);
+		blacklistApprover = await BlacklistApprover.deploy();
+		whitelistApprover = await WhitelistApprover.deploy();
 	});
 
 	it('set admin to multisig', async () => {

@@ -1,6 +1,5 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../utils/address");
 const { Const, toBN } = require("../utils/helper_functions");
 
 contract("Off-Chain Asset - Settings", async function () {
@@ -16,7 +15,7 @@ contract("Off-Chain Asset - Settings", async function () {
 		Sweep = await ethers.getContractFactory("SweepMock");
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
-            addresses.owner,
+            owner.address,
             2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed();

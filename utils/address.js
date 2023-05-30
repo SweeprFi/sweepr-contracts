@@ -2,7 +2,8 @@ const {
   wallets,
   tokens,
   libraries,
-  contracts,
+  protocol,
+  uniswap,
   networks,
   chainIDs,
   chainlink_oracle,
@@ -37,14 +38,8 @@ const addresses = {
 
   // Libraries
   liquidity_helper: libraries.liquidity_helper[chainId],
-  timelock: libraries.timelock[chainId],
-  approver: libraries.approver[chainId],
-  uniswap_pool: libraries.uniswap_pool[chainId],
   uniswap_oracle: libraries.uniswap_oracle[chainId],
-  uniswap_factory: libraries.uniswap_factory[chainId],
-  uniswap_router: libraries.uniswap_router[chainId],
   aaveV3_pool: libraries.aaveV3_pool[chainId],
-  uniV3Positions: libraries.uniswapV3_positions[chainId],
   comp_control: libraries.comp_control[chainId],
   glp_reward_router: libraries.glp_reward_router[chainId],
 
@@ -56,12 +51,22 @@ const addresses = {
 
   // Sequencer Feed
   sequencer_feed: chainlink_oracle.sequencer_feed[chainId],
+
+  // uniswap
+  uniswap_factory: uniswap.factory[chainId],
+  uniswap_router: uniswap.router[chainId],
+  uniswap_universal_router: uniswap.universal_router[chainId],
+  uniswap_position_manager: uniswap.positions_manager[chainId],
+  uniswap_pool: uniswap.pool[chainId],
+  uniswap_quoter: uniswap.quoter[chainId],
   
   // Periphery Contracts
-  governance: contracts.governance[chainId],
-  balancer: contracts.balancer[chainId],
-  uniswap_amm: contracts.uniswap_amm[chainId],
-  token_distributor: contracts.distributor[chainId],
+  governance: protocol.governance[chainId],
+  balancer: protocol.balancer[chainId],
+  token_distributor: protocol.distributor[chainId],
+  uniswap_amm: protocol.uniswap_amm[chainId],
+  timelock: protocol.timelock[chainId],
+  approver: protocol.approver[chainId],
   
   // Assets + Stabilizers
   asset_offChain: assets.off_chain[chainId],
@@ -95,9 +100,9 @@ function getDeployedAddress(networkName, contractType) {
   if (contractType == 'sweep') {
     contractAddress = tokens.sweep[chainID];
   } else if (contractType == 'sender') {
-    contractAddress = contracts.omnichain_proposal_sender[chainID];
+    contractAddress = protocol.omnichain_proposal_sender[chainID];
   } else if (contractType == 'executor') {
-    contractAddress = contracts.omnichain_proposal_executor[chainID];
+    contractAddress = protocol.omnichain_proposal_executor[chainID];
   } else {
     throw new Error("Invalid contract Type!");
   }

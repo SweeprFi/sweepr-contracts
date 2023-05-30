@@ -20,7 +20,7 @@ async function main() {
 	}
 
 	factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
-    positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniV3Positions);
+    positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniswap_position_manager);
 
 	await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96);
 	poolAddress = await factory.getPool(usdc, sweep, Const.FEE);

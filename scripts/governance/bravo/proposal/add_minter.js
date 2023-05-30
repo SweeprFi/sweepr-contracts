@@ -3,7 +3,7 @@ const { addresses } = require("../../../../utils/address");
 
 async function main() {
 	const sweepAddress = addresses.sweep;
-	const NEW_MINTER = addresses.stabilizer_aave;
+	const NEW_MINTER = addresses.asset_aave;
 	const maxMintAmount = ethers.utils.parseUnits("100000", 18);
 
 	const sweep_token = await ethers.getContractAt('SweepCoin', sweepAddress);

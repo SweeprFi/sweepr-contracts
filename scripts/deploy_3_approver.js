@@ -3,7 +3,6 @@ const { addresses, network } = require("../utils/address");
 
 async function main() {
 	let deployer = '';
-	const sweep = addresses.sweep;
 
 	if (network.type === "0") { // local
 		[deployer] = await ethers.getSigners();
@@ -14,12 +13,12 @@ async function main() {
 
 	console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
-	// const approverInstance = await ethers.getContractFactory("TransferApproverBlacklist");
-	const approverInstance = await ethers.getContractFactory("TransferApproverWhitelist");
-	const approverContract = await approverInstance.deploy(sweep);
+	// const Approver = await ethers.getContractFactory("TransferApproverBlacklist");
+	const Approver = await ethers.getContractFactory("TransferApproverWhitelist");
+	const approver = await Approver.deploy();
 
-	console.log("Transfer approver deployed to:", approverContract.address);
-	console.log(`\nnpx hardhat verify --network ${network.name} ${approverContract.address} "${sweep}"`);
+	console.log("Transfer approver deployed to:", approver.address);
+	console.log(`\nnpx hardhat verify --network ${network.name} ${approver.address}`);
 }
 
 main();

@@ -114,42 +114,10 @@ const libraries = {
     5: '0xD6eDDb13aD13767a2b4aD89eA94fcA0C6aB0f8D2',
     42161: '0x08D052d1CAc852905E4C0cAddF782e1af2b8B214',
   },
-  timelock: {
-    1: '',
-    5: '0x2E0D0086672A87fE9CC7Ad823466a5a52a82b23F',
-    421613: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
-    42161: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
-  },
-  approver: {
-    1: '',
-    5: '0xcf29b5b6609541281EC3A47f79E93792Cb5f2d18', // Whitelist
-    // 42161: '0x9690b6F7Bb2Ea75F85a09E50eb00Cb8Ce60661dC', // Whitelist
-    42161: '0x59490d4dcC479B3717A6Eb289Db929E125E86eB1' // blacklist
-  },
-  uniswap_pool: {
-    1: '',
-    5: '0xde5789B9690298C8D7418CC6eCE24f6EBce55aC2',
-    42161: '0xF75F92BF819FcBA96209990aE040DABd9Fd1c067',
-  },
   uniswap_oracle: {
     1: '',
     5: '0xd652C68ED7e93Adc5616cC61142AeaA262B09326',
     42161: '0x8906DB8CAc58bb12c156eb1f57E5f8EBDCbB2257',
-  },
-  uniswap_factory: {
-    1: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
-    5: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
-    42161: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
-  },
-  uniswap_router: {
-    1: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
-    5: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
-    42161: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
-  },
-  uniswapV3_positions: {
-    1: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
-    5: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
-    42161: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
   },
   aaveV3_pool: {
     1: '',
@@ -197,7 +165,41 @@ const chainlink_oracle = {
   }
 }
 
-const contracts = {
+const uniswap = {
+  factory: {
+    1: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+    5: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+    42161: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+  },
+  router: {
+    1: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+    5: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+    42161: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+  },
+  universal_router: {
+    1: '0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B',
+    5: '0x4648a43B2C14Da09FdF82B161150d3F634f40491',
+    42161: '0x4C60051384bd2d3C01bfc845Cf5F4b44bcbE9de5',
+    421613: '0x4648a43B2C14Da09FdF82B161150d3F634f40491',
+  },
+  positions_manager: {
+    1: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
+    5: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
+    42161: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
+  },
+  pool: {
+    1: '',
+    5: '0xde5789B9690298C8D7418CC6eCE24f6EBce55aC2',
+    42161: '0xF75F92BF819FcBA96209990aE040DABd9Fd1c067',
+  },
+  quoter: {
+    1: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
+    5: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
+    42161: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
+  },
+}
+
+const protocol = {
   governance: {
     1: '',
     5: '0x9C5A24302562cEfbdbeEAAbdE56CF9930Db3d615',
@@ -229,7 +231,20 @@ const contracts = {
     5: '',
     421613: '0x004276c95961BE229393c4425E84259255564004',
     42161: ''
-  }
+  },
+  timelock: {
+    1: '',
+    5: '0x2E0D0086672A87fE9CC7Ad823466a5a52a82b23F',
+    421613: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
+    42161: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
+  },
+  approver: {
+    1: '',
+    5: '0xD0f13A43079fD22adbe772e59903c0e032E2FC72', // Whitelist
+    // 5: '0xD02467129f35255b2710d9A1AF9dAA01730c3e29', // Blacklist
+    // 42161: '0x9690b6F7Bb2Ea75F85a09E50eb00Cb8Ce60661dC', // Whitelist
+    42161: '0x59490d4dcC479B3717A6Eb289Db929E125E86eB1' // blacklist
+  },
 }
 
 const assets = {
@@ -271,7 +286,8 @@ module.exports = {
   wallets,
   tokens,
   libraries,
-  contracts,
+  protocol,
+  uniswap,
   networks,
   chainIDs,
   chainlink_oracle,

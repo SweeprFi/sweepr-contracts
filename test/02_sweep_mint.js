@@ -21,8 +21,8 @@ contract("Sweep - Mint", async function () {
 		]);
 		sweep = await Proxy.deployed();
 
-		blacklistApprover = await BlacklistApprover.deploy(sweep.address);
-		whitelistApprover = await WhitelistApprover.deploy(sweep.address);
+		blacklistApprover = await BlacklistApprover.deploy();
+		whitelistApprover = await WhitelistApprover.deploy();
 	});
 
 	it('add and remove minters', async () => {
