@@ -123,7 +123,7 @@ contract SweepCoin is BaseSweep {
     function is_minting_allowed() public view returns (bool) {
         uint256 arb_price = ((SPREAD_PRECISION - arb_spread) * target_price()) /
             SPREAD_PRECISION;
-        return amm_price() >= arb_price ? true : false;
+        return (amm_price() >= arb_price);
     }
 
     /* ========== Actions ========== */

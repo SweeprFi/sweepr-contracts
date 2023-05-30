@@ -64,7 +64,8 @@ contract('Uniswap V3 Asset', async () => {
 
     describe("main functions", async function () {
         it('creates the pool', async () => {
-            expect(await factory.getPool(usdc.address, sweep.address, Const.FEE)).to.equal(Const.ADDRESS_ZERO);
+            expect(await factory.getPool(usdc.address, sweep.address, Const.FEE))
+                .to.equal(Const.ADDRESS_ZERO);
 
             let token0, token1;
             let sqrtPriceX96;

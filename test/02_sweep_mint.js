@@ -12,12 +12,12 @@ contract("Sweep - Mint", async function () {
 		// ------------- Deployment of contracts -------------
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 		WhitelistApprover = await ethers.getContractFactory("TransferApproverWhitelist");
-		Sweep = await ethers.getContractFactory("SweepMock");
+		Sweep = await ethers.getContractFactory("SweepCoin");
 
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
-            addresses.owner,
-            2500 // 0.25%
+			addresses.owner,
+			2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed();
 
@@ -28,10 +28,10 @@ contract("Sweep - Mint", async function () {
 	it('add and remove minters', async () => {
 		// Add minter
 		assets = [
-			addresses.aaveV3_pool, 
-			addresses.asset_offChain, 
-			addresses.asset_wbtc, 
-			addresses.asset_weth, 
+			addresses.aaveV3_pool,
+			addresses.asset_offChain,
+			addresses.asset_wbtc,
+			addresses.asset_weth,
 			addresses.asset_uniswap
 		];
 
@@ -46,6 +46,18 @@ contract("Sweep - Mint", async function () {
 				expect(await sweep.minter_addresses(index)).equal(asset);
 			})
 		);
+
+		await expect(sweep.connect(lzEndpoint).addMinter(lzEndpoint.address, TRANSFER_AMOUNT))
+			.to.be.revertedWithCustomError(sweep, "NotGovernance");
+
+		await expect(sweep.connect(owner).addMinter(Const.ADDRESS_ZERO, TRANSFER_AMOUNT))
+			.to.be.revertedWithCustomError(sweep, "ZeroAddressDetected");
+
+		await expect(sweep.connect(owner).addMinter(lzEndpoint.address, Const.ZERO))
+			.to.be.revertedWithCustomError(sweep, "ZeroAmountDetected");
+
+		await expect(sweep.connect(owner).addMinter(assets[0], TRANSFER_AMOUNT))
+			.to.be.revertedWithCustomError(sweep, "MinterExist");
 
 		// Remove minter
 		await sweep.connect(owner).removeMinter(addresses.asset_offChain);
@@ -78,6 +90,8 @@ contract("Sweep - Mint", async function () {
 		expect(receiverBalance).to.equal(TRANSFER_AMOUNT);
 
 		// Pause sweep
+		await expect(sweep.connect(newAddress).pause())
+			.to.be.revertedWithCustomError(sweep, "NotMultisig");
 		await sweep.connect(owner).pause();
 
 		await expect(sweep.connect(owner).transfer(receiver.address, TRANSFER_AMOUNT))
@@ -86,6 +100,8 @@ contract("Sweep - Mint", async function () {
 
 	it('reverts transfer when receiver is blacklisted', async () => {
 		await sweep.connect(owner).unpause();
+		await expect(sweep.setTransferApprover(Const.ADDRESS_ZERO))
+			.to.be.revertedWithCustomError(sweep, "ZeroAddressDetected");
 		await sweep.setTransferApprover(blacklistApprover.address);
 
 		let receiverBalance = await sweep.balanceOf(receiver.address);
@@ -98,7 +114,7 @@ contract("Sweep - Mint", async function () {
 		expect(await blacklistApprover.isBlacklisted(receiver.address)).to.equal(true);
 
 		await expect(sweep.connect(owner).transfer(receiver.address, TRANSFER_AMOUNT))
-				.to.be.revertedWithCustomError(Sweep, 'TransferNotAllowed');
+			.to.be.revertedWithCustomError(Sweep, 'TransferNotAllowed');
 	});
 
 	it('transfers token when receiver is unblacklisted', async () => {
@@ -130,7 +146,7 @@ contract("Sweep - Mint", async function () {
 		await whitelistApprover.connect(owner).unWhitelist(receiver.address);
 
 		await expect(sweep.connect(receiver).transfer(owner.address, TRANSFER_AMOUNT))
-				.to.be.revertedWithCustomError(Sweep, 'TransferNotAllowed');
+			.to.be.revertedWithCustomError(Sweep, 'TransferNotAllowed');
 	});
 
 	it('burns Sweeps correctly', async () => {
@@ -140,36 +156,34 @@ contract("Sweep - Mint", async function () {
 
 		expect(await sweep.balanceOf(newMinter.address)).to.equal(Const.ZERO);
 		await sweep.connect(newMinter).minter_mint(newMinter.address, TRANSFER_AMOUNT);
+		await expect(sweep.connect(newMinter).minter_mint(newMinter.address, MAX_MINT_AMOUNT))
+			.to.be.revertedWithCustomError(sweep, "MintCapReached");
 
 		expect(await sweep.balanceOf(newMinter.address)).to.equal(TRANSFER_AMOUNT);
 
+		await expect(sweep.connect(newMinter).minter_burn_from(MAX_MINT_AMOUNT))
+			.to.be.revertedWithCustomError(sweep, "ExceedBurnAmount");
 		await sweep.connect(newMinter).minter_burn_from(TRANSFER_AMOUNT);
 		expect(await sweep.balanceOf(newMinter.address)).to.equal(Const.ZERO);
 	});
 
 	it('allow and disallow minting', async () => {
-		// Set new amm price
-		NEW_AMM_PRICE = 999990;
-		await sweep.connect(owner).setAMMPrice(NEW_AMM_PRICE);
-
-		//  Mint should be reverted because amm_price < (1 - arb_spread) * target_price
-		//	Here,  amm_price = 990000, target_price = 1000000, arb_spread = 0
-		//	999990 < 1000000
-        await expect(
-            sweep.connect(newMinter).minter_mint(newAddress.address, TRANSFER_AMOUNT)
-        ).to.be.revertedWithCustomError(Sweep, 'MintNotAllowed');
+		// Set new arb_spread
+		NEW_ARB_SPREAD = 1e5;
+		NEW_TARGET_PRICE = 1e7;
+		await sweep.connect(owner).setBalancer(owner.address);
+		await sweep.connect(owner).setArbSpread(NEW_ARB_SPREAD);
+		await sweep.connect(owner).setTargetPrice(NEW_TARGET_PRICE, NEW_TARGET_PRICE);
+		// TODO: change to _amm after new deployment
+		await sweep.connect(owner).setAMM(addresses.uniswap_oracle);
+		await expect(sweep.connect(newMinter).minter_mint(newAddress.address, TRANSFER_AMOUNT))
+			.to.be.revertedWithCustomError(Sweep, 'MintNotAllowed');
 
 		// Set new arb_spread
-		NEW_ARB_SPREAD = 1000; // 0.1%
-		await sweep.connect(owner).setArbSpread(NEW_ARB_SPREAD);
-
+		NEW_TARGET_PRICE = 1e6;
+		await sweep.connect(owner).setTargetPrice(NEW_TARGET_PRICE, NEW_TARGET_PRICE);
 		expect(await sweep.balanceOf(newAddress.address)).to.equal(Const.ZERO);
-
-		//  Mint should be allowed because amm_price > (1 - arb_spread) * target_price
-		//	Here,  amm_price = 990000, target_price = 1000000, arb_spread = 1000
-		//	999990 > 999000
 		await sweep.connect(newMinter).minter_mint(newAddress.address, TRANSFER_AMOUNT)
-
 		expect(await sweep.balanceOf(newAddress.address)).to.equal(TRANSFER_AMOUNT);
-    });
+	});
 });

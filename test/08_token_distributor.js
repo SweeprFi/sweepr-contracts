@@ -69,13 +69,16 @@ contract("TokenDistributor", async function () {
 			.to.be.revertedWithCustomError(TokenDistributor, 'NotEnoughBalance');
 	});
 
-	it('sells sweepr', async () => {
+	it('sells sweeper', async () => {
 		sellAmount = ethers.utils.parseUnits("1000", 18); // 1000 SWEEPR
+		sweepAmount = ethers.utils.parseUnits("10000", 18); // 10000 SWEEP
 
 		senderSweepBeforeBalance = await sweep.balanceOf(sender.address) / 1e18;
 		distributorSweeprBeforeBalance = await sweepr.balanceOf(tokenDistributor.address) / 1e18;
 
 		await sweepr.connect(sender).approve(tokenDistributor.address, sellAmount);
+		await expect(tokenDistributor.connect(sender).sell(sweepAmount))
+			.to.be.revertedWithCustomError(tokenDistributor, "NotEnoughBalance");
 		await tokenDistributor.connect(sender).sell(sellAmount);
 
 		sweepAmount = Math.round(((sellAmount * PRECISION) / sweeprPrice) / 1e18);

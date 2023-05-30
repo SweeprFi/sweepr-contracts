@@ -81,13 +81,13 @@ contract("WBTC Asset", async function () {
 
         it("invest correctly", async function () {
             expect(await wbtc_asset.assetValue()).to.equal(Const.ZERO);
-            await wbtc_asset.invest(depositAmount);
+            await wbtc_asset.invest(withdrawAmount);
             expect(await usdc.balanceOf(wbtc_asset.address)).to.equal(Const.ZERO);
             expect(await wbtc.balanceOf(wbtc_asset.address)).to.above(Const.ZERO);
         });
 
         it("divest correctly", async function () {
-            await wbtc_asset.divest(withdrawAmount);
+            await wbtc_asset.divest(depositAmount);
             expect(await usdc.balanceOf(wbtc_asset.address)).to.above(Const.ZERO);
             expect(await wbtc.balanceOf(wbtc_asset.address)).to.equal(Const.ZERO);
         });

@@ -25,6 +25,7 @@ contract("Stabilizer - Isolated Functions", async function () {
 
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
+    usdt = await Token.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
     amm = await Uniswap.deploy(sweep.address, Const.FEE);
@@ -114,10 +115,22 @@ contract("Stabilizer - Isolated Functions", async function () {
   });
 
   describe("payback and repay functions", async function () {
+    it("tries to swap without balance", async function () {
+      await expect(offChainAsset.connect(borrower).buySweepOnAMM(tenSweep, 0))
+        .to.be.revertedWithCustomError(offChainAsset, "NotEnoughBalance");
+    });
+
     it("change the usdx for sweep ", async function () {
       await sweep.transfer(wallet.address, tenSweep);
 
       expect(await sweep.balanceOf(wallet.address)).to.equal(maxBorrow);
+    });
+
+    it("tries pay fee without balance", async function () {
+      expect(await sweep.balanceOf(offChainAsset.address)).to.eq(Const.ZERO);
+      expect(await offChainAsset.getDebt()).to.above(Const.ZERO);
+      await expect(offChainAsset.connect(borrower).payFee())
+        .to.be.revertedWithCustomError(offChainAsset, "SpreadNotEnough");
     });
 
     it("tries to repay without balance", async function () {
@@ -145,6 +158,11 @@ contract("Stabilizer - Isolated Functions", async function () {
     it("withdraws sweep correctly", async function () {
       expect(await offChainAsset.getEquityRatio()).to.equal(1e6); // 100%      
       balance = await sweep.balanceOf(offChainAsset.address);
+
+      await expect(offChainAsset.connect(borrower).withdraw(usdt.address, balance))
+        .to.be.revertedWithCustomError(offChainAsset, "InvalidToken")
+
+
       await offChainAsset.connect(borrower).withdraw(sweep.address, balance);
     });
   });
@@ -203,6 +221,9 @@ contract("Stabilizer - Isolated Functions", async function () {
       expectUSXAmount = (30e6 * targetPrice) / 1e6;
 
       await sweep.connect(borrower).approve(offChainAsset.address, sweepAmount);
+      await expect(offChainAsset.connect(borrower).swapSweepToUsdx(sweepAmount.mul(5)))
+        .to.be.revertedWithCustomError(offChainAsset, "NotEnoughBalance");
+
       await offChainAsset.connect(borrower).swapSweepToUsdx(sweepAmount);
 
       sweepBalanceAfter = sweepBalanceBefore.add(sweepAmount);
