@@ -1,63 +1,137 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
-const { impersonate, toBN, Const } = require("../utils/helper_functions");
-let user;
+const { toBN, Const, increaseTime } = require("../utils/helper_functions");
 
-contract.skip("Uniswap AMM", async function () {
+contract("Uniswap AMM", async function () {
   before(async () => {
-    OWNER = addresses.owner;
+    [owner] = await ethers.getSigners();
+    OWNER = owner.address;
     USDC_AMOUNT = 100e6;
     SWEEP_AMOUNT = toBN("80", 18);
-    // ------------- Deployment of contracts -------------
-    Token = await ethers.getContractFactory("ERC20");
-    usdc = await Token.attach(addresses.usdc);
 
-    Sweep = await ethers.getContractFactory("SweepCoin");
-    sweep = await Sweep.attach(addresses.sweep);
+    USDC_MINT = 10000e6;
+    SWEEP_MINT = toBN("10000", 18);
+    USDC_INVEST = 20000e6;
+    SWEEP_INVEST = toBN("20000", 18);
+    // ------------- Deployment of contracts -------------
+    Sweep = await ethers.getContractFactory("SweepMock");
+    const Proxy = await upgrades.deployProxy(Sweep, [OWNER, OWNER, 2500]);
+    sweep = await Proxy.deployed();
+
+    ERC20 = await ethers.getContractFactory("USDCMock");
+    usdc = await ERC20.deploy();
+
+    LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
+    liquidityHelper = await LiquidityHelper.deploy();
+
+    Uniswap = await ethers.getContractFactory("UniswapMock");
+    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    await sweep.setAMM(amm.address);
+
+    factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
+    positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniV3Positions);
+
+    UniV3Asset = await ethers.getContractFactory("UniV3Asset");
+    asset = await UniV3Asset.deploy(
+      'Uniswap Asset',
+      sweep.address,
+      usdc.address,
+      liquidityHelper.address,
+      OWNER
+    );
+
+    Oracle = await ethers.getContractFactory("AggregatorMock");
+    usdcOracle = await Oracle.deploy();
 
     UniswapAMM = await ethers.getContractFactory("UniswapAMM");
     amm = await UniswapAMM.deploy(
-      addresses.sweep,
+      sweep.address,
       addresses.sequencer_feed,
-      3000, // TODO: create 500 pool and use Const.FEE
-      addresses.usdc,
-      addresses.oracle_usdc_usd,
+      Const.FEE,
+      usdc.address,
+      usdcOracle.address,
       86400 // oracle update frequency ~ 1 day
     );
 
-    user = await impersonate(addresses.usdc);
-    await usdc.connect(user).transfer(OWNER, USDC_AMOUNT)
+    await sweep.addMinter(asset.address, SWEEP_INVEST);
+    // config stabilizer
+    await asset.configure(
+      Const.RATIO,
+      Const.SPREAD_FEE,
+      SWEEP_INVEST,
+      Const.DISCOUNT,
+      Const.DAY,
+      Const.RATIO,
+      SWEEP_INVEST,
+      Const.FALSE,
+      Const.URL
+    );
   });
 
-  describe("main functions", async function() {
-    it("buys 5 sweep correctly", async function() {
-        user = await impersonate(OWNER);
-        sweepBefore = await sweep.balanceOf(OWNER);
-        usdcBefore = await usdc.balanceOf(OWNER);
+  describe("main functions", async function () {
+    it("initial setup - create and add liquitiy", async function () {
+      let token0, token1;
+      let sqrtPriceX96;
 
-        await usdc.connect(user).approve(amm.address, USDC_AMOUNT);
-        await amm.connect(user).buySweep(usdc.address, USDC_AMOUNT, Const.ZERO);
+      if (usdc.address.toString().toLowerCase() < sweep.address.toString().toLowerCase()) {
+        token0 = usdc.address;
+        token1 = sweep.address;
+        sqrtPriceX96 = toBN("79228162514264337593543950336000000", 0);
+      } else {
+        token0 = sweep.address;
+        token1 = usdc.address;
+        sqrtPriceX96 = toBN("79228162514264334008320", 0);
+      }
 
-        sweepAfter = await sweep.balanceOf(OWNER);
-        usdcAfter = await usdc.balanceOf(OWNER);
+      await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
+      pool_address = await factory.getPool(usdc.address, sweep.address, Const.FEE);
 
-        expect(usdcAfter.add(USDC_AMOUNT)).to.be.equal(usdcBefore);
-        expect(sweepAfter).to.be.above(sweepBefore);
+      await usdc.transfer(asset.address, USDC_MINT);
+      await asset.borrow(SWEEP_MINT);
+      await asset.invest(USDC_INVEST, SWEEP_INVEST);
     });
 
-    it("sells 2 sweep correctly", async function() {
-        sweepBefore = await sweep.balanceOf(OWNER);
-        usdcBefore = await usdc.balanceOf(OWNER);
+    it("buys sweep correctly", async function () {
+      sweepBefore = await sweep.balanceOf(OWNER);
+      usdcBefore = await usdc.balanceOf(OWNER);
 
-        await sweep.connect(user).approve(amm.address, SWEEP_AMOUNT);
-        await amm.connect(user).sellSweep(usdc.address, SWEEP_AMOUNT, Const.ZERO);
+      await usdc.approve(amm.address, USDC_AMOUNT);
+      await amm.buySweep(usdc.address, USDC_AMOUNT, Const.ZERO);
 
-        sweepAfter = await sweep.balanceOf(OWNER);
-        usdcAfter = await usdc.balanceOf(OWNER);
+      sweepAfter = await sweep.balanceOf(OWNER);
+      usdcAfter = await usdc.balanceOf(OWNER);
 
-        expect(sweepAfter.add(SWEEP_AMOUNT)).to.be.equal(sweepBefore);
-        expect(usdcAfter).to.be.above(usdcBefore);
+      expect(usdcAfter.add(USDC_AMOUNT)).to.be.equal(usdcBefore);
+      expect(sweepAfter).to.be.above(sweepBefore);
+    });
+
+    it("sells sweep correctly", async function () {
+      sweepBefore = await sweep.balanceOf(OWNER);
+      usdcBefore = await usdc.balanceOf(OWNER);
+
+      await sweep.approve(amm.address, SWEEP_AMOUNT);
+      await amm.sellSweep(usdc.address, SWEEP_AMOUNT, Const.ZERO);
+
+      sweepAfter = await sweep.balanceOf(OWNER);
+      usdcAfter = await usdc.balanceOf(OWNER);
+
+      expect(sweepAfter.add(SWEEP_AMOUNT)).to.be.equal(sweepBefore);
+      expect(usdcAfter).to.be.above(usdcBefore);
+    });
+
+    it('converts token amount to USD amount', async () => {
+      amount = 100e6;
+      usdAmount = await amm.tokenToUSD(amount);
+      tokenAmount = await amm.USDtoToken(usdAmount);
+      expect(tokenAmount).to.eq(amount);
+    });
+
+    it('fetches the Sweep price correctly', async () => {
+      await increaseTime(86400); // 1 day
+      price = await amm.getPrice();
+      twaPrice = await amm.getTWAPrice();
+      expect(price).to.eq(twaPrice);
     });
   });
 });

@@ -12,6 +12,8 @@ contract("Off-Chain Asset", async function (accounts) {
 
         sweepAmount = toBN("100", 18);
         usdxAmount = 100e6;
+        sweepPayback = toBN("50", 18);
+        usdxPayback = 50e6;
 
         // ------------- Deployment of contracts -------------
         Token = await ethers.getContractFactory("ERC20");
@@ -69,19 +71,37 @@ contract("Off-Chain Asset", async function (accounts) {
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
             user = await impersonate(BORROWER);
-            await asset.connect(user).divest(usdxAmount);
-            expect(await asset.redeem_amount()).to.equal(usdxAmount);
+            await asset.connect(user).divest(usdxPayback);
+            expect(await asset.redeem_amount()).to.equal(usdxPayback);
             expect(await asset.redeem_mode()).to.equal(Const.TRUE);
             expect(await asset.redeem_time()).to.above(Const.ZERO);
         });
 
         it("returns investment correctly", async function () {
             user = await impersonate(WALLET);
-            await usdx.connect(user).approve(asset.address, usdxAmount);
-            await asset.connect(user).payback(addresses.usdc, usdxAmount);
+            await usdx.connect(user).approve(asset.address, usdxPayback);
+            await expect(asset.connect(user).payback(addresses.usdt, usdxPayback))
+                .to.be.revertedWithCustomError(asset, "InvalidToken");
+            await expect(asset.connect(user).payback(addresses.usdc, 10e6))
+                .to.be.revertedWithCustomError(asset, "NotEnoughAmount");
+            await asset.connect(user).payback(addresses.usdc, usdxPayback);
 
             expect(await asset.redeem_mode()).to.equal(Const.FALSE);
             expect(await asset.redeem_amount()).to.equal(Const.ZERO);
+
+            user = await impersonate(BORROWER);
+            await asset.connect(user).divest(usdxPayback);
+            expect(await asset.redeem_amount()).to.equal(usdxPayback);
+            expect(await asset.redeem_mode()).to.equal(Const.TRUE);
+            expect(await asset.redeem_time()).to.above(Const.ZERO);
+
+            user = await impersonate(WALLET);
+            await sweep.connect(user).approve(asset.address, sweepPayback);
+            await asset.connect(user).payback(sweep.address, sweepPayback);
+
+            expect(await asset.redeem_mode()).to.equal(Const.FALSE);
+            expect(await asset.redeem_amount()).to.equal(Const.ZERO);
+
         });
     });
 });

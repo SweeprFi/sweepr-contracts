@@ -15,8 +15,8 @@ contract("Sweep", async function () {
 
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
-            addresses.owner,
-            2500 // 0.25%
+			addresses.owner,
+			2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed(Sweep);
 
@@ -37,6 +37,31 @@ contract("Sweep", async function () {
 		expect(await sweep.current_target_price()).to.equal(targetPrice);
 	});
 
+	it('sets a new fast multisig correctly', async () => {
+		expect(await sweep.fast_multisig()).to.eq(addresses.owner);
+		await sweep.connect(multisig).setFastMultisig(multisig.address);
+		expect(await sweep.fast_multisig()).to.eq(multisig.address);
+	});
+
+	it('sets a new treasury correctly', async () => {
+		expect(await sweep.treasury()).to.eq(Const.ADDRESS_ZERO);
+
+		await expect(sweep.connect(multisig).setTreasury(Const.ADDRESS_ZERO))
+			.to.be.revertedWithCustomError(sweep, "ZeroAddressDetected");
+
+		await sweep.connect(multisig).setTreasury(treasury.address);
+		expect(await sweep.treasury()).to.eq(treasury.address);
+
+		await expect(sweep.connect(multisig).setTreasury(treasury.address))
+			.to.be.revertedWithCustomError(sweep, "AlreadyExist");
+	});
+
+	it('sets a new arb spread correctly', async () => {
+		expect(await sweep.arb_spread()).to.eq(Const.ZERO);
+		await sweep.connect(multisig).setArbSpread(1000);
+		expect(await sweep.arb_spread()).to.eq(1000);
+	});
+
 	it('sets a new period time correctly', async () => {
 		period_time = await sweep.period_time();
 		await sweep.connect(multisig).setPeriodTime(Const.ZERO);
@@ -48,10 +73,12 @@ contract("Sweep", async function () {
 
 	it('sets a new AMM and gets price correctly', async () => {
 		expect(await sweep.amm()).to.equal(Const.ADDRESS_ZERO);
-		
-		//TODO: change to _amm after new deployment
+
+		// TODO: change to _amm after new deployment
 		amm = addresses.uniswap_oracle;
 
+		await expect(sweep.connect(multisig).setAMM(Const.ADDRESS_ZERO))
+			.to.be.revertedWithCustomError(sweep, "ZeroAddressDetected")
 		await sweep.connect(multisig).setAMM(amm);
 
 		expect(await sweep.amm()).to.equal(amm);
@@ -62,6 +89,8 @@ contract("Sweep", async function () {
 
 	it('sets a new balancer address correctly', async () => {
 		expect(await sweep.balancer()).to.equal(Const.ADDRESS_ZERO);
+		await expect(sweep.connect(multisig).setBalancer(Const.ADDRESS_ZERO))
+			.to.be.revertedWithCustomError(sweep, "ZeroAddressDetected");
 		await sweep.connect(multisig).setBalancer(newAddress.address);
 		expect(await sweep.balancer()).to.equal(newAddress.address);
 	});
@@ -82,6 +111,8 @@ contract("Sweep", async function () {
 	});
 
 	it('upgrades Sweep', async () => {
+		await expect(sweep.connect(multisig).setInterestRate(INTEREST_RATE))
+			.to.be.revertedWithCustomError(sweep, "NotBalancer");
 		await sweep.connect(newAddress).setInterestRate(INTEREST_RATE);
 		const interestRateBefore = await sweep.interest_rate();
 
@@ -147,6 +178,9 @@ contract("Sweep", async function () {
 		await sweep.connect(multisig).setMinterEnabled(newMinter.address, Const.FALSE);
 		minterInfo = await sweep.minters(newMinter.address);
 
+		await expect(sweep.connect(newMinter).minter_mint(newMinter.address, 10))
+			.to.be.revertedWithCustomError(Sweep, 'MintDisabled');
+
 		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT.mul(2));
 		expect(minterInfo.minted_amount).to.equal(TRANSFER_AMOUNT);
 		expect(minterInfo.is_listed).to.equal(Const.TRUE);
@@ -154,7 +188,14 @@ contract("Sweep", async function () {
 	});
 
 	it('removes from minters list', async () => {
-        await sweep.connect(multisig).removeMinter(newMinter.address);
+		await sweep.connect(multisig).removeMinter(newMinter.address);
 		expect(await sweep.isValidMinter(newMinter.address)).to.equal(Const.FALSE);
-    });
+	});
+
+	it('Converts Sweep amount to USDC amount', async () => {
+		amount = toBN("100", 18);
+		usdAmount = await sweep.convertToUSD(amount);
+		sweepAmount = await sweep.convertToSWEEP(usdAmount);
+		expect(sweepAmount).to.eq(amount);
+	})
 });

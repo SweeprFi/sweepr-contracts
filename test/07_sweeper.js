@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
+const { Const } = require("../utils/helper_functions");
 
 contract("Sweepr", async function () {
 	before(async () => {
@@ -9,6 +10,7 @@ contract("Sweepr", async function () {
 		Sweep = await ethers.getContractFactory("SweepCoin");
 		Sweepr = await ethers.getContractFactory("SweeprCoin");
 
+		MINT_AMOUNT = ethers.utils.parseUnits("2000", 18);
 		TRANSFER_AMOUNT = ethers.utils.parseUnits("1000", 18);
 		PRECISION = 1000000;
 		ZERO = 0;
@@ -24,6 +26,11 @@ contract("Sweepr", async function () {
 		blacklistApprover = await BlacklistApprover.deploy(sweep.address);
 
 		sweepr = await Sweepr.deploy(sweep.address);
+	});
+
+	it('sets a new transfer approver correctly', async () => {
+		await expect(sweepr.setTransferApprover(Const.ADDRESS_ZERO))
+			.to.be.revertedWithCustomError(sweepr, "ZeroAddressDetected");
 		await sweepr.setTransferApprover(blacklistApprover.address);
 	});
 
@@ -32,11 +39,16 @@ contract("Sweepr", async function () {
 			.to.be.revertedWithCustomError(Sweepr, 'NotGovernance');
 	});
 
-	it('mints correctly by owner', async () => {
+	it('mints and burns correctly by owner', async () => {
 		senderBalance = await sweepr.balanceOf(sender.address);
 		expect(senderBalance).to.equal(ZERO);
 
-		await sweepr.connect(owner).mint(sender.address, TRANSFER_AMOUNT);
+		await sweepr.connect(owner).mint(sender.address, MINT_AMOUNT);
+
+		senderBalance = await sweepr.balanceOf(sender.address);
+		expect(senderBalance).to.equal(MINT_AMOUNT);
+
+		await sweepr.connect(sender).burn(TRANSFER_AMOUNT);
 
 		senderBalance = await sweepr.balanceOf(sender.address);
 		expect(senderBalance).to.equal(TRANSFER_AMOUNT);

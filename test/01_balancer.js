@@ -16,8 +16,8 @@ contract("Balancer", async function () {
 		Sweep = await ethers.getContractFactory("SweepMock");
 		SweepProxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
-            addresses.owner,
-            2500 // 0.25%
+			addresses.owner,
+			2500 // 0.25%
 		]);
 		sweep = await SweepProxy.deployed();
 
@@ -63,7 +63,7 @@ contract("Balancer", async function () {
 
 		await balancer.refreshInterestRate();
 
-		expect(await sweep.interest_rate()).to.be.equal(stepValue*2);
+		expect(await sweep.interest_rate()).to.be.equal(stepValue * 2);
 		expect(await sweep.target_price()).to.be.equal(next_tp);
 		expect(await sweep.current_target_price()).to.be.equal(next_tp);
 		expect(await sweep.next_target_price()).to.be.above(next_tp);
@@ -142,5 +142,33 @@ contract("Balancer", async function () {
 			expect(await balancer.amounts(address)).to.be.equal(0);
 			expect(await balancer.index()).to.be.equal(0);
 		});
+	});
+
+	it('sets a new Sweep interest rate', async () => {
+		interest = 2500;
+		await expect(balancer.connect(lzEndpoint).setInterestRate(interest))
+			.to.be.revertedWithCustomError(balancer, "NotMultisig");
+
+		await balancer.setInterestRate(interest);
+		expect(await sweep.interest_rate()).to.equal(interest);
+	});
+
+	it('refresh the interest rate calling execute', async () => {
+		interest = await sweep.interest_rate();
+		nextTarget = await sweep.next_target_price();
+
+		await increaseTime(Const.DAY * 7); // 7 days
+		await balancer.execute(0, false);
+
+		expect(await sweep.interest_rate()).to.eq(Const.ZERO);
+		expect(await sweep.target_price()).to.eq(nextTarget);
+		expect(await sweep.current_target_price()).to.eq(nextTarget);
+		expect(await sweep.next_target_price()).to.eq(nextTarget);
+	});
+
+	it('reverts becuase expect invest and gets call', async () => {
+		await increaseTime(Const.DAY * 7); // 7 days
+		await expect(balancer.execute(2, false))
+			.to.be.revertedWithCustomError(balancer, "ModeMismatch", 2, 1);
 	});
 });

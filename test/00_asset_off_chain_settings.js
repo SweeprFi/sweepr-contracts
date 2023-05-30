@@ -80,7 +80,10 @@ contract("Off-Chain Asset - Settings", async function () {
 		describe("Use collateral agent", async function () {
 			it("Update value by collateral agent", async function () {
 				// Update value by collateral agent
-				await offChainAsset.connect(borrower).setCollateralAgent(wallet.address)
+				await expect(offChainAsset.connect(borrower).setCollateralAgent(Const.ADDRESS_ZERO))
+					.to.be.revertedWithCustomError(offChainAsset, "ZeroAddressDetected");
+
+				await offChainAsset.connect(borrower).setCollateralAgent(wallet.address);
 				await offChainAsset.connect(wallet).updateValue(amount);
 				expect(await offChainAsset.current_value()).to.equal(amount);
 			});
