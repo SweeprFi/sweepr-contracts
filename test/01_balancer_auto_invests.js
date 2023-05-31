@@ -24,7 +24,7 @@ contract('Balancer - Auto Invests', async () => {
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [
             lzEndpoint.address,
-            OWNER,
+            owner.address,
             2500 // 0.25%
         ]);
         sweep = await Proxy.deployed();
@@ -92,7 +92,7 @@ contract('Balancer - Auto Invests', async () => {
             // Set Balancer in the Sweep
             await sweep.setBalancer(balancer.address);
             user = await impersonate(addresses.owner);
-            await sweep.connect(user).setTreasury(TREASURY);
+            await sweep.setTreasury(TREASURY);
 
             // Add the assets to the minter list
             await Promise.all(

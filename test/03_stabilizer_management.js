@@ -13,12 +13,11 @@ contract("Stabilizer - Management Functions", async function () {
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [
       lzEndpoint.address,
-      addresses.owner,
+      multisig.address,
       2500 // 0.25%
     ]);
     sweep = await Proxy.deployed();
-    user = await impersonate(addresses.owner);
-    await sweep.connect(user).setTreasury(addresses.treasury);
+    await sweep.setTreasury(addresses.treasury);
     await sweep.setBalancer(balancer.address);
 
     Token = await ethers.getContractFactory("USDCMock");
@@ -141,7 +140,7 @@ contract("Stabilizer - Management Functions", async function () {
 
     it("set pause correctly", async function () {
       expect(await offChainAsset.paused()).to.equal(Const.FALSE);
-      await offChainAsset.connect(owner).pause();
+      await offChainAsset.connect(multisig).pause();
       expect(await offChainAsset.paused()).to.equal(Const.TRUE);
     });
   });
@@ -163,7 +162,7 @@ contract("Stabilizer - Management Functions", async function () {
     });
 
     it("not a valid minter", async function () {
-      await offChainAsset.connect(owner).unpause();
+      await offChainAsset.connect(multisig).unpause();
       await expect(offChainAsset.connect(borrower).borrow(amount))
         .to.be.revertedWithCustomError(offChainAsset, 'InvalidMinter');
     });

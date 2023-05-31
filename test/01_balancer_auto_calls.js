@@ -26,7 +26,7 @@ contract('Balancer - Auto Call', async () => {
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [
       lzEndpoint.address,
-      addresses.owner,
+      owner.address,
       2500 // 0.25%
     ]);
     sweep = await Proxy.deployed();
@@ -79,8 +79,7 @@ contract('Balancer - Auto Call', async () => {
       await sweep.addMinter(assets[2].address, MAX_MINT);
       await sweep.addMinter(assets[3].address, MAX_MINT);
 
-      user = await impersonate(addresses.owner);
-      await sweep.connect(user).setTreasury(TREASURY);
+      await sweep.setTreasury(TREASURY);
       
       // sends funds to Borrower
       user = await impersonate(USDC_ADDRESS);

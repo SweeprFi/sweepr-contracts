@@ -1,6 +1,5 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../utils/address');
 const { increaseTime, toBN, Const } = require("../utils/helper_functions");
 
 contract("Balancer", async function () {
@@ -16,7 +15,7 @@ contract("Balancer", async function () {
 		Sweep = await ethers.getContractFactory("SweepMock");
 		SweepProxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
-			addresses.owner,
+			owner.address,
 			2500 // 0.25%
 		]);
 		sweep = await SweepProxy.deployed();
