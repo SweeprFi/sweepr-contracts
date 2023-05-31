@@ -77,6 +77,8 @@ const addresses = {
   asset_compound: assets.compound[chainId],
 }
 
+const cardinality = uniswap.observationCardinality[chainId];
+
 const network = {
   name: networks[chainId],
   type: networkType
@@ -115,5 +117,6 @@ module.exports = {
   addresses,
   network,
   roles,
-  getDeployedAddress
+  getDeployedAddress,
+  cardinality
 }

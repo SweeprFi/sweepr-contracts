@@ -1,11 +1,11 @@
 const { ethers } = require('hardhat');
-const { addresses, network } = require("../../utils/address");
+const { addresses, network, cardinality } = require("../../utils/address");
 const { Const, toBN } = require('../../utils/helper_functions');
 
 
 async function main() {
 	const sweep = addresses.sweep.toString().toLowerCase();
-	const usdc = addresses.usdt.toString().toLowerCase();
+	const usdc = addresses.usdc.toString().toLowerCase();
 
 	let token0, token1, sqrtPriceX96;
 
@@ -22,7 +22,7 @@ async function main() {
 	factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
     positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniswap_position_manager);
 
-	await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96);
+	await (await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)).wait();
 	poolAddress = await factory.getPool(usdc, sweep, Const.FEE);
 
 	pool = await ethers.getContractAt("IUniswapV3Pool", poolAddress);
@@ -35,6 +35,10 @@ async function main() {
 	}
 
 	console.log(`Pool address on ${network.name}: ${poolAddress}`);
+
+	await (await pool.increaseObservationCardinalityNext(cardinality)).wait();
+
+	console.log("Cardinality increased:", cardinality);
 }
 
 main();

@@ -29,7 +29,7 @@ contract Owned {
     }
 
     modifier onlyMultisig() {
-        if (msg.sender != SWEEP.owner() && msg.sender != SWEEP.fast_multisig())
+        if (msg.sender != SWEEP.fast_multisig())
             revert NotMultisig();
         _;
     }

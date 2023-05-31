@@ -197,6 +197,11 @@ const uniswap = {
     5: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
     42161: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
   },
+  observationCardinality: {
+    1: 96,
+    5: 24,
+    42161: 480
+  }
 }
 
 const protocol = {
