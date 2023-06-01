@@ -106,6 +106,12 @@ const tokens = {
     5: '',
     42161: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
   },
+  backed: {
+    1: '0xCA30c93B02514f86d5C86a6e375E3A330B435Fb5',
+    5: '0xcd75bf08f798C7a17F24DB2172490d88ED11BDd3',
+    42161: '',
+    421613: ''
+  },
 }
 
 const libraries = {
@@ -133,6 +139,18 @@ const libraries = {
     1: '',
     5: '',
     42161: '0xB95DB5B167D75e6d04227CfFFA61069348d271F5',
+  },
+  backed_mint: {
+    1: '',
+    5: '0xfb8e5651209ab5bdc16a95ac4585f017305030ac',
+    42161: '',
+    421613: ''
+  },
+  backed_redeem: {
+    1: '',
+    5: '0x0d96fd4087211cef3babb45fc641fd9e429636d7',
+    42161: '',
+    421613: ''
   }
 }
 
@@ -156,6 +174,12 @@ const chainlink_oracle = {
     1: '0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6',
     5: '0xAb5c49580294Aff77670F839ea425f5b78ab3Ae7',
     42161: '0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3'
+  },
+  backed_usd: {
+    1: '0x788D911ae7c95121A89A0f0306db65D87422E1de',
+    5: '0x788D911ae7c95121A89A0f0306db65D87422E1de',
+    42161: '',
+    421613: ''
   },
   sequencer_feed: {
     1: '0x0000000000000000000000000000000000000000',
