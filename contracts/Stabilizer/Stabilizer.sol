@@ -26,7 +26,6 @@ import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 
-
 contract Stabilizer is Owned, Pausable {
     using Math for uint256;
     
@@ -61,6 +60,7 @@ contract Stabilizer is Owned, Pausable {
     uint256 private constant TIME_ONE_YEAR = 365 * DAY_SECONDS; // seconds of Year
     uint256 private constant PRECISION = 1e6;
     uint256 private constant ORACLE_FREQUENCY = 1 days;
+    uint256 private constant SLIPPAGE = 2000;
 
     /* ========== Events ========== */
 
@@ -160,7 +160,7 @@ contract Stabilizer is Owned, Pausable {
      */
     function isDefaulted() public view returns (bool) {
         return
-            (call_amount > 0 && block.timestamp > call_time) ||
+            (call_delay > 0 && call_amount > 0 && block.timestamp > call_time) ||
             (sweep_borrowed > 0 && getEquityRatio() < min_equity_ratio);
     }
 
@@ -206,9 +206,8 @@ contract Stabilizer is Owned, Pausable {
     function currentValue() public view virtual returns (uint256) {
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
         uint256 sweep_balance_in_usd = SWEEP.convertToUSD(sweep_balance);
-        uint256 accrued_fee_in_usd = SWEEP.convertToUSD(accruedFee());
 
-        return (amm.tokenToUSD(usdx_balance) + sweep_balance_in_usd - accrued_fee_in_usd);
+        return (amm.tokenToUSD(usdx_balance) + sweep_balance_in_usd);
     }
 
     /**
@@ -357,7 +356,7 @@ contract Stabilizer is Owned, Pausable {
         uint256 spread_amount = accruedFee();
         spread_date = block.timestamp;
 
-        (, uint256 sweep_balance) = _balances();
+        uint256 sweep_balance = SWEEP.balanceOf(address(this));
 
         if (spread_amount > sweep_balance) revert SpreadNotEnough();
 
@@ -392,22 +391,31 @@ contract Stabilizer is Owned, Pausable {
      * 3) repays remaining debt by buying on SWEEP in the AMM
      */
     function autoCall(uint256 _sweep_amount) external onlyBalancer {
-        uint256 missing_usdx = 0;
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
+        uint256 repay_amount = _sweep_amount.min(sweep_borrowed);
 
-        if (call_delay > 0) call_time = block.timestamp + call_delay;
-
-        call_amount = _sweep_amount.min(sweep_borrowed);
-
-        if (sweep_balance < call_amount) {
-            uint256 missing_sweep = call_amount - sweep_balance;
-            missing_usdx = SWEEP.convertToUSD(missing_sweep);
-            if (missing_usdx > usdx_balance)
-                _divest(missing_usdx - usdx_balance);
+        if (call_delay > 0) {
+            call_time = block.timestamp + call_delay;
+            call_amount = repay_amount;
         }
 
-        if (missing_usdx > 0) call_amount = _buy(missing_usdx, 0);
-        if (call_amount > 0) _repay(call_amount);
+        if (sweep_balance < repay_amount) {
+            uint256 missing_sweep = repay_amount - sweep_balance;
+            uint256 missing_usdx = amm.USDtoToken(SWEEP.convertToUSD(missing_sweep));
+
+            if (missing_usdx > usdx_balance) {
+                _divest(missing_usdx - usdx_balance);
+            }
+
+            if (usdx.balanceOf(address(this)) > 0) {
+                uint256 minAmountOut = SWEEP.convertToSWEEP(amm.tokenToUSD(missing_usdx)) * (PRECISION - amm.poolFee() - SLIPPAGE) / PRECISION;
+                _buy(missing_usdx, minAmountOut);
+            }
+        }
+
+        if (SWEEP.balanceOf(address(this)) > 0 && repay_amount > 0 ) {
+            _repay(repay_amount);
+        }
 
         emit AutoCalled(_sweep_amount);
     }
@@ -438,7 +446,8 @@ contract Stabilizer is Owned, Pausable {
         if(current_equity_ratio < auto_invest_min_ratio) revert NotAutoInvestMinRatio();
 
         _borrow(_sweep_amount);
-        uint256 usdx_amount = _sell(_sweep_amount, 0);
+        uint256 minAmountOut = amm.USDtoToken(SWEEP.convertToUSD(_sweep_amount)) * (PRECISION - amm.poolFee() - SLIPPAGE) / PRECISION;
+        uint256 usdx_amount = _sell(_sweep_amount, minAmountOut);
         _invest(usdx_amount, 0);
 
         emit AutoInvested(_sweep_amount);
@@ -486,7 +495,7 @@ contract Stabilizer is Owned, Pausable {
         uint256 _usdx_amount
     ) external onlyBorrower whenNotPaused validAmount(_usdx_amount) {
         uint256 sweep_amount = SWEEP.convertToSWEEP(amm.tokenToUSD(_usdx_amount));
-        (, uint256 sweep_balance) = _balances();
+        uint256 sweep_balance = SWEEP.balanceOf(address(this));
         if (sweep_amount > sweep_balance) revert NotEnoughBalance();
 
         TransferHelper.safeTransferFrom(
@@ -509,9 +518,8 @@ contract Stabilizer is Owned, Pausable {
     function swapSweepToUsdx(
         uint256 _sweep_amount
     ) external onlyBorrower whenNotPaused validAmount(_sweep_amount) {
-        uint256 usd_amount = SWEEP.convertToUSD(_sweep_amount);
-        (uint256 usdx_balance, ) = _balances();
-        uint256 usdx_amount = amm.USDtoToken(usd_amount);
+        uint256 usdx_amount = amm.USDtoToken(SWEEP.convertToUSD(_sweep_amount));
+        uint256 usdx_balance = usdx.balanceOf(address(this));
 
         if (usdx_amount > usdx_balance) revert NotEnoughBalance();
 
@@ -604,7 +612,7 @@ contract Stabilizer is Owned, Pausable {
         uint256 _usdx_amount,
         uint256 _amountOutMin
     ) internal returns (uint256) {
-        (uint256 usdx_balance, ) = _balances();
+        uint256 usdx_balance = usdx.balanceOf(address(this));
         _usdx_amount = _usdx_amount.min(usdx_balance);
 
         if (_usdx_amount == 0) revert NotEnoughBalance();
@@ -623,7 +631,7 @@ contract Stabilizer is Owned, Pausable {
         uint256 _sweep_amount,
         uint256 _amountOutMin
     ) internal returns (uint256) {
-        (, uint256 sweep_balance) = _balances();
+        uint256 sweep_balance = SWEEP.balanceOf(address(this));
         _sweep_amount = _sweep_amount.min(sweep_balance);
 
         if (_sweep_amount == 0) revert NotEnoughBalance();
@@ -657,7 +665,7 @@ contract Stabilizer is Owned, Pausable {
     }
 
     function _repay(uint256 _sweep_amount) internal {
-        (, uint256 sweep_balance) = _balances();
+        uint256 sweep_balance = SWEEP.balanceOf(address(this));
         _sweep_amount = _sweep_amount.min(sweep_balance);
 
         if (_sweep_amount == 0) revert NotEnoughBalance();
