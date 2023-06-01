@@ -60,7 +60,8 @@ contract GlpAsset is Stabilizer {
      * @return uint256.
      */
     function currentValue() public view override returns (uint256) {
-        return assetValue() + super.currentValue();
+        uint256 accrued_fee_in_usd = SWEEP.convertToUSD(accruedFee());
+        return assetValue() + super.currentValue() - accrued_fee_in_usd;
     }
 
     /**

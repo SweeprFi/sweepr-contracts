@@ -25,7 +25,9 @@ async function binary_search() {
     sweep = await ethers.getContractAt("SweepCoin", addresses.sweep);
     usdc = await ethers.getContractAt("ERC20", addresses.usdc);
 
-    const sweepOwner = await sweep.owner();
+    const SWEEP_OWNER = await sweep.owner();
+    const BALANCER = await sweep.balancer();
+
     let sweepBalance = await sweep.balanceOf(addresses.uniswap_pool);
     let usdcBalance = await usdc.balanceOf(addresses.uniswap_pool);
 
@@ -101,18 +103,18 @@ async function binary_search() {
             await helpers.reset(url, blockNumber);
         }
 
-        await sendEth(sweepOwner);
-        await sendEth(addresses.usdc);
+        await sendEth(SWEEP_OWNER);
+        await sendEth(BALANCER);
+        // await sendEth(addresses.usdc);
         await sendBalance();
     }
     // =================== sends balances to the Tester ===================
     async function sendBalance() {
-        user = await impersonate(sweepOwner);
+        user = await impersonate(SWEEP_OWNER);
         await usdc.connect(user).transfer(tester.address, USDC_AMOUNT);
-
-        user = await impersonate(sweepOwner);
         await sweep.connect(user).addMinter(tester.address, SWEEP_AMOUNT);
         // sets a lower target price to can mint more Sweep
+        user = await impersonate(BALANCER);
         await sweep.connect(user).setTargetPrice(100, 100);
         await sweep.minter_mint(tester.address, SWEEP_AMOUNT);
 

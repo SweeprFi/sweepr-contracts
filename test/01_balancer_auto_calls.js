@@ -6,22 +6,26 @@ let user;
 
 contract('Balancer - Auto Call', async () => {
   before(async () => {
-    [owner, lzEndpoint] = await ethers.getSigners();
+    [owner, lzEndpoint, wallet] = await ethers.getSigners();
     // constants
     BORROWER = addresses.borrower;
     USDC_ADDRESS = addresses.usdc;
     TREASURY = addresses.treasury;
+    WALLET = wallet.address;
+
     MAX_MINT = toBN("1000", 18);
-    SWEEP_MINT = toBN("100", 18);
-    HALF_MINT = toBN("50", 18);
-    AUTO_MIN_AMOUNT = toBN("10", 18);
-    USDC_AMOUNT = 20e6;
+    SWEEP_MINT = toBN("800", 18);
+    AUTO_MIN_AMOUNT = toBN("200", 18);
+    HALF_MINT = toBN("400", 18);
+
+    TOTAL_USDC = 900e6;
+    USDC_AMOUNT = 100e6;
     MIN_RATIO = 1e5; // 10 %
-    LOAN_LIMIT = SWEEP_MINT; // 100 sweeps
+    LOAN_LIMIT = SWEEP_MINT; // 900 sweeps
     AUTO_MIN_RATIO = 5e4; // 5%
 
     // Contracts
-    usdc = await ethers.getContractAt("ERC20", addresses.usdc);
+    usdc = await ethers.getContractAt("ERC20", USDC_ADDRESS);
     // Deploys
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [
@@ -39,8 +43,10 @@ contract('Balancer - Auto Call', async () => {
     balancer = await Balancer.deploy(sweep.address);
 
     StabilizerAave = await ethers.getContractFactory("AaveV3Asset");
+    OffChainAsset = await ethers.getContractFactory("OffChainAsset");
+
     assets = await Promise.all(
-      Array(4).fill().map(async () => {
+      Array(5).fill().map(async () => {
         return await StabilizerAave.deploy(
           'Aave Asset',
           sweep.address,
@@ -51,25 +57,48 @@ contract('Balancer - Auto Call', async () => {
         );
       })
     );
+
+    assets[5] = await OffChainAsset.deploy(
+      'OffChain Asset',
+      sweep.address,
+      USDC_ADDRESS,
+      WALLET,
+      amm.address,
+      BORROWER
+    );
   });
 
   describe('Auto Calls - Balancer & Stabilizers', async () => {
     it('config the initial state', async () => {
       user = await impersonate(BORROWER);
       await Promise.all(
-        assets.map(async (asset) => {
-          await asset.connect(user).configure(
-            MIN_RATIO,
-            Const.SPREAD_FEE,
-            LOAN_LIMIT,
-            Const.DISCOUNT,
-            Const.ZERO,
-            AUTO_MIN_RATIO,
-            AUTO_MIN_AMOUNT,
-            Const.TRUE,
-            Const.URL
-          );
+        assets.map(async (asset, index) => {
+          if (index < 5) {
+            await asset.connect(user).configure(
+              MIN_RATIO,
+              Const.SPREAD_FEE,
+              LOAN_LIMIT,
+              Const.DISCOUNT,
+              Const.ZERO,
+              AUTO_MIN_RATIO,
+              AUTO_MIN_AMOUNT,
+              Const.TRUE,
+              Const.URL
+            )
+          };
         })
+      );
+
+      await assets[5].connect(user).configure(
+        MIN_RATIO,
+        Const.SPREAD_FEE,
+        LOAN_LIMIT,
+        Const.DISCOUNT,
+        Const.DAYS_5,
+        AUTO_MIN_RATIO,
+        AUTO_MIN_AMOUNT,
+        Const.TRUE,
+        Const.URL
       );
 
       // adds the assets to the minter list
@@ -78,12 +107,14 @@ contract('Balancer - Auto Call', async () => {
       await sweep.addMinter(assets[1].address, MAX_MINT);
       await sweep.addMinter(assets[2].address, MAX_MINT);
       await sweep.addMinter(assets[3].address, MAX_MINT);
-
+      await sweep.addMinter(assets[4].address, MAX_MINT);
+      await sweep.addMinter(assets[5].address, MAX_MINT);
+      
       await sweep.setTreasury(TREASURY);
       
       // sends funds to Borrower
       user = await impersonate(USDC_ADDRESS);
-      await usdc.connect(user).transfer(BORROWER, USDC_AMOUNT * 4);
+      await usdc.connect(user).transfer(BORROWER, USDC_AMOUNT * 6);
       await usdc.connect(user).transfer(amm.address, USDC_AMOUNT * 100);
       await sweep.transfer(amm.address, MAX_MINT);
     });
@@ -107,6 +138,8 @@ contract('Balancer - Auto Call', async () => {
       expect(await assets[1].sweep_borrowed()).to.equal(SWEEP_MINT);
       expect(await assets[2].sweep_borrowed()).to.equal(SWEEP_MINT);
       expect(await assets[3].sweep_borrowed()).to.equal(SWEEP_MINT);
+      expect(await assets[4].sweep_borrowed()).to.equal(SWEEP_MINT);
+      expect(await assets[5].sweep_borrowed()).to.equal(SWEEP_MINT);
     });
 
     it('config the assets', async () => {
@@ -114,69 +147,111 @@ contract('Balancer - Auto Call', async () => {
       await assets[1].connect(user).sellSweepOnAMM(SWEEP_MINT, Const.ZERO);
       await assets[2].connect(user).sellSweepOnAMM(SWEEP_MINT, Const.ZERO);
       await assets[3].connect(user).sellSweepOnAMM(HALF_MINT, Const.ZERO);
+      await assets[4].connect(user).sellSweepOnAMM(SWEEP_MINT, Const.ZERO);
 
-      balance = await usdc.balanceOf(assets[2].address);
-      await assets[2].connect(user).invest(balance);
-      investedValue3 = await assets[2].assetValue();
+      balance2 = await usdc.balanceOf(assets[2].address);
+      await assets[2].connect(user).invest(balance2);
 
-      balance = await usdc.balanceOf(assets[3].address);
-      await assets[3].connect(user).invest(balance.mul(3).div(4));
-      investedValue4 = await assets[3].assetValue();
+      balance3 = await usdc.balanceOf(assets[3].address);
+      await assets[3].connect(user).invest(balance3.mul(3).div(4));
+
+      balance4 = await usdc.balanceOf(assets[4].address);
+      await assets[4].connect(user).invest(balance4);
+      await assets[5].connect(user).invest(USDC_AMOUNT, SWEEP_MINT);
 
       expect(await usdc.balanceOf(assets[0].address)).to.equal(USDC_AMOUNT);
       expect(await sweep.balanceOf(assets[0].address)).to.equal(SWEEP_MINT);
+      expect(await assets[0].assetValue()).to.equal(Const.ZERO);
+      fee = await assets[0].accruedFee();
+      fee = await sweep.convertToUSD(fee);
+      expect(await assets[0].currentValue()).to.equal(TOTAL_USDC-fee);
 
       expect(await usdc.balanceOf(assets[1].address)).to.above(USDC_AMOUNT);
       expect(await sweep.balanceOf(assets[1].address)).to.equal(Const.ZERO);
+      expect(await assets[1].assetValue()).to.equal(Const.ZERO);
 
       expect(await usdc.balanceOf(assets[2].address)).to.equal(Const.ZERO);
       expect(await sweep.balanceOf(assets[2].address)).to.equal(Const.ZERO);
-      expect(investedValue3).to.above(Const.ZERO);
+      currentValue = await assets[2].currentValue();
+      fee = await assets[2].accruedFee();
+      fee = await sweep.convertToUSD(fee);
+      expect(await assets[2].assetValue()).to.equal(currentValue.add(fee));
 
+      expect(await usdc.balanceOf(assets[3].address)).to.equal(balance3.mul(1).div(4));
       expect(await sweep.balanceOf(assets[3].address)).to.equal(HALF_MINT);
-      expect(investedValue4).to.above(Const.ZERO);
+      expect(await assets[3].assetValue()).to.above(Const.ZERO);
+
+      expect(await usdc.balanceOf(assets[5].address)).to.equal(Const.ZERO);
+      expect(await sweep.balanceOf(assets[5].address)).to.equal(Const.ZERO);
+      expect(await assets[5].assetValue()).to.equal(TOTAL_USDC);
     });
 
     it('balancer calls the Stabilizers to repay debts', async () => {
       targets = assets.map((asset) => { return asset.address });
-      amount = toBN("75", 18);
-      amounts = [amount, amount, amount, amount]; // 75 Sweep to each stabilizer
-      CALL_SWEEP = toBN("75", 18);
-      CALL_USDC = toBN("75", 6);
-      NEW_LOAN_LIMIT = toBN("25", 18);
+      amount = toBN("750", 18);
+      amounts = [amount, amount, amount, amount, 0, amount];
+      CALL_SWEEP = toBN("825", 18);
+      CALL_USDC = toBN("92455", 4);
+      NEW_LOAN_LIMIT = toBN("50", 18);
 
-      assetValue = await assets[3].assetValue();
+      assetValue3 = await assets[3].assetValue();
 
       // constraints
       user = await impersonate(USDC_ADDRESS);
-
       await balancer.addActions(targets, amounts);
       await balancer.execute(2, true); // 2 => call, force: true
 
+      blockNumber = await ethers.provider.getBlockNumber();
+      block = await ethers.provider.getBlock(blockNumber);
+
       // asset 1 paid his debt with Sweep
       expect(await usdc.balanceOf(assets[0].address)).to.equal(USDC_AMOUNT);
-      expect(await sweep.balanceOf(assets[0].address)).to.above(Const.ZERO);
-      expect(await sweep.balanceOf(assets[0].address)).to.not.above(CALL_SWEEP);
+      expect(await sweep.balanceOf(assets[0].address)).to.equal(NEW_LOAN_LIMIT);
+      expect(await assets[0].call_amount()).to.equal(Const.ZERO);
 
       // asset 2 paid his debt with USDC
       expect(await usdc.balanceOf(assets[1].address)).to.not.above(CALL_USDC);
       expect(await sweep.balanceOf(assets[1].address)).to.equal(Const.ZERO);
+      expect(await assets[1].call_amount()).to.equal(Const.ZERO);
 
       // asset 3 paid his debt after divest
       expect(await usdc.balanceOf(assets[2].address)).to.equal(Const.ZERO);
       expect(await sweep.balanceOf(assets[2].address)).to.equal(Const.ZERO);
       expect(await assets[2].call_amount()).to.equal(Const.ZERO);
-      expect(await assets[2].assetValue()).to.not.above(investedValue3);
 
       // asset 4 paid his debt using SWEEP, USDC and divest
       expect(await usdc.balanceOf(assets[3].address)).to.equal(Const.ZERO);
-      expect(await sweep.balanceOf(assets[3].address)).to.equal(HALF_MINT);
-      expect(await assets[3].assetValue()).to.not.equal(assetValue);
+      expect(await sweep.balanceOf(assets[3].address)).to.equal(Const.ZERO);
+      expect(await assets[3].assetValue()).to.not.equal(assetValue3);
+      expect(await assets[3].call_amount()).to.equal(Const.ZERO);
 
+      // asset 5 - Off chain asset
+      expect(await usdc.balanceOf(assets[4].address)).to.equal(Const.ZERO);
+      expect(await sweep.balanceOf(assets[4].address)).to.equal(Const.ZERO);
+
+      // asset 6 - Off chain asset
+      expect(await usdc.balanceOf(assets[5].address)).to.equal(Const.ZERO);
+      expect(await sweep.balanceOf(assets[5].address)).to.equal(Const.ZERO);
+      expect(await assets[5].assetValue()).to.equal(TOTAL_USDC);
+      expect(await assets[5].call_amount()).to.equal(amount);
+      expect(await assets[5].call_time()).to.equal(block.timestamp + Const.DAYS_5);
+
+      // new loan limits
       expect(await assets[0].loan_limit()).to.eq(NEW_LOAN_LIMIT);
       expect(await assets[1].loan_limit()).to.eq(NEW_LOAN_LIMIT);
       expect(await assets[2].loan_limit()).to.eq(NEW_LOAN_LIMIT);
       expect(await assets[3].loan_limit()).to.eq(NEW_LOAN_LIMIT);
+      expect(await assets[4].loan_limit()).to.eq(LOAN_LIMIT);
+      expect(await assets[5].loan_limit()).to.eq(NEW_LOAN_LIMIT);
+    });
+
+    it('cancels call correctly', async () => {
+      await expect(balancer.connect(wallet).cancelCall(assets[4].address))
+        .to.be.revertedWithCustomError(balancer, "NotMultisig");
+
+      await balancer.cancelCall(assets[4].address);
+      expect(await assets[4].call_time()).to.equal(Const.ZERO);
+      expect(await assets[4].call_amount()).to.equal(Const.ZERO);
     });
   });
 });
