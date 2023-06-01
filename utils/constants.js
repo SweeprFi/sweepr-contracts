@@ -285,7 +285,7 @@ const assets = {
   },
   aave:{ // V3
     1: '',
-    5: '0x6bE8ddC4543bCD842CB8602a158cCa1555CF62Bf',
+    5: '0x924CCB6C4890b88F241cE3825c6C731967156897',
     42161: '0x99fb540EA905Ac084F938c4aC7cDBAb88d650e25',
   },
   uniswap: {
@@ -309,6 +309,12 @@ const assets = {
     5: '',
     42161: '',
   },
+  backed:{
+    1: '',
+    5: '0x834557f46E2F3833e4f926Df1c4858F26A18E318',
+    42161: '',
+  },
+
 }
 
 module.exports = {
