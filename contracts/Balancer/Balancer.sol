@@ -186,7 +186,7 @@ contract Balancer is Owned {
      * @param intention 0 => idle, 1 => invests, 2 => calls
      * @param force the execution if the state does not corresponds to the intention
      */
-    function execute(Mode intention, bool force) external onlyMultisig {
+    function execute(Mode intention, bool force, uint256 price, uint256 slippage) external onlyMultisig {
         emit Execute(intention);
 
         Mode state = refreshInterestRate();
@@ -202,10 +202,10 @@ contract Balancer is Owned {
             if (amount > 0) {
                 if (intention == Mode.INVEST) {
                     stabilizer.setLoanLimit(stabilizer.loan_limit() + amount);
-                    stabilizer.autoInvest(amount);
+                    stabilizer.autoInvest(amount, price, slippage);
                 } else {
                     // intention is CALL
-                    stabilizer.autoCall(amount);
+                    stabilizer.autoCall(amount, price, slippage);
                     stabilizer.setLoanLimit(stabilizer.loan_limit() - amount);
                 }
             }

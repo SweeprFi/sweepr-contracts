@@ -60,7 +60,6 @@ contract Stabilizer is Owned, Pausable {
     uint256 private constant TIME_ONE_YEAR = 365 * DAY_SECONDS; // seconds of Year
     uint256 private constant PRECISION = 1e6;
     uint256 private constant ORACLE_FREQUENCY = 1 days;
-    uint256 private constant SLIPPAGE = 2000;
 
     /* ========== Events ========== */
 
@@ -384,15 +383,15 @@ contract Stabilizer is Owned, Pausable {
 
     /**
      * @notice Auto Call.
-     * @param _sweep_amount to repay.
+     * @param sweep_amount to repay.
      * @dev Strategy:
      * 1) repays debt with SWEEP balance
      * 2) repays remaining debt by divesting
      * 3) repays remaining debt by buying on SWEEP in the AMM
      */
-    function autoCall(uint256 _sweep_amount) external onlyBalancer {
+    function autoCall(uint256 sweep_amount, uint256 price, uint256 slippage) external onlyBalancer {
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
-        uint256 repay_amount = _sweep_amount.min(sweep_borrowed);
+        uint256 repay_amount = sweep_amount.min(sweep_borrowed);
 
         if (call_delay > 0) {
             call_time = block.timestamp + call_delay;
@@ -408,7 +407,9 @@ contract Stabilizer is Owned, Pausable {
             }
 
             if (usdx.balanceOf(address(this)) > 0) {
-                uint256 minAmountOut = SWEEP.convertToSWEEP(amm.tokenToUSD(missing_usdx)) * (PRECISION - amm.poolFee() - SLIPPAGE) / PRECISION;
+                uint256 missing_usd = amm.tokenToUSD(missing_usdx);
+                uint256 sweepAmount = missing_usd.mulDiv(10 ** SWEEP.decimals(), price);
+                uint256 minAmountOut = sweepAmount * (PRECISION - slippage) / PRECISION;
                 _buy(missing_usdx, minAmountOut);
             }
         }
@@ -417,7 +418,7 @@ contract Stabilizer is Owned, Pausable {
             _repay(repay_amount);
         }
 
-        emit AutoCalled(_sweep_amount);
+        emit AutoCalled(sweep_amount);
     }
 
     /**
@@ -433,24 +434,27 @@ contract Stabilizer is Owned, Pausable {
 
     /**
      * @notice Auto Invest.
-     * @param _sweep_amount to mint.
+     * @param sweep_amount to mint.
      */
-    function autoInvest(uint256 _sweep_amount) external onlyBalancer {
+    function autoInvest(uint256 sweep_amount, uint256 price, uint256 slippage) external onlyBalancer {
         uint256 sweep_limit = SWEEP.minters(address(this)).max_amount;
         uint256 sweep_available = sweep_limit - sweep_borrowed;
-        _sweep_amount = _sweep_amount.min(sweep_available);
-        int256 current_equity_ratio = _calculateEquityRatio(_sweep_amount, 0);
+        sweep_amount = sweep_amount.min(sweep_available);
+        int256 current_equity_ratio = _calculateEquityRatio(sweep_amount, 0);
         
         if(!auto_invest) revert NotAutoInvest();
-        if(_sweep_amount < auto_invest_min_amount) revert NotAutoInvestMinAmount();
+        if(sweep_amount < auto_invest_min_amount) revert NotAutoInvestMinAmount();
         if(current_equity_ratio < auto_invest_min_ratio) revert NotAutoInvestMinRatio();
 
-        _borrow(_sweep_amount);
-        uint256 minAmountOut = amm.USDtoToken(SWEEP.convertToUSD(_sweep_amount)) * (PRECISION - amm.poolFee() - SLIPPAGE) / PRECISION;
-        uint256 usdx_amount = _sell(_sweep_amount, minAmountOut);
+        _borrow(sweep_amount);
+
+        uint256 usdAmount = sweep_amount.mulDiv(price, 10 ** SWEEP.decimals());
+        uint256 minAmountOut = amm.USDtoToken(usdAmount) * (PRECISION - slippage) / PRECISION;
+        uint256 usdx_amount = _sell(sweep_amount, minAmountOut);
+
         _invest(usdx_amount, 0);
 
-        emit AutoInvested(_sweep_amount);
+        emit AutoInvested(sweep_amount);
     }
 
     /**

@@ -178,7 +178,7 @@ contract('Balancer - Auto Invests', async () => {
             expectedLimit = toBN("125", 18); // oldLimit(80) + amount(45) = 125
 
             await balancer.addActions(targets, amounts);
-            await balancer.execute(1, true); // 1 => invests, force: true
+            await balancer.execute(1, true, 1e6, 2000); // 1 => invests, force: true, 1 => price, 2000 => slippage
 
             expect(await assets[0].sweep_borrowed()).to.eq(expectedAmount);
             expect(await assets[1].sweep_borrowed()).to.eq(expectedAmount);

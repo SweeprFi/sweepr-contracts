@@ -6,9 +6,9 @@ interface IStabilizer {
 
     function cancelCall() external;
 
-    function autoCall(uint256 amount) external;
+    function autoCall(uint256 amount, uint256 price, uint256 slippage) external;
 
-    function autoInvest(uint256 amount) external;
+    function autoInvest(uint256 amount, uint256 price, uint256 slippage) external;
     
     function setLoanLimit(uint256 amount) external;
 }

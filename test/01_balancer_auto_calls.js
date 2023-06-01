@@ -199,7 +199,7 @@ contract('Balancer - Auto Call', async () => {
       // constraints
       user = await impersonate(USDC_ADDRESS);
       await balancer.addActions(targets, amounts);
-      await balancer.execute(2, true); // 2 => call, force: true
+      await balancer.execute(2, true, 1e6, 2000); // 2 => call, force: true, 1 => price, 2000 => slippage
 
       blockNumber = await ethers.provider.getBlockNumber();
       block = await ethers.provider.getBlock(blockNumber);

@@ -157,7 +157,7 @@ contract("Balancer", async function () {
 		nextTarget = await sweep.next_target_price();
 
 		await increaseTime(Const.DAY * 7); // 7 days
-		await balancer.execute(0, false);
+		await balancer.execute(0, false, 1e6, 2000);
 
 		expect(await sweep.interest_rate()).to.eq(Const.ZERO);
 		expect(await sweep.target_price()).to.eq(nextTarget);
@@ -165,9 +165,9 @@ contract("Balancer", async function () {
 		expect(await sweep.next_target_price()).to.eq(nextTarget);
 	});
 
-	it('reverts becuase expect invest and gets call', async () => {
+	it('reverts because expect invest and gets call', async () => {
 		await increaseTime(Const.DAY * 7); // 7 days
-		await expect(balancer.execute(2, false))
+		await expect(balancer.execute(2, false, 1e6, 2000))
 			.to.be.revertedWithCustomError(balancer, "ModeMismatch", 2, 1);
 	});
 });
