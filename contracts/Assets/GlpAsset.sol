@@ -79,7 +79,7 @@ contract GlpAsset is Stabilizer {
         uint256 reward = feeGlpTracker.claimable(address(this));
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             reward_oracle,
-            amm.sequencer(),
+            amm().sequencer(),
             REWARDS_FREQUENCY
         );
 

@@ -75,7 +75,7 @@ contract CompV2Asset is Stabilizer {
         uint256 comp_balance = comp.balanceOf(address(this));
         (int256 answer, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             comp_oracle,
-            amm.sequencer(),
+            amm().sequencer(),
             COMP_FREQUENCY
         );
 
