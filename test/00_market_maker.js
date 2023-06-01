@@ -1,14 +1,14 @@
 const { expect } = require("chai");
-const { expectRevert } = require('@openzeppelin/test-helpers');
+// const { expectRevert } = require('@openzeppelin/test-helpers');
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 const { Const } = require("../utils/helper_functions");
 const { BigNumber } = require('ethers');
-const exp = require("constants");
+// const exp = require("constants");
 
 let poolAddress;
 
-contract('Market Maker', async () => {
+contract.only('Market Maker', async () => {
     before(async () => {
         [owner, borrower, treasury, guest, lzEndpoint, multisig] = await ethers.getSigners();
 
@@ -38,10 +38,20 @@ contract('Market Maker', async () => {
         usdOracle = await USDOracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapAMM");
-        amm = await Uniswap.deploy(sweep.address, 500, usdOracle.address, Const.ADDRESS_ZERO);
+
+        amm = await Uniswap.deploy(
+            sweep.address,
+            addresses.sequencer_feed,
+            Const.FEE,
+            usdc.address,
+            usdOracle.address,
+            86400
+        );
+
+        await sweep.setAMM(amm.address);
 
         factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
-        positionManager = await ethers.getContractAt("INonfungiblePositionManager", Const.NFT_POSITION_MANAGER);
+        positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniswap_position_manager);
         swapRouter = await ethers.getContractAt("ISwapRouter", addresses.uniswap_router);
 
         MarketMaker = await ethers.getContractFactory("MarketMaker");
@@ -50,7 +60,6 @@ contract('Market Maker', async () => {
             sweep.address,
             usdc.address,
             liquidityHelper.address,
-            amm.address,
             BORROWER,
             TOP_SPREAD,
             BOTTOM_SPREAD
@@ -79,7 +88,7 @@ contract('Market Maker', async () => {
 
     describe("main functions", async function () {
         it('create the pool and adds liquidity', async () => {
-            expect(await factory.getPool(usdc.address, sweep.address, 500)).to.equal(Const.ADDRESS_ZERO);
+            expect(await factory.getPool(usdc.address, sweep.address, Const.FEE)).to.equal(Const.ADDRESS_ZERO);
 
             let sqrtPriceX96, tickLower, tickUpper, token0, token1, token0Amount, token1Amount;
 
@@ -105,8 +114,8 @@ contract('Market Maker', async () => {
                 token1Amount = usdxAmount;
             }
 
-            await positionManager.createAndInitializePoolIfNecessary(token0, token1, 500, sqrtPriceX96)
-            poolAddress = await factory.getPool(sweep.address, usdc.address, 500);
+            await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
+            poolAddress = await factory.getPool(sweep.address, usdc.address, Const.FEE);
 
             expect(poolAddress).to.not.equal(Const.ADDRESS_ZERO);
 
@@ -120,7 +129,7 @@ contract('Market Maker', async () => {
                 {
                     token0: token0,
                     token1: token1,
-                    fee: 500,
+                    fee: Const.FEE,
                     tickLower: tickLower, // 0.9
                     tickUpper: tickUpper, // 1.1
                     amount0Desired: token0Amount,

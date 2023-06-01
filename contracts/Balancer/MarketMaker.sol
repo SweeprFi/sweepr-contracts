@@ -14,7 +14,6 @@ pragma solidity 0.8.19;
 
 import "../Stabilizer/Stabilizer.sol";
 import "../Utils/LiquidityHelper.sol";
-import "../Oracle/UniswapOracle.sol";
 
 contract MarketMaker is Stabilizer {
     address public token0;
@@ -42,7 +41,6 @@ contract MarketMaker is Stabilizer {
         address _sweep_address,
         address _usdx_address,
         address _liquidityHelper,
-        address _amm_address,
         address _borrower,
         uint256 _top_spread,
         uint256 _bottom_spread
@@ -51,7 +49,6 @@ contract MarketMaker is Stabilizer {
             _name,
             _sweep_address,
             _usdx_address,
-            _amm_address,
             _borrower
         )
     {
@@ -96,7 +93,7 @@ contract MarketMaker is Stabilizer {
     function sellSweep(uint256 _sweep_amount) internal {
         uint256 sweep_limit = SWEEP.minters(address(this)).max_amount;
         uint256 sweep_available = sweep_limit - sweep_borrowed;
-        _sweep_amount = _min(_sweep_amount, sweep_available);
+        if (_sweep_amount > sweep_available) _sweep_amount = sweep_available;
 
         _borrow(_sweep_amount);
         _sell(_sweep_amount, 0);
@@ -109,8 +106,8 @@ contract MarketMaker is Stabilizer {
     function buySweep(uint256 _sweep_amount) internal {
         (uint256 usdx_balance, ) = _balances();
 
-        uint256 usdc_amount = SWEEP.convertToUSD(_sweep_amount);
-        usdc_amount = _min(usdc_amount, usdx_balance);
+        uint256 usdc_amount = amm.USDtoToken(SWEEP.convertToUSD(_sweep_amount));
+        if (usdc_amount > usdx_balance) usdc_amount = usdx_balance;
 
         uint256 sweep_amount = _buy(usdc_amount, 0);
         _repay(sweep_amount);

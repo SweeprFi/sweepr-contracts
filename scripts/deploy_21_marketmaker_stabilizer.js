@@ -23,7 +23,7 @@ async function main() {
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
   const MarketMaker = await ethers.getContractFactory("MarketMaker");
-  const stabilizer = await MarketMaker.deploy(assetName, sweep, usdc, amm, borrower, uniswapOracle, topSpread, bottomSpread);
+  const stabilizer = await MarketMaker.deploy(assetName, sweep, usdc, borrower, uniswapOracle, topSpread, bottomSpread);
 
   console.log("MarketMaker deployed to: ", stabilizer.address);
   console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${usdc} ${amm} ${borrower} ${uniswapOracle} ${topSpread} ${bottomSpread}`);
