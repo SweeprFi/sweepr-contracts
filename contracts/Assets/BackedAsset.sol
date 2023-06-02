@@ -65,7 +65,7 @@ contract BackedAsset is Stabilizer {
         uint256 token_balance = token.balanceOf(address(this));
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             token_oracle,
-            amm.sequencer(),
+            amm().sequencer(),
             TOKEN_FREQUENCY
         );
 
@@ -121,7 +121,7 @@ contract BackedAsset is Stabilizer {
     function _divest(uint256 _usdx_amount) internal override {
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             token_oracle,
-            amm.sequencer(),
+            amm().sequencer(),
             TOKEN_FREQUENCY
         );
 

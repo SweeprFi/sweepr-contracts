@@ -51,7 +51,6 @@ contract Stabilizer is Owned, Pausable {
 
     bool public settings_enabled;
 
-    IAMM public amm;
     // Tokens
     IERC20Metadata public usdx;
 
@@ -146,7 +145,6 @@ contract Stabilizer is Owned, Pausable {
         if(_borrower == address(0)) revert ZeroAddressDetected();
         name = _name;
         usdx = IERC20Metadata(_usdx_address);
-        amm = IAMM(ISweep(_sweep_address).amm());
         borrower = _borrower;
         settings_enabled = true;
     }
@@ -206,7 +204,15 @@ contract Stabilizer is Owned, Pausable {
         (uint256 usdx_balance, uint256 sweep_balance) = _balances();
         uint256 sweep_balance_in_usd = SWEEP.convertToUSD(sweep_balance);
 
-        return (amm.tokenToUSD(usdx_balance) + sweep_balance_in_usd);
+        return (amm().tokenToUSD(usdx_balance) + sweep_balance_in_usd);
+    }
+
+    /**
+     * @notice Get AMM from Sweep
+     * @return address.
+     */
+    function amm() public view virtual returns (IAMM) {
+        return IAMM(ISweep(sweep_address).amm());
     }
 
     /**
@@ -400,14 +406,14 @@ contract Stabilizer is Owned, Pausable {
 
         if (sweep_balance < repay_amount) {
             uint256 missing_sweep = repay_amount - sweep_balance;
-            uint256 missing_usdx = amm.USDtoToken(SWEEP.convertToUSD(missing_sweep));
+            uint256 missing_usdx = amm().USDtoToken(SWEEP.convertToUSD(missing_sweep));
 
             if (missing_usdx > usdx_balance) {
                 _divest(missing_usdx - usdx_balance);
             }
 
             if (usdx.balanceOf(address(this)) > 0) {
-                uint256 missing_usd = amm.tokenToUSD(missing_usdx);
+                uint256 missing_usd = amm().tokenToUSD(missing_usdx);
                 uint256 sweepAmount = missing_usd.mulDiv(10 ** SWEEP.decimals(), price);
                 uint256 minAmountOut = sweepAmount * (PRECISION - slippage) / PRECISION;
                 _buy(missing_usdx, minAmountOut);
@@ -449,7 +455,7 @@ contract Stabilizer is Owned, Pausable {
         _borrow(sweep_amount);
 
         uint256 usdAmount = sweep_amount.mulDiv(price, 10 ** SWEEP.decimals());
-        uint256 minAmountOut = amm.USDtoToken(usdAmount) * (PRECISION - slippage) / PRECISION;
+        uint256 minAmountOut = amm().USDtoToken(usdAmount) * (PRECISION - slippage) / PRECISION;
         uint256 usdx_amount = _sell(sweep_amount, minAmountOut);
 
         _invest(usdx_amount, 0);
@@ -498,7 +504,7 @@ contract Stabilizer is Owned, Pausable {
     function swapUsdxToSweep(
         uint256 _usdx_amount
     ) external onlyBorrower whenNotPaused validAmount(_usdx_amount) {
-        uint256 sweep_amount = SWEEP.convertToSWEEP(amm.tokenToUSD(_usdx_amount));
+        uint256 sweep_amount = SWEEP.convertToSWEEP(amm().tokenToUSD(_usdx_amount));
         uint256 sweep_balance = SWEEP.balanceOf(address(this));
         if (sweep_amount > sweep_balance) revert NotEnoughBalance();
 
@@ -522,7 +528,7 @@ contract Stabilizer is Owned, Pausable {
     function swapSweepToUsdx(
         uint256 _sweep_amount
     ) external onlyBorrower whenNotPaused validAmount(_sweep_amount) {
-        uint256 usdx_amount = amm.USDtoToken(SWEEP.convertToUSD(_sweep_amount));
+        uint256 usdx_amount = amm().USDtoToken(SWEEP.convertToUSD(_sweep_amount));
         uint256 usdx_balance = usdx.balanceOf(address(this));
 
         if (usdx_amount > usdx_balance) revert NotEnoughBalance();
@@ -556,7 +562,8 @@ contract Stabilizer is Owned, Pausable {
             revert NotEnoughBalance();
 
         if (sweep_borrowed > 0) {
-            uint256 usd_amount = _token == sweep_address ? SWEEP.convertToUSD(_amount) : amm.tokenToUSD(_amount);
+            uint256 usd_amount = _token == sweep_address ?
+                SWEEP.convertToUSD(_amount) : amm().tokenToUSD(_amount);
             int256 current_equity_ratio = _calculateEquityRatio(0, usd_amount);
             if (current_equity_ratio < min_equity_ratio)
                 revert EquityRatioExcessed();
@@ -621,8 +628,8 @@ contract Stabilizer is Owned, Pausable {
 
         if (_usdx_amount == 0) revert NotEnoughBalance();
 
-        TransferHelper.safeApprove(address(usdx), address(amm), _usdx_amount);
-        uint256 sweep_amount = amm.buySweep(
+        TransferHelper.safeApprove(address(usdx), SWEEP.amm(), _usdx_amount);
+        uint256 sweep_amount = amm().buySweep(
             address(usdx),
             _usdx_amount,
             _amountOutMin
@@ -640,8 +647,8 @@ contract Stabilizer is Owned, Pausable {
 
         if (_sweep_amount == 0) revert NotEnoughBalance();
 
-        TransferHelper.safeApprove(sweep_address, address(amm), _sweep_amount);
-        uint256 usdx_amount = amm.sellSweep(
+        TransferHelper.safeApprove(sweep_address, SWEEP.amm(), _sweep_amount);
+        uint256 usdx_amount = amm().sellSweep(
             address(usdx),
             _sweep_amount,
             _amountOutMin
