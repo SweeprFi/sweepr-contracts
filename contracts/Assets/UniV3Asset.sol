@@ -92,7 +92,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         if (tokenId == 0) return 0;
 
         (uint256 _amount0, uint256 _amount1) = liquidityHelper
-            .getTokenAmountsFromLP(tokenId, token0, token1, amm.poolFee());
+            .getTokenAmountsFromLP(tokenId, token0, token1, amm().poolFee());
 
         (uint256 _usdx_amount, uint256 _sweep_amount) = flag
             ? (_amount0, _amount1)
@@ -250,7 +250,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
                     token1: token1,
-                    fee: amm.poolFee(),
+                    fee: amm().poolFee(),
                     tickLower: minTick,
                     tickUpper: maxTick,
                     amount0Desired: amount0ToMint,

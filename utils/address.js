@@ -79,6 +79,7 @@ const addresses = {
   asset_weth: assets.weth[chainId],
   asset_wbtc: assets.wbtc[chainId],
   asset_compound: assets.compound[chainId],
+  asset_backed: assets.backed[chainId],
 }
 
 const cardinality = uniswap.observationCardinality[chainId];
