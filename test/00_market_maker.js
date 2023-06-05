@@ -231,9 +231,9 @@ contract('Market Maker', async () => {
 
             // check currentTick is below than the tick of target price(276320 or -276320)
             if (usdc.address < sweep.address) {
-                targetPriceTick = -276320; // 1.0
-            } else {
                 targetPriceTick = 276320; // 1.0
+            } else {
+                targetPriceTick = -276320; // 1.0
             }
 
             expect(currentTick).to.below(targetPriceTick)
