@@ -8,9 +8,9 @@ pragma solidity 0.8.19;
 /**
  * @title MarketMaker
  * @dev Implementation:
- Simple marketmaker (buy & sell SWEEP)
- AMM marketmaker (single-sided liquidity)
- */
+Borrow SWEEP, exchange USDC and place it into a Uniswap V3 AMM as single-sided liquidity
+Remove any LP positions that are converted to SWEEP, and repay it
+*/
 
 import "../Stabilizer/Stabilizer.sol";
 import "../Utils/LiquidityHelper.sol";
@@ -88,7 +88,7 @@ contract MarketMaker is Stabilizer {
     /**
      * @notice Execute operation to peg to target price of SWEEP.
      */
-    function execute(uint256 _sweep_amount) public onlyBorrower {
+    function execute(uint256 _sweep_amount) external {
         uint256 arb_price_upper = ((PRECISION + top_spread) * SWEEP.target_price()) / PRECISION;
         uint256 arb_price_lower = ((PRECISION - bottom_spread) * SWEEP.target_price()) / PRECISION;
 
@@ -96,13 +96,13 @@ contract MarketMaker is Stabilizer {
             uint256 usdx_amount = sellSweep(_sweep_amount);
 
             uint256 target_price = SWEEP.target_price();
-            uint256 min_price = (target_price * 9999) / 10000;
-            uint256 max_price = (target_price * 10001) / 10000;
+            uint256 min_price = (target_price * 999) / 1000;
+            uint256 max_price = target_price;
 
             addSingleLiquidity(min_price, max_price, usdx_amount, 0);
         }
 
-        if (SWEEP.amm_price() < arb_price_lower) {
+        if (SWEEP.amm_price() < arb_price_lower && _sweep_amount == 0) {
             removeOutOfPositions();
         }
     }
@@ -188,7 +188,7 @@ contract MarketMaker is Stabilizer {
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
                     token1: token1,
-                    fee: amm.poolFee(),
+                    fee: amm().poolFee(),
                     tickLower: min_tick,
                     tickUpper: max_tick,
                     amount0Desired: amount0_mint,
@@ -205,7 +205,7 @@ contract MarketMaker is Stabilizer {
             amount_liquidity,
             min_tick,
             max_tick,
-            amm.poolFee(),
+            amm().poolFee(),
             amount0,
             amount1
         );
@@ -221,11 +221,12 @@ contract MarketMaker is Stabilizer {
      */
     function removeOutOfPositions() internal {
         for (uint i = 0; i < positions_array.length; i++) {
-            int24 tick_current = liquidityHelper.getCurrentTick(token0, token1, amm.poolFee());
+            int24 tick_current = liquidityHelper.getCurrentTick(token0, token1, amm().poolFee());
             Position memory position = positions_array[i];
 
-            // check to see if current tick is out of range
-            if (tick_current < position.tick_lower || position.tick_upper < tick_current) {
+            // check to see if current tick is out of i-th position's range.
+            // it means all usdc were sold out and only sweep are left.
+            if (tick_current < position.tick_upper && tick_current < position.tick_lower ) {
                 removeLiquidity(i);
             }
         }
@@ -283,7 +284,7 @@ contract MarketMaker is Stabilizer {
      * @return maxTick The maximum tick
      */
     function getTicks(uint256 _min_price, uint256 _max_price) internal view returns (int24 minTick, int24 maxTick) {
-        int24 tick_spacing = liquidityHelper.getTickSpacing(token0, token1, amm.poolFee());
+        int24 tick_spacing = liquidityHelper.getTickSpacing(token0, token1, amm().poolFee());
         uint8 decimals = SWEEP.decimals();
 
         minTick = liquidityHelper.getTickFromPrice(
