@@ -36,6 +36,7 @@ contract MarketMaker is Stabilizer {
     address public token0;
     address public token1;
     bool private immutable flag; // The sort status of tokens
+    uint24 private pool_fee;
 
     // Uniswap V3 Position Manager
     INonfungiblePositionManager public constant nonfungiblePositionManager =
@@ -92,8 +93,10 @@ contract MarketMaker is Stabilizer {
         uint256 arb_price_upper = ((PRECISION + top_spread) * SWEEP.target_price()) / PRECISION;
         uint256 arb_price_lower = ((PRECISION - bottom_spread) * SWEEP.target_price()) / PRECISION;
 
+        pool_fee = amm().poolFee();
+
         if (SWEEP.amm_price() > arb_price_upper) {
-            uint256 usdx_amount = sellSweep(_sweep_amount);
+            uint256 usdx_amount = sellSweep(_sweep_amount, arb_price_upper);
 
             uint256 target_price = SWEEP.target_price();
             uint256 min_price = (target_price * 999) / 1000;
@@ -111,13 +114,19 @@ contract MarketMaker is Stabilizer {
      * @notice Sell Sweep.
      * @param _sweep_amount to sell.
      */
-    function sellSweep(uint256 _sweep_amount) internal returns(uint256 usdx_amount) {
+    function sellSweep(
+        uint256 _sweep_amount, 
+        uint256 _arb_price
+    ) internal returns(uint256 usdx_amount) {
         uint256 sweep_limit = SWEEP.minters(address(this)).max_amount;
         uint256 sweep_available = sweep_limit - sweep_borrowed;
         if (_sweep_amount > sweep_available) _sweep_amount = sweep_available;
 
+        // calculate usdx minimum amountOut for swap
+        uint256 min_amount_out = _sweep_amount * _arb_price / 10 ** SWEEP.decimals();
+
         _borrow(_sweep_amount);
-        usdx_amount = _sell(_sweep_amount, 0);
+        usdx_amount = _sell(_sweep_amount, min_amount_out);
     }
 
     /**
@@ -155,26 +164,16 @@ contract MarketMaker is Stabilizer {
         uint256 _usdx_amount, 
         uint256 _sweep_amount
     ) internal {
-        // Make sure one of token pair should be zero amount
-        require(_usdx_amount == 0 || _sweep_amount == 0, "not one token");
-
-        (uint256 usdx_balance, uint256 sweep_balance) = _balances();
+        (uint256 usdx_balance, ) = _balances();
         _usdx_amount = _min(_usdx_amount, usdx_balance);
-        _sweep_amount = _min(_sweep_amount, sweep_balance);
 
         // Check market maker has enough balance to mint
-        require(_usdx_amount > 0 || _sweep_amount > 0, "not enough balance");
+        if (_usdx_amount == 0) revert NotEnoughBalance();
         
         TransferHelper.safeApprove(
             address(usdx),
             address(nonfungiblePositionManager),
             _usdx_amount
-        );
-
-        TransferHelper.safeApprove(
-            sweep_address,
-            address(nonfungiblePositionManager),
-            _sweep_amount
         );
 
         (int24 min_tick, int24 max_tick) = getTicks(_min_price, _max_price);
@@ -188,7 +187,7 @@ contract MarketMaker is Stabilizer {
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
                     token1: token1,
-                    fee: amm().poolFee(),
+                    fee: pool_fee,
                     tickLower: min_tick,
                     tickUpper: max_tick,
                     amount0Desired: amount0_mint,
@@ -205,7 +204,7 @@ contract MarketMaker is Stabilizer {
             amount_liquidity,
             min_tick,
             max_tick,
-            amm().poolFee(),
+            pool_fee,
             amount0,
             amount1
         );
@@ -221,12 +220,12 @@ contract MarketMaker is Stabilizer {
      */
     function removeOutOfPositions() internal {
         for (uint i = 0; i < positions_array.length; i++) {
-            int24 tick_current = liquidityHelper.getCurrentTick(token0, token1, amm().poolFee());
+            int24 tick_current = liquidityHelper.getCurrentTick(token0, token1, pool_fee);
             Position memory position = positions_array[i];
 
             // check to see if current tick is out of i-th position's range.
             // it means all usdc were sold out and only sweep are left.
-            if (tick_current < position.tick_upper && tick_current < position.tick_lower ) {
+            if (tick_current < position.tick_lower) {
                 removeLiquidity(i);
             }
         }
@@ -284,7 +283,7 @@ contract MarketMaker is Stabilizer {
      * @return maxTick The maximum tick
      */
     function getTicks(uint256 _min_price, uint256 _max_price) internal view returns (int24 minTick, int24 maxTick) {
-        int24 tick_spacing = liquidityHelper.getTickSpacing(token0, token1, amm().poolFee());
+        int24 tick_spacing = liquidityHelper.getTickSpacing(token0, token1, pool_fee);
         uint8 decimals = SWEEP.decimals();
 
         minTick = liquidityHelper.getTickFromPrice(

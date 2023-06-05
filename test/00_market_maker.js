@@ -7,8 +7,9 @@ const { BigNumber } = require('ethers');
 // const exp = require("constants");
 
 let poolAddress;
+let sqrtPriceX96, tickLower, tickUpper, token0, token1, token0Amount, token1Amount;
 
-contract.only('Market Maker', async () => {
+contract('Market Maker', async () => {
     before(async () => {
         [owner, borrower, treasury, guest, lzEndpoint, multisig] = await ethers.getSigners();
 
@@ -87,8 +88,6 @@ contract.only('Market Maker', async () => {
     describe("main functions", async function () {
         it('create the pool and adds liquidity', async () => {
             expect(await factory.getPool(usdc.address, sweep.address, Const.FEE)).to.equal(Const.ADDRESS_ZERO);
-
-            let sqrtPriceX96, tickLower, tickUpper, token0, token1, token0Amount, token1Amount;
 
             if (usdc.address < sweep.address) {
                 sqrtPriceX96 = BigNumber.from('79228057781537899283318961129827820'); // price = 1.0
@@ -208,12 +207,12 @@ contract.only('Market Maker', async () => {
         });
 
         it('removes closed positions', async () => {
-            swapAmount = ethers.utils.parseUnits("3000000", 18);
+            swapAmount = ethers.utils.parseUnits("5000000", 18);
 
             await sweep.approve(swapRouter.address, swapAmount.mul(7));
 		    await usdc.approve(swapRouter.address, usdxAmount.mul(7));
 
-            // swap 3M sweep
+            // swap 5M sweep
             await swapRouter.exactInputSingle({
                 tokenIn: sweep.address,
                 tokenOut: usdc.address,
@@ -230,10 +229,14 @@ contract.only('Market Maker', async () => {
             poolData = await pool.slot0();
             currentTick = poolData.tick;
 
-            // check currentTick is below than the tick of target price(276320)
-            const targetPriceTick = 276320; // 1.0
-            expect(currentTick).to.below(targetPriceTick)
+            // check currentTick is below than the tick of target price(276320 or -276320)
+            if (usdc.address < sweep.address) {
+                targetPriceTick = -276320; // 1.0
+            } else {
+                targetPriceTick = 276320; // 1.0
+            }
 
+            expect(currentTick).to.below(targetPriceTick)
             expect(await marketmaker.numPositions()).to.equal(1);
 
             const tokenId1 = (await positionManager.tokenOfOwnerByIndex(marketmaker.address, 1)).toNumber();
