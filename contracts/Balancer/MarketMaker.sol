@@ -96,7 +96,7 @@ contract MarketMaker is Stabilizer {
         pool_fee = amm().poolFee();
 
         if (SWEEP.amm_price() > arb_price_upper) {
-            uint256 usdx_amount = sellSweep(_sweep_amount, arb_price_upper);
+            uint256 usdx_amount = sellSweep(_sweep_amount);
 
             uint256 target_price = SWEEP.target_price();
             uint256 min_price = (target_price * 999) / 1000;
@@ -115,15 +115,14 @@ contract MarketMaker is Stabilizer {
      * @param _sweep_amount to sell.
      */
     function sellSweep(
-        uint256 _sweep_amount, 
-        uint256 _arb_price
+        uint256 _sweep_amount
     ) internal returns(uint256 usdx_amount) {
         uint256 sweep_limit = SWEEP.minters(address(this)).max_amount;
         uint256 sweep_available = sweep_limit - sweep_borrowed;
         if (_sweep_amount > sweep_available) _sweep_amount = sweep_available;
 
         // calculate usdx minimum amountOut for swap
-        uint256 min_amount_out = _sweep_amount * _arb_price / 10 ** SWEEP.decimals();
+        uint256 min_amount_out = _sweep_amount * SWEEP.target_price() / 10 ** SWEEP.decimals();
 
         _borrow(_sweep_amount);
         usdx_amount = _sell(_sweep_amount, min_amount_out);
