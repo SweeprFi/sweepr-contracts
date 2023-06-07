@@ -106,7 +106,9 @@ contract MarketMaker is Stabilizer {
         if (SWEEP.amm_price() > arb_price_upper) {
             uint256 usdx_amount = sellSweep(_sweep_amount);
 
-            uint256 min_price = ((PRECISION - tick_spread) * target_price) / PRECISION;
+            uint256 min_price = flag 
+                                    ? ((PRECISION + tick_spread) * target_price) / PRECISION
+                                    : ((PRECISION - tick_spread) * target_price) / PRECISION;
             uint256 max_price = target_price;
 
             addSingleLiquidity(min_price, max_price, usdx_amount,  pool_fee);
