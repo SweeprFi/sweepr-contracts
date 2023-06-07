@@ -239,7 +239,8 @@ contract MarketMaker is Stabilizer {
 
             // check to see if current tick is out of i-th position's range.
             // it means all usdc were sold out and only sweep are left.
-            if (tick_current < position.tick_lower) {
+            // At this time, we need to check tick direction.
+            if ((!flag && tick_current < position.tick_lower) || (flag && tick_current > position.tick_upper)) {
                 removeLiquidity(i);
             }
         }
