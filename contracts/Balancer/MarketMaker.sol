@@ -14,7 +14,6 @@ Remove any LP positions that are converted to SWEEP, and repay it
 
 import "../Stabilizer/Stabilizer.sol";
 import "../Utils/LiquidityHelper.sol";
-import "../Oracle/ChainlinkPricer.sol";
 
 contract MarketMaker is Stabilizer {
     // Details about position
@@ -36,7 +35,6 @@ contract MarketMaker is Stabilizer {
 
     address public token0;
     address public token1;
-    address private immutable usdc_usd_oracle;
     bool private immutable flag; // The sort status of tokens
 
     // Uniswap V3 Position Manager
@@ -51,7 +49,6 @@ contract MarketMaker is Stabilizer {
 
     // Constants
     uint24 private constant PRECISION = 1e6;
-    uint256 private constant TOKEN_FREQUENCY = 0;
 
     // Events
     event Minted(uint256 tokenId, uint128 liquidity);
@@ -62,7 +59,6 @@ contract MarketMaker is Stabilizer {
         address _sweep_address,
         address _usdx_address,
         address _liquidityHelper,
-        address _usdc_usd_oracle,
         address _borrower,
         uint256 _top_spread,
         uint256 _bottom_spread,
@@ -82,7 +78,6 @@ contract MarketMaker is Stabilizer {
             : (_sweep_address, _usdx_address);
 
         liquidityHelper = LiquidityHelper(_liquidityHelper);
-        usdc_usd_oracle = _usdc_usd_oracle;
 
         min_equity_ratio = 0;
 
@@ -132,13 +127,7 @@ contract MarketMaker is Stabilizer {
 
         // calculate usdx minimum amount for swap
         uint256 min_amount_usd = SWEEP.convertToUSD(_sweep_amount);
-        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            usdc_usd_oracle,
-            amm().sequencer(),
-            TOKEN_FREQUENCY
-        );
-
-        uint256 min_amount_usdx = (min_amount_usd * 10 ** (decimals)) / uint256(price);
+        uint256 min_amount_usdx = amm().USDtoToken(min_amount_usd);
 
         _borrow(_sweep_amount);
         usdx_amount = _sell(_sweep_amount, min_amount_usdx);

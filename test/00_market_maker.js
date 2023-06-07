@@ -1,10 +1,8 @@
 const { expect } = require("chai");
-const { expectRevert } = require('@openzeppelin/test-helpers');
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 const { Const } = require("../utils/helper_functions");
 const { BigNumber } = require('ethers');
-// const exp = require("constants");
 
 let poolAddress;
 let sqrtPriceX96, tickLower, tickUpper, token0, token1, token0Amount, token1Amount;
@@ -48,7 +46,6 @@ contract('Market Maker', async () => {
             sweep.address,
             usdc.address,
             liquidityHelper.address,
-            usdcOracle.address,
             BORROWER,
             TOP_SPREAD,
             BOTTOM_SPREAD,
