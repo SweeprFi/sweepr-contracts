@@ -14,6 +14,7 @@ Remove any LP positions that are converted to SWEEP, and repay it
 
 import "../Stabilizer/Stabilizer.sol";
 import "../Utils/LiquidityHelper.sol";
+import "../Oracle/ChainlinkPricer.sol";
 
 contract MarketMaker is Stabilizer {
     // Details about position
@@ -35,20 +36,22 @@ contract MarketMaker is Stabilizer {
 
     address public token0;
     address public token1;
+    address private immutable usdc_usd_oracle;
     bool private immutable flag; // The sort status of tokens
-    uint24 private pool_fee;
 
     // Uniswap V3 Position Manager
     INonfungiblePositionManager public constant nonfungiblePositionManager =
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     LiquidityHelper private immutable liquidityHelper;
 
-    // Variables
+    // Spread Variables
     uint256 public top_spread;
     uint256 public bottom_spread;
+    uint256 public tick_spread;
 
     // Constants
     uint24 private constant PRECISION = 1e6;
+    uint256 private constant TOKEN_FREQUENCY = 0;
 
     // Events
     event Minted(uint256 tokenId, uint128 liquidity);
@@ -59,9 +62,11 @@ contract MarketMaker is Stabilizer {
         address _sweep_address,
         address _usdx_address,
         address _liquidityHelper,
+        address _usdc_usd_oracle,
         address _borrower,
         uint256 _top_spread,
-        uint256 _bottom_spread
+        uint256 _bottom_spread,
+        uint256 _tick_spread
     )
         Stabilizer(
             _name,
@@ -77,11 +82,13 @@ contract MarketMaker is Stabilizer {
             : (_sweep_address, _usdx_address);
 
         liquidityHelper = LiquidityHelper(_liquidityHelper);
+        usdc_usd_oracle = _usdc_usd_oracle;
 
         min_equity_ratio = 0;
 
         top_spread = _top_spread;
         bottom_spread = _bottom_spread;
+        tick_spread = _tick_spread;
     }
 
     /* ========== Simple Marketmaker Actions ========== */
@@ -90,23 +97,23 @@ contract MarketMaker is Stabilizer {
      * @notice Execute operation to peg to target price of SWEEP.
      */
     function execute(uint256 _sweep_amount) external {
-        uint256 arb_price_upper = ((PRECISION + top_spread) * SWEEP.target_price()) / PRECISION;
-        uint256 arb_price_lower = ((PRECISION - bottom_spread) * SWEEP.target_price()) / PRECISION;
+        uint256 target_price = SWEEP.target_price();
+        uint256 arb_price_upper = ((PRECISION + top_spread) * target_price) / PRECISION;
+        uint256 arb_price_lower = ((PRECISION - bottom_spread) * target_price) / PRECISION;
 
-        pool_fee = amm().poolFee();
+        uint24 pool_fee = amm().poolFee();
 
         if (SWEEP.amm_price() > arb_price_upper) {
             uint256 usdx_amount = sellSweep(_sweep_amount);
 
-            uint256 target_price = SWEEP.target_price();
-            uint256 min_price = (target_price * 999) / 1000;
+            uint256 min_price = ((PRECISION - tick_spread) * target_price) / PRECISION;
             uint256 max_price = target_price;
 
-            addSingleLiquidity(min_price, max_price, usdx_amount, 0);
+            addSingleLiquidity(min_price, max_price, usdx_amount,  pool_fee);
         }
 
         if (SWEEP.amm_price() < arb_price_lower && _sweep_amount == 0) {
-            removeOutOfPositions();
+            removeOutOfPositions(pool_fee);
         }
     }
 
@@ -121,11 +128,18 @@ contract MarketMaker is Stabilizer {
         uint256 sweep_available = sweep_limit - sweep_borrowed;
         if (_sweep_amount > sweep_available) _sweep_amount = sweep_available;
 
-        // calculate usdx minimum amountOut for swap
-        uint256 min_amount_out = _sweep_amount * SWEEP.target_price() / 10 ** SWEEP.decimals();
+        // calculate usdx minimum amount for swap
+        uint256 min_amount_usd = SWEEP.convertToUSD(_sweep_amount);
+        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
+            usdc_usd_oracle,
+            amm().sequencer(),
+            TOKEN_FREQUENCY
+        );
+
+        uint256 min_amount_usdx = (min_amount_usd * 10 ** (decimals)) / uint256(price);
 
         _borrow(_sweep_amount);
-        usdx_amount = _sell(_sweep_amount, min_amount_out);
+        usdx_amount = _sell(_sweep_amount, min_amount_usdx);
     }
 
     /**
@@ -148,6 +162,16 @@ contract MarketMaker is Stabilizer {
         bottom_spread = _bottom_spread;
     }
 
+    /**
+     * @notice Update tick_spread.
+     * @param _tick_spread new tick_spread.
+     */
+    function setTickSpread(
+        uint256 _tick_spread
+    ) external onlyBorrower onlySettingsEnabled {
+        tick_spread = _tick_spread;
+    }
+
     /* ============ AMM Marketmaker Actions =========== */
 
     /**
@@ -155,16 +179,18 @@ contract MarketMaker is Stabilizer {
      * @param _min_price minimum price
      * @param _max_price maximum price
      * @param _usdx_amount usdx amount to mint
-     * @param _sweep_amount sweep amount to mint
+     * @param _pool_fee pool fee
      */
     function addSingleLiquidity(
         uint256 _min_price, 
         uint256 _max_price, 
-        uint256 _usdx_amount, 
-        uint256 _sweep_amount
+        uint256 _usdx_amount,
+        uint24 _pool_fee
     ) internal {
+        uint256 _sweep_amount = 0;
+
         (uint256 usdx_balance, ) = _balances();
-        _usdx_amount = _min(_usdx_amount, usdx_balance);
+        if (_usdx_amount > usdx_balance) _usdx_amount = usdx_balance;
 
         // Check market maker has enough balance to mint
         if (_usdx_amount == 0) revert NotEnoughBalance();
@@ -175,7 +201,7 @@ contract MarketMaker is Stabilizer {
             _usdx_amount
         );
 
-        (int24 min_tick, int24 max_tick) = getTicks(_min_price, _max_price);
+        (int24 min_tick, int24 max_tick) = getTicks(_min_price, _max_price, _pool_fee);
 
         (uint256 amount0_mint, uint256 amount1_mint) = flag
             ? (_usdx_amount, _sweep_amount)
@@ -186,7 +212,7 @@ contract MarketMaker is Stabilizer {
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
                     token1: token1,
-                    fee: pool_fee,
+                    fee: _pool_fee,
                     tickLower: min_tick,
                     tickUpper: max_tick,
                     amount0Desired: amount0_mint,
@@ -203,7 +229,7 @@ contract MarketMaker is Stabilizer {
             amount_liquidity,
             min_tick,
             max_tick,
-            pool_fee,
+            _pool_fee,
             amount0,
             amount1
         );
@@ -217,9 +243,9 @@ contract MarketMaker is Stabilizer {
     /**
      * @notice Remove out-of-range poisitions
      */
-    function removeOutOfPositions() internal {
+    function removeOutOfPositions(uint24 _pool_fee) internal {
         for (uint i = 0; i < positions_array.length; i++) {
-            int24 tick_current = liquidityHelper.getCurrentTick(token0, token1, pool_fee);
+            int24 tick_current = liquidityHelper.getCurrentTick(token0, token1, _pool_fee);
             Position memory position = positions_array[i];
 
             // check to see if current tick is out of i-th position's range.
@@ -281,8 +307,12 @@ contract MarketMaker is Stabilizer {
      * @return minTick The minimum tick
      * @return maxTick The maximum tick
      */
-    function getTicks(uint256 _min_price, uint256 _max_price) internal view returns (int24 minTick, int24 maxTick) {
-        int24 tick_spacing = liquidityHelper.getTickSpacing(token0, token1, pool_fee);
+    function getTicks(
+        uint256 _min_price, 
+        uint256 _max_price,
+        uint24 _pool_fee
+    ) internal view returns (int24 minTick, int24 maxTick) {
+        int24 tick_spacing = liquidityHelper.getTickSpacing(token0, token1, _pool_fee);
         uint8 decimals = SWEEP.decimals();
 
         minTick = liquidityHelper.getTickFromPrice(
@@ -309,12 +339,5 @@ contract MarketMaker is Stabilizer {
     */
     function numPositions() external view returns (uint256) {
         return positions_array.length;
-    }
-
-    /**
-     * @notice Get minimum value between a and b.
-     **/
-    function _min(uint256 a, uint256 b) internal pure returns (uint256) {
-        return (a < b) ? a : b;
     }
 }

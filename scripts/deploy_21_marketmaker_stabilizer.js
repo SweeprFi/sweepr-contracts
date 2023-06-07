@@ -6,10 +6,11 @@ async function main() {
   const assetName = 'Market Maker';
   const sweep = addresses.sweep;
   const usdc = addresses.usdc;
-  const amm = addresses.uniswap_amm;
-  const uniswapOracle = addresses.uniswap_oracle;
-  const topSpread = 1000; // 0.1%
+  const liquidityHelper = addresses.liquidity_helper;
+  const usdcOracle = addresses.oracle_usdc_usd;
+  const topSpread = 500; // 0.05%
   const bottomSpread = 0; // 0
+  const tickSpread = 1000; // 0.1%
 
   if (network.type === "0") { // local
     [owner, borrower, wallet] = await ethers.getSigners();
@@ -23,10 +24,10 @@ async function main() {
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
   const MarketMaker = await ethers.getContractFactory("MarketMaker");
-  const stabilizer = await MarketMaker.deploy(assetName, sweep, usdc, borrower, uniswapOracle, topSpread, bottomSpread);
+  const stabilizer = await MarketMaker.deploy(assetName, sweep, usdc, liquidityHelper, usdcOracle, borrower, topSpread, bottomSpread, tickSpread);
 
   console.log("MarketMaker deployed to: ", stabilizer.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${usdc} ${amm} ${borrower} ${uniswapOracle} ${topSpread} ${bottomSpread}`);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${usdc} ${liquidityHelper} ${usdcOracle} ${borrower} ${topSpread} ${bottomSpread} ${tickSpread}`);
 }
 
 main();

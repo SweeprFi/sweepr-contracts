@@ -20,6 +20,7 @@ contract('Market Maker', async () => {
         increaseLPSweepAmount = ethers.utils.parseUnits("500", 18);
         TOP_SPREAD = 500; // 0.05%
         BOTTOM_SPREAD = 0;
+        TICK_SPREAD = 1000; // 0.1%
         BORROWER = borrower.address;
 
         Sweep = await ethers.getContractFactory("SweepCoin");
@@ -33,6 +34,10 @@ contract('Market Maker', async () => {
         LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
         liquidityHelper = await LiquidityHelper.deploy();
 
+        Oracle = await ethers.getContractFactory("AggregatorMock");
+        usdcOracle = await Oracle.deploy();
+        await usdcOracle.setPrice(Const.USDC_PRICE);
+
         factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
         positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniswap_position_manager);
         swapRouter = await ethers.getContractAt("ISwapRouter", addresses.uniswap_router);
@@ -43,9 +48,11 @@ contract('Market Maker', async () => {
             sweep.address,
             usdc.address,
             liquidityHelper.address,
+            usdcOracle.address,
             BORROWER,
             TOP_SPREAD,
-            BOTTOM_SPREAD
+            BOTTOM_SPREAD,
+            TICK_SPREAD
         );
 
         await sweep.addMinter(owner.address, sweepAmount.mul(5));
@@ -68,9 +75,6 @@ contract('Market Maker', async () => {
             Const.URL
         );
 
-        USDOracle = await ethers.getContractFactory("AggregatorMock");
-        usdOracle = await USDOracle.deploy();
-
         Uniswap = await ethers.getContractFactory("UniswapAMM");
 
         amm = await Uniswap.deploy(
@@ -78,7 +82,7 @@ contract('Market Maker', async () => {
             addresses.sequencer_feed,
             Const.FEE,
             usdc.address,
-            usdOracle.address,
+            usdcOracle.address,
             86400
         );
 
@@ -199,11 +203,18 @@ contract('Market Maker', async () => {
                 .to.be.revertedWithCustomError(MarketMaker, 'NotBorrower');
         });
 
-        it('setTopSpread correctly', async () => {
+        it('setBottomSpread correctly', async () => {
             const newBottomSpread = 1000; // 0.1%
             await marketmaker.connect(borrower).setBottomSpread(newBottomSpread);
 
             expect(await marketmaker.bottom_spread()).to.equal(newBottomSpread);
+        });
+
+        it('setTickSpread correctly', async () => {
+            const newTickSpread = 2000; // 0.2%
+            await marketmaker.connect(borrower).setTickSpread(newTickSpread);
+
+            expect(await marketmaker.tick_spread()).to.equal(newTickSpread);
         });
 
         it('removes closed positions', async () => {
@@ -229,14 +240,15 @@ contract('Market Maker', async () => {
             poolData = await pool.slot0();
             currentTick = poolData.tick;
 
-            // check currentTick is below than the tick of target price(276320 or -276320)
+            // check currentTick is below or above than the tick of target price(276320 or -276320)
             if (usdc.address < sweep.address) {
                 targetPriceTick = 276320; // 1.0
+                expect(currentTick).to.above(targetPriceTick)
             } else {
                 targetPriceTick = -276320; // 1.0
+                expect(currentTick).to.below(targetPriceTick)
             }
 
-            expect(currentTick).to.below(targetPriceTick)
             expect(await marketmaker.numPositions()).to.equal(1);
 
             const tokenId1 = (await positionManager.tokenOfOwnerByIndex(marketmaker.address, 1)).toNumber();
