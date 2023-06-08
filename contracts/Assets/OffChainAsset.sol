@@ -101,7 +101,8 @@ contract OffChainAsset is Stabilizer {
      */
     function setCollateralAgent(
         address agentAddress
-    ) external onlyBorrower validAddress(agentAddress) onlySettingsEnabled {
+    ) external onlyBorrower onlySettingsEnabled {
+        if (agentAddress == address(0)) revert ZeroAddressDetected();
         collateralAgent = agentAddress;
 
         emit CollateralAgentSet(agentAddress);

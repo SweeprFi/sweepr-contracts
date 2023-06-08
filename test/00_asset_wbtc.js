@@ -8,10 +8,11 @@ contract("WBTC Asset", async function () {
         [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
 
         BORROWER = borrower.address;
-        depositAmount = 10e6;
-        withdrawAmount = 15e6;
+        depositAmount = 100e6;
+        investAmount = 150e6;
+        divestAmount = 50e6;
         maxSweep = toBN("500000", 18);
-        maxBorrow = toBN("100", 8);
+        maxBorrow = toBN("1000", 8);
 
         await sendEth(Const.WBTC_HOLDER);
         // ------------- Deployment of contracts -------------
@@ -36,7 +37,7 @@ contract("WBTC Asset", async function () {
         amm = await Uniswap.deploy(sweep.address, Const.FEE);
         await sweep.setAMM(amm.address);
 
-        await amm.setPrice(Const.WBTC_PRICE);
+        await amm.setPrice(Const.WBTC_AMM);
         await wbtcOracle.setPrice(Const.WBTC_PRICE);
 
         WBTCAsset = await ethers.getContractFactory("TokenAsset");
@@ -83,12 +84,16 @@ contract("WBTC Asset", async function () {
             expect(await wbtc_asset.assetValue()).to.equal(Const.ZERO);
             await wbtc_asset.invest(withdrawAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(wbtc_asset.address)).to.equal(Const.ZERO);
-            expect(await wbtc.balanceOf(wbtc_asset.address)).to.above(Const.ZERO);
+            expect(await wbtc.balanceOf(wbtc_asset.address)).to.greaterThan(Const.ZERO);
         });
 
         it("divest correctly", async function () {
+            await wbtc_asset.divest(divestAmount, Const.SLIPPAGE);
+            expect(await usdc.balanceOf(wbtc_asset.address)).to.greaterThan(Const.ZERO);
+            expect(await wbtc.balanceOf(wbtc_asset.address)).to.greaterThan(Const.ZERO);
+
             await wbtc_asset.divest(depositAmount, Const.SLIPPAGE);
-            expect(await usdc.balanceOf(wbtc_asset.address)).to.above(Const.ZERO);
+            expect(await usdc.balanceOf(wbtc_asset.address)).to.greaterThan(Const.ZERO);
             expect(await wbtc.balanceOf(wbtc_asset.address)).to.equal(Const.ZERO);
         });
     });

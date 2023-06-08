@@ -112,27 +112,17 @@ contract Stabilizer is Owned, Pausable {
 
     /* ========== Modifies ========== */
     modifier onlyBorrower() {
-        if (msg.sender != borrower) revert NotBorrower();
-        _;
-    }
-
-    modifier onlyBalancer() {
-        if (msg.sender != sweep.balancer()) revert NotBalancer();
+        _onlyBorrower();
         _;
     }
 
     modifier onlySettingsEnabled() {
-        if (!settingsEnabled) revert SettingsDisabled();
-        _;
-    }
-
-    modifier validAddress(address addr) {
-        if (addr == address(0)) revert ZeroAddressDetected();
+        _onlySettingsEnabled();
         _;
     }
 
     modifier validAmount(uint256 amount) {
-        if (amount == 0) revert OverZero();
+        _validAmount(amount);
         _;
     }
 
@@ -381,7 +371,8 @@ contract Stabilizer is Owned, Pausable {
      * @param newLoanLimit.
      * @dev How much debt an Stabilizer can take in SWEEP.
      */
-    function setLoanLimit(uint256 newLoanLimit) external onlyBalancer {
+    function setLoanLimit(uint256 newLoanLimit) external {
+        if (msg.sender != sweep.balancer()) revert NotBalancer();
         loanLimit = newLoanLimit;
 
         emit LoanLimitChanged(newLoanLimit);
@@ -410,7 +401,8 @@ contract Stabilizer is Owned, Pausable {
         uint256 sweepAmount,
         uint256 price,
         uint256 slippage
-    ) external onlyBalancer {
+    ) external {
+        if (msg.sender != sweep.balancer()) revert NotBalancer();
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
         uint256 repayAmount = sweepAmount.min(sweepBorrowed);
 
@@ -452,10 +444,11 @@ contract Stabilizer is Owned, Pausable {
      * @dev Cancels the auto call request by clearing variables for an asset
      * that has a callDelay: meaning that it does not autorepay.
      */
-    function cancelCall() external onlyBalancer {
-        emit CallCancelled(callAmount);
+    function cancelCall() external {
+        if (msg.sender != sweep.balancer()) revert NotBalancer();
         callAmount = 0;
         callTime = 0;
+        emit CallCancelled(callAmount);
     }
 
     /**
@@ -468,7 +461,8 @@ contract Stabilizer is Owned, Pausable {
         uint256 sweepAmount,
         uint256 price,
         uint256 slippage
-    ) external onlyBalancer {
+    ) external {
+        if (msg.sender != sweep.balancer()) revert NotBalancer();
         uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
         uint256 sweepAvailable = sweepLimit - sweepBorrowed;
         sweepAmount = sweepAmount.min(sweepAvailable);
@@ -785,5 +779,17 @@ contract Stabilizer is Owned, Pausable {
         uint256 slippage
     ) internal pure returns (uint256) {
         return (amount * (PRECISION - slippage)) / PRECISION;
+    }
+
+    function _onlyBorrower() internal view {
+        if (msg.sender != borrower) revert NotBorrower();
+    }
+
+    function _onlySettingsEnabled() internal view {
+        if (!settingsEnabled) revert SettingsDisabled();
+    }
+
+    function _validAmount(uint256 amount) internal pure {
+        if (amount == 0) revert OverZero();
     }
 }
