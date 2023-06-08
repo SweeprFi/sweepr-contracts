@@ -52,6 +52,11 @@ const wallets = {
     5: '0xA051d2543AFC78b082832d6ef495e62Bb86490eb',
     42161: '',
   },
+  dai_holder: {
+    1: '',
+    5: '',
+    42161: '0xf0428617433652c9dc6d1093a42adfbf30d29f74',
+  },
   multisig: { // Gnosis safe wallet
     1: '0x23Ab3E2954Ec5577730B7674f4bA9e78Eb96C4d1',
     5: '0x23Ab3E2954Ec5577730B7674f4bA9e78Eb96C4d1',
@@ -112,6 +117,18 @@ const tokens = {
     42161: '',
     421613: ''
   },
+  dai: {
+    1: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+    5: '',
+    42161: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+    421613: ''
+  },
+  gDai: {
+    1: '',
+    5: '',
+    42161: '0xd85E038593d7A098614721EaE955EC2022B9B91B',
+    421613: ''
+  }
 }
 
 const libraries = {
@@ -150,6 +167,12 @@ const libraries = {
     1: '',
     5: '0x0d96fd4087211cef3babb45fc641fd9e429636d7',
     42161: '',
+    421613: ''
+  },
+  gDai_open_trades: {
+    1: '',
+    5: '',
+    42161: '0x990BA9Edd8a9615A23E4c452E63A80e519A4a23D',
     421613: ''
   }
 }
