@@ -1,21 +1,19 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { Const } = require("../utils/helper_functions");
-const { BigNumber } = require('ethers');
+const { Const, getPriceAndData, toBN } = require("../utils/helper_functions");
 
 let poolAddress;
-let sqrtPriceX96, tickLower, tickUpper, token0, token1, token0Amount, token1Amount;
 
 contract('Market Maker', async () => {
     before(async () => {
         [owner, borrower, treasury, guest, lzEndpoint, multisig] = await ethers.getSigners();
 
-        usdxAmount = ethers.utils.parseUnits("10000000", 6); // 10M
-        sweepAmount = ethers.utils.parseUnits("10000000", 18); // 10M
-        minAutoSweepAmount = ethers.utils.parseUnits("100", 18);
-        mintLPSweepAmount = ethers.utils.parseUnits("100", 18);
-        increaseLPSweepAmount = ethers.utils.parseUnits("500", 18);
+        usdxAmount = toBN("10000000", 6); // 10M
+        sweepAmount = toBN("10000000", 18); // 10M
+        minAutoSweepAmount = toBN("100", 18);
+        mintLPSweepAmount = toBN("100", 18);
+        increaseLPSweepAmount = toBN("500", 18);
         TOP_SPREAD = 500; // 0.05%
         BOTTOM_SPREAD = 0;
         TICK_SPREAD = 1000; // 0.1%
@@ -73,7 +71,6 @@ contract('Market Maker', async () => {
         );
 
         Uniswap = await ethers.getContractFactory("UniswapAMM");
-
         amm = await Uniswap.deploy(
             sweep.address,
             addresses.sequencer_feed,
@@ -90,35 +87,16 @@ contract('Market Maker', async () => {
         it('create the pool and adds liquidity', async () => {
             expect(await factory.getPool(usdc.address, sweep.address, Const.FEE)).to.equal(Const.ADDRESS_ZERO);
 
-            if (usdc.address < sweep.address) {
-                sqrtPriceX96 = BigNumber.from('79228057781537899283318961129827820'); // price = 1.0
-                tickLower = 276120; // 0.98
-                tickUpper = 276520; // 1.02
-
-                token0 = usdc.address;
-                token1 = sweep.address;
-
-                token0Amount = usdxAmount;
-                token1Amount = sweepAmount;
-            } else {
-                sqrtPriceX96 = BigNumber.from('79228162514264337593543'); // price = 1.0
-                tickLower = -276520; // 0.98
-                tickUpper = -276120; // 1.02
-
-                token0 = sweep.address;
-                token1 = usdc.address;
-
-                token0Amount = sweepAmount;
-                token1Amount = usdxAmount;
-            }
+            const { token0, token1, tickLower, tickUpper, sqrtPriceX96, token0Amount, token1Amount } =
+                getPriceAndData(sweep.address, usdc.address, sweepAmount, usdxAmount);
 
             await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
-            poolAddress = await factory.getPool(sweep.address, usdc.address, Const.FEE);
+            poolAddress = await factory.getPool(token0, token1, Const.FEE);
 
             expect(poolAddress).to.not.equal(Const.ADDRESS_ZERO);
 
             await sweep.approve(positionManager.address, sweepAmount.mul(5));
-		    await usdc.approve(positionManager.address, usdxAmount.mul(5));
+            await usdc.approve(positionManager.address, usdxAmount.mul(5));
 
             expect(await usdc.balanceOf(poolAddress)).to.equal(Const.ZERO);
             expect(await sweep.balanceOf(poolAddress)).to.equal(Const.ZERO);
@@ -150,8 +128,9 @@ contract('Market Maker', async () => {
         });
 
         it('sell sweep', async () => {
+            expect(await marketmaker.sweep_borrowed()).to.equal(Const.ZERO);
             // swap 1M usdc to sweep, so price will rise up
-            swapAmount = ethers.utils.parseUnits("1000000", 6);
+            swapAmount = toBN("1000000", 6);
 
             await sweep.approve(swapRouter.address, swapAmount.mul(7));
             await usdc.approve(swapRouter.address, usdxAmount.mul(7));
@@ -165,22 +144,50 @@ contract('Market Maker', async () => {
                 amountIn: swapAmount,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
-                }
+            }
             );
 
-            usdcBeforeBalance = await usdc.balanceOf(marketmaker.address);
-            sweepBeforeBalance = await sweep.balanceOf(marketmaker.address);
-
-            expect(await marketmaker.sweep_borrowed()).to.equal(Const.ZERO);
-
-            // call execute. it will call sellSweep() function, because SWEEP.amm_price() > arb_price_upper
+            sweepPrice = await sweep.amm_price();
+            usdcPoolBalance = await usdc.balanceOf(poolAddress);
+            sweepPoolBalance = await sweep.balanceOf(poolAddress);
+            // call execute. it will call sellSweep() function,
+            // because SWEEP.amm_price() > arb_price_upper
             await sweep.approve(amm.address, sweepAmount.mul(5));
-		    await usdc.approve(amm.address, usdxAmount.mul(5));
+            await usdc.approve(amm.address, usdxAmount.mul(5));
 
-            executeAmount = ethers.utils.parseUnits("500000", 18);
+            executeAmount = toBN("500000", 18);
             await marketmaker.connect(borrower).execute(executeAmount);
 
             expect(await marketmaker.sweep_borrowed()).to.equal(executeAmount);
+            expect(await sweep.amm_price()).to.not.greaterThan(sweepPrice);
+            expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
+            expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
+        });
+
+        it('sell sweep again', async () => {
+            execute2Amount = toBN("300000", 18);
+            sweepPrice = await sweep.amm_price();
+            sweepPoolBalance = await sweep.balanceOf(poolAddress);
+
+            await marketmaker.connect(borrower).execute(execute2Amount);
+
+            expect(await marketmaker.sweep_borrowed()).to.equal(executeAmount.add(execute2Amount));
+            expect(await sweep.amm_price()).to.not.greaterThan(sweepPrice);
+            expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
+            expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
+        });
+
+        it('does nothing, because the price is in range', async () => {
+            execute3Amount = toBN("100000", 18);
+            sweepPrice = await sweep.amm_price();
+            sweepPoolBalance = await sweep.balanceOf(poolAddress);
+
+            await marketmaker.connect(borrower).execute(execute3Amount);
+
+            expect(await marketmaker.sweep_borrowed()).to.equal(executeAmount.add(execute2Amount));
+            expect(await sweep.amm_price()).to.equal(sweepPrice);
+            expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
+            expect(await sweep.balanceOf(poolAddress)).to.equal(sweepPoolBalance);
         });
 
         it('revert calling setTopSpread when caller is not borrower', async () => {
@@ -215,10 +222,9 @@ contract('Market Maker', async () => {
         });
 
         it('removes closed positions', async () => {
-            swapAmount = ethers.utils.parseUnits("5000000", 18);
-
+            swapAmount = toBN("5000000", 18);
             await sweep.approve(swapRouter.address, swapAmount.mul(7));
-		    await usdc.approve(swapRouter.address, usdxAmount.mul(7));
+            await usdc.approve(swapRouter.address, usdxAmount.mul(7));
 
             // swap 5M sweep
             await swapRouter.exactInputSingle({
@@ -230,7 +236,7 @@ contract('Market Maker', async () => {
                 amountIn: swapAmount,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
-                }
+            }
             );
 
             pool = await ethers.getContractAt("IUniswapV3Pool", poolAddress);
@@ -246,21 +252,44 @@ contract('Market Maker', async () => {
                 expect(currentTick).to.below(targetPriceTick)
             }
 
-            expect(await marketmaker.numPositions()).to.equal(1);
+            expect(await marketmaker.numPositions()).to.equal(2);
 
             const tokenId1 = (await positionManager.tokenOfOwnerByIndex(marketmaker.address, 1)).toNumber();
             positionMapping1 = await marketmaker.positions_mapping(tokenId1);
-		    expect(positionMapping1.liquidity).to.above(Const.ZERO);
+            expect(positionMapping1.liquidity).to.above(Const.ZERO);
+
+            const tokenId2 = (await positionManager.tokenOfOwnerByIndex(marketmaker.address, 2)).toNumber();
+            positionMapping2 = await marketmaker.positions_mapping(tokenId2);
+            expect(positionMapping2.liquidity).to.above(Const.ZERO);
+
+            usdcPoolBalance = await usdc.balanceOf(poolAddress);
+            sweepPoolBlance = await sweep.balanceOf(poolAddress);
+            usdcAssetBalance = await usdc.balanceOf(marketmaker.address);
+            sweepAssetBalance = await sweep.balanceOf(marketmaker.address);
+
+            sweepPrice = await sweep.amm_price();
 
             // Call removeClosedPositions(), but it willl remove 1nd position,
             // because current tick is below than tick_upper of 1nd position.
             await marketmaker.execute(0);
-            expect(await marketmaker.numPositions()).to.equal(0);
+            expect(await marketmaker.numPositions()).to.equal(Const.ZERO);
 
             // confirm 1st position was removed
             positionMapping1 = await marketmaker.positions_mapping(tokenId1);
             expect(positionMapping1.liquidity).to.equal(Const.ZERO);
-		    expect(positionMapping1.tokenId).to.equal(undefined);
+            expect(positionMapping1.tokenId).to.equal(undefined);
+
+            // confirm 2nd position was removed
+            positionMapping2 = await marketmaker.positions_mapping(tokenId2);
+            expect(positionMapping2.liquidity).to.equal(Const.ZERO);
+            expect(positionMapping2.tokenId).to.equal(undefined);
+
+            expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
+            expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
+            expect(await usdc.balanceOf(marketmaker.address)).to.equal(usdcAssetBalance)
+            expect(await sweep.balanceOf(marketmaker.address)).to.greaterThan(sweepAssetBalance);
+
+            expect(await sweep.amm_price()).to.equals(sweepPrice);
         });
     })
 });

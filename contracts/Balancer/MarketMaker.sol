@@ -29,6 +29,7 @@ contract MarketMaker is Stabilizer {
 
     // Array of all Uni v3 NFT positions held by MarketMaker
     Position[] public positions_array;
+    uint256[] public positions_ids;
 
     // Map token_id to Position
     mapping(uint256 => Position) public positions_mapping;
@@ -109,6 +110,7 @@ contract MarketMaker is Stabilizer {
 
         if (SWEEP.amm_price() < arb_price_lower && _sweep_amount == 0) {
             removeOutOfPositions(pool_fee);
+            removeIds();
         }
     }
 
@@ -233,7 +235,9 @@ contract MarketMaker is Stabilizer {
      * @notice Remove out-of-range poisitions
      */
     function removeOutOfPositions(uint24 _pool_fee) internal {
-        for (uint i = 0; i < positions_array.length; i++) {
+        uint256 len = positions_array.length;
+
+        for (uint i = 0; i < len;) {
             int24 tick_current = liquidityHelper.getCurrentTick(token0, token1, _pool_fee);
             Position memory position = positions_array[i];
 
@@ -243,7 +247,25 @@ contract MarketMaker is Stabilizer {
             if ((!flag && tick_current < position.tick_lower) || (flag && tick_current > position.tick_upper)) {
                 removeLiquidity(i);
             }
+            unchecked { ++i; }
         }
+    }
+
+    function removeIds() internal {
+        uint256 len = positions_ids.length;
+
+        if(len == positions_array.length) {
+            delete positions_array;
+        } else {
+            int256 _len = int256(len-1);
+            for (int256 i = _len; i >= 0;) {
+                positions_array[positions_ids[uint256(i)]] = positions_array[positions_array.length -1];
+                positions_array.pop();
+                unchecked { --i; }
+            }
+        }
+
+        delete positions_ids;
     }
 
     /**
@@ -285,8 +307,7 @@ contract MarketMaker is Stabilizer {
 
         nonfungiblePositionManager.burn(position.token_id);
 
-        positions_array[_index] = positions_array[positions_array.length -1];
-        positions_array.pop();
+        positions_ids.push(_index);
         delete positions_mapping[position.token_id];
 
         emit Burned(position.token_id);

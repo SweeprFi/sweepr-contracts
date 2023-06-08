@@ -1,29 +1,16 @@
 const { ethers } = require('hardhat');
 const { addresses, network, cardinality } = require("../../utils/address");
-const { Const, toBN } = require('../../utils/helper_functions');
+const { Const, getPriceAndData } = require('../../utils/helper_functions');
 
 
 async function main() {
-	const sweep = addresses.sweep.toString().toLowerCase();
-	const usdc = addresses.usdc.toString().toLowerCase();
-
-	let token0, token1, sqrtPriceX96;
-
-	if (usdc < sweep) {
-		token0 = usdc;
-		token1 = sweep;
-		sqrtPriceX96 = toBN("79228162514264337593543950336000000", 0);
-	} else {
-		token0 = sweep;
-		token1 = usdc;
-		sqrtPriceX96 = toBN("79228162514264334008320", 0);
-	}
+	const { token0, token1, sqrtPriceX96 } =  getPriceAndData(addresses.sweep, addresses.usdc, 0, 0);
 
 	factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
     positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniswap_position_manager);
 
 	await (await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)).wait();
-	poolAddress = await factory.getPool(usdc, sweep, Const.FEE);
+	poolAddress = await factory.getPool(token0, token1, Const.FEE);
 
 	pool = await ethers.getContractAt("IUniswapV3Pool", poolAddress);
 	slot0 = await pool.slot0();
