@@ -56,7 +56,7 @@ contract AaveV3Asset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         // All numbers given are in USDX unless otherwise stated
-        return aaveUSDX_Token.balanceOf(address(this));
+        return amm().tokenToUSD(aaveUSDX_Token.balanceOf(address(this)));
     }
 
     /* ========== Actions ========== */

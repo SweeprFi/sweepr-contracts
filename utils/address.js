@@ -22,7 +22,6 @@ const addresses = {
   agent: wallets.agent[chainId],
   treasury: wallets.treasury[chainId],
   usdc_holder: wallets.usdc_holder[chainId],
-  comp_holder: wallets.comp_holder[chainId],
   multisig: wallets.multisig[chainId],
 
   // Tokens
@@ -31,7 +30,6 @@ const addresses = {
   usdc: tokens.usdc[chainId],
   usdt: tokens.usdt[chainId],
   aave_usdc: tokens.aave_usdc[chainId],
-  comp: tokens.comp[chainId],
   comp_cusdc: tokens.comp_cusdc[chainId],
   weth: tokens.weth[chainId],
   wbtc: tokens.wbtc[chainId],
@@ -41,13 +39,11 @@ const addresses = {
   liquidity_helper: libraries.liquidity_helper[chainId],
   uniswap_oracle: libraries.uniswap_oracle[chainId],
   aaveV3_pool: libraries.aaveV3_pool[chainId],
-  comp_control: libraries.comp_control[chainId],
   glp_reward_router: libraries.glp_reward_router[chainId],
   backed_mint: libraries.backed_mint[chainId],
   backed_redeem: libraries.backed_redeem[chainId],
 
   // Oracles - ChainLink
-  oracle_comp_usd: chainlink_oracle.comp_usd[chainId],
   oracle_weth_usd: chainlink_oracle.weth_usd[chainId],
   oracle_wbtc_usd: chainlink_oracle.wbtc_usd[chainId],
   oracle_usdc_usd: chainlink_oracle.usdc_usd[chainId],

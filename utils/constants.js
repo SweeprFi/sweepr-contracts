@@ -47,11 +47,6 @@ const wallets = {
     5: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
     42161: '0xAEafDd0ce0c4ab0AC57913916E5c386D847609c3',
   },
-  comp_holder: {
-    1: '',
-    5: '0xA051d2543AFC78b082832d6ef495e62Bb86490eb',
-    42161: '',
-  },
   multisig: { // Gnosis safe wallet
     1: '0x23Ab3E2954Ec5577730B7674f4bA9e78Eb96C4d1',
     5: '0x23Ab3E2954Ec5577730B7674f4bA9e78Eb96C4d1',
@@ -86,15 +81,10 @@ const tokens = {
     5: '0x8Be59D90A7Dc679C5cE5a7963cD1082dAB499918', // aave eth USDC
     42161: '0x625E7708f30cA75bfd92586e17077590C60eb4cD',
   },
-  comp: {
-    1: '0xc00e94Cb662C3520282E6f5717214004A7f26888',
-    5: '0x3587b2F7E0E2D6166d6C14230e7Fe160252B0ba4',
-    42161: '',
-  },
   comp_cusdc: {
     1: '0x39AA39c021dfbaE8faC545936693aC917d5E7563',
     5: '0x73506770799Eb04befb5AaE4734e58C2C624F493',
-    42161: '',
+    42161: '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA',
   },
   weth: {
     1: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
@@ -130,11 +120,6 @@ const libraries = {
     5: '0x7b5C526B7F8dfdff278b4a3e045083FBA4028790',
     42161: '0x794a61358D6845594F94dc1DB02A252b5b4814aD',
   },
-  comp_control: {
-    1: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
-    5: '0x05Df6C772A563FfB37fD3E04C1A279Fb30228621',
-    42161: '',
-  },
   glp_reward_router: {
     1: '',
     5: '',
@@ -155,11 +140,6 @@ const libraries = {
 }
 
 const chainlink_oracle = {
-  comp_usd: {
-    1: '0xdbd020CAeF83eFd542f4De03e3cF0C28A4428bd5',
-    5: '',
-    42161: '0xe7C53FFd03Eb6ceF7d208bC4C13446c76d1E5884',
-  },
   weth_usd: {
     1: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', // ETH - USD
     5: '0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e', // ETH - USD

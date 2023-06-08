@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { toBN, Const } = require("../utils/helper_functions");
+const { toBN, Const, increaseTime } = require("../utils/helper_functions");
 
 contract("Sweep", async function () {
 	before(async () => {
@@ -62,15 +62,6 @@ contract("Sweep", async function () {
 		expect(await sweep.arb_spread()).to.eq(1000);
 	});
 
-	it('sets a new period time correctly', async () => {
-		period_time = await sweep.period_time();
-		await sweep.connect(multisig).setPeriodTime(Const.ZERO);
-		new_period_time = await sweep.period_time();
-
-		expect(period_time).to.equal(604800);
-		expect(new_period_time).to.equal(Const.ZERO);
-	});
-
 	it('sets a new AMM and gets price correctly', async () => {
 		expect(await sweep.amm()).to.equal(Const.ADDRESS_ZERO);
 
@@ -103,11 +94,28 @@ contract("Sweep", async function () {
 	});
 
 	it('starts a new period correctly', async () => {
-		period_start = await sweep.period_start();
+		next = await sweep.next_target_price();
+		current = await sweep.current_target_price();
+		expect(await sweep.period_start()).to.equal(Const.ZERO);
+		expect(await sweep.target_price()).to.equal(next);
+
 		await sweep.connect(newAddress).startNewPeriod();
 		new_period_start = await sweep.period_start();
 
-		expect(new_period_start).to.above(period_start);
+		expect(new_period_start).to.greaterThan(Const.ZERO);
+		expect(await sweep.target_price()).to.equal(current);
+
+		await expect(sweep.connect(newAddress).startNewPeriod())
+			.to.be.revertedWithCustomError(sweep, "NotPassedPeriodTime");
+	});
+
+	it('sets a new period time correctly', async () => {
+		period_time = await sweep.period_time();
+		await sweep.connect(multisig).setPeriodTime(Const.ZERO);
+		new_period_time = await sweep.period_time();
+
+		expect(period_time).to.equal(604800);
+		expect(new_period_time).to.equal(Const.ZERO);
 	});
 
 	it('upgrades Sweep', async () => {

@@ -6,15 +6,26 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 interface IcUSDC is IERC20 {
     function decimals() external view returns (uint256);
 
-    // returns 0 = success, otherwise a failure
-    function mint(uint256 mintAmount) external returns (uint256);
+    /**
+     * @notice Supplies an `amount` of underlying asset into the reserve, receiving in return overlying cTokens.
+     * - E.g. User supplies 100 USDC and gets in return 100 cUSDC
+     * @param asset The address of the underlying asset to supply
+     * @param amount The amount to be supplied
+     **/
+    function supply(
+        address asset,
+        uint256 amount
+    ) external;
 
-    // redeemAmount = # of cUSDC
-    function redeem(uint256 redeemAmount) external returns (uint256);
-
-    // redeemAmount = # of USDC
-    function redeemUnderlying(uint256 redeemAmount) external returns (uint256);
-
-    // Multiply this by the E8 balance of cUSDC, then divide the product by E16
-    function exchangeRateStored() external view returns (uint256);
+    /**
+     * @notice Withdraws an `amount` of underlying asset from the reserve, burning the equivalent cTokens owned
+     * E.g. User has 100 aUSDC, calls withdraw() and receives 100 USDC, burning the 100 cUSDC
+     * @param asset The address of the underlying asset to withdraw
+     * @param amount The underlying amount to be withdrawn
+     *   - Send the value type(uint256).max in order to withdraw the whole cToken balance
+     **/
+    function withdraw(
+        address asset,
+        uint256 amount
+    ) external;
 }

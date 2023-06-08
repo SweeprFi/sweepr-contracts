@@ -11,7 +11,7 @@ contract('GLP Asset', async () => {
         [lzEndpoint] = await ethers.getSigners();
         BORROWER = addresses.multisig;
         depositAmount = 100e6;
-        divestAmount = 200e6;
+        divestAmount = 150e6;
 
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [
@@ -53,31 +53,37 @@ contract('GLP Asset', async () => {
 
     describe("Initial Test", async function () {
         it('deposit usdc to the asset', async () => {
+            expect(await asset.currentValue()).to.equal(Const.ZERO);
             user = await impersonate(addresses.usdc);
             await usdx.connect(user).transfer(asset.address, depositAmount);
             expect(await usdx.balanceOf(asset.address)).to.equal(depositAmount)
+            expect(await asset.currentValue()).to.equal(depositAmount);
         });
 
         it('invest and divest to the GMX', async () => {
             await expect(asset.invest(depositAmount))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
+            await usdx.connect(user).transfer(asset.address, depositAmount);
+
             user = await impersonate(BORROWER);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
             await asset.connect(user).invest(depositAmount);
             expect(await asset.assetValue()).to.above(Const.ZERO);
 
+            await asset.connect(user).invest(depositAmount*2);
+
             // Collect Reward
-            // expect(await reward_token.balanceOf(user.address)).to.equal(Const.ZERO);
-            // await asset.connect(user).collect();
-            // expect(await reward_token.balanceOf(user.address)).to.above(Const.ZERO);
+            await asset.connect(user).collect();
 
             // Divest usdx
             await expect(asset.divest(divestAmount))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
+            assetValue = await asset.assetValue();
             await asset.connect(user).divest(divestAmount);
 
-            expect(await asset.assetValue()).to.equal(Const.ZERO);
+            expect(await asset.assetValue()).to.not.greaterThan(assetValue);
+            await asset.connect(user).divest(divestAmount);
         });
     });
 });
