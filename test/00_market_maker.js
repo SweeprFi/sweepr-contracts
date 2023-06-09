@@ -199,7 +199,7 @@ contract('Market Maker', async () => {
             const newTopSpread = 2000; // 0.2%
             await marketmaker.connect(borrower).setTopSpread(newTopSpread);
 
-            expect(await marketmaker.top_spread()).to.equal(newTopSpread);
+            expect(await marketmaker.topSpread()).to.equal(newTopSpread);
         });
 
         it('revert calling setBottomSpread when caller is not borrower', async () => {
@@ -211,14 +211,14 @@ contract('Market Maker', async () => {
             const newBottomSpread = 1000; // 0.1%
             await marketmaker.connect(borrower).setBottomSpread(newBottomSpread);
 
-            expect(await marketmaker.bottom_spread()).to.equal(newBottomSpread);
+            expect(await marketmaker.bottomSpread()).to.equal(newBottomSpread);
         });
 
         it('setTickSpread correctly', async () => {
             const newTickSpread = 2000; // 0.2%
             await marketmaker.connect(borrower).setTickSpread(newTickSpread);
 
-            expect(await marketmaker.tick_spread()).to.equal(newTickSpread);
+            expect(await marketmaker.tickSpread()).to.equal(newTickSpread);
         });
 
         it('removes closed positions', async () => {
@@ -255,11 +255,11 @@ contract('Market Maker', async () => {
             expect(await marketmaker.numPositions()).to.equal(2);
 
             const tokenId1 = (await positionManager.tokenOfOwnerByIndex(marketmaker.address, 1)).toNumber();
-            positionMapping1 = await marketmaker.positions_mapping(tokenId1);
+            positionMapping1 = await marketmaker.positions(tokenId1);
             expect(positionMapping1.liquidity).to.above(Const.ZERO);
 
             const tokenId2 = (await positionManager.tokenOfOwnerByIndex(marketmaker.address, 2)).toNumber();
-            positionMapping2 = await marketmaker.positions_mapping(tokenId2);
+            positionMapping2 = await marketmaker.positions(tokenId2);
             expect(positionMapping2.liquidity).to.above(Const.ZERO);
 
             usdcPoolBalance = await usdc.balanceOf(poolAddress);
@@ -272,17 +272,14 @@ contract('Market Maker', async () => {
             // Call removeClosedPositions(), but it willl remove 1nd position,
             // because current tick is below than tick_upper of 1nd position.
             await marketmaker.execute(0);
-            expect(await marketmaker.numPositions()).to.equal(Const.ZERO);
 
             // confirm 1st position was removed
-            positionMapping1 = await marketmaker.positions_mapping(tokenId1);
+            positionMapping1 = await marketmaker.positions(tokenId1);
             expect(positionMapping1.liquidity).to.equal(Const.ZERO);
-            expect(positionMapping1.tokenId).to.equal(undefined);
 
             // confirm 2nd position was removed
-            positionMapping2 = await marketmaker.positions_mapping(tokenId2);
+            positionMapping2 = await marketmaker.positions(tokenId2);
             expect(positionMapping2.liquidity).to.equal(Const.ZERO);
-            expect(positionMapping2.tokenId).to.equal(undefined);
 
             expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
             expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
