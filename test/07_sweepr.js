@@ -25,7 +25,7 @@ contract("Sweepr", async function () {
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 		blacklistApprover = await BlacklistApprover.deploy();
 
-		sweepr = await Sweepr.deploy(sweep.address);
+		sweepr = await Sweepr.deploy(sweep.address, lzEndpoint.address);
 	});
 
 	it('sets a new transfer approver correctly', async () => {

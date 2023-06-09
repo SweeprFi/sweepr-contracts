@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@layerzerolabs/solidity-examples/contracts/token/oft/OFT.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
@@ -11,7 +11,7 @@ import "../Governance/Treasury.sol";
 import "../Sweep/TransferApprover/ITransferApprover.sol";
 import "../Common/Owned.sol";
 
-contract SweeprCoin is ERC20, ERC20Burnable, Owned, ERC20Permit, ERC20Votes {
+contract SweeprCoin is OFT, ERC20Burnable, Owned, ERC20Permit, ERC20Votes {
     ITransferApprover private transferApprover;
 
     /// @notice SWEEPR price. This is in SWEEP
@@ -28,8 +28,9 @@ contract SweeprCoin is ERC20, ERC20Burnable, Owned, ERC20Permit, ERC20Votes {
 
     /* ========== CONSTRUCTOR ========== */
     constructor(
-        address _sweep_address
-    ) ERC20("SweeprCoin", "SWEEPR") ERC20Permit("SweeprCoin") Owned(_sweep_address) {}
+        address _sweep_address,
+        address _lzEndpoint
+    ) OFT("SweeprCoin", "SWEEPR", _lzEndpoint) ERC20Permit("SweeprCoin") Owned(_sweep_address) {}
 
     /* ========== RESTRICTED FUNCTIONS ========== */
     function mint(address _receiver, uint256 _amount) external onlyGov {
