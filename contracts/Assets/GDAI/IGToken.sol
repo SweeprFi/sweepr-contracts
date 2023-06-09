@@ -6,7 +6,7 @@ interface IGToken {
 
     function openTradesPnlFeed() external view returns (address);
 
-    function currentEpoch() external returns (uint256);
+    function currentEpoch() external view returns (uint256);
 
     function withdrawEpochsTimelock() external view returns (uint256);
 

@@ -86,12 +86,13 @@ contract GDAIAsset is Stabilizer {
         view
         returns (bool available, uint256 startTime, uint256 endTime)
     {
+        uint256 currentEpochStartTime = gDai.currentEpochStart();
         available = openTradesPnlFeed.nextEpochValuesRequestCount() == 0
             ? true
             : false;
-        startTime = block.timestamp > gDai.currentEpochStart() + DIVEST_DURATION
-            ? gDai.currentEpochStart() + EPOCH_DURATION
-            : gDai.currentEpochStart();
+        startTime = block.timestamp > currentEpochStartTime + DIVEST_DURATION
+            ? currentEpochStartTime + EPOCH_DURATION
+            : currentEpochStartTime;
         endTime = startTime + DIVEST_DURATION;
     }
 
@@ -111,9 +112,13 @@ contract GDAIAsset is Stabilizer {
             address(this),
             unlockEpoch
         );
-        startTime = requestAmount > 0 ? divestStartTime : 0;
-        endTime = requestAmount > 0 ? divestStartTime + DIVEST_DURATION : 0;
+        uint256 currentEpoch = gDai.currentEpoch();
+        startTime = requestAmount > 0 && currentEpoch <= unlockEpoch
+            ? divestStartTime
+            : 0;
+        endTime = startTime > 0 ? startTime + DIVEST_DURATION : 0;
         available =
+            currentEpoch == unlockEpoch &&
             requestAmount > 0 &&
             startTime <= block.timestamp &&
             block.timestamp <= endTime;
@@ -182,8 +187,8 @@ contract GDAIAsset is Stabilizer {
     /* ========== Internals ========== */
 
     function _invest(uint256 _usdxAmount, uint256) internal override {
-        (uint256 usdx_balance, ) = _balances();
-        if (usdx_balance < _usdxAmount) _usdxAmount = usdx_balance;
+        (uint256 usdxBalance, ) = _balances();
+        if (usdxBalance < _usdxAmount) _usdxAmount = usdxBalance;
 
         TransferHelper.safeApprove(address(usdx), SWEEP.amm(), _usdxAmount);
         uint256 daiAmount = amm().swapExactInput(
