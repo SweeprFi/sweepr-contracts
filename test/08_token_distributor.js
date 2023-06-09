@@ -23,7 +23,7 @@ contract("TokenDistributor", async function () {
 		]);
 		sweep = await Proxy.deployed();
 
-		sweepr = await Sweepr.deploy(sweep.address);
+		sweepr = await Sweepr.deploy(sweep.address, lzEndpoint.address);
 		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
 		treasury = await Treasury.deploy(sweep.address);
 
