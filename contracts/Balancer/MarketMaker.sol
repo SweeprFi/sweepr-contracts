@@ -252,8 +252,8 @@ contract MarketMaker is Stabilizer {
         }
 
         // Remove position ids
-        for (uint256 i = removeIds.length - 1; i > 0; ) {
-            uint256 _index = removeIds[i];
+        for (uint256 i = removeIds.length; i > 0; ) {
+            uint256 _index = removeIds[i - 1];
             positionIds[_index] = positionIds[positionIds.length - 1];
             positionIds.pop();
 
