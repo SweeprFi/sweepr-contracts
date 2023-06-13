@@ -226,13 +226,13 @@ contract MarketMaker is Stabilizer {
      */
     function removeOutOfPositions(uint24 _poolFee) internal {
         uint256 len = positionIds.length;
-
-        for (uint256 i = 0; i < len; ) {
-            int24 tickCurrent = liquidityHelper.getCurrentTick(
+        int24 tickCurrent = liquidityHelper.getCurrentTick(
                 token0,
                 token1,
                 _poolFee
             );
+            
+        for (uint256 i = 0; i < len; ) {
             uint256 tokenId = positionIds[i];
             Position memory position = positions[tokenId];
 
