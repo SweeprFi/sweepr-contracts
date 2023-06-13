@@ -8,8 +8,8 @@ module.exports = async function (taskArgs, hre) {
     let qty = ethers.utils.parseEther(taskArgs.qty)
 
     // get deployed local sweep instance
-    const localAddress = getDeployedAddress(hre.network.name, "sweep");
-    const localSweepInstance = await ethers.getContractAt("SweepCoin", localAddress);
+    const localAddress = getDeployedAddress(hre.network.name, "sweepr");
+    const localSweepInstance = await ethers.getContractAt("SweeprCoin", localAddress);
 
     // get remote chain id
     const remoteChainId = CHAIN_ID[taskArgs.targetNetwork];
@@ -18,10 +18,6 @@ module.exports = async function (taskArgs, hre) {
     let adapterParams = ethers.utils.solidityPack(["uint16", "uint256"], [1, 200000])
 
     let nativeFee = (await localSweepInstance.estimateSendFee(remoteChainId, toAddress, qty, false, adapterParams)).nativeFee;
-
-    if (hre.network.name == "mainnet" || hre.network.name == "goerli") {
-        nativeFee = Math.round(nativeFee * 1.2);
-    }
     
     console.log(`fees (wei): ${nativeFee} / (eth): ${ethers.utils.formatEther(nativeFee)}`)
 

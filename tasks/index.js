@@ -6,6 +6,13 @@ task(
 .addParam("targetNetwork", "the target network to set as a trusted remote")
 
 task(
+    "setSweeprTrustedRemote",
+    "setSweeprTrustedRemote(chainId) to enable inbound/outbound messages with your other contracts",
+    require("./setSweeprTrustedRemote")
+)
+.addParam("targetNetwork", "the target network to set as a trusted remote")
+
+task(
     "setSenderTrustedRemote",
     "setSenderTrustedRemote(chainId) to enable inbound/outbound messages with your other contracts",
     require("./setSenderTrustedRemote")
@@ -41,6 +48,10 @@ task(
 .addParam("amount", "limit amount minter can mint")
 
 
-task("oftSend", "send tokens to another chain", require("./oftSend"))
+task("sweep_oftSend", "send tokens to another chain", require("./sweep_oftSend"))
+    .addParam("qty", "qty of tokens to send")
+    .addParam("targetNetwork", "the target network to let this instance receive messages from")
+
+task("sweepr_oftSend", "send tokens to another chain", require("./sweepr_oftSend"))
     .addParam("qty", "qty of tokens to send")
     .addParam("targetNetwork", "the target network to let this instance receive messages from")

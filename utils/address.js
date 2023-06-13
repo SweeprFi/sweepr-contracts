@@ -110,6 +110,8 @@ function getDeployedAddress(networkName, contractType) {
 
   if (contractType == 'sweep') {
     contractAddress = tokens.sweep[chainID];
+  }else if (contractType == 'sweepr') {
+    contractAddress = tokens.sweepr[chainID];
   } else if (contractType == 'sender') {
     contractAddress = protocol.omnichain_proposal_sender[chainID];
   } else if (contractType == 'executor') {
