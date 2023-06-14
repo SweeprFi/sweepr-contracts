@@ -39,7 +39,7 @@ contract("Off-Chain Asset - Settings", async function () {
 
 		await offChainAsset.connect(borrower).configure(
 			Const.RATIO,
-			Const.SPREAD_FEE,
+			Const.spreadFee,
 			maxBorrow,
 			Const.DISCOUNT,
 			Const.DAY,
@@ -64,7 +64,7 @@ contract("Off-Chain Asset - Settings", async function () {
 	describe("settings functions", async function () {
 		describe("Use setting manager of stabilizer", async function () {
 			it("Set delay and wallet by setting manager of stabilizer", async function () {
-				expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
+				expect(await offChainAsset.settingsEnabled()).to.equal(Const.TRUE);
 
 				await offChainAsset.connect(borrower).setWallet(treasury.address);
 				expect(await offChainAsset.wallet()).to.equal(treasury.address);

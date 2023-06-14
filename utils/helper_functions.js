@@ -60,7 +60,7 @@ const Const = {
     TRUE: true,
     FALSE: false,
     RATIO: 10e4, // 10 %
-    SPREAD_FEE: 3e4, // 3 %
+    spreadFee: 3e4, // 3 %
     DISCOUNT: 2e4, // 2%
     URL: "htttp://test.com",
     DAY: 86400, // seconds

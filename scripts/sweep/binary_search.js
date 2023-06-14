@@ -35,8 +35,8 @@ async function binary_search() {
     sweepBalance = sweepBalance.div(ETH);
     usdcBalance = usdcBalance.div(ETH);
 
-    const targetPrice = await sweep.target_price(); // to simulate other target price: ethers.utils.parseUnits("1002800", 0);
-    let arbSpread = await sweep.arb_spread();
+    const targetPrice = await sweep.targetPrice(); // to simulate other target price: ethers.utils.parseUnits("1002800", 0);
+    let arbSpread = await sweep.arbSpread();
     if (arbSpread == 0) arbSpread = ethers.utils.parseUnits("1000", 0); //~> simulated 0.1% - now it is zero in Arbitrum
 
     const spread = targetPrice.mul(arbSpread).div(1e6);
@@ -45,7 +45,7 @@ async function binary_search() {
 
     // MAIN PROCESS ===============================================================================
     await resetNetwork();
-    const ammPrice = await sweep.amm_price();
+    const ammPrice = await sweep.ammPrice();
 
     console.log(`TARGET PRICE: [ ${minPrice} - ${maxPrice} ] `);
     console.log(`AMM PRICE: ${ammPrice}`);
@@ -67,7 +67,7 @@ async function binary_search() {
         return;
     }
 
-    console.log("Nothing to do. AMM price is between the target_price +/- arb_spread range");
+    console.log("Nothing to do. AMM price is between the targetPrice +/- arbSpread range");
 
     // FUNCTIONS =================================================================================
 
@@ -78,7 +78,7 @@ async function binary_search() {
         for( let i=0; i<MAX_ROUNDS; i++ ) {
             const swap_amount = ethers.utils.parseUnits(X.toString(), decimals);
             await swap(addresses.usdc, swap_amount, 0);
-            const ammPrice = await sweep.amm_price();
+            const ammPrice = await sweep.ammPrice();
             console.log(`Attemp ${i}: ${X} SWEEP ~> New AMM Price: ${ammPrice}`);
 
             if (ammPrice.gt(maxPrice)) {
@@ -116,7 +116,7 @@ async function binary_search() {
         // sets a lower target price to can mint more Sweep
         user = await impersonate(BALANCER);
         await sweep.connect(user).setTargetPrice(100, 100);
-        await sweep.minter_mint(tester.address, SWEEP_AMOUNT);
+        await sweep.minterMint(tester.address, SWEEP_AMOUNT);
 
         await sweep.approve(addresses.uniswap_amm, SWEEP_AMOUNT.mul(100));
         await usdc.approve(addresses.uniswap_amm, USDC_AMOUNT.mul(100));

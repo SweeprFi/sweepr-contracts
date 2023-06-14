@@ -24,17 +24,17 @@ library ChainlinkPricer {
 
         (
             uint256 roundId,
-            int256 _price,
+            int256 latestPrice,
             ,
             uint256 updatedAt,
 
         ) = AggregatorV3Interface(priceFeed).latestRoundData();
 
-        if (_price <= 0 || roundId == 0) revert InvalidPrice();
+        if (latestPrice <= 0 || roundId == 0) revert InvalidPrice();
         if (updatedAt == 0 || updatedAt == 0) revert InvalidPrice();
         if (frequency > 0 && (block.timestamp - updatedAt > frequency))
             revert StalePrice();
-        price = _price;
+        price = latestPrice;
     }
 
     function checkUptime(address sequencerFeed) internal view {

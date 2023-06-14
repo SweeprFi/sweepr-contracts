@@ -55,7 +55,7 @@ contract("Stabilizer and spread", async function () {
 
     await offChainAsset.connect(borrower).configure(
       Const.RATIO,
-      Const.SPREAD_FEE,
+      Const.spreadFee,
       maxBorrow,
       Const.DISCOUNT,
       Const.DAYS_5,
@@ -91,8 +91,8 @@ contract("Stabilizer and spread", async function () {
 
     expect(await usdx.balanceOf(offChainAsset.address)).to.equal(investAmount);
     expect(await sweep.balanceOf(offChainAsset.address)).to.equal(mintAmountFir);
-    expect(await offChainAsset.sweep_borrowed()).to.equal(mintAmountFir);
-    expect(await offChainAsset.spread_date()).to.equal(block.timestamp);
+    expect(await offChainAsset.sweepBorrowed()).to.equal(mintAmountFir);
+    expect(await offChainAsset.spreadDate()).to.equal(block.timestamp);
     expect(await offChainAsset.accruedFee()).to.equal(Const.ZERO);
     await increaseTime(Const.DAY*100); // Delay 100 hours
     expect(await offChainAsset.accruedFee()).to.above(Const.ZERO);
@@ -104,8 +104,8 @@ contract("Stabilizer and spread", async function () {
     sum = mintAmountFir.add(mintAmountSec);
 
     expect(await sweep.balanceOf(offChainAsset.address)).to.not.above(sum);
-    expect(await offChainAsset.sweep_borrowed()).to.equal(sum);
-    expect(await offChainAsset.spread_date()).to.equal(block.timestamp);
+    expect(await offChainAsset.sweepBorrowed()).to.equal(sum);
+    expect(await offChainAsset.spreadDate()).to.equal(block.timestamp);
     expect(await offChainAsset.accruedFee()).to.equal(Const.ZERO);
 
     await increaseTime(Const.DAY*7); // Delay 7 days
@@ -114,7 +114,7 @@ contract("Stabilizer and spread", async function () {
     // Repay
     await st.repay(mintAmountFir);
     expect(await sweep.balanceOf(offChainAsset.address)).to.not.above(mintAmountSec);
-    expect(await offChainAsset.sweep_borrowed()).to.above(mintAmountSec);
+    expect(await offChainAsset.sweepBorrowed()).to.above(mintAmountSec);
   });
 
   it("Repays without knowing the spread.", async function () {
@@ -126,7 +126,7 @@ contract("Stabilizer and spread", async function () {
     await st.repay(mintAmountSec);
 
     expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
-    expect(await offChainAsset.sweep_borrowed()).to.above(Const.ZERO);
+    expect(await offChainAsset.sweepBorrowed()).to.above(Const.ZERO);
   });
 
   it("Repays with the spread.", async function () {
@@ -143,6 +143,6 @@ contract("Stabilizer and spread", async function () {
     await st.repay(burn_amount);
 
     expect(await sweep.balanceOf(offChainAsset.address)).to.above(Const.ZERO);
-    expect(await offChainAsset.sweep_borrowed()).to.equal(Const.ZERO);
+    expect(await offChainAsset.sweepBorrowed()).to.equal(Const.ZERO);
   });
 });

@@ -20,7 +20,7 @@ contract Treasury is Owned {
     event SendEther(address to, uint256 amount);
     event SendToken(address token, address to, uint256 amount);
 
-    constructor(address _sweep) Owned(_sweep) {}
+    constructor(address sweepAddress_) Owned(sweepAddress_) {}
 
     /* ========== Actions ========== */
 
@@ -31,30 +31,30 @@ contract Treasury is Owned {
 
     /**
      * @notice Send Eth
-     * @param _receiver address
-     * @param _amount Eth amount
+     * @param receiver address
+     * @param amount Eth amount
      */
-    function sendEther(address _receiver, uint256 _amount) external onlyGov {
-        uint256 eth_balance = address(this).balance;
-        if (_amount > eth_balance) _amount = eth_balance;
+    function sendEther(address receiver, uint256 amount) external onlyGov {
+        uint256 ethBalance = address(this).balance;
+        if (amount > ethBalance) amount = ethBalance;
 
-        TransferHelper.safeTransferETH(_receiver, _amount);
+        TransferHelper.safeTransferETH(receiver, amount);
 
-        emit SendEther(_receiver, _amount);
+        emit SendEther(receiver, amount);
     }
 
     /**
      * @notice Recover ERC20 Token
-     * @param _token address
-     * @param _receiver address
-     * @param _amount SWEEP amount
+     * @param token address
+     * @param receiver address
+     * @param amount SWEEP amount
      */
-    function sendToken(address _token, address _receiver, uint256 _amount) external onlyGov {
-        uint256 token_balance = IERC20(_token).balanceOf(address(this));
-        if (_amount > token_balance) _amount = token_balance;
+    function sendToken(address token, address receiver, uint256 amount) external onlyGov {
+        uint256 tokenBalance = IERC20(token).balanceOf(address(this));
+        if (amount > tokenBalance) amount = tokenBalance;
 
-        TransferHelper.safeTransfer(_token, _receiver, _amount);
+        TransferHelper.safeTransfer(token, receiver, amount);
 
-        emit SendToken(_token, _receiver, _amount);
+        emit SendToken(token, receiver, amount);
     }
 }

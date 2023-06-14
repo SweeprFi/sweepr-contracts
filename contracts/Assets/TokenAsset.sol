@@ -25,7 +25,7 @@ contract TokenAsset is Stabilizer {
 
     constructor(
         string memory _name,
-        address _sweep_address,
+        address _sweepAddress,
         address _usdx_address,
         address _token_address,
         address _token_oracle_address,
@@ -33,7 +33,7 @@ contract TokenAsset is Stabilizer {
     )
         Stabilizer(
             _name,
-            _sweep_address,
+            _sweepAddress,
             _usdx_address,
             _borrower
         )

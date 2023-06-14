@@ -11,30 +11,30 @@ import "./TransferApprover/ITransferApprover.sol";
 
 contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     // Addresses
-    address public fast_multisig;
+    address public fastMultisig;
 
     ITransferApprover private transferApprover;
 
     // Structs
     struct Minter {
-        uint256 max_amount;
-        uint256 minted_amount;
-        bool is_listed;
-        bool is_enabled;
+        uint256 maxAmount;
+        uint256 mintedAmount;
+        bool isListed;
+        bool isEnabled;
     }
 
     // Minters
     mapping(address => Minter) public minters;
     // Minter Addresses
-    address[] public minter_addresses;
+    address[] public minterAddresses;
 
     /* ========== Events ========== */
 
     event TokenBurned(address indexed from, uint256 amount);
     event TokenMinted(address indexed from, address indexed to, uint256 amount);
-    event MinterAdded(address indexed minter_address, Minter minter);
-    event MinterUpdated(address indexed minter_address, Minter minter);
-    event MinterRemoved(address indexed minter_address);
+    event MinterAdded(address indexed minterAddress, Minter minter);
+    event MinterUpdated(address indexed minterAddress, Minter minter);
+    event MinterRemoved(address indexed minterAddress);
     event ApproverSet(address indexed approver);
     event FastMultisigSet(address indexed multisig);
 
@@ -53,8 +53,8 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
 
     /* ========== MODIFIERS ========== */
 
-    modifier validMinter(address _addr) {
-        if (!minters[_addr].is_listed) revert InvalidMinter();
+    modifier validMinter(address addr) {
+        if (!minters[addr].isListed) revert InvalidMinter();
         _;
     }
 
@@ -64,7 +64,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     }
 
     modifier onlyMultisig() {
-        if (msg.sender != owner() && msg.sender != fast_multisig)
+        if (msg.sender != owner() && msg.sender != fastMultisig)
             revert NotMultisig();
         _;
     }
@@ -72,21 +72,21 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     /* ========== CONSTRUCTOR ========== */
 
     function __Sweep_init(
-        string memory _name,
-        string memory _symbol,
-        address _lzEndpoint,
-        address _fast_multisig
+        string memory name,
+        string memory symbol,
+        address lzEndpoint,
+        address fastMultisig_
     ) public onlyInitializing {
-        __OFTUpgradeable_init(_name, _symbol, _lzEndpoint);
+        __OFTUpgradeable_init(name, symbol, lzEndpoint);
         __Pausable_init();
 
-        fast_multisig = _fast_multisig;
+        fastMultisig = fastMultisig_;
     }
 
     /* ========== VIEWS ========== */
 
-    function isValidMinter(address _minter) external view returns (bool) {
-        return minters[_minter].is_listed && minters[_minter].max_amount > 0;
+    function isValidMinter(address minter) external view returns (bool) {
+        return minters[minter].isListed && minters[minter].maxAmount > 0;
     }
 
     /* ========== Settings ========== */
@@ -109,7 +109,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
      * @notice Unpause Sweep
      */
     function setFastMultisig(address multisig) external onlyGov {
-        fast_multisig = multisig;
+        fastMultisig = multisig;
         emit FastMultisigSet(multisig);
     }
 
@@ -118,95 +118,95 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
      * @return list of whitelisted minter addresses
      */
     function getMinters() external view returns (address[] memory) {
-        return minter_addresses;
+        return minterAddresses;
     }
 
     /**
      * @notice Add Minter
      * Adds whitelisted minters.
-     * @param _minter Address to be added.
-     * @param _amount Max Amount for mint.
+     * @param minter Address to be added.
+     * @param amount Max Amount for mint.
      */
-    function addMinter(address _minter, uint256 _amount) external onlyGov {
-        if (_minter == address(0)) revert ZeroAddressDetected();
-        if (_amount == 0) revert ZeroAmountDetected();
-        if (minters[_minter].is_listed) revert MinterExist();
+    function addMinter(address minter, uint256 amount) external onlyGov {
+        if (minter == address(0)) revert ZeroAddressDetected();
+        if (amount == 0) revert ZeroAmountDetected();
+        if (minters[minter].isListed) revert MinterExist();
 
-        minter_addresses.push(_minter);
+        minterAddresses.push(minter);
 
-        Minter memory new_minter = Minter({
-            max_amount: _amount,
-            minted_amount: 0,
-            is_listed: true,
-            is_enabled: true
+        Minter memory newMinter = Minter({
+            maxAmount: amount,
+            mintedAmount: 0,
+            isListed: true,
+            isEnabled: true
         });
-        minters[_minter] = new_minter;
+        minters[minter] = newMinter;
 
-        emit MinterAdded(_minter, new_minter);
+        emit MinterAdded(minter, newMinter);
     }
 
     /**
      * @notice Remove Minter
      * A minter will be removed from the list.
-     * @param _minter Address to be removed.
+     * @param minter Address to be removed.
      */
     function removeMinter(
-        address _minter
-    ) external onlyGov validMinter(_minter) {
-        delete minters[_minter]; // Delete minter from the mapping
+        address minter
+    ) external onlyGov validMinter(minter) {
+        delete minters[minter]; // Delete minter from the mapping
 
-        for (uint256 i = 0; i < minter_addresses.length; i++) {
-            if (minter_addresses[i] == _minter) {
-                minter_addresses[i] = minter_addresses[
-                    minter_addresses.length - 1
+        for (uint256 i = 0; i < minterAddresses.length; i++) {
+            if (minterAddresses[i] == minter) {
+                minterAddresses[i] = minterAddresses[
+                    minterAddresses.length - 1
                 ];
-                minter_addresses.pop();
+                minterAddresses.pop();
                 break;
             }
         }
 
-        emit MinterRemoved(_minter);
+        emit MinterRemoved(minter);
     }
 
     /**
      * @notice Set Max Amount of a Minter
      * Update the max mint amount of a user.
-     * @param _minter Address of a user.
-     * @param _amount Max Mint Amount .
+     * @param minter Address of a user.
+     * @param amount Max Mint Amount .
      */
     function setMinterMaxAmount(
-        address _minter,
-        uint256 _amount
-    ) external onlyGov validMinter(_minter) {
-        minters[_minter].max_amount = _amount;
+        address minter,
+        uint256 amount
+    ) external onlyGov validMinter(minter) {
+        minters[minter].maxAmount = amount;
 
-        emit MinterUpdated(_minter, minters[_minter]);
+        emit MinterUpdated(minter, minters[minter]);
     }
 
     /**
      * @notice Minter Enable
      * Enable a user to mint.
-     * @param _minter Address of a user.
-     * @param _is_enabled True: enabled, False: disabled.
+     * @param minter Address of a user.
+     * @param isEnabled True: enabled, False: disabled.
      */
     function setMinterEnabled(
-        address _minter,
-        bool _is_enabled
-    ) external onlyGov validMinter(_minter) {
-        minters[_minter].is_enabled = _is_enabled;
+        address minter,
+        bool isEnabled
+    ) external onlyGov validMinter(minter) {
+        minters[minter].isEnabled = isEnabled;
 
-        emit MinterUpdated(_minter, minters[_minter]);
+        emit MinterUpdated(minter, minters[minter]);
     }
 
     /**
      * @notice Set Transfer Approver
-     * @param _approver Address of a Approver.
+     * @param newApprover Address of a Approver.
      */
-    function setTransferApprover(address _approver) external onlyGov {
-        if (_approver == address(0)) revert ZeroAddressDetected();
-        transferApprover = ITransferApprover(_approver);
+    function setTransferApprover(address newApprover) external onlyGov {
+        if (newApprover == address(0)) revert ZeroAddressDetected();
+        transferApprover = ITransferApprover(newApprover);
 
-        emit ApproverSet(_approver);
+        emit ApproverSet(newApprover);
     }
 
     /* ========== Actions ========== */
@@ -214,92 +214,92 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     /**
      * @notice Mint
      * This function is what other minters will call to mint new tokens
-     * @param _minter Address of a minter.
-     * @param _amount Amount for mint.
+     * @param minter Address of a minter.
+     * @param amount Amount for mint.
      */
-    function minter_mint(
-        address _minter,
-        uint256 _amount
+    function minterMint(
+        address minter,
+        uint256 amount
     ) public virtual validMinter(msg.sender) whenNotPaused {
-        if (!minters[msg.sender].is_enabled) revert MintDisabled();
+        if (!minters[msg.sender].isEnabled) revert MintDisabled();
         if (
-            minters[msg.sender].minted_amount + _amount >
-            minters[msg.sender].max_amount
+            minters[msg.sender].mintedAmount + amount >
+            minters[msg.sender].maxAmount
         ) revert MintCapReached();
 
-        minters[msg.sender].minted_amount += _amount;
-        super._mint(_minter, _amount);
+        minters[msg.sender].mintedAmount += amount;
+        super._mint(minter, amount);
 
-        emit TokenMinted(msg.sender, _minter, _amount);
+        emit TokenMinted(msg.sender, minter, amount);
     }
 
     /**
      * @notice Burn
      * Used by minters when user redeems
-     * @param _amount Amount for burn.
+     * @param amount Amount for burn.
      */
-    function minter_burn_from(
-        uint256 _amount
+    function minterBurnFrom(
+        uint256 amount
     ) external validMinter(msg.sender) whenNotPaused {
-        if (minters[msg.sender].minted_amount < _amount)
+        if (minters[msg.sender].mintedAmount < amount)
             revert ExceedBurnAmount();
 
-        super._burn(msg.sender, _amount);
-        minters[msg.sender].minted_amount -= _amount;
+        super._burn(msg.sender, amount);
+        minters[msg.sender].mintedAmount -= amount;
 
-        emit TokenBurned(msg.sender, _amount);
+        emit TokenBurned(msg.sender, amount);
     }
 
     /**
      * @notice Hook that is called before any transfer of Tokens
-     * @param _from sender address
-     * @param _to beneficiary address
-     * @param _amount token amount
+     * @param from sender address
+     * @param to beneficiary address
+     * @param amount token amount
      */
     function _beforeTokenTransfer(
-        address _from,
-        address _to,
-        uint256 _amount
+        address from,
+        address to,
+        uint256 amount
     ) internal override whenNotPaused {
         if (
             address(transferApprover) != address(0) &&
-            !transferApprover.checkTransfer(_from, _to)
+            !transferApprover.checkTransfer(from, to)
         ) revert TransferNotAllowed();
 
-        super._beforeTokenTransfer(_from, _to, _amount);
+        super._beforeTokenTransfer(from, to, amount);
     }
 
     function _debitFrom(
-        address _from,
-        uint16 _dstChainId,
-        bytes memory _toAddress,
-        uint _amount
+        address from,
+        uint16 dstChainId,
+        bytes memory to,
+        uint amount
     ) internal override returns (uint) {
         address toAddress;
         assembly {
-            toAddress := mload(add(_toAddress, 20))
+            toAddress := mload(add(to, 20))
         }
 
         if (
             address(transferApprover) != address(0) &&
-            !transferApprover.checkTransfer(_from, toAddress)
+            !transferApprover.checkTransfer(from, toAddress)
         ) revert TransferNotAllowed();
 
-        super._debitFrom(_from, _dstChainId, _toAddress, _amount);
-        return _amount;
+        super._debitFrom(from, dstChainId, to, amount);
+        return amount;
     }
 
     function _creditTo(
-        uint16 _srcChainId,
-        address _toAddress,
-        uint _amount
+        uint16 srcChainId,
+        address toAddress,
+        uint amount
     ) internal override returns (uint) {
         if (
             address(transferApprover) != address(0) &&
-            !transferApprover.checkTransfer(_toAddress, _toAddress)
+            !transferApprover.checkTransfer(toAddress, toAddress)
         ) revert TransferNotAllowed();
 
-        super._creditTo(_srcChainId, _toAddress, _amount);
-        return _amount;
+        super._creditTo(srcChainId, toAddress, amount);
+        return amount;
     }
 }

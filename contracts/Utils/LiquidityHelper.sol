@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 
 // ====================================================================
-// ====================== LiquidityHelper.sol ============================
+// ====================== LiquidityHelper.sol =========================
 // ====================================================================
 
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
@@ -27,8 +27,8 @@ contract LiquidityHelper {
         address token1,
         uint24 fee
     ) external view returns (uint256 amount0, uint256 amount1) {
-        address pool_address = uniswapV3Factory.getPool(token0, token1, fee);
-        IUniswapV3Pool pool = IUniswapV3Pool(pool_address);
+        address poolAddress = uniswapV3Factory.getPool(token0, token1, fee);
+        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
         (uint160 sqrtPriceX96, int24 tickCurrent, , , , , ) = pool.slot0();
         (
             ,
@@ -105,8 +105,8 @@ contract LiquidityHelper {
         address token1,
         uint24 fee   
     ) external view returns (int24 tickSpacing) {
-        address pool_address = uniswapV3Factory.getPool(token0, token1, fee);
-        IUniswapV3Pool pool = IUniswapV3Pool(pool_address);   
+        address poolAddress = uniswapV3Factory.getPool(token0, token1, fee);
+        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);   
 
         tickSpacing = pool.tickSpacing();
     }
@@ -116,8 +116,8 @@ contract LiquidityHelper {
         address token1,
         uint24 fee   
     ) external view returns (int24 tickCurrent) {
-        address pool_address = uniswapV3Factory.getPool(token0, token1, fee);
-        IUniswapV3Pool pool = IUniswapV3Pool(pool_address);   
+        address poolAddress = uniswapV3Factory.getPool(token0, token1, fee);
+        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);   
 
         (, tickCurrent, , , , , ) = pool.slot0();
     }

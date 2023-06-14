@@ -51,7 +51,7 @@ contract('Uniswap V3 Asset', async () => {
         // config stabilizer
         await asset.configure(
             Const.RATIO,
-            Const.SPREAD_FEE,
+            Const.spreadFee,
             sweepAmount,
             Const.DISCOUNT,
             Const.DAY,
@@ -89,9 +89,9 @@ contract('Uniswap V3 Asset', async () => {
         it('borrow sweep', async () => {
             await expect(asset.connect(guest).borrow(sweepAmount))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
-            expect(await asset.sweep_borrowed()).to.equal(Const.ZERO);
+            expect(await asset.sweepBorrowed()).to.equal(Const.ZERO);
             await asset.borrow(sweepAmount);
-            expect(await asset.sweep_borrowed()).to.equal(sweepAmount);
+            expect(await asset.sweepBorrowed()).to.equal(sweepAmount);
         });
 
         it('check LP token minted', async () => {

@@ -3,17 +3,17 @@ pragma solidity 0.8.19;
 
 interface IAMM {
     function swapExactInput(
-        address _tokenA,
-        address _tokenB,
-        uint256 _amountIn,
-        uint256 _amountOutMin
+        address tokenA,
+        address tokenB,
+        uint256 amountIn,
+        uint256 amountOutMin
     ) external returns (uint256);
 
-    function buySweep(address _token, uint256 _amountIn, uint256 _amountOutMin)
+    function buySweep(address token, uint256 amountIn, uint256 amountOutMin)
         external
         returns (uint256);
 
-    function sellSweep(address _token, uint256 _amountIn, uint256 _amountOutMin)
+    function sellSweep(address token, uint256 amountIn, uint256 amountOutMin)
         external
         returns (uint256);
 

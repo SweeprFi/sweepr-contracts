@@ -16,7 +16,7 @@ contract UniswapMock {
     ) {
         sweepAddress = _sweepAddress;
         poolFee = _poolFee;
-        price = ISweep(_sweepAddress).target_price();
+        price = ISweep(_sweepAddress).targetPrice();
     }
 
     function setPrice(uint256 _price) public {

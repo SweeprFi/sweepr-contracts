@@ -18,12 +18,12 @@ contract SweepGovernor is Governor, GovernorSettings, GovernorCountingSimple, Go
         _;
     }
 
-    constructor(IVotes _token, TimelockController _timelock, uint256 _delay)
+    constructor(IVotes token, TimelockController timelock, uint256 delay)
         Governor("SweepGovernor")
-        GovernorSettings(1 /* 1 block */, _delay, 1000e18)
-        GovernorVotes(_token)
+        GovernorSettings(1 /* 1 block */, delay, 1000e18)
+        GovernorVotes(token)
         GovernorVotesQuorumFraction(40)
-        GovernorTimelockControl(_timelock)
+        GovernorTimelockControl(timelock)
     {
         canceller = msg.sender;
     }
@@ -66,7 +66,12 @@ contract SweepGovernor is Governor, GovernorSettings, GovernorCountingSimple, Go
         return super.state(proposalId);
     }
 
-    function propose(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description)
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    )
         public
         override(Governor, IGovernor)
         returns (uint256)
@@ -74,7 +79,12 @@ contract SweepGovernor is Governor, GovernorSettings, GovernorCountingSimple, Go
         return super.propose(targets, values, calldatas, description);
     }
 
-    function cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+    function cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    )
         public
         onlyCanceller
         returns (uint256)
@@ -91,14 +101,25 @@ contract SweepGovernor is Governor, GovernorSettings, GovernorCountingSimple, Go
         return super.proposalThreshold();
     }
 
-    function _execute(uint256 proposalId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+    function _execute(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    )
         internal
         override(Governor, GovernorTimelockControl)
     {
         super._execute(proposalId, targets, values, calldatas, descriptionHash);
     }
 
-    function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+    function _cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    )
         internal
         override(Governor, GovernorTimelockControl)
         returns (uint256)

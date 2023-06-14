@@ -20,7 +20,7 @@ contract AaveV3Asset is Stabilizer {
 
     constructor(
         string memory _name,
-        address _sweep_address,
+        address _sweepAddress,
         address _usdx_address,
         address _aave_usdx_address,
         address _aaveV3_pool_address,
@@ -28,7 +28,7 @@ contract AaveV3Asset is Stabilizer {
     )
         Stabilizer(
             _name,
-            _sweep_address,
+            _sweepAddress,
             _usdx_address,
             _borrower
         )

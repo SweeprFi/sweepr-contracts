@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 interface IStabilizer {
-    function loan_limit() external view returns (uint256);
+    function loanLimit() external view returns (uint256);
 
     function cancelCall() external;
 

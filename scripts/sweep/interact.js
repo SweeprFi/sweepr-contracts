@@ -31,13 +31,13 @@ async function main() {
   async function state() {
     console.log("\nStatus");
     console.log("------------------------------------------");
-    console.log("       interest rate:", pp(await sweep.interest_rate(), 4), "%");
-    console.log("          step value:", pp(await sweep.step_value(), 4), "%");
+    console.log("       interest rate:", pp(await sweep.interestRate(), 4), "%");
+    console.log("          step value:", pp(await sweep.stepValue(), 4), "%");
     console.log("        period start:", pp(await sweep.period_start(), 0));
-    console.log("         period time:", pp(await sweep.period_time(), 0));
-    console.log("current target price:", pp(await sweep.current_target_price(), 6), "usd");
-    console.log("   next target price:", pp(await sweep.next_target_price(), 6), "usd");
-    console.log("          arb spread:", pp(await sweep.arb_spread() ,4) , "%");
+    console.log("         period time:", pp(await sweep.periodTime(), 0));
+    console.log("current target price:", pp(await sweep.current_targetPrice(), 6), "usd");
+    console.log("   next target price:", pp(await sweep.next_targetPrice(), 6), "usd");
+    console.log("          arb spread:", pp(await sweep.arbSpread() ,4) , "%");
     console.log("------------------------------------------");
     greenlog("ok");
   }

@@ -34,7 +34,7 @@ contract CompV2Asset is Stabilizer {
 
     constructor(
         string memory _name,
-        address _sweep_address,
+        address _sweepAddress,
         address _usdx_address,
         address _compound_address,
         address _cusdc_address,
@@ -44,7 +44,7 @@ contract CompV2Asset is Stabilizer {
     )
         Stabilizer(
             _name,
-            _sweep_address,
+            _sweepAddress,
             _usdx_address,
             _borrower
         )
