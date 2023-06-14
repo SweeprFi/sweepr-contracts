@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ======================== TokenDistributor ============================
+// ====================== TokenDistributor.sol ========================
 // ====================================================================
 
 /**
@@ -20,63 +20,63 @@ contract TokenDistributor is Owned {
     uint256 private constant PRECISION = 1e6;
 
     /* ========== EVENTS ========== */
-    event SweeprBought(address indexed to, uint256 sweepr_amount);
-    event SweeprSold(address indexed to, uint256 sweep_amount);
+    event SweeprBought(address indexed to, uint256 sweeprAmount);
+    event SweeprSold(address indexed to, uint256 sweepAmount);
 
     /* ========== Errors ========== */
     error NotEnoughBalance();
 
     /* ========== CONSTRUCTOR ========== */
     constructor(
-        address _sweep_address, 
-        address _sweepr_address
-    ) Owned(_sweep_address) {
-        sweepr = SweeprCoin(_sweepr_address);
+        address sweepAddress_, 
+        address sweeprAddress
+    ) Owned(sweepAddress_) {
+        sweepr = SweeprCoin(sweeprAddress);
     }
 
     /* ========== PUBLIC FUNCTIONS ========== */
     /**
      * @notice A function to buy sweepr.
-     * @param _sweep_amount sweep Amount to buy sweepr
+     * @param sweepAmount sweep Amount to buy sweepr
      */
-    function buy(uint256 _sweep_amount) external {
-        uint256 sweepr_balance = sweepr.balanceOf(address(this));
-        uint256 sweepr_amount = (_sweep_amount * sweepr.price()) / PRECISION;
+    function buy(uint256 sweepAmount) external {
+        uint256 sweeprBalance = sweepr.balanceOf(address(this));
+        uint256 sweeprAmount = (sweepAmount * sweepr.price()) / PRECISION;
 
-        if (sweepr_amount > sweepr_balance) revert NotEnoughBalance();
+        if (sweeprAmount > sweeprBalance) revert NotEnoughBalance();
         
-        TransferHelper.safeTransferFrom(address(SWEEP), msg.sender, address(this), _sweep_amount);
-        TransferHelper.safeTransfer(address(sweepr), msg.sender, sweepr_amount);
+        TransferHelper.safeTransferFrom(address(SWEEP), msg.sender, address(this), sweepAmount);
+        TransferHelper.safeTransfer(address(sweepr), msg.sender, sweeprAmount);
 
-        emit SweeprBought(msg.sender, sweepr_amount);
+        emit SweeprBought(msg.sender, sweeprAmount);
     }
 
     /**
      * @notice A function to sell sweepr.
-     * @param _sweepr_amount sweepr Amount to sell
+     * @param sweeprAmount sweepr Amount to sell
      */
-    function sell(uint256 _sweepr_amount) external {
-        uint256 sweep_balance = SWEEP.balanceOf(address(this));
-        uint256 sweep_amount = (_sweepr_amount * PRECISION) / sweepr.price();
+    function sell(uint256 sweeprAmount) external {
+        uint256 sweepBalance = SWEEP.balanceOf(address(this));
+        uint256 sweepAmount = (sweeprAmount * PRECISION) / sweepr.price();
 
-        if (sweep_amount > sweep_balance) revert NotEnoughBalance();
+        if (sweepAmount > sweepBalance) revert NotEnoughBalance();
         
-        TransferHelper.safeTransferFrom(address(sweepr), msg.sender, address(this), _sweepr_amount);
-        TransferHelper.safeTransfer(address(SWEEP), msg.sender, sweep_amount);
+        TransferHelper.safeTransferFrom(address(sweepr), msg.sender, address(this), sweeprAmount);
+        TransferHelper.safeTransfer(address(SWEEP), msg.sender, sweepAmount);
 
-        emit SweeprBought(msg.sender, sweep_amount);
+        emit SweeprBought(msg.sender, sweepAmount);
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */
     /**
      * @notice A function to send remaining tokens to treasury after distribution.
-     * @param _token_address token address to send
-     * @param _token_amount token amount to send
+     * @param tokenAddress token address to send
+     * @param tokenAmount token amount to send
      */
     function recover(
-        address _token_address, 
-        uint256 _token_amount
+        address tokenAddress, 
+        uint256 tokenAmount
     ) external onlyGov {
-        TransferHelper.safeTransfer(address(_token_address), SWEEP.treasury(), _token_amount);
+        TransferHelper.safeTransfer(address(tokenAddress), SWEEP.treasury(), tokenAmount);
     }
 }

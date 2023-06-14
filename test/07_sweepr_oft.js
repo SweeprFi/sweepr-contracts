@@ -13,7 +13,7 @@ contract("Sweep - OFT", async function () {
     before(async () => {
         [deployer, multisig, receiver, treasury, newAddress, newMinter] = await ethers.getSigners();
         TRANSFER_AMOUNT = toBN("100", 18);
-        INTEREST_RATE = 5e4; // 5%
+        interestRate = 5e4; // 5%
         // ------------- Deployment of contracts -------------
         LZEndpointMock = await ethers.getContractFactory("LZEndpointMock");
         lzEndpointSrcMock = await LZEndpointMock.deploy(chainIdSrc);

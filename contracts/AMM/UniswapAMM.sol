@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 // ==========================================================
-// ====================== UniswapAMM ========================
+// ====================== UniswapAMM.sol ====================
 // ==========================================================
 
 /**
@@ -42,23 +42,23 @@ contract UniswapAMM {
     address public immutable sweepAddress;
 
     constructor(
-        address _sweepAddress,
-        address _sequencer,
-        uint24 _poolFee,
-        IERC20Metadata _baseToken,
-        address _baseUSDOracle,
-        uint256 _baseUSDOracleUpdateFrequency
+        address sweepAddress_,
+        address sequencerAddress_,
+        uint24 poolFee_,
+        IERC20Metadata baseToken_,
+        address baseOracle,
+        uint256 baseOracleUpdateFrequency
     ) {
-        sweepAddress = _sweepAddress;
-        sequencer = _sequencer;
-        poolFee = _poolFee;
-        baseToken = _baseToken;
-        baseUSDOracle = _baseUSDOracle;
-        baseUSDOracleUpdateFrequency = _baseUSDOracleUpdateFrequency;
+        sweepAddress = sweepAddress_;
+        sequencer = sequencerAddress_;
+        poolFee = poolFee_;
+        baseToken = baseToken_;
+        baseUSDOracle = baseOracle;
+        baseUSDOracleUpdateFrequency = baseOracleUpdateFrequency;
     }
 
-    event Bought(uint256 usdx_amount);
-    event Sold(uint256 sweep_amount);
+    event Bought(uint256 usdxAmount);
+    event Sold(uint256 sweepAmount);
     event PoolFeeChanged(uint24 poolFee);
 
     error OverZero();
@@ -68,7 +68,9 @@ contract UniswapAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getPrice() external view returns (uint256 amountOut) {
-        (, int24 tick, , , , , ) = IUniswapV3Pool(FACTORY.getPool(address(baseToken), sweepAddress, poolFee)).slot0();
+        (, int24 tick, , , , , ) = IUniswapV3Pool(
+            FACTORY.getPool(address(baseToken), sweepAddress, poolFee)
+        ).slot0();
 
         uint256 quote = OracleLibrary.getQuoteAtTick(
             tick,
@@ -120,19 +122,19 @@ contract UniswapAMM {
 
     /**
      * @notice Buy Sweep
-     * @param _baseToken Token Address to use for buying sweep.
+     * @param tokenAddress Token Address to use for buying sweep.
      * @param tokenAmount Token Amount.
      * @param amountOutMin Minimum amount out.
      * @dev Increases the sweep balance and decrease collateral balance.
      */
     function buySweep(
-        address _baseToken,
+        address tokenAddress,
         uint256 tokenAmount,
         uint256 amountOutMin
     ) external returns (uint256 sweepAmount) {
         emit Bought(tokenAmount);
         sweepAmount = swapExactInput(
-            _baseToken,
+            tokenAddress,
             sweepAddress,
             tokenAmount,
             amountOutMin
@@ -141,20 +143,20 @@ contract UniswapAMM {
 
     /**
      * @notice Sell Sweep
-     * @param _baseToken Token Address to return after selling sweep.
+     * @param tokenAddress Token Address to return after selling sweep.
      * @param sweepAmount Sweep Amount.
      * @param amountOutMin Minimum amount out.
      * @dev Decreases the sweep balance and increase collateral balance
      */
     function sellSweep(
-        address _baseToken,
+        address tokenAddress,
         uint256 sweepAmount,
         uint256 amountOutMin
     ) external returns (uint256 tokenAmount) {
         emit Sold(sweepAmount);
         tokenAmount = swapExactInput(
             sweepAddress,
-            _baseToken,
+            tokenAddress,
             sweepAmount,
             amountOutMin
         );
@@ -208,7 +210,10 @@ contract UniswapAMM {
             baseUSDOracleUpdateFrequency
         );
 
-        usdAmount = tokenAmount.mulDiv((10 ** USD_DECIMALS) * uint256(price), 10 ** (decimals + baseToken.decimals()));
+        usdAmount = tokenAmount.mulDiv(
+            (10**USD_DECIMALS) * uint256(price),
+            10**(decimals + baseToken.decimals())
+        );
     }
 
     /**
@@ -221,6 +226,9 @@ contract UniswapAMM {
             baseUSDOracleUpdateFrequency
         );
 
-        tokenAmount = usdAmount.mulDiv(10 ** (decimals + baseToken.decimals()), (10 ** USD_DECIMALS) * uint256(price));
+        tokenAmount = usdAmount.mulDiv(
+            10**(decimals + baseToken.decimals()),
+            (10**USD_DECIMALS) * uint256(price)
+        );
     }
 }

@@ -63,7 +63,7 @@ contract('Balancer - Auto Invests', async () => {
                     if (index < 2) {
                         await asset.connect(user).configure(
                             Const.RATIO,
-                            Const.SPREAD_FEE,
+                            Const.spreadFee,
                             loanLimit,
                             Const.DISCOUNT,
                             Const.DAYS_5,
@@ -79,7 +79,7 @@ contract('Balancer - Auto Invests', async () => {
             // Loan limit = 0.
             await assets[2].connect(user).configure(
                 Const.RATIO,
-                Const.SPREAD_FEE,
+                Const.spreadFee,
                 Const.ZERO,
                 Const.DISCOUNT,
                 Const.DAYS_5,
@@ -110,13 +110,13 @@ contract('Balancer - Auto Invests', async () => {
         });
 
         it('Sets a new loan limits correctly', async () => {
-            expect(await assets[2].loan_limit()).to.equal(Const.ZERO);
+            expect(await assets[2].loanLimit()).to.equal(Const.ZERO);
 
             await expect(balancer.connect(lzEndpoint).setLoanLimit(assets[2].address, loanLimit))
                 .to.be.revertedWithCustomError(balancer, "NotMultisig");
 
             await balancer.setLoanLimit(assets[2].address, loanLimit);
-            expect(await assets[2].loan_limit()).to.equal(loanLimit);
+            expect(await assets[2].loanLimit()).to.equal(loanLimit);
         });
 
         it('Deposits and mints sweep', async () => {
@@ -136,7 +136,7 @@ contract('Balancer - Auto Invests', async () => {
 
             await Promise.all(
                 assets.map(async (asset) => {
-                    expect(await asset.sweep_borrowed()).to.equal(mintAmount);
+                    expect(await asset.sweepBorrowed()).to.equal(mintAmount);
                 })
             );
         });
@@ -180,17 +180,17 @@ contract('Balancer - Auto Invests', async () => {
             await balancer.addActions(targets, amounts);
             await balancer.execute(1, true, 1e6, 2000); // 1 => invests, force: true, 1 => price, 2000 => slippage
 
-            expect(await assets[0].sweep_borrowed()).to.eq(expectedAmount);
-            expect(await assets[1].sweep_borrowed()).to.eq(expectedAmount);
-            expect(await assets[2].sweep_borrowed()).to.eq(expectedAmount);
-            // expect(await assets[3].sweep_borrowed()).to.eq(expectedAmount);
-            // expect(await assets[4].sweep_borrowed()).to.eq(expectedAmount);
+            expect(await assets[0].sweepBorrowed()).to.eq(expectedAmount);
+            expect(await assets[1].sweepBorrowed()).to.eq(expectedAmount);
+            expect(await assets[2].sweepBorrowed()).to.eq(expectedAmount);
+            // expect(await assets[3].sweepBorrowed()).to.eq(expectedAmount);
+            // expect(await assets[4].sweepBorrowed()).to.eq(expectedAmount);
 
-            expect(await assets[0].loan_limit()).to.eq(expectedLimit);
-            expect(await assets[1].loan_limit()).to.eq(expectedLimit);
-            expect(await assets[2].loan_limit()).to.eq(expectedLimit);
-            // expect(await assets[3].loan_limit()).to.eq(expectedLimit);
-            // expect(await assets[4].loan_limit()).to.eq(expectedLimit);
+            expect(await assets[0].loanLimit()).to.eq(expectedLimit);
+            expect(await assets[1].loanLimit()).to.eq(expectedLimit);
+            expect(await assets[2].loanLimit()).to.eq(expectedLimit);
+            // expect(await assets[3].loanLimit()).to.eq(expectedLimit);
+            // expect(await assets[4].loanLimit()).to.eq(expectedLimit);
         });
     });
 });

@@ -43,7 +43,7 @@ contract("Stabilizer's waterfall workflow", async function () {
 
     await offChainAsset.connect(borrower).configure(
       Const.RATIO,
-      Const.SPREAD_FEE,
+      Const.spreadFee,
       maxBorrow,
       Const.DISCOUNT,
       Const.DAYS_5,
@@ -75,11 +75,11 @@ contract("Stabilizer's waterfall workflow", async function () {
 
       expect(await usdx.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
       expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
-      expect(await offChainAsset.sweep_borrowed()).to.equal(Const.ZERO);
+      expect(await offChainAsset.sweepBorrowed()).to.equal(Const.ZERO);
 
       expect(await offChainAsset.paused()).to.equal(Const.FALSE);
       expect(await offChainAsset.assetValue()).to.equal(Const.ZERO);
-      expect(await offChainAsset.min_equity_ratio()).to.equal(Const.RATIO);
+      expect(await offChainAsset.minEquityRatio()).to.equal(Const.RATIO);
 
       expect(await offChainAsset.borrower()).to.equal(borrower.address);
 
@@ -102,7 +102,7 @@ contract("Stabilizer's waterfall workflow", async function () {
         await offChainAsset.connect(borrower).borrow(amount);
         expect(await usdx.balanceOf(offChainAsset.address)).to.equal(10e6);
         expect(await sweep.balanceOf(offChainAsset.address)).to.equal(amount);
-        expect(await offChainAsset.sweep_borrowed()).to.equal(amount);
+        expect(await offChainAsset.sweepBorrowed()).to.equal(amount);
         expect(await offChainAsset.getEquityRatio()).to.equal(1e5); // 10%
 
         await offChainAsset.connect(borrower).invest(10e6, amount);
@@ -111,7 +111,7 @@ contract("Stabilizer's waterfall workflow", async function () {
         expect(await sweep.balanceOf(wallet.address)).to.equal(amount);
         expect(await usdx.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
         expect(await usdx.balanceOf(wallet.address)).to.equal(10e6);
-        expect(await offChainAsset.sweep_borrowed()).to.equal(amount);
+        expect(await offChainAsset.sweepBorrowed()).to.equal(amount);
         expect(await offChainAsset.getEquityRatio()).to.equal(1e5); // 10%
       });
     });

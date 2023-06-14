@@ -61,12 +61,12 @@ contract("Stabilizer - Management Functions", async function () {
 
   describe("management settings correctly", async function () {
     it("set a new configuration", async function () {
-      expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
-      expect(await offChainAsset.min_equity_ratio()).to.equal(Const.ZERO);
-      expect(await offChainAsset.spread_fee()).to.equal(Const.ZERO);
-      expect(await offChainAsset.loan_limit()).to.equal(Const.ZERO);
-      expect(await offChainAsset.liquidator_discount()).to.equal(Const.ZERO);
-      expect(await offChainAsset.call_delay()).to.equal(Const.ZERO);
+      expect(await offChainAsset.settingsEnabled()).to.equal(Const.TRUE);
+      expect(await offChainAsset.minEquityRatio()).to.equal(Const.ZERO);
+      expect(await offChainAsset.spreadFee()).to.equal(Const.ZERO);
+      expect(await offChainAsset.loanLimit()).to.equal(Const.ZERO);
+      expect(await offChainAsset.liquidatorDiscount()).to.equal(Const.ZERO);
+      expect(await offChainAsset.callDelay()).to.equal(Const.ZERO);
       expect(await offChainAsset.link()).to.equal("");
 
       await expect(offChainAsset.connect(multisig)
@@ -96,23 +96,23 @@ contract("Stabilizer - Management Functions", async function () {
           Const.URL
         );
 
-      expect(await offChainAsset.min_equity_ratio()).to.equal(Const.RATIO);
-      expect(await offChainAsset.spread_fee()).to.equal(Const.RATIO);
-      expect(await offChainAsset.loan_limit()).to.equal(maxBorrow);
-      expect(await offChainAsset.liquidator_discount()).to.equal(Const.RATIO);
-      expect(await offChainAsset.call_delay()).to.equal(Const.FEE);
+      expect(await offChainAsset.minEquityRatio()).to.equal(Const.RATIO);
+      expect(await offChainAsset.spreadFee()).to.equal(Const.RATIO);
+      expect(await offChainAsset.loanLimit()).to.equal(maxBorrow);
+      expect(await offChainAsset.liquidatorDiscount()).to.equal(Const.RATIO);
+      expect(await offChainAsset.callDelay()).to.equal(Const.FEE);
 
       expect(await offChainAsset.link()).to.equal(Const.URL);
     });
 
     it("set a new loan limit", async function () {
-      expect(await offChainAsset.loan_limit()).to.equal(maxBorrow);
+      expect(await offChainAsset.loanLimit()).to.equal(maxBorrow);
       await offChainAsset.connect(balancer).setLoanLimit(newLoanLimit);
-      expect(await offChainAsset.loan_limit()).to.equal(newLoanLimit);
+      expect(await offChainAsset.loanLimit()).to.equal(newLoanLimit);
     });
 
     it("set a new settings manager", async function () {
-      expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
+      expect(await offChainAsset.settingsEnabled()).to.equal(Const.TRUE);
       await offChainAsset.connect(borrower).propose();
 
       await expect(offChainAsset.connect(borrower)
@@ -129,13 +129,13 @@ contract("Stabilizer - Management Functions", async function () {
         )
       ).to.be.revertedWithCustomError(offChainAsset, 'SettingsDisabled');
 
-      expect(await offChainAsset.settings_enabled()).to.equal(Const.FALSE);
+      expect(await offChainAsset.settingsEnabled()).to.equal(Const.FALSE);
     });
 
     it("rejects the proposed and rollback the settings manager", async function () {
-      expect(await offChainAsset.settings_enabled()).to.equal(Const.FALSE);
+      expect(await offChainAsset.settingsEnabled()).to.equal(Const.FALSE);
       await offChainAsset.connect(owner).reject();
-      expect(await offChainAsset.settings_enabled()).to.equal(Const.TRUE);
+      expect(await offChainAsset.settingsEnabled()).to.equal(Const.TRUE);
     });
 
     it("set pause correctly", async function () {

@@ -54,13 +54,13 @@ contract('Market Maker', async () => {
         await sweep.addMinter(marketmaker.address, sweepAmount);
 
         // sends usdx to owner for creating liquidity position in uniswap v3 pool
-        await sweep.minter_mint(owner.address, sweepAmount.mul(5));
+        await sweep.minterMint(owner.address, sweepAmount.mul(5));
         await usdc.transfer(owner.address, usdxAmount.mul(5));
 
         // config market maker
         await marketmaker.connect(borrower).configure(
             0, // 0% equity ratio
-            Const.SPREAD_FEE,
+            Const.spreadFee,
             sweepAmount,
             Const.DISCOUNT,
             Const.DAY,
@@ -128,7 +128,7 @@ contract('Market Maker', async () => {
         });
 
         it('sell sweep', async () => {
-            expect(await marketmaker.sweep_borrowed()).to.equal(Const.ZERO);
+            expect(await marketmaker.sweepBorrowed()).to.equal(Const.ZERO);
             // swap 1M usdc to sweep, so price will rise up
             swapAmount = toBN("1000000", 6);
 
@@ -147,45 +147,45 @@ contract('Market Maker', async () => {
             }
             );
 
-            sweepPrice = await sweep.amm_price();
+            sweepPrice = await sweep.ammPrice();
             usdcPoolBalance = await usdc.balanceOf(poolAddress);
             sweepPoolBalance = await sweep.balanceOf(poolAddress);
             // call execute. it will call sellSweep() function,
-            // because SWEEP.amm_price() > arb_price_upper
+            // because SWEEP.ammPrice() > arb_price_upper
             await sweep.approve(amm.address, sweepAmount.mul(5));
             await usdc.approve(amm.address, usdxAmount.mul(5));
 
             executeAmount = toBN("500000", 18);
             await marketmaker.connect(borrower).execute(executeAmount);
 
-            expect(await marketmaker.sweep_borrowed()).to.equal(executeAmount);
-            expect(await sweep.amm_price()).to.not.greaterThan(sweepPrice);
+            expect(await marketmaker.sweepBorrowed()).to.equal(executeAmount);
+            expect(await sweep.ammPrice()).to.not.greaterThan(sweepPrice);
             expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
             expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
         });
 
         it('sell sweep again', async () => {
             execute2Amount = toBN("300000", 18);
-            sweepPrice = await sweep.amm_price();
+            sweepPrice = await sweep.ammPrice();
             sweepPoolBalance = await sweep.balanceOf(poolAddress);
 
             await marketmaker.connect(borrower).execute(execute2Amount);
 
-            expect(await marketmaker.sweep_borrowed()).to.equal(executeAmount.add(execute2Amount));
-            expect(await sweep.amm_price()).to.not.greaterThan(sweepPrice);
+            expect(await marketmaker.sweepBorrowed()).to.equal(executeAmount.add(execute2Amount));
+            expect(await sweep.ammPrice()).to.not.greaterThan(sweepPrice);
             expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
             expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
         });
 
         it('does nothing, because the price is in range', async () => {
             execute3Amount = toBN("100000", 18);
-            sweepPrice = await sweep.amm_price();
+            sweepPrice = await sweep.ammPrice();
             sweepPoolBalance = await sweep.balanceOf(poolAddress);
 
             await marketmaker.connect(borrower).execute(execute3Amount);
 
-            expect(await marketmaker.sweep_borrowed()).to.equal(executeAmount.add(execute2Amount));
-            expect(await sweep.amm_price()).to.equal(sweepPrice);
+            expect(await marketmaker.sweepBorrowed()).to.equal(executeAmount.add(execute2Amount));
+            expect(await sweep.ammPrice()).to.equal(sweepPrice);
             expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
             expect(await sweep.balanceOf(poolAddress)).to.equal(sweepPoolBalance);
         });
@@ -267,7 +267,7 @@ contract('Market Maker', async () => {
             usdcAssetBalance = await usdc.balanceOf(marketmaker.address);
             sweepAssetBalance = await sweep.balanceOf(marketmaker.address);
 
-            sweepPrice = await sweep.amm_price();
+            sweepPrice = await sweep.ammPrice();
 
             // Call removeClosedPositions(), but it willl remove 1nd position,
             // because current tick is below than tick_upper of 1nd position.
@@ -286,7 +286,7 @@ contract('Market Maker', async () => {
             expect(await usdc.balanceOf(marketmaker.address)).to.equal(usdcAssetBalance)
             expect(await sweep.balanceOf(marketmaker.address)).to.greaterThan(sweepAssetBalance);
 
-            expect(await sweep.amm_price()).to.equals(sweepPrice);
+            expect(await sweep.ammPrice()).to.equals(sweepPrice);
         });
     })
 });

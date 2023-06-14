@@ -7,8 +7,8 @@ contract AggregatorMock {
         price = 1e8;
     }
 
-    function setPrice(int256 _price) public {
-        price = _price;
+    function setPrice(int256 newPrice) public {
+        price = newPrice;
     }
 
     function decimals() public pure returns (uint8) {

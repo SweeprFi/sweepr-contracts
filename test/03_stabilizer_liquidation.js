@@ -53,8 +53,8 @@ contract("Stabilizer - Liquidation", async function () {
 
     // simulates a pool in uniswap with 10000 SWEEP/USDX
     await sweep.addMinter(borrower.address, maxSweep);
-    await sweep.minter_mint(amm.address, maxBorrow);
-    await sweep.minter_mint(liquidator.address, liquidatorBalance);
+    await sweep.minterMint(amm.address, maxBorrow);
+    await sweep.minterMint(liquidator.address, liquidatorBalance);
 
     user = await impersonate(addresses.usdc)
     await usdc.connect(user).transfer(amm.address, 100e6);
@@ -66,7 +66,7 @@ contract("Stabilizer - Liquidation", async function () {
   describe("liquidates a WETH Asset when this is defaulted", async function () {
     it("environment setup", async function () {
       expect(await weth_asset.isDefaulted()).to.equal(Const.FALSE);
-      amm_price = await sweep.amm_price();
+      ammPrice = await sweep.ammPrice();
 
       user = await impersonate(addresses.usdc);
       await usdc.connect(user).transfer(weth_asset.address, usdcAmount); // stabilizer deposit      
@@ -76,7 +76,7 @@ contract("Stabilizer - Liquidation", async function () {
       user = await impersonate(addresses.borrower);
       await weth_asset.connect(user).configure(
         Const.RATIO,
-        Const.SPREAD_FEE,
+        Const.spreadFee,
         maxBorrow,
         Const.DISCOUNT,
         Const.DAYS_5,
@@ -103,7 +103,7 @@ contract("Stabilizer - Liquidation", async function () {
     });
 
     it("liquidations correctly", async function () {
-      expect(await weth_asset.sweep_borrowed()).to.equal(amount);
+      expect(await weth_asset.sweepBorrowed()).to.equal(amount);
       expect(await weth_asset.isDefaulted()).to.equal(Const.FALSE);
 
       currentValueBefore = await weth_asset.assetValue();
@@ -111,7 +111,7 @@ contract("Stabilizer - Liquidation", async function () {
 
       await weth_asset.connect(user).configure(
         RATIO_DEFAULT,
-        Const.SPREAD_FEE,
+        Const.spreadFee,
         maxBorrow,
         Const.DISCOUNT,
         Const.DAYS_5,
@@ -130,7 +130,7 @@ contract("Stabilizer - Liquidation", async function () {
       currentValueAfter = await weth_asset.assetValue();
 
       expect(await weth_asset.isDefaulted()).to.equal(Const.FALSE);
-      expect(await weth_asset.sweep_borrowed()).to.equal(Const.ZERO);
+      expect(await weth_asset.sweepBorrowed()).to.equal(Const.ZERO);
       expect(await weth_asset.getDebt()).to.equal(Const.ZERO);
       expect(currentValueBefore).to.above(Const.ZERO);
       expect(currentValueAfter).to.equal(Const.ZERO);

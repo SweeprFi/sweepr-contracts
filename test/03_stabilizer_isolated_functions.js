@@ -44,7 +44,7 @@ contract("Stabilizer - Isolated Functions", async function () {
 
     await offChainAsset.connect(borrower).configure(
       Const.RATIO,
-      Const.SPREAD_FEE,
+      Const.spreadFee,
       maxBorrow,
       Const.DISCOUNT,
       Const.DAYS_5,
@@ -64,8 +64,8 @@ contract("Stabilizer - Isolated Functions", async function () {
 
     // simulates a pool in uniswap with 10000 SWEEP/USDX
     await sweep.addMinter(owner.address, sweepAmount.mul(2));
-    await sweep.minter_mint(amm.address, sweepAmount);
-    await sweep.minter_mint(other.address, sweepAmount);
+    await sweep.minterMint(amm.address, sweepAmount);
+    await sweep.minterMint(other.address, sweepAmount);
     await usdx.transfer(amm.address, usdxAmount);
   });
 
@@ -89,7 +89,7 @@ contract("Stabilizer - Isolated Functions", async function () {
         ratioAfter = await offChainAsset.getEquityRatio();
         expect(ratioAfter).to.be.equal(1e5); // 10%
         expect(ratioBefore > ratioAfter).to.be.equal(Const.TRUE);
-        expect(await offChainAsset.sweep_borrowed()).to.equal(mintAmount);
+        expect(await offChainAsset.sweepBorrowed()).to.equal(mintAmount);
       });
     });
   });
@@ -149,7 +149,7 @@ contract("Stabilizer - Isolated Functions", async function () {
     });
 
     it("burns sweeps token correctly", async function () {
-      expect(await offChainAsset.sweep_borrowed()).to.equal(mintAmount);
+      expect(await offChainAsset.sweepBorrowed()).to.equal(mintAmount);
       await offChainAsset.connect(borrower).repay(maxBorrow);
     });
   });
@@ -217,7 +217,7 @@ contract("Stabilizer - Isolated Functions", async function () {
       sweepBalanceBefore = await sweep.balanceOf(offChainAsset.address);
       usdxBalanceBefore = await usdx.balanceOf(borrower.address);
 
-      targetPrice = await sweep.target_price();
+      targetPrice = await sweep.targetPrice();
       expectUSXAmount = (30e6 * targetPrice) / 1e6;
 
       await sweep.connect(borrower).approve(offChainAsset.address, sweepAmount);

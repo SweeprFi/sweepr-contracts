@@ -52,23 +52,23 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
 
     constructor(
         string memory _name,
-        address _sweep_address,
+        address _sweepAddress,
         address _usdx_address,
         address _liquidityHelper,
         address _borrower
     )
         Stabilizer(
             _name,
-            _sweep_address,
+            _sweepAddress,
             _usdx_address,
             _borrower
         )
     {
-        flag = _usdx_address < _sweep_address;
+        flag = _usdx_address < _sweepAddress;
 
         (token0, token1) = flag
-            ? (_usdx_address, _sweep_address)
-            : (_sweep_address, _usdx_address);
+            ? (_usdx_address, _sweepAddress)
+            : (_sweepAddress, _usdx_address);
 
         liquidityHelper = LiquidityHelper(_liquidityHelper);
     }
@@ -184,7 +184,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @return maxTick The maximum tick
      */
     function showTicks() internal view returns (int24 minTick, int24 maxTick) {
-        uint256 sweepPrice = SWEEP.target_price();
+        uint256 sweepPrice = SWEEP.targetPrice();
         uint256 minPrice = (sweepPrice * 99) / 100;
         uint256 maxPrice = (sweepPrice * 101) / 100;
         uint8 decimals = SWEEP.decimals();
@@ -281,7 +281,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         );
 
         TransferHelper.safeApprove(
-            sweep_address,
+            sweepAddress,
             address(nonfungiblePositionManager),
             _sweep_amount
         );

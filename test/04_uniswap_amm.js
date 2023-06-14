@@ -58,7 +58,7 @@ contract("Uniswap AMM", async function () {
     // config stabilizer
     await asset.configure(
       Const.RATIO,
-      Const.SPREAD_FEE,
+      Const.spreadFee,
       SWEEP_INVEST,
       Const.DISCOUNT,
       Const.DAY,

@@ -60,7 +60,7 @@ contract('Governance', async (accounts) => {
 	it('delegates votes correctly', async () => {
 		await sweep.addMinter(PROPOSER, MINT_AMOUNT);
 		account = await impersonate(PROPOSER);
-		await sweep.connect(account).minter_mint(PROPOSER, MINT_AMOUNT);
+		await sweep.connect(account).minterMint(PROPOSER, MINT_AMOUNT);
 		await sweep.connect(account).approve(tokenDistributor.address, MINT_AMOUNT);
 		await tokenDistributor.connect(account).buy(SWEEP_AMOUNT);
 
