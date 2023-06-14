@@ -141,7 +141,7 @@ contract("Stabilizer - Isolated Functions", async function () {
     it("receives sweep correctly", async function () {
       await offChainAsset.connect(borrower).divest(maxBorrow);
 
-      expect(await offChainAsset.redeem_mode()).to.equal(Const.TRUE);
+      expect(await offChainAsset.redeemMode()).to.equal(Const.TRUE);
       await sweep.connect(wallet).transfer(offChainAsset.address, maxBorrow);
 
       expect(await sweep.balanceOf(offChainAsset.address)).to.equal(maxBorrow);

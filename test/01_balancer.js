@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { increaseTime, toBN, Const } = require("../utils/helper_functions");
+const { increaseTime, toBN, Const, getBlockTimestamp } = require("../utils/helper_functions");
 
 contract("Balancer", async function () {
 	before(async () => {
@@ -34,10 +34,9 @@ contract("Balancer", async function () {
 		expect(await sweep.periodStart()).to.equal(ZERO);
 
 		await balancer.refreshInterestRate();
-		blockNumber = await ethers.provider.getBlockNumber();
-		block = await ethers.provider.getBlock(blockNumber);
+		timestamp = await getBlockTimestamp();
 
-		expect(await sweep.periodStart()).to.equal(block.timestamp);
+		expect(await sweep.periodStart()).to.equal(timestamp);
 	});
 
 	it('increases the interest rate because the TWA price is lower', async () => {

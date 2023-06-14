@@ -16,9 +16,9 @@ interface IExchanger {
     function mint(MintParams calldata params) external returns (uint256);
 
     /**
-     * @param _asset Asset to redeem
-     * @param _amount Amount of USD+ to burn
+     * @param asset Asset to redeem
+     * @param amount Amount of USD+ to burn
      * @return Amount of asset unstacked and transferred to caller
      */
-    function redeem(address _asset, uint256 _amount) external returns (uint256);
+    function redeem(address asset, uint256 amount) external returns (uint256);
 }

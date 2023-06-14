@@ -47,7 +47,7 @@ contract('GLP Asset', async () => {
             addresses.multisig
         );
 
-        reward_token_address = await asset.reward_token();
+        reward_token_address = await asset.rewardToken();
         reward_token = await ERC20.attach(reward_token_address);
     });
 

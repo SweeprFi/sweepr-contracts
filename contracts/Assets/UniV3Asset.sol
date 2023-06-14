@@ -51,26 +51,26 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     }
 
     constructor(
-        string memory _name,
-        address _sweepAddress,
-        address _usdx_address,
-        address _liquidityHelper,
-        address _borrower
+        string memory name,
+        address sweepAddress,
+        address usdxAddress,
+        address liquidityHelper_,
+        address borrower
     )
         Stabilizer(
-            _name,
-            _sweepAddress,
-            _usdx_address,
-            _borrower
+            name,
+            sweepAddress,
+            usdxAddress,
+            borrower
         )
     {
-        flag = _usdx_address < _sweepAddress;
+        flag = usdxAddress < sweepAddress;
 
         (token0, token1) = flag
-            ? (_usdx_address, _sweepAddress)
-            : (_sweepAddress, _usdx_address);
+            ? (usdxAddress, sweepAddress)
+            : (sweepAddress, usdxAddress);
 
-        liquidityHelper = LiquidityHelper(_liquidityHelper);
+        liquidityHelper = LiquidityHelper(liquidityHelper_);
     }
 
     /* ========== Views ========== */
@@ -80,8 +80,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @return total with 6 decimal to be compatible with dollar coins.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accrued_fee_in_usd = SWEEP.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accrued_fee_in_usd;
+        uint256 accruedFeeInUSD = SWEEP.convertToUSD(accruedFee());
+        return assetValue() + super.currentValue() - accruedFeeInUSD;
     }
 
     /**
@@ -91,14 +91,14 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     function assetValue() public view returns (uint256) {
         if (tokenId == 0) return 0;
 
-        (uint256 _amount0, uint256 _amount1) = liquidityHelper
+        (uint256 amount0, uint256 amount1) = liquidityHelper
             .getTokenAmountsFromLP(tokenId, token0, token1, amm().poolFee());
 
-        (uint256 _usdx_amount, uint256 _sweep_amount) = flag
-            ? (_amount0, _amount1)
-            : (_amount1, _amount0);
+        (uint256 usdxAmount, uint256 sweepAmount) = flag
+            ? (amount0, amount1)
+            : (amount1, amount0);
 
-        return _usdx_amount + SWEEP.convertToUSD(_sweep_amount);
+        return usdxAmount + SWEEP.convertToUSD(sweepAmount);
     }
 
     /* ========== Actions ========== */
@@ -109,11 +109,11 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     function onERC721Received(
         address,
         address,
-        uint256 _tokenId,
+        uint256 tokenId_,
         bytes calldata
     ) external override returns (bytes4) {
         if (tokenId > 0) revert AlreadyMinted();
-        _createDeposit(_tokenId);
+        _createDeposit(tokenId_);
 
         return this.onERC721Received.selector;
     }
@@ -121,30 +121,30 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     /**
      * @notice Increases liquidity in the current range
      * @dev Pool must be initialized already to add liquidity
-     * @param _usdx_amount USDX Amount of asset to be deposited
-     * @param _sweep_amount Sweep Amount of asset to be deposited
+     * @param usdxAmount USDX Amount of asset to be deposited
+     * @param sweepAmount Sweep Amount of asset to be deposited
      */
     function invest(
-        uint256 _usdx_amount,
-        uint256 _sweep_amount
+        uint256 usdxAmount,
+        uint256 sweepAmount
     )
         external
         onlyBorrower
         whenNotPaused
-        validAmount(_usdx_amount)
-        validAmount(_sweep_amount)
+        validAmount(usdxAmount)
+        validAmount(sweepAmount)
     {
-        _invest(_usdx_amount, _sweep_amount);
+        _invest(usdxAmount, sweepAmount);
     }
 
     /**
      * @notice A function that decreases the current liquidity.
-     * @param _liquidity_amount Liquidity Amount to decrease
+     * @param liquidityAmount Liquidity Amount to decrease
      */
     function divest(
-        uint256 _liquidity_amount
-    ) external onlyBorrower isMinted validAmount(_liquidity_amount) {
-        _divest(_liquidity_amount);
+        uint256 liquidityAmount
+    ) external onlyBorrower isMinted validAmount(liquidityAmount) {
+        _divest(liquidityAmount);
     }
 
     /**
@@ -208,16 +208,16 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             : (maxTick, minTick);
     }
 
-    function _createDeposit(uint256 _tokenId) internal {
-        (,,address _token0,address _token1,,,,uint128 _liquidity,,,,) = 
-            nonfungiblePositionManager.positions(_tokenId);
+    function _createDeposit(uint256 tokenId_) internal {
+        (,,address token0_,address token1_,,,,uint128 liquidity_,,,,) = 
+            nonfungiblePositionManager.positions(tokenId_);
 
-        if (token0 != _token0 || token1 != _token1) revert InvalidTokenID();
+        if (token0 != token0_ || token1 != token1_) revert InvalidTokenID();
 
-        liquidity = _liquidity;
-        tokenId = _tokenId;
+        liquidity = liquidity_;
+        tokenId = tokenId_;
 
-        emit Mint(_tokenId, _liquidity);
+        emit Mint(tokenId_, liquidity_);
     }
 
     /**
@@ -226,10 +226,10 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @dev Pool must be initialized already to add liquidity
      * @param amount0ToMint Amount of USDX
      * @param amount1ToMint Amount of SWEEP
-     * @return _tokenId The id of the newly minted ERC721
-     * @return _liquidity The amount of liquidity for the position
-     * @return _amount0 The amount of token0
-     * @return _amount1 The amount of token1
+     * @return tokenId_ The id of the newly minted ERC721
+     * @return liquidity_ The amount of liquidity for the position
+     * @return amount0 The amount of token0
+     * @return amount1 The amount of token1
      */
     function _mint(
         uint256 amount0ToMint,
@@ -237,15 +237,15 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     )
         internal
         returns (
-            uint256 _tokenId,
-            uint128 _liquidity,
-            uint256 _amount0,
-            uint256 _amount1
+            uint256 tokenId_,
+            uint128 liquidity_,
+            uint256 amount0,
+            uint256 amount1
         )
     {
         (int24 minTick, int24 maxTick) = showTicks();
 
-        (_tokenId, _liquidity, _amount0, _amount1) = nonfungiblePositionManager
+        (tokenId_, liquidity_, amount0, amount1) = nonfungiblePositionManager
             .mint(
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
@@ -263,40 +263,40 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             );
 
         // Create a deposit
-        _createDeposit(_tokenId);
+        _createDeposit(tokenId_);
     }
 
     function _invest(
-        uint256 _usdx_amount,
-        uint256 _sweep_amount
+        uint256 usdxAmount,
+        uint256 sweepAmount
     ) internal override {
-        (uint256 usdx_balance, uint256 sweep_balance) = _balances();
-        if(usdx_balance < _usdx_amount) _usdx_amount = usdx_balance;
-        if(sweep_balance < _sweep_amount) _sweep_amount = sweep_balance;
+        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
+        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if(sweepBalance < sweepAmount) sweepAmount = sweepBalance;
 
         TransferHelper.safeApprove(
             address(usdx),
             address(nonfungiblePositionManager),
-            _usdx_amount
+            usdxAmount
         );
 
         TransferHelper.safeApprove(
             sweepAddress,
             address(nonfungiblePositionManager),
-            _sweep_amount
+            sweepAmount
         );
 
-        uint128 _liquidity;
-        uint256 _amount0;
-        uint256 _amount1;
+        uint128 liquidity_;
+        uint256 amount0;
+        uint256 amount1;
         (uint256 amountAdd0, uint256 amountAdd1) = flag
-            ? (_usdx_amount, _sweep_amount)
-            : (_sweep_amount, _usdx_amount);
+            ? (usdxAmount, sweepAmount)
+            : (sweepAmount, usdxAmount);
 
         if (tokenId == 0) {
-            (, _liquidity, _amount0, _amount1) = _mint(amountAdd0, amountAdd1);
+            (, liquidity_, amount0, amount1) = _mint(amountAdd0, amountAdd1);
         } else {
-            (_liquidity, _amount0, _amount1) = nonfungiblePositionManager
+            (liquidity_, amount0, amount1) = nonfungiblePositionManager
                 .increaseLiquidity(
                     INonfungiblePositionManager.IncreaseLiquidityParams({
                         tokenId: tokenId,
@@ -307,15 +307,15 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
                         deadline: block.timestamp + 60 // Expiration: 1 hour from now
                     })
                 );
-            liquidity += _liquidity;
+            liquidity += liquidity_;
         }
 
-        if (flag) emit Invested(_amount0, _amount1);
-        else emit Invested(_amount1, _amount0);
+        if (flag) emit Invested(amount0, amount1);
+        else emit Invested(amount1, amount0);
     }
 
-    function _divest(uint256 _liquidity_amount) internal override {
-        uint128 decreaseLP = uint128(_liquidity_amount);
+    function _divest(uint256 liquidityAmount) internal override {
+        uint128 decreaseLP = uint128(liquidityAmount);
         if (decreaseLP > liquidity) decreaseLP = liquidity;
         liquidity -= decreaseLP;
 

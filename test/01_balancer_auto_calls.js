@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { impersonate, Const, toBN } = require("../utils/helper_functions");
+const { impersonate, Const, toBN, getBlockTimestamp } = require("../utils/helper_functions");
 let user;
 
 contract('Balancer - Auto Call', async () => {
@@ -201,8 +201,7 @@ contract('Balancer - Auto Call', async () => {
       await balancer.addActions(targets, amounts);
       await balancer.execute(2, true, 1e6, 2000); // 2 => call, force: true, 1 => price, 2000 => slippage
 
-      blockNumber = await ethers.provider.getBlockNumber();
-      block = await ethers.provider.getBlock(blockNumber);
+      timestamp = await getBlockTimestamp();
 
       // asset 1 paid his debt with Sweep
       expect(await usdc.balanceOf(assets[0].address)).to.equal(USDC_AMOUNT);
@@ -234,7 +233,7 @@ contract('Balancer - Auto Call', async () => {
       expect(await sweep.balanceOf(assets[5].address)).to.equal(Const.ZERO);
       expect(await assets[5].assetValue()).to.equal(TOTAL_USDC);
       expect(await assets[5].callAmount()).to.equal(amount);
-      expect(await assets[5].callTime()).to.equal(block.timestamp + Const.DAYS_5);
+      expect(await assets[5].callTime()).to.equal(timestamp + Const.DAYS_5);
 
       // new loan limits
       expect(await assets[0].loanLimit()).to.eq(NEW_loanLimit);

@@ -25,6 +25,12 @@ const toBN = (numb, exp) => {
     return ethers.utils.parseUnits(numb, exp);
 }
 
+const getBlockTimestamp = async () => {
+    blockNumber = await ethers.provider.getBlockNumber();
+    block = await ethers.provider.getBlock(blockNumber);
+    return block.timestamp;
+}
+
 const getPriceAndData = (sweep, token, sweepAmount, tokenAmount) => {
     data = {};
 
@@ -85,11 +91,12 @@ const Const = {
 }
 
 module.exports = {
+    toBN,
+    Const,
     sendEth,
     impersonate,
     increaseTime,
-    toBN,
     getPriceAndData,
-    Const
+    getBlockTimestamp,
 }
 

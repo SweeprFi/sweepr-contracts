@@ -723,9 +723,9 @@ contract Stabilizer is Owned, Pausable {
         uint256 sweepDelta,
         uint256 usdDelta
     ) internal view returns (int256) {
-        uint256 current_value = currentValue();
+        uint256 currentValue_ = currentValue();
         uint256 sweepDeltaInUsd = SWEEP.convertToUSD(sweepDelta);
-        uint256 totalValue = current_value + sweepDeltaInUsd - usdDelta;
+        uint256 totalValue = currentValue_ + sweepDeltaInUsd - usdDelta;
 
         if (totalValue == 0) return 0;
 
