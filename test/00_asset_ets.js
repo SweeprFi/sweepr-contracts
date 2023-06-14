@@ -1,9 +1,9 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses, chainId } = require("../utils/address");
-const { impersonate, Const, toBN } = require("../utils/helper_functions");
+const { impersonate, sendEth, increaseTime, Const, toBN } = require("../utils/helper_functions");
 
-contract.skip("USDPlus Asset", async function () {
+contract.skip("ETS Asset", async function () {
     before(async () => {
         if (Number(chainId) !== 42161) return;
         
@@ -30,19 +30,19 @@ contract.skip("USDPlus Asset", async function () {
 
         Token = await ethers.getContractFactory("ERC20");
         usdc = await Token.attach(addresses.usdc);
-        usdPlus = await Token.attach(addresses.usdPlus);
+        ets = await Token.attach(addresses.ets);
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
         amm = await Uniswap.deploy(sweep.address, Const.FEE);
         await sweep.setAMM(amm.address);
 
-        Asset = await ethers.getContractFactory("USDPlusAsset");
+        Asset = await ethers.getContractFactory("ETSAsset");
         asset = await Asset.deploy(
-            'USDPlus Asset',
+            'ETS Asset',
             sweep.address,
             addresses.usdc,
-            addresses.usdPlus,
-            addresses.usdPlus_exchanger,
+            addresses.ets,
+            addresses.ets_exchanger,
             borrower.address
         );
 
@@ -73,15 +73,15 @@ contract.skip("USDPlus Asset", async function () {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
             await asset.invest(depositAmount);
             expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
-            expect(await usdPlus.balanceOf(asset.address)).to.above(Const.ZERO);
+            expect(await ets.balanceOf(asset.address)).to.above(Const.ZERO);
         });
 
         it("divest correctly", async function () {
             const usdcBalance = await usdc.balanceOf(asset.address);
-            const usdPlusBalance = await usdPlus.balanceOf(asset.address);
+            const etsBalance = await ets.balanceOf(asset.address);
             await asset.divest(withdrawAmount);
             expect(await usdc.balanceOf(asset.address)).to.above(usdcBalance);
-            expect(await usdPlus.balanceOf(asset.address)).to.below(usdPlusBalance);
+            expect(await ets.balanceOf(asset.address)).to.below(etsBalance);
         });
     });
 });

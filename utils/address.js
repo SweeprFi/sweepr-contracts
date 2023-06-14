@@ -40,6 +40,7 @@ const addresses = {
   dai: tokens.dai[chainId],
   gDai: tokens.gDai[chainId],
   usdPlus: tokens.usdPlus[chainId],
+  ets: tokens.ets[chainId],
 
   // Libraries
   liquidity_helper: libraries.liquidity_helper[chainId],
@@ -51,6 +52,7 @@ const addresses = {
   backed_redeem: libraries.backed_redeem[chainId],
   gDai_open_trades: libraries.gDai_open_trades[chainId],
   usdPlus_exchanger: libraries.usdPlus_exchanger[chainId],
+  ets_exchanger: libraries.ets_exchanger[chainId],
 
   // Oracles - ChainLink
   oracle_comp_usd: chainlink_oracle.comp_usd[chainId],

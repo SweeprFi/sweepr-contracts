@@ -2,21 +2,25 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ========================== USDPlusAsset.sol ==========================
+// ========================== ETSAsset.sol ==========================
 // ====================================================================
 
 /**
- * @title USDPlus Asset
+ * @title ETS Asset
  * @dev Representation of an on-chain investment on Overnight finance.
  */
 
 import "../Stabilizer/Stabilizer.sol";
-import "./Overnight/IExchanger.sol";
+import "./Overnight/IHedgeExchanger.sol";
 
-contract USDPlusAsset is Stabilizer {
+contract ETSAsset is Stabilizer {
     // Variables
     IERC20Metadata private immutable token;
-    IExchanger private immutable exchanger;
+    IHedgeExchanger private immutable exchanger;
+
+    // Errors
+    error NotAvailableInvest();
+    error NotAvailableDivest();
 
     constructor(
         string memory _name,
@@ -27,7 +31,7 @@ contract USDPlusAsset is Stabilizer {
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _borrower) {
         token = IERC20Metadata(_token);
-        exchanger = IExchanger(_exchanger);
+        exchanger = IHedgeExchanger(_exchanger);
     }
 
     /* ========== Views ========== */
@@ -49,14 +53,26 @@ contract USDPlusAsset is Stabilizer {
         uint256 tokenBalance = token.balanceOf(address(this));
         uint256 redeemFee = exchanger.redeemFee();
         uint256 redeemFeeDenominator = exchanger.redeemFeeDenominator();
-        tokenBalance =
-            (tokenBalance * (redeemFeeDenominator - redeemFee)) /
-            redeemFeeDenominator;
+        if (redeemFee < redeemFeeDenominator) {
+            tokenBalance =
+                (tokenBalance * (redeemFeeDenominator - redeemFee)) /
+                redeemFeeDenominator;
+        }
 
         uint256 usdxAmount = (tokenBalance * 10 ** usdx.decimals()) /
             10 ** token.decimals();
 
         return usdxAmount;
+    }
+
+    /**
+     * @notice Check mint/redeem status from overnight.
+     * @return mintable True: invest is possible, False: can't invest
+     * @return redeemable True: divest is possibe, False: can't divest
+     */
+    function status() public view returns (bool mintable, bool redeemable) {
+        mintable = exchanger.buyFee() < exchanger.buyFeeDenominator();
+        redeemable = exchanger.redeemFee() < exchanger.redeemFeeDenominator();
     }
 
     /* ========== Actions ========== */
@@ -93,6 +109,9 @@ contract USDPlusAsset is Stabilizer {
     /* ========== Internals ========== */
 
     function _invest(uint256 _usdxAmount, uint256) internal override {
+        (bool mintable, ) = status();
+        if (!mintable) revert NotAvailableInvest();
+
         (uint256 usdxBalance, ) = _balances();
         if (usdxBalance < _usdxAmount) _usdxAmount = usdxBalance;
 
@@ -102,19 +121,21 @@ contract USDPlusAsset is Stabilizer {
             _usdxAmount
         );
 
-        exchanger.mint(IExchanger.MintParams(address(usdx), _usdxAmount, ""));
+        exchanger.buy(_usdxAmount, "");
 
         emit Invested(_usdxAmount, 0);
     }
 
     function _divest(uint256 _usdxAmount) internal override {
+        (, bool redeemable) = status();
+        if (!redeemable) revert NotAvailableDivest();
+
         uint256 tokenAmount = (_usdxAmount * 10 ** token.decimals()) /
             10 ** usdx.decimals();
-
         uint256 tokenBalance = token.balanceOf(address(this));
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
 
-        uint256 usdxAmount = exchanger.redeem(address(usdx), tokenAmount);
+        uint256 usdxAmount = exchanger.redeem(tokenAmount);
 
         emit Divested(usdxAmount, 0);
     }
