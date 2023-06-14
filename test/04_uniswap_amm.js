@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
-const { toBN, Const, increaseTime } = require("../utils/helper_functions");
+const { toBN, Const, increaseTime, getPriceAndData } = require("../utils/helper_functions");
 
 contract("Uniswap AMM", async function () {
   before(async () => {
@@ -71,21 +71,11 @@ contract("Uniswap AMM", async function () {
 
   describe("main functions", async function () {
     it("initial setup - create and add liquitiy", async function () {
-      let token0, token1;
-      let sqrtPriceX96;
-
-      if (usdc.address.toString().toLowerCase() < sweep.address.toString().toLowerCase()) {
-        token0 = usdc.address;
-        token1 = sweep.address;
-        sqrtPriceX96 = toBN("79228162514264337593543950336000000", 0);
-      } else {
-        token0 = sweep.address;
-        token1 = usdc.address;
-        sqrtPriceX96 = toBN("79228162514264334008320", 0);
-      }
+      const { token0, token1, sqrtPriceX96 } =
+        getPriceAndData(sweep.address, usdc.address, sweepAmount, usdxAmount);
 
       await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
-      pool_address = await factory.getPool(usdc.address, sweep.address, Const.FEE);
+      pool_address = await factory.getPool(token0, token1, Const.FEE);
 
       await usdc.transfer(asset.address, USDC_MINT);
       await asset.borrow(SWEEP_MINT);
