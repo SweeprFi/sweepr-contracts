@@ -243,7 +243,7 @@ contract MarketMaker is Stabilizer {
                 (!flag && tickCurrent < position.tickLower) ||
                 (flag && tickCurrent > position.tickUpper)
             ) {
-                removeLiquidity(i);
+                removeLiquidity(tokenId, position.liquidity);
                 removeIds.push(i);
             }
             unchecked {
@@ -266,17 +266,14 @@ contract MarketMaker is Stabilizer {
 
     /**
      * @notice Remove liquidity
-     * @param _index position index
+     * @param _tokenId Token Id
      */
-    function removeLiquidity(uint256 _index) internal {
-        uint256 tokenId = positionIds[_index];
-
-        Position memory position = positions[tokenId];
+    function removeLiquidity(uint256 _tokenId, uint128 _liquidity) internal {
         (uint256 dAmount0, uint256 dAmount1) = nonfungiblePositionManager
             .decreaseLiquidity(
                 INonfungiblePositionManager.DecreaseLiquidityParams({
-                    tokenId: tokenId,
-                    liquidity: position.liquidity,
+                    tokenId: _tokenId,
+                    liquidity: _liquidity,
                     amount0Min: 0,
                     amount1Min: 0,
                     deadline: block.timestamp
@@ -286,7 +283,7 @@ contract MarketMaker is Stabilizer {
         (uint256 cAmount0, uint256 cAmount1) = nonfungiblePositionManager
             .collect(
                 INonfungiblePositionManager.CollectParams({
-                    tokenId: tokenId,
+                    tokenId: _tokenId,
                     recipient: address(this),
                     amount0Max: type(uint128).max,
                     amount1Max: type(uint128).max
@@ -304,11 +301,11 @@ contract MarketMaker is Stabilizer {
 
         _repay(sweepAmount);
 
-        nonfungiblePositionManager.burn(tokenId);
+        nonfungiblePositionManager.burn(_tokenId);
 
-        delete positions[tokenId];
+        delete positions[_tokenId];
 
-        emit Burned(tokenId);
+        emit Burned(_tokenId);
     }
 
     /**
