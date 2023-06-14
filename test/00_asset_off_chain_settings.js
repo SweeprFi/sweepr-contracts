@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { Const, toBN } = require("../utils/helper_functions");
+const { Const, toBN, getBlockTimestamp } = require("../utils/helper_functions");
 
 contract("Off-Chain Asset - Settings", async function () {
 	before(async () => {
@@ -84,7 +84,11 @@ contract("Off-Chain Asset - Settings", async function () {
 
 				await offChainAsset.connect(borrower).setCollateralAgent(wallet.address);
 				await offChainAsset.connect(wallet).updateValue(amount);
-				expect(await offChainAsset.current_value()).to.equal(amount);
+				timesmtamp = await getBlockTimestamp();
+
+				expect(await offChainAsset.currentValue()).to.equal(amount);
+				expect(await offChainAsset.actualValue()).to.equal(amount);
+				expect(await offChainAsset.valuationTime()).to.equal(timesmtamp);
 			});
 
 			it("Reverts updating value when caller is not collateral agent", async function () {

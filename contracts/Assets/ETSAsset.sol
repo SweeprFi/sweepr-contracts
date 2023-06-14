@@ -23,15 +23,15 @@ contract ETSAsset is Stabilizer {
     error NotAvailableDivest();
 
     constructor(
-        string memory _name,
-        address _sweep,
-        address _usdx,
-        address _token,
-        address _exchanger,
-        address _borrower
-    ) Stabilizer(_name, _sweep, _usdx, _borrower) {
-        token = IERC20Metadata(_token);
-        exchanger = IHedgeExchanger(_exchanger);
+        string memory name,
+        address sweep,
+        address usdx,
+        address token_,
+        address exchanger_,
+        address borrower
+    ) Stabilizer(name, sweep, usdx, borrower) {
+        token = IERC20Metadata(token_);
+        exchanger = IHedgeExchanger(exchanger_);
     }
 
     /* ========== Views ========== */
@@ -79,24 +79,24 @@ contract ETSAsset is Stabilizer {
 
     /**
      * @notice Invest.
-     * @param _usdxAmount Amount of usdx to be swapped for token.
+     * @param usdxAmount Amount of usdx to be swapped for token.
      * @dev Swap from usdx to token.
      */
     function invest(
-        uint256 _usdxAmount
-    ) external onlyBorrower whenNotPaused validAmount(_usdxAmount) {
-        _invest(_usdxAmount, 0);
+        uint256 usdxAmount
+    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+        _invest(usdxAmount, 0);
     }
 
     /**
      * @notice Divest.
-     * @param _usdxAmount Amount to be divested.
+     * @param usdxAmount Amount to be divested.
      * @dev Swap from the token to usdx.
      */
     function divest(
-        uint256 _usdxAmount
-    ) external onlyBorrower validAmount(_usdxAmount) {
-        _divest(_usdxAmount);
+        uint256 usdxAmount
+    ) external onlyBorrower validAmount(usdxAmount) {
+        _divest(usdxAmount);
     }
 
     /**
@@ -108,35 +108,35 @@ contract ETSAsset is Stabilizer {
 
     /* ========== Internals ========== */
 
-    function _invest(uint256 _usdxAmount, uint256) internal override {
+    function _invest(uint256 usdxAmount, uint256) internal override {
         (bool mintable, ) = status();
         if (!mintable) revert NotAvailableInvest();
 
-        (uint256 usdxBalance, ) = _balances();
-        if (usdxBalance < _usdxAmount) _usdxAmount = usdxBalance;
+        uint256 usdxBalance = usdx.balanceOf(address(this));
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         TransferHelper.safeApprove(
             address(usdx),
             address(exchanger),
-            _usdxAmount
+            usdxAmount
         );
 
-        exchanger.buy(_usdxAmount, "");
+        exchanger.buy(usdxAmount, "");
 
-        emit Invested(_usdxAmount, 0);
+        emit Invested(usdxAmount, 0);
     }
 
-    function _divest(uint256 _usdxAmount) internal override {
+    function _divest(uint256 usdxAmount) internal override {
         (, bool redeemable) = status();
         if (!redeemable) revert NotAvailableDivest();
 
-        uint256 tokenAmount = (_usdxAmount * 10 ** token.decimals()) /
+        uint256 tokenAmount = (usdxAmount * 10 ** token.decimals()) /
             10 ** usdx.decimals();
         uint256 tokenBalance = token.balanceOf(address(this));
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
 
-        uint256 usdxAmount = exchanger.redeem(tokenAmount);
+        uint256 redeemedAmount = exchanger.redeem(tokenAmount);
 
-        emit Divested(usdxAmount, 0);
+        emit Divested(redeemedAmount, 0);
     }
 }

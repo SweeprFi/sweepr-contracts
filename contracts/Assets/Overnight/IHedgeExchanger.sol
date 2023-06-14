@@ -11,9 +11,9 @@ interface IHedgeExchanger {
     function redeemFeeDenominator() external view returns (uint256);
 
     function buy(
-        uint256 _amount,
+        uint256 amount,
         string calldata referral
     ) external returns (uint256);
 
-    function redeem(uint256 _amount) external returns (uint256);
+    function redeem(uint256 amount) external returns (uint256);
 }
