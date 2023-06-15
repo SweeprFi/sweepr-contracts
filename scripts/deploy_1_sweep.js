@@ -3,18 +3,15 @@ const { addresses, network } = require("../utils/address");
 const LZ_ENDPOINTS = require("../utils/layerzero/layerzeroEndpoints.json")
 
 async function main() {
-	let deployer = '';
 	let lzEndpointAddress, lzEndpoint, LZEndpointMock
+	[deployer] = await ethers.getSigners();
+	deployer = deployer.address;
 
 	if (network.type === "0") { // local
-		[deployer] = await ethers.getSigners();
-		deployer = deployer.address;
-
 		LZEndpointMock = await ethers.getContractFactory("LZEndpointMock")
         lzEndpoint = await LZEndpointMock.deploy(1)
         lzEndpointAddress = lzEndpoint.address
 	} else {
-		deployer = addresses.owner;
 		lzEndpointAddress = LZ_ENDPOINTS[hre.network.name]
 	}
 
@@ -23,7 +20,7 @@ async function main() {
 	const sweepInstance = await ethers.getContractFactory("SweepCoin");
 	const sweep = await upgrades.deployProxy(sweepInstance, [
 		lzEndpointAddress,
-		addresses.owner,
+		addresses.multisig,
 		2500 // 0.25%
 	], { initializer: 'initialize' });
 
