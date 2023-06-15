@@ -18,9 +18,12 @@ contract('Governance', async (accounts) => {
 		OWNER_SWEEPR = addresses.owner;
 		MINT_AMOUNT = toBN("100000", 18);
 		SWEEP_AMOUNT = toBN("1400", 18);
-		SWEEPR_MINT_AMOUNT = toBN("2000", 18);
+		SWEEPR_MINT_AMOUNT = toBN("10000", 18);
 		TRANSFER_AMOUNT = toBN("100", 18);
-		REMANENT_AMOUNT = toBN("1000", 18);
+		REMANENT_AMOUNT = toBN("9600", 18);
+		USDC_AMOUNT = ethers.utils.parseUnits("20000", 6);
+		SALE_AMOUNT = ethers.utils.parseUnits("10000", 18);
+		SALE_PRICE = 1000000; // 1 USDC
 		// contracts
 		Sweep = await ethers.getContractFactory("SweepMock");
 		const Proxy = await upgrades.deployProxy(Sweep, [
@@ -38,11 +41,14 @@ contract('Governance', async (accounts) => {
 		Governance = await ethers.getContractFactory("SweepGovernor");
 		TokenDistributor = await ethers.getContractFactory("TokenDistributor");
 
+		ERC20 = await ethers.getContractFactory("USDCMock");
+        usdc = await ERC20.deploy();
+
 		// deploys
 		sweepr = await SWEEPR.deploy(sweep.address, LZENDPOINT);
 		// await sweepr.setTransferApprover(addresses.approver);
 
-		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
+		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address, addresses.treasury);
 		governance = await Governance.deploy(sweepr.address, addresses.timelock, 10);
 
 		// Sets SWEEPR price to 1 SWEEP: 
@@ -55,14 +61,27 @@ contract('Governance', async (accounts) => {
 		await timelock.connect(account).grantRole(Const.PROPOSER_ROLE, governance.address);
 		await timelock.connect(account).grantRole(Const.EXECUTOR_ROLE, governance.address);
 		await timelock.connect(account).grantRole(Const.CANCELLER_ROLE, PROPOSER);
+
+		await usdc.transfer(account.address, USDC_AMOUNT);
 	});
 
 	it('delegates votes correctly', async () => {
+		tokenAmount = ethers.utils.parseUnits("10000", 6);
 		await sweep.addMinter(PROPOSER, MINT_AMOUNT);
 		account = await impersonate(PROPOSER);
+
+		await tokenDistributor.allowSale(
+			SALE_AMOUNT, 
+			account.address, 
+			SALE_PRICE, 
+			usdc.address
+		);
+
+		await usdc.connect(account).approve(tokenDistributor.address, tokenAmount);
+
 		await sweep.connect(account).minter_mint(PROPOSER, MINT_AMOUNT);
 		await sweep.connect(account).approve(tokenDistributor.address, MINT_AMOUNT);
-		await tokenDistributor.connect(account).buy(SWEEP_AMOUNT);
+		await tokenDistributor.connect(account).buy(tokenAmount);
 
 		await sweepr.connect(account).transfer(USER1, TRANSFER_AMOUNT);
 		await sweepr.connect(account).transfer(USER2, TRANSFER_AMOUNT);
