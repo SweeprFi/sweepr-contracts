@@ -25,12 +25,48 @@ const toBN = (numb, exp) => {
     return ethers.utils.parseUnits(numb, exp);
 }
 
+const getBlockTimestamp = async () => {
+    blockNumber = await ethers.provider.getBlockNumber();
+    block = await ethers.provider.getBlock(blockNumber);
+    return block.timestamp;
+}
+
+const getPriceAndData = (sweep, token, sweepAmount, tokenAmount) => {
+    data = {};
+
+    if (token.toString().toLowerCase() < sweep.toString().toLowerCase()) {
+        data.token0 = token;
+        data.token1 = sweep;
+
+        data.tickLower = 276120; // 0.98
+        data.tickUpper = 276520; // 1.02
+
+        data.token0Amount = tokenAmount;
+        data.token1Amount = sweepAmount;
+
+        data.sqrtPriceX96 = toBN("79228162514264337593543950336000000", 0); // price = 1.0 ~> SW: 18 / TK: 6
+    } else {
+        data.token0 = sweep;
+        data.token1 = token;
+
+        data.tickLower = -276520; // 0.98
+        data.tickUpper = -276120; // 1.02
+
+        data.token0Amount = sweepAmount;
+        data.token1Amount = tokenAmount;
+
+        data.sqrtPriceX96 = toBN("79228162514264334008320", 0); // price = 1.0 ~> SW: 18 / TK: 6
+    }
+
+    return data;
+}
+
 const Const = {
     ZERO: 0,
     TRUE: true,
     FALSE: false,
     RATIO: 10e4, // 10 %
-    SPREAD_FEE: 3e4, // 3 %
+    spreadFee: 3e4, // 3 %
     DISCOUNT: 2e4, // 2%
     URL: "htttp://test.com",
     DAY: 86400, // seconds
@@ -55,10 +91,12 @@ const Const = {
 }
 
 module.exports = {
+    toBN,
+    Const,
     sendEth,
     impersonate,
     increaseTime,
-    toBN,
-    Const
+    getPriceAndData,
+    getBlockTimestamp,
 }
 

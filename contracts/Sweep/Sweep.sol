@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ======================= SWEEP Coin (SWEEP) ==================
+// ======================= SWEEP Coin (SWEEP) =========================
 // ====================================================================
 
 import "./BaseSweep.sol";
@@ -19,29 +19,29 @@ contract SweepCoin is BaseSweep {
     address public treasury;
 
     // Variables
-    int256 public interest_rate; // 4 decimals of precision, e.g. 50000 = 5%
-    int256 public step_value; // Amount to change SWEEP interest rate. 4 decimals of precision and default value is 2500 (0.25%)
-    uint256 public period_start; // Start time for new period
-    uint256 public period_time; // Period Time. Default = 604800 (7 days)
-    uint256 public current_target_price; // The cuurent target price of SWEEP
-    uint256 public next_target_price; // The next target price of SWEEP
-    uint256 public arb_spread; // 4 decimals of precision, e.g. 1000 = 0.1%
+    int256 public interestRate; // 4 decimals of precision, e.g. 50000 = 5%
+    int256 public stepValue; // Amount to change SWEEP interest rate. 4 decimals of precision and default value is 2500 (0.25%)
+    uint256 public periodStart; // Start time for new period
+    uint256 public periodTime; // Period Time. Default = 604800 (7 days)
+    uint256 public currentTargetPrice; // The cuurent target price of SWEEP
+    uint256 public nextTargetPrice; // The next target price of SWEEP
+    uint256 public arbSpread; // 4 decimals of precision, e.g. 1000 = 0.1%
 
     // Constants
     uint256 internal constant SPREAD_PRECISION = 1e6;
 
     /* ========== Events ========== */
 
-    event PeriodTimeSet(uint256 new_period_time);
-    event ArbSpreadSet(uint256 new_arb_spread);
-    event InterestRateSet(int256 new_interest_rate);
+    event PeriodTimeSet(uint256 newPeriodTime);
+    event ArbSpreadSet(uint256 newArbSpread);
+    event InterestRateSet(int256 newInterestRate);
     event AMMSet(address ammAddress);
-    event BalancerSet(address balancer_address);
-    event TreasurySet(address treasury_address);
-    event NewPeriodStarted(uint256 period_start);
+    event BalancerSet(address balancerAddress);
+    event TreasurySet(address treasuryAddress);
+    event NewPeriodStarted(uint256 periodStart);
     event TargetPriceSet(
-        uint256 current_target_price,
-        uint256 next_target_price
+        uint256 currentTargetPrice,
+        uint256 nextTargetPrice
     );
 
     /* ========== Errors ========== */
@@ -61,23 +61,23 @@ contract SweepCoin is BaseSweep {
 
     // Constructor
     function initialize(
-        address _lzEndpoint,
-        address _fast_multisig,
-        int256 _step_value
+        address lzEndpoint,
+        address fastMultisig,
+        int256 stepValue_
     ) public initializer {
         BaseSweep.__Sweep_init(
             "SweepCoin",
             "SWEEP",
-            _lzEndpoint,
-            _fast_multisig
+            lzEndpoint,
+            fastMultisig
         );
 
-        step_value = _step_value;
-        interest_rate = 0;
-        current_target_price = 1e6;
-        next_target_price = 1e6;
-        period_time = 604800; // 7 days
-        arb_spread = 0;
+        stepValue = stepValue_;
+        interestRate = 0;
+        currentTargetPrice = 1e6;
+        nextTargetPrice = 1e6;
+        periodTime = 604800; // 7 days
+        arbSpread = 0;
     }
 
     /* ========== VIEWS ========== */
@@ -87,7 +87,7 @@ contract SweepCoin is BaseSweep {
      * The Sweep Price comes from the AMM.
      * @return uint256 Sweep price
      */
-    function amm_price() public view returns (uint256) {
+    function ammPrice() public view returns (uint256) {
         return amm.getPrice();
     }
 
@@ -96,7 +96,7 @@ contract SweepCoin is BaseSweep {
      * The Sweep Price comes from the AMM.
      * @return uint256 Sweep price
      */
-    function twa_price() external view returns (uint256) {
+    function twaPrice() external view returns (uint256) {
         return amm.getTWAPrice();
     }
 
@@ -106,13 +106,13 @@ contract SweepCoin is BaseSweep {
      * It must have 6 decimals as USD_DECIMALS in IAMM.
      * @return uint256 Sweep target price
      */
-    function target_price() public view returns (uint256) {
-        if (block.timestamp - period_start >= period_time) {
+    function targetPrice() public view returns (uint256) {
+        if (block.timestamp - periodStart >= periodTime) {
             // if over period, return next target price for new period
-            return next_target_price;
+            return nextTargetPrice;
         } else {
             // if in period, return current target price
-            return current_target_price;
+            return currentTargetPrice;
         }
     }
 
@@ -120,58 +120,58 @@ contract SweepCoin is BaseSweep {
      * @notice Get Sweep Minting Allow Status
      * @return bool Sweep minting allow status
      */
-    function is_minting_allowed() public view returns (bool) {
-        uint256 arb_price = ((SPREAD_PRECISION - arb_spread) * target_price()) /
+    function isMintingAllowed() public view returns (bool) {
+        uint256 arbPrice = ((SPREAD_PRECISION - arbSpread) * targetPrice()) /
             SPREAD_PRECISION;
-        return (amm_price() >= arb_price);
+        return (ammPrice() >= arbPrice);
     }
 
     /* ========== Actions ========== */
 
     /**
      * @notice Mint (Override)
-     * @param _minter Address of a minter.
-     * @param _amount Amount for mint.
+     * @param minter Address of a minter.
+     * @param amount Amount for mint.
      */
-    function minter_mint(
-        address _minter,
-        uint256 _amount
+    function minterMint(
+        address minter,
+        uint256 amount
     ) public override validMinter(msg.sender) whenNotPaused {
-        if (address(amm) != address(0) && !is_minting_allowed())
+        if (address(amm) != address(0) && !isMintingAllowed())
             revert MintNotAllowed();
 
-        super.minter_mint(_minter, _amount);
+        super.minterMint(minter, amount);
     }
 
     /**
      * @notice Set Period Time
-     * @param _period_time.
+     * @param newPeriodTime.
      */
-    function setPeriodTime(uint256 _period_time) external onlyGov {
-        period_time = _period_time;
+    function setPeriodTime(uint256 newPeriodTime) external onlyGov {
+        periodTime = newPeriodTime;
 
-        emit PeriodTimeSet(_period_time);
+        emit PeriodTimeSet(newPeriodTime);
     }
 
     /**
      * @notice Set Balancer Address
-     * @param _balancer.
+     * @param newBalancer.
      */
-    function setBalancer(address _balancer) external onlyGov {
-        if (_balancer == address(0)) revert ZeroAddressDetected();
-        balancer = _balancer;
+    function setBalancer(address newBalancer) external onlyGov {
+        if (newBalancer == address(0)) revert ZeroAddressDetected();
+        balancer = newBalancer;
 
-        emit BalancerSet(_balancer);
+        emit BalancerSet(newBalancer);
     }
 
     /**
      * @notice Set arbitrage spread ratio
-     * @param _new_arb_spread.
+     * @param newArbSpread.
      */
-    function setArbSpread(uint256 _new_arb_spread) external onlyGov {
-        arb_spread = _new_arb_spread;
+    function setArbSpread(uint256 newArbSpread) external onlyGov {
+        arbSpread = newArbSpread;
 
-        emit ArbSpreadSet(_new_arb_spread);
+        emit ArbSpreadSet(newArbSpread);
     }
 
     /**
@@ -189,51 +189,51 @@ contract SweepCoin is BaseSweep {
 
     /**
      * @notice Set Interest Rate
-     * @param _new_interest_rate.
+     * @param newInterestRate.
      */
-    function setInterestRate(int256 _new_interest_rate) external onlyBalancer {
-        interest_rate = _new_interest_rate;
+    function setInterestRate(int256 newInterestRate) external onlyBalancer {
+        interestRate = newInterestRate;
 
-        emit InterestRateSet(_new_interest_rate);
+        emit InterestRateSet(newInterestRate);
     }
 
     /**
      * @notice Set Target Price
-     * @param _current_target_price.
-     * @param _next_target_price.
+     * @param newCurrentTargetPrice.
+     * @param newNextTargetPrice.
      */
     function setTargetPrice(
-        uint256 _current_target_price,
-        uint256 _next_target_price
+        uint256 newCurrentTargetPrice,
+        uint256 newNextTargetPrice
     ) external onlyBalancer {
-        current_target_price = _current_target_price;
-        next_target_price = _next_target_price;
+        currentTargetPrice = newCurrentTargetPrice;
+        nextTargetPrice = newNextTargetPrice;
 
-        emit TargetPriceSet(_current_target_price, _next_target_price);
+        emit TargetPriceSet(newCurrentTargetPrice, newNextTargetPrice);
     }
 
     /**
      * @notice Start New Period
      */
     function startNewPeriod() external onlyBalancer {
-        if (block.timestamp - period_start < period_time)
+        if (block.timestamp - periodStart < periodTime)
             revert NotPassedPeriodTime();
 
-        period_start = block.timestamp;
+        periodStart = block.timestamp;
 
-        emit NewPeriodStarted(period_start);
+        emit NewPeriodStarted(periodStart);
     }
 
     /**
      * @notice Set Treasury Address
-     * @param _treasury.
+     * @param newTreasury.
      */
-    function setTreasury(address _treasury) external onlyGov {
-        if (_treasury == address(0)) revert ZeroAddressDetected();
+    function setTreasury(address newTreasury) external onlyGov {
+        if (newTreasury == address(0)) revert ZeroAddressDetected();
         if (treasury != address(0)) revert AlreadyExist();
-        treasury = _treasury;
+        treasury = newTreasury;
 
-        emit TreasurySet(_treasury);
+        emit TreasurySet(newTreasury);
     }
 
     /**
@@ -243,7 +243,7 @@ contract SweepCoin is BaseSweep {
      * @return usdAmount of USDX.
      */
     function convertToUSD(uint256 sweepAmount) external view returns (uint256 usdAmount) {
-        usdAmount = sweepAmount.mulDiv(target_price(), 10 ** decimals());
+        usdAmount = sweepAmount.mulDiv(targetPrice(), 10 ** decimals());
     }
 
     /**
@@ -253,6 +253,6 @@ contract SweepCoin is BaseSweep {
      * @return sweepAmount of SWEEP.
      */
     function convertToSWEEP(uint256 usdAmount) external view returns (uint256 sweepAmount) {
-        sweepAmount = usdAmount.mulDiv(10 ** decimals(), target_price());
+        sweepAmount = usdAmount.mulDiv(10 ** decimals(), targetPrice());
     }
 }

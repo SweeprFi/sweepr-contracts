@@ -53,7 +53,7 @@ contract('Compound V2 Asset', async () => {
         user = await impersonate(BORROWER);
         await compAsset.connect(user).configure(
             Const.RATIO,
-            Const.SPREAD_FEE,
+            Const.spreadFee,
             maxBorrow,
             Const.DISCOUNT,
             Const.DAYS_5,

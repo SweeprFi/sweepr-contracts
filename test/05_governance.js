@@ -79,7 +79,7 @@ contract('Governance', async (accounts) => {
 
 		await usdc.connect(account).approve(tokenDistributor.address, tokenAmount);
 
-		await sweep.connect(account).minter_mint(PROPOSER, MINT_AMOUNT);
+		await sweep.connect(account).minterMint(PROPOSER, MINT_AMOUNT);
 		await sweep.connect(account).approve(tokenDistributor.address, MINT_AMOUNT);
 		await tokenDistributor.connect(account).buy(tokenAmount);
 

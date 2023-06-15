@@ -14,50 +14,50 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
 contract TransferApproverBlacklist is Ownable2Step {
     mapping(address => bool) internal blacklisted;
 
-    event Blacklisted(address indexed _account);
-    event UnBlacklisted(address indexed _account);
+    event Blacklisted(address indexed account);
+    event UnBlacklisted(address indexed account);
 
     /**
      * @notice Returns token transferability
-     * @param _from sender address
-     * @param _to beneficiary address
+     * @param from sender address
+     * @param to beneficiary address
      * @return (bool) true - allowance, false - denial
      */
-    function checkTransfer(address _from, address _to)
+    function checkTransfer(address from, address to)
         external
         view
         returns (bool)
     {
-        if (_from == address(0) || _to == address(0)) return true;
+        if (from == address(0) || to == address(0)) return true;
 
-        return (!blacklisted[_from] && !blacklisted[_to]);
+        return (!blacklisted[from] && !blacklisted[to]);
     }
 
     /**
      * @dev Checks if account is blacklisted
-     * @param _account The address to check
+     * @param account The address to check
      */
-    function isBlacklisted(address _account) external view returns (bool) {
-        return blacklisted[_account];
+    function isBlacklisted(address account) external view returns (bool) {
+        return blacklisted[account];
     }
 
     /**
      * @dev Adds account to blacklist
-     * @param _account The address to blacklist
+     * @param account The address to blacklist
      */
-    function blacklist(address _account) external onlyOwner {
-        blacklisted[_account] = true;
+    function blacklist(address account) external onlyOwner {
+        blacklisted[account] = true;
         
-        emit Blacklisted(_account);
+        emit Blacklisted(account);
     }
 
     /**
      * @dev Removes account from blacklist
-     * @param _account The address to remove from the blacklist
+     * @param account The address to remove from the blacklist
      */
-    function unBlacklist(address _account) external onlyOwner {
-        blacklisted[_account] = false;
+    function unBlacklist(address account) external onlyOwner {
+        blacklisted[account] = false;
 
-        emit UnBlacklisted(_account);
+        emit UnBlacklisted(account);
     }
 }

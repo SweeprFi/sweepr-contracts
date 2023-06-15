@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
-const { impersonate, Const, toBN } = require("../utils/helper_functions");
+const { impersonate, Const, toBN, getBlockTimestamp } = require("../utils/helper_functions");
 
 contract("Off-Chain Asset", async function (accounts) {
     before(async () => {
@@ -54,15 +54,17 @@ contract("Off-Chain Asset", async function (accounts) {
         it("invests correctly", async function () {
             user = await impersonate(GUEST);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
-            expect(await asset.valuation_time()).to.equal(Const.ZERO);
+            expect(await asset.valuationTime()).to.equal(Const.ZERO);
             await expect(asset.connect(user).invest(usdxAmount, sweepAmount))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
             user = await impersonate(BORROWER);
             await asset.connect(user).invest(usdxAmount, sweepAmount);
+            timestamp = await getBlockTimestamp();
             expect(await asset.assetValue()).to.above(Const.ZERO);
             expect(await usdx.balanceOf(WALLET)).to.equal(usdxAmount);
             expect(await sweep.balanceOf(WALLET)).to.equal(sweepAmount);
+            expect(await asset.valuationTime()).to.equal(timestamp);
         });
 
         it("divests correctly", async function () {
@@ -72,9 +74,9 @@ contract("Off-Chain Asset", async function (accounts) {
 
             user = await impersonate(BORROWER);
             await asset.connect(user).divest(usdxPayback);
-            expect(await asset.redeem_amount()).to.equal(usdxPayback);
-            expect(await asset.redeem_mode()).to.equal(Const.TRUE);
-            expect(await asset.redeem_time()).to.above(Const.ZERO);
+            expect(await asset.redeemAmount()).to.equal(usdxPayback);
+            expect(await asset.redeemMode()).to.equal(Const.TRUE);
+            expect(await asset.redeemTime()).to.above(Const.ZERO);
         });
 
         it("returns investment correctly", async function () {
@@ -86,21 +88,21 @@ contract("Off-Chain Asset", async function (accounts) {
                 .to.be.revertedWithCustomError(asset, "NotEnoughAmount");
             await asset.connect(user).payback(addresses.usdc, usdxPayback);
 
-            expect(await asset.redeem_mode()).to.equal(Const.FALSE);
-            expect(await asset.redeem_amount()).to.equal(Const.ZERO);
+            expect(await asset.redeemMode()).to.equal(Const.FALSE);
+            expect(await asset.redeemAmount()).to.equal(Const.ZERO);
 
             user = await impersonate(BORROWER);
             await asset.connect(user).divest(usdxPayback);
-            expect(await asset.redeem_amount()).to.equal(usdxPayback);
-            expect(await asset.redeem_mode()).to.equal(Const.TRUE);
-            expect(await asset.redeem_time()).to.above(Const.ZERO);
+            expect(await asset.redeemAmount()).to.equal(usdxPayback);
+            expect(await asset.redeemMode()).to.equal(Const.TRUE);
+            expect(await asset.redeemTime()).to.above(Const.ZERO);
 
             user = await impersonate(WALLET);
             await sweep.connect(user).approve(asset.address, sweepPayback);
             await asset.connect(user).payback(sweep.address, sweepPayback);
 
-            expect(await asset.redeem_mode()).to.equal(Const.FALSE);
-            expect(await asset.redeem_amount()).to.equal(Const.ZERO);
+            expect(await asset.redeemMode()).to.equal(Const.FALSE);
+            expect(await asset.redeemAmount()).to.equal(Const.ZERO);
 
         });
     });

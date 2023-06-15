@@ -14,50 +14,50 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
 contract TransferApproverWhitelist is Ownable2Step {
     mapping(address => bool) internal whitelisted;
 
-    event Whitelisted(address indexed _account);
-    event UnWhitelisted(address indexed _account);
+    event Whitelisted(address indexed account);
+    event UnWhitelisted(address indexed account);
 
     /**
      * @notice Returns token transferability
-     * @param _from sender address
-     * @param _to beneficiary address
+     * @param from sender address
+     * @param to beneficiary address
      * @return (bool) true - allowance, false - denial
      */
-    function checkTransfer(address _from, address _to)
+    function checkTransfer(address from, address to)
         external
         view
         returns (bool)
     {
-        if (_from == address(0) || _to == address(0)) return true;
+        if (from == address(0) || to == address(0)) return true;
 
-        return whitelisted[_to];
+        return whitelisted[to];
     }
 
     /**
      * @dev Checks if account is whitelisted
-     * @param _account The address to check
+     * @param account The address to check
      */
-    function isWhitelisted(address _account) external view returns (bool) {
-        return whitelisted[_account];
+    function isWhitelisted(address account) external view returns (bool) {
+        return whitelisted[account];
     }
 
     /**
      * @dev Adds account to whitelist
-     * @param _account The address to whitelist
+     * @param account The address to whitelist
      */
-    function whitelist(address _account) external onlyOwner {
-        whitelisted[_account] = true;
+    function whitelist(address account) external onlyOwner {
+        whitelisted[account] = true;
 
-        emit Whitelisted(_account);
+        emit Whitelisted(account);
     }
 
     /**
      * @dev Removes account from whitelist
-     * @param _account The address to remove from the blacklist
+     * @param account The address to remove from the blacklist
      */
-    function unWhitelist(address _account) external onlyOwner {
-        whitelisted[_account] = false;
+    function unWhitelist(address account) external onlyOwner {
+        whitelisted[account] = false;
 
-        emit UnWhitelisted(_account);
+        emit UnWhitelisted(account);
     }
 }

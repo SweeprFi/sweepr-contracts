@@ -15,26 +15,26 @@ import "../Stabilizer/Stabilizer.sol";
 import "./Aave/IAaveV3Pool.sol";
 
 contract AaveV3Asset is Stabilizer {
-    IERC20 private immutable aaveUSDX_Token;
-    IPool private immutable aaveV3_Pool;
+    IERC20 private immutable aaveUSDXToken;
+    IPool private immutable aaveV3Pool;
 
     constructor(
-        string memory _name,
-        address _sweep_address,
-        address _usdx_address,
-        address _aave_usdx_address,
-        address _aaveV3_pool_address,
-        address _borrower
+        string memory name,
+        address sweepAddress,
+        address usdxAddress,
+        address aaveUsdxAddress,
+        address aaveV3PoolAddress,
+        address borrower
     )
         Stabilizer(
-            _name,
-            _sweep_address,
-            _usdx_address,
-            _borrower
+            name,
+            sweepAddress,
+            usdxAddress,
+            borrower
         )
     {
-        aaveUSDX_Token = IERC20(_aave_usdx_address); //aaveUSDC
-        aaveV3_Pool = IPool(_aaveV3_pool_address);
+        aaveUSDXToken = IERC20(aaveUsdxAddress); //aaveUSDC
+        aaveV3Pool = IPool(aaveV3PoolAddress);
     }
 
     /* ========== Views ========== */
@@ -45,8 +45,8 @@ contract AaveV3Asset is Stabilizer {
      * @dev this value represents the invested amount plus the staked amount in the contract.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accrued_fee_in_usd = SWEEP.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accrued_fee_in_usd;
+        uint256 accruedFeeInUsd = SWEEP.convertToUSD(accruedFee());
+        return assetValue() + super.currentValue() - accruedFeeInUsd;
     }
 
     /**
@@ -56,31 +56,31 @@ contract AaveV3Asset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         // All numbers given are in USDX unless otherwise stated
-        return aaveUSDX_Token.balanceOf(address(this));
+        return aaveUSDXToken.balanceOf(address(this));
     }
 
     /* ========== Actions ========== */
 
     /**
      * @notice Invest USDX
-     * @param _usdx_amount USDX Amount to be invested.
+     * @param usdxAmount USDX Amount to be invested.
      * @dev Sends balance to Aave V3.
      */
     function invest(
-        uint256 _usdx_amount
-    ) external onlyBorrower whenNotPaused validAmount(_usdx_amount) {
-        _invest(_usdx_amount, 0);
+        uint256 usdxAmount
+    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+        _invest(usdxAmount, 0);
     }
 
     /**
      * @notice Divests From Aave.
-     * @param _usdx_amount Amount to be divested.
+     * @param usdxAmount Amount to be divested.
      * @dev Sends balance from the Aave V3 pool to the Asset.
      */
     function divest(
-        uint256 _usdx_amount
-    ) external onlyBorrower validAmount(_usdx_amount) {
-        _divest(_usdx_amount);
+        uint256 usdxAmount
+    ) external onlyBorrower validAmount(usdxAmount) {
+        _divest(usdxAmount);
     }
 
     /**
@@ -89,7 +89,7 @@ contract AaveV3Asset is Stabilizer {
      * repaying the debt and getting the same value at a discount.
      */
     function liquidate() external {
-        _liquidate(address(aaveUSDX_Token));
+        _liquidate(address(aaveUSDXToken));
     }
 
     /* ========== Internals ========== */
@@ -98,29 +98,29 @@ contract AaveV3Asset is Stabilizer {
      * @notice Invest
      * @dev Deposits the amount into the Aave V3 pool.
      */
-    function _invest(uint256 _usdx_amount, uint256) internal override {
-        (uint256 usdx_balance, ) = _balances();
-        if(usdx_balance < _usdx_amount) _usdx_amount = usdx_balance;
+    function _invest(uint256 usdxAmount, uint256) internal override {
+        uint256 usdxBalance = usdx.balanceOf(address(this));
+        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         TransferHelper.safeApprove(
             address(usdx),
-            address(aaveV3_Pool),
-            _usdx_amount
+            address(aaveV3Pool),
+            usdxAmount
         );
-        aaveV3_Pool.supply(address(usdx), _usdx_amount, address(this), 0);
+        aaveV3Pool.supply(address(usdx), usdxAmount, address(this), 0);
 
-        emit Invested(_usdx_amount, 0);
+        emit Invested(usdxAmount, 0);
     }
 
     /**
      * @notice Divest
      * @dev Withdraws the amount from the Aave V3 pool.
      */
-    function _divest(uint256 _usdx_amount) internal override {
-        if (aaveUSDX_Token.balanceOf(address(this)) < _usdx_amount)
-            _usdx_amount = type(uint256).max;
+    function _divest(uint256 usdxAmount) internal override {
+        if (aaveUSDXToken.balanceOf(address(this)) < usdxAmount)
+            usdxAmount = type(uint256).max;
 
-        uint256 divestedAmount = aaveV3_Pool.withdraw(address(usdx), _usdx_amount, address(this));
+        uint256 divestedAmount = aaveV3Pool.withdraw(address(usdx), usdxAmount, address(this));
 
         emit Divested(divestedAmount, 0);
     }

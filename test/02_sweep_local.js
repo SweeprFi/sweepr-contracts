@@ -11,7 +11,7 @@ contract("Sweep", async function () {
 		Sweep = await ethers.getContractFactory("SweepCoin");
 
 		TRANSFER_AMOUNT = toBN("100", 18);
-		INTEREST_RATE = 5e4; // 5%
+		interestRate = 5e4; // 5%
 
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
@@ -33,14 +33,14 @@ contract("Sweep", async function () {
 	});
 
 	it('gets the target price correctly', async () => {
-		targetPrice = await sweep.target_price();
-		expect(await sweep.current_target_price()).to.equal(targetPrice);
+		targetPrice = await sweep.targetPrice();
+		expect(await sweep.currentTargetPrice()).to.equal(targetPrice);
 	});
 
 	it('sets a new fast multisig correctly', async () => {
-		expect(await sweep.fast_multisig()).to.eq(addresses.owner);
+		expect(await sweep.fastMultisig()).to.eq(addresses.owner);
 		await sweep.connect(multisig).setFastMultisig(multisig.address);
-		expect(await sweep.fast_multisig()).to.eq(multisig.address);
+		expect(await sweep.fastMultisig()).to.eq(multisig.address);
 	});
 
 	it('sets a new treasury correctly', async () => {
@@ -57,18 +57,18 @@ contract("Sweep", async function () {
 	});
 
 	it('sets a new arb spread correctly', async () => {
-		expect(await sweep.arb_spread()).to.eq(Const.ZERO);
+		expect(await sweep.arbSpread()).to.eq(Const.ZERO);
 		await sweep.connect(multisig).setArbSpread(1000);
-		expect(await sweep.arb_spread()).to.eq(1000);
+		expect(await sweep.arbSpread()).to.eq(1000);
 	});
 
 	it('sets a new period time correctly', async () => {
-		period_time = await sweep.period_time();
+		periodTime = await sweep.periodTime();
 		await sweep.connect(multisig).setPeriodTime(Const.ZERO);
-		new_period_time = await sweep.period_time();
+		new_periodTime = await sweep.periodTime();
 
-		expect(period_time).to.equal(604800);
-		expect(new_period_time).to.equal(Const.ZERO);
+		expect(periodTime).to.equal(604800);
+		expect(new_periodTime).to.equal(Const.ZERO);
 	});
 
 	it('sets a new AMM and gets price correctly', async () => {
@@ -83,7 +83,7 @@ contract("Sweep", async function () {
 
 		expect(await sweep.amm()).to.equal(amm);
 
-		price = await sweep.amm_price();
+		price = await sweep.ammPrice();
 		expect(price).to.above(Const.ZERO);
 	});
 
@@ -96,31 +96,31 @@ contract("Sweep", async function () {
 	});
 
 	it('sets a new current target price correctly', async () => {
-		expect(await sweep.current_target_price()).to.equal(await sweep.next_target_price());
+		expect(await sweep.currentTargetPrice()).to.equal(await sweep.nextTargetPrice());
 		await sweep.connect(newAddress).setTargetPrice(90000, 99000);
-		expect(await sweep.current_target_price()).to.equal(90000);
-		expect(await sweep.next_target_price()).to.equal(99000);
+		expect(await sweep.currentTargetPrice()).to.equal(90000);
+		expect(await sweep.nextTargetPrice()).to.equal(99000);
 	});
 
 	it('starts a new period correctly', async () => {
-		period_start = await sweep.period_start();
+		periodStart = await sweep.periodStart();
 		await sweep.connect(newAddress).startNewPeriod();
-		new_period_start = await sweep.period_start();
+		newPeriodStart = await sweep.periodStart();
 
-		expect(new_period_start).to.above(period_start);
+		expect(newPeriodStart).to.above(periodStart);
 	});
 
 	it('upgrades Sweep', async () => {
-		await expect(sweep.connect(multisig).setInterestRate(INTEREST_RATE))
+		await expect(sweep.connect(multisig).setInterestRate(interestRate))
 			.to.be.revertedWithCustomError(sweep, "NotBalancer");
-		await sweep.connect(newAddress).setInterestRate(INTEREST_RATE);
-		const interestRateBefore = await sweep.interest_rate();
+		await sweep.connect(newAddress).setInterestRate(interestRate);
+		const interestRateBefore = await sweep.interestRate();
 
 		// Sweep Upgrade
 		Sweep2 = await ethers.getContractFactory("SweepCoin");
 		upgraded = await upgrades.upgradeProxy(sweep.address, Sweep2);
 
-		const interestRateAfter = await sweep.interest_rate();
+		const interestRateAfter = await sweep.interestRate();
 
 		// Check to see if upgraded Sweep contract keeps interest rate of previous contract
 		expect(interestRateBefore.toNumber()).to.equal(interestRateAfter.toNumber());
@@ -133,58 +133,58 @@ contract("Sweep", async function () {
 		expect(await sweep.isValidMinter(newMinter.address)).to.equal(Const.TRUE);
 		minterInfo = await sweep.minters(newMinter.address);
 
-		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT);
-		expect(minterInfo.minted_amount).to.equal(Const.ZERO);
-		expect(minterInfo.is_listed).to.equal(Const.TRUE);
-		expect(minterInfo.is_enabled).to.equal(Const.TRUE);
+		expect(minterInfo.maxAmount).to.equal(TRANSFER_AMOUNT);
+		expect(minterInfo.mintedAmount).to.equal(Const.ZERO);
+		expect(minterInfo.isListed).to.equal(Const.TRUE);
+		expect(minterInfo.isEnabled).to.equal(Const.TRUE);
 	});
 
 	it('mints SWEEP for a valid minter', async () => {
-		await expect(sweep.connect(treasury).minter_mint(newMinter.address, 10))
+		await expect(sweep.connect(treasury).minterMint(newMinter.address, 10))
 			.to.be.revertedWithCustomError(Sweep, 'InvalidMinter');
 
-		await sweep.connect(newMinter).minter_mint(newMinter.address, 10)
+		await sweep.connect(newMinter).minterMint(newMinter.address, 10)
 		minterInfo = await sweep.minters(newMinter.address);
 
-		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT);
-		expect(minterInfo.minted_amount).to.equal(10);
-		expect(minterInfo.is_listed).to.equal(Const.TRUE);
-		expect(minterInfo.is_enabled).to.equal(Const.TRUE);
+		expect(minterInfo.maxAmount).to.equal(TRANSFER_AMOUNT);
+		expect(minterInfo.mintedAmount).to.equal(10);
+		expect(minterInfo.isListed).to.equal(Const.TRUE);
+		expect(minterInfo.isEnabled).to.equal(Const.TRUE);
 	});
 
 	it('burns SWEEP for a valid minter', async () => {
-		await expect(sweep.connect(treasury).minter_burn_from(10))
+		await expect(sweep.connect(treasury).minterBurnFrom(10))
 			.to.be.revertedWithCustomError(Sweep, 'InvalidMinter');
 
-		await sweep.connect(newMinter).minter_burn_from(10)
+		await sweep.connect(newMinter).minterBurnFrom(10)
 		minterInfo = await sweep.minters(newMinter.address);
 
-		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT);
-		expect(minterInfo.minted_amount).to.equal(Const.ZERO);
-		expect(minterInfo.is_listed).to.equal(Const.TRUE);
-		expect(minterInfo.is_enabled).to.equal(Const.TRUE);
+		expect(minterInfo.maxAmount).to.equal(TRANSFER_AMOUNT);
+		expect(minterInfo.mintedAmount).to.equal(Const.ZERO);
+		expect(minterInfo.isListed).to.equal(Const.TRUE);
+		expect(minterInfo.isEnabled).to.equal(Const.TRUE);
 	});
 
 	it('sets a new config for a minter correctly', async () => {
 		await sweep.connect(multisig).setMinterMaxAmount(newMinter.address, TRANSFER_AMOUNT.mul(2));
 		minterInfo = await sweep.minters(newMinter.address);
 
-		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT.mul(2));
-		expect(minterInfo.minted_amount).to.equal(Const.ZERO);
-		expect(minterInfo.is_listed).to.equal(Const.TRUE);
-		expect(minterInfo.is_enabled).to.equal(Const.TRUE);
+		expect(minterInfo.maxAmount).to.equal(TRANSFER_AMOUNT.mul(2));
+		expect(minterInfo.mintedAmount).to.equal(Const.ZERO);
+		expect(minterInfo.isListed).to.equal(Const.TRUE);
+		expect(minterInfo.isEnabled).to.equal(Const.TRUE);
 
-		await sweep.connect(newMinter).minter_mint(newMinter.address, TRANSFER_AMOUNT);
+		await sweep.connect(newMinter).minterMint(newMinter.address, TRANSFER_AMOUNT);
 		await sweep.connect(multisig).setMinterEnabled(newMinter.address, Const.FALSE);
 		minterInfo = await sweep.minters(newMinter.address);
 
-		await expect(sweep.connect(newMinter).minter_mint(newMinter.address, 10))
+		await expect(sweep.connect(newMinter).minterMint(newMinter.address, 10))
 			.to.be.revertedWithCustomError(Sweep, 'MintDisabled');
 
-		expect(minterInfo.max_amount).to.equal(TRANSFER_AMOUNT.mul(2));
-		expect(minterInfo.minted_amount).to.equal(TRANSFER_AMOUNT);
-		expect(minterInfo.is_listed).to.equal(Const.TRUE);
-		expect(minterInfo.is_enabled).to.equal(Const.FALSE);
+		expect(minterInfo.maxAmount).to.equal(TRANSFER_AMOUNT.mul(2));
+		expect(minterInfo.mintedAmount).to.equal(TRANSFER_AMOUNT);
+		expect(minterInfo.isListed).to.equal(Const.TRUE);
+		expect(minterInfo.isEnabled).to.equal(Const.FALSE);
 	});
 
 	it('removes from minters list', async () => {

@@ -31,40 +31,66 @@ contract OmnichainProposalSender is Ownable, ReentrancyGuard {
     event ClearPayload(uint64 indexed nonce, bytes32 executionHash);
 
     /// @notice Emitted when an execution hash of a failed message saved
-    event StorePayload(uint64 indexed nonce, uint16 indexed remoteChainId, bytes payload, bytes adapterParams, uint value, bytes reason);
+    event StorePayload(
+        uint64 indexed nonce,
+        uint16 indexed remoteChainId,
+        bytes payload,
+        bytes adapterParams,
+        uint value,
+        bytes reason
+    );
 
-    constructor(ILayerZeroEndpoint _lzEndpoint) {
-        require(address(_lzEndpoint) != address(0), "OmnichainProposalSender: invalid endpoint");
-        lzEndpoint = _lzEndpoint;
+    constructor(ILayerZeroEndpoint lz_endpoint) {
+        require(address(lz_endpoint) != address(0), "OmnichainProposalSender: invalid endpoint");
+        lzEndpoint = lz_endpoint;
     }
 
     /// @notice Estimates LayerZero fees for cross-chain message delivery to the remote chain
-    /// @dev The estimated fees are the minimum required, it's recommended to increase the fees amount when sending a message. The unused amount will be refunded
+    /// @dev The estimated fees are the minimum required,
+    /// it's recommended to increase the fees amount when sending a message. The unused amount will be refunded
     /// @param remoteChainId The LayerZero id of a remote chain
-    /// @param payload The payload to be sent to the remote chain. It's computed as follows payload = abi.encode(targets, values, signatures, calldatas)
+    /// @param payload The payload to be sent to the remote chain.
+    /// It's computed as follows payload = abi.encode(targets, values, signatures, calldatas)
     /// @param adapterParams The params used to specify the custom amount of gas required for the execution on the destination
     /// @return nativeFee The amount of fee in the native gas token (e.g. ETH)
     /// @return zroFee The amount of fee in ZRO token
-    function estimateFees(uint16 remoteChainId, bytes calldata payload, bytes calldata adapterParams) external view returns (uint nativeFee, uint zroFee) {
+    function estimateFees(
+        uint16 remoteChainId,
+        bytes calldata payload,
+        bytes calldata adapterParams
+    ) external view returns (uint nativeFee, uint zroFee) {
         return lzEndpoint.estimateFees(remoteChainId, address(this), payload, false, adapterParams);
     }
 
     /// @notice Sends a message to execute a remote proposal
     /// @dev Stores the hash of the execution parameters if sending fails (e.g., due to insufficient fees)
     /// @param remoteChainId The LayerZero id of the remote chain
-    /// @param payload The payload to be sent to the remote chain. It's computed as follows payload = abi.encode(targets, values, signatures, calldatas)
-    /// @param adapterParams The params used to specify the custom amount of gas required for the execution on the destination
-    function execute(uint16 remoteChainId, bytes calldata payload, bytes calldata adapterParams) external payable onlyOwner {
+    /// @param payload The payload to be sent to the remote chain.
+    /// It's computed as follows payload = abi.encode(targets, values, signatures, calldatas)
+    /// @param adapterParams The params used to specify the custom amount of gas required
+    /// for the execution on the destination
+    function execute(
+        uint16 remoteChainId,
+        bytes calldata payload,
+        bytes calldata adapterParams
+    ) external payable onlyOwner {
         bytes memory trustedRemote = trustedRemoteLookup[remoteChainId];
         require(trustedRemote.length != 0, "OmnichainProposalSender: destination chain is not a trusted source");
 
-        try lzEndpoint.send{value: msg.value}(remoteChainId, trustedRemote, payload, payable(tx.origin), address(0), adapterParams){
+        try lzEndpoint.send{value: msg.value}(
+            remoteChainId,
+            trustedRemote,
+            payload,
+            payable(tx.origin),
+            address(0),
+            adapterParams
+        ) {
             emit ExecuteRemoteProposal(remoteChainId, payload);  
         } catch (bytes memory reason) {
-            uint64 _lastStoredPayloadNonce = ++lastStoredPayloadNonce;
+            uint64 lastStoredPayload = ++lastStoredPayloadNonce;
             bytes memory execution = abi.encode(remoteChainId, payload, adapterParams, msg.value);
-            storedExecutionHashes[_lastStoredPayloadNonce] = keccak256(execution);
-            emit StorePayload(_lastStoredPayloadNonce, remoteChainId, payload, adapterParams, msg.value, reason);
+            storedExecutionHashes[lastStoredPayload] = keccak256(execution);
+            emit StorePayload(lastStoredPayload, remoteChainId, payload, adapterParams, msg.value, reason);
         }
     }
 
@@ -72,10 +98,18 @@ contract OmnichainProposalSender is Ownable, ReentrancyGuard {
     /// @dev Allows to provide more fees if needed. The extra fees will be refunded to the caller
     /// @param nonce The nonce to identify a failed message
     /// @param remoteChainId The LayerZero id of the remote chain
-    /// @param payload The payload to be sent to the remote chain. It's computed as follows payload = abi.encode(targets, values, signatures, calldatas)
-    /// @param adapterParams The params used to specify the custom amount of gas required for the execution on the destination
+    /// @param payload The payload to be sent to the remote chain.
+    /// It's computed as follows payload = abi.encode(targets, values, signatures, calldatas)
+    /// @param adapterParams The params used to specify the custom amount of gas required
+    /// for the execution on the destination
     /// @param originalValue The msg.value passed when execute() function was called
-    function retryExecute(uint64 nonce, uint16 remoteChainId, bytes calldata payload, bytes calldata adapterParams, uint originalValue) external payable nonReentrant {
+    function retryExecute(
+        uint64 nonce,
+        uint16 remoteChainId,
+        bytes calldata payload,
+        bytes calldata adapterParams,
+        uint originalValue
+    ) external payable nonReentrant {
         bytes32 hash = storedExecutionHashes[nonce];
         require(hash != bytes32(0), "OmnichainProposalSender: no stored payload");
 
@@ -84,7 +118,14 @@ contract OmnichainProposalSender is Ownable, ReentrancyGuard {
 
         delete storedExecutionHashes[nonce];
 
-        lzEndpoint.send{value: originalValue + msg.value}(remoteChainId, trustedRemoteLookup[remoteChainId], payload, payable(msg.sender), address(0), adapterParams);
+        lzEndpoint.send{value: originalValue + msg.value}(
+            remoteChainId,
+            trustedRemoteLookup[remoteChainId],
+            payload,
+            payable(msg.sender),
+            address(0),
+            adapterParams
+        );
         emit ClearPayload(nonce, hash);
     }
 

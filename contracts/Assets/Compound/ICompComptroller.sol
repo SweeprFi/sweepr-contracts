@@ -5,7 +5,7 @@ interface ICompComptroller {
   // Views
   // ==============================
   function compAccrued(address addr) external view returns (uint256);
-  function compSpeeds(address ctoken_addr) external view returns (uint256);
+  function compSpeeds(address ctokenAddr) external view returns (uint256);
 
   // Mutative
   // ==============================

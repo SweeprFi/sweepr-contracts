@@ -46,7 +46,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     await usdx.approve(offChainAsset.address, usdxAmount);
     await offChainAsset.connect(borrower).configure(
       Const.RATIO,
-      Const.SPREAD_FEE,
+      Const.spreadFee,
       maxBorrow,
       Const.DISCOUNT,
       Const.DAYS_5,
@@ -69,8 +69,8 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     expect(equity_ratio.toNumber()).to.equal(100000); // expected 10%
 
     // Set Target Price to 0.9
-    target_price = await sweep.target_price();
-    await sweep.setTargetPrice(target_price, 0.9e6);
+    targetPrice = await sweep.targetPrice();
+    await sweep.setTargetPrice(targetPrice, 0.9e6);
 
     equity_ratio = await st.getEquityRatio();
     expect(equity_ratio.toNumber()).to.equal(109890); // expected 10.98%    
@@ -81,8 +81,8 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     expect(equity_ratio.toNumber()).to.equal(189635); // expected 18.96%
 
     // Set Target Price to 1.2
-    target_price = await sweep.target_price();
-    await sweep.setTargetPrice(target_price, 1.2e6);
+    targetPrice = await sweep.targetPrice();
+    await sweep.setTargetPrice(targetPrice, 1.2e6);
 
     equity_ratio = await st.getEquityRatio();
     expect(equity_ratio.toNumber()).to.equal(-80486); // expected -18.99%

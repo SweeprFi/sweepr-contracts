@@ -38,13 +38,13 @@ contract GDAIAsset is Stabilizer {
     error DivestNotAvailable();
 
     constructor(
-        string memory _name,
-        address _sweep,
-        address _usdx,
-        address _gDai,
-        address _borrower
-    ) Stabilizer(_name, _sweep, _usdx, _borrower) {
-        gDai = IGToken(_gDai);
+        string memory name,
+        address sweep,
+        address usdx,
+        address gDai_,
+        address borrower
+    ) Stabilizer(name, sweep, usdx, borrower) {
+        gDai = IGToken(gDai_);
         dai = IERC20Metadata(gDai.asset());
         openTradesPnlFeed = IOpenTradesPnlFeed(gDai.openTradesPnlFeed());
     }
@@ -87,12 +87,9 @@ contract GDAIAsset is Stabilizer {
         returns (bool available, uint256 startTime, uint256 endTime)
     {
         uint256 currentEpochStartTime = gDai.currentEpochStart();
-        available = openTradesPnlFeed.nextEpochValuesRequestCount() == 0
-            ? true
-            : false;
+        available = (openTradesPnlFeed.nextEpochValuesRequestCount() == 0);
         startTime = block.timestamp > currentEpochStartTime + DIVEST_DURATION
-            ? currentEpochStartTime + EPOCH_DURATION
-            : currentEpochStartTime;
+            ? currentEpochStartTime + EPOCH_DURATION : currentEpochStartTime;
         endTime = startTime + DIVEST_DURATION;
     }
 
@@ -114,8 +111,7 @@ contract GDAIAsset is Stabilizer {
         );
         uint256 currentEpoch = gDai.currentEpoch();
         startTime = requestAmount > 0 && currentEpoch <= unlockEpoch
-            ? divestStartTime
-            : 0;
+            ? divestStartTime : 0;
         endTime = startTime > 0 ? startTime + DIVEST_DURATION : 0;
         available =
             currentEpoch == unlockEpoch &&
@@ -128,37 +124,37 @@ contract GDAIAsset is Stabilizer {
 
     /**
      * @notice Invest.
-     * @param _usdxAmount Amount of usdx to be invested for gDai.
+     * @param usdxAmount Amount of usdx to be invested for gDai.
      * @dev get gDai from the usdx.
      */
     function invest(
-        uint256 _usdxAmount
-    ) external onlyBorrower whenNotPaused validAmount(_usdxAmount) {
-        _invest(_usdxAmount, 0);
+        uint256 usdxAmount
+    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+        _invest(usdxAmount, 0);
     }
 
     /**
      * @notice Divest.
-     * @param _usdxAmount Amount to be divested.
+     * @param usdxAmount Amount to be divested.
      * @dev get usdx from the gDai.
      */
     function divest(
-        uint256 _usdxAmount
-    ) external onlyBorrower validAmount(_usdxAmount) {
-        _divest(_usdxAmount);
+        uint256 usdxAmount
+    ) external onlyBorrower validAmount(usdxAmount) {
+        _divest(usdxAmount);
     }
 
     /**
      * @notice Reqest.
-     * @param _usdxAmount Amount to be divested.
+     * @param usdxAmount Amount to be divested.
      * @dev Send request to withdraw from gDai.
      */
-    function request(uint256 _usdxAmount) external onlyBorrower {
+    function request(uint256 usdxAmount) external onlyBorrower {
         (bool available, , ) = requestStatus();
         if (!available) revert RequestNotAvailable();
         if (gDai.balanceOf(address(this)) == 0) revert EmptyBalance();
 
-        uint256 daiAmount = (_usdxAmount * (10 ** gDai.decimals())) /
+        uint256 daiAmount = (usdxAmount * (10 ** gDai.decimals())) /
             (10 ** usdx.decimals());
         uint256 gDaiAmount = gDai.convertToShares(daiAmount);
         uint256 gDaiBalance = gDai.balanceOf(address(this));
@@ -170,9 +166,7 @@ contract GDAIAsset is Stabilizer {
         uint256 epochsTimelock = gDai.withdrawEpochsTimelock();
         unlockEpoch = gDai.currentEpoch() + epochsTimelock;
         divestStartTime =
-            gDai.currentEpochStart() +
-            epochsTimelock *
-            EPOCH_DURATION;
+            gDai.currentEpochStart() + epochsTimelock * EPOCH_DURATION;
 
         emit Request(gDaiAmount, unlockEpoch, divestStartTime);
     }
@@ -186,15 +180,15 @@ contract GDAIAsset is Stabilizer {
 
     /* ========== Internals ========== */
 
-    function _invest(uint256 _usdxAmount, uint256) internal override {
-        (uint256 usdxBalance, ) = _balances();
-        if (usdxBalance < _usdxAmount) _usdxAmount = usdxBalance;
+    function _invest(uint256 usdxAmount, uint256) internal override {
+        uint256 usdxBalance = usdx.balanceOf(address(this));
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        TransferHelper.safeApprove(address(usdx), SWEEP.amm(), _usdxAmount);
+        TransferHelper.safeApprove(address(usdx), SWEEP.amm(), usdxAmount);
         uint256 daiAmount = amm().swapExactInput(
             address(usdx),
             address(dai),
-            _usdxAmount,
+            usdxAmount,
             0
         );
         TransferHelper.safeApprove(address(dai), address(gDai), daiAmount);
@@ -203,11 +197,11 @@ contract GDAIAsset is Stabilizer {
         emit Invested(daiAmount, 0);
     }
 
-    function _divest(uint256 _usdxAmount) internal override {
+    function _divest(uint256 usdxAmount) internal override {
         (bool available, , ) = divestStatus();
         if (!available) revert DivestNotAvailable();
 
-        uint256 daiAmount = (_usdxAmount * (10 ** gDai.decimals())) /
+        uint256 daiAmount = (usdxAmount * (10 ** gDai.decimals())) /
             (10 ** usdx.decimals());
         uint256 gDaiAmount = gDai.convertToShares(daiAmount);
         uint256 gDaiBalance = gDai.balanceOf(address(this));
@@ -216,13 +210,13 @@ contract GDAIAsset is Stabilizer {
         daiAmount = gDai.redeem(gDaiAmount, address(this), address(this));
 
         TransferHelper.safeApprove(address(dai), SWEEP.amm(), daiAmount);
-        uint256 usdxAmount = amm().swapExactInput(
+        uint256 divested = amm().swapExactInput(
             address(dai),
             address(usdx),
             daiAmount,
             0
         );
 
-        emit Divested(usdxAmount, 0);
+        emit Divested(divested, 0);
     }
 }

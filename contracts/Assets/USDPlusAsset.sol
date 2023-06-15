@@ -2,44 +2,32 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ========================== TokenAsset.sol ==========================
+// ========================== USDPlusAsset.sol ========================
 // ====================================================================
 
 /**
- * @title Token Asset
- * @dev Representation of an on-chain investment like Wrapped Ether, Wrapped Bitcoin ...
+ * @title USDPlus Asset
+ * @dev Representation of an on-chain investment on Overnight finance.
  */
 
 import "../Stabilizer/Stabilizer.sol";
-import "../Oracle/ChainlinkPricer.sol";
+import "./Overnight/IExchanger.sol";
 
-contract TokenAsset is Stabilizer {
+contract USDPlusAsset is Stabilizer {
     // Variables
     IERC20Metadata private immutable token;
-
-    // Oracle to fetch price token / base
-    address private immutable tokenOracle;
-
-    // WETH and WBTC has the same frequency - check others
-    uint256 private constant TOKEN_FREQUENCY = 1 days;
+    IExchanger private immutable exchanger;
 
     constructor(
         string memory name,
-        address sweepAddress,
-        address usdxAddress,
-        address tokenAddress,
-        address tokenOracleAddress,
+        address sweep,
+        address usdx,
+        address token_,
+        address exchanger_,
         address borrower
-    )
-        Stabilizer(
-            name,
-            sweepAddress,
-            usdxAddress,
-            borrower
-        )
-    {
-        token = IERC20Metadata(tokenAddress);
-        tokenOracle = tokenOracleAddress;
+    ) Stabilizer(name, sweep, usdx, borrower) {
+        token = IERC20Metadata(token_);
+        exchanger = IExchanger(exchanger_);
     }
 
     /* ========== Views ========== */
@@ -56,19 +44,17 @@ contract TokenAsset is Stabilizer {
     /**
      * @notice Asset Value of investment.
      * @return the Returns the value of the investment in the USD coin
-     * @dev the price is obtained from Chainlink
      */
     function assetValue() public view returns (uint256) {
         uint256 tokenBalance = token.balanceOf(address(this));
-        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            tokenOracle,
-            amm().sequencer(),
-            TOKEN_FREQUENCY
-        );
+        uint256 redeemFee = exchanger.redeemFee();
+        uint256 redeemFeeDenominator = exchanger.redeemFeeDenominator();
+        tokenBalance =
+            (tokenBalance * (redeemFeeDenominator - redeemFee)) /
+            redeemFeeDenominator;
 
-        uint256 usdxAmount = (tokenBalance *
-            uint256(price) *
-            10 ** usdx.decimals()) / (10 ** (token.decimals() + decimals));
+        uint256 usdxAmount = (tokenBalance * 10 ** usdx.decimals()) /
+            10 ** token.decimals();
 
         return usdxAmount;
     }
@@ -108,35 +94,27 @@ contract TokenAsset is Stabilizer {
 
     function _invest(uint256 usdxAmount, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
-        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        TransferHelper.safeApprove(address(usdx), SWEEP.amm(), usdxAmount);
-        uint256 investedAmount = amm().swapExactInput(address(usdx), address(token), usdxAmount, 0);
+        TransferHelper.safeApprove(
+            address(usdx),
+            address(exchanger),
+            usdxAmount
+        );
 
-        emit Invested(investedAmount, 0);
+        exchanger.mint(IExchanger.MintParams(address(usdx), usdxAmount, ""));
+
+        emit Invested(usdxAmount, 0);
     }
 
     function _divest(uint256 usdxAmount) internal override {
-        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            tokenOracle,
-            amm().sequencer(),
-            TOKEN_FREQUENCY
-        );
-
-        uint256 tokenAmount = (usdxAmount *
-            (10 ** (token.decimals() + decimals))) /
-            (uint256(price) * 10 ** usdx.decimals());
+        uint256 tokenAmount = (usdxAmount * 10 ** token.decimals()) /
+            10 ** usdx.decimals();
 
         uint256 tokenBalance = token.balanceOf(address(this));
-        if(tokenBalance < tokenAmount) tokenAmount = tokenBalance;
+        if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
 
-        TransferHelper.safeApprove(address(token), SWEEP.amm(), tokenAmount);
-        uint256 divested = amm().swapExactInput(
-            address(token),
-            address(usdx),
-            tokenAmount,
-            0
-        );
+        uint256 divested = exchanger.redeem(address(usdx), tokenAmount);
 
         emit Divested(divested, 0);
     }

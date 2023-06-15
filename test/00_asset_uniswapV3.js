@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { toBN, Const } = require("../utils/helper_functions");
+const { Const, getPriceAndData } = require("../utils/helper_functions");
 
 let pool_address;
 
@@ -51,7 +51,7 @@ contract('Uniswap V3 Asset', async () => {
         // config stabilizer
         await asset.configure(
             Const.RATIO,
-            Const.SPREAD_FEE,
+            Const.spreadFee,
             sweepAmount,
             Const.DISCOUNT,
             Const.DAY,
@@ -67,18 +67,8 @@ contract('Uniswap V3 Asset', async () => {
             expect(await factory.getPool(usdc.address, sweep.address, Const.FEE))
                 .to.equal(Const.ADDRESS_ZERO);
 
-            let token0, token1;
-            let sqrtPriceX96;
-
-            if (usdc.address.toString().toLowerCase() < sweep.address.toString().toLowerCase()) {
-                token0 = usdc.address;
-                token1 = sweep.address;
-                sqrtPriceX96 = toBN("79228162514264337593543950336000000", 0);
-            } else {
-                token0 = sweep.address;
-                token1 = usdc.address;
-                sqrtPriceX96 = toBN("79228162514264334008320", 0);
-            }
+            const { token0, token1, sqrtPriceX96 } =
+                getPriceAndData(sweep.address, usdc.address, sweepAmount, usdxAmount);
 
             await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
             pool_address = await factory.getPool(usdc.address, sweep.address, Const.FEE);
@@ -99,9 +89,9 @@ contract('Uniswap V3 Asset', async () => {
         it('borrow sweep', async () => {
             await expect(asset.connect(guest).borrow(sweepAmount))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
-            expect(await asset.sweep_borrowed()).to.equal(Const.ZERO);
+            expect(await asset.sweepBorrowed()).to.equal(Const.ZERO);
             await asset.borrow(sweepAmount);
-            expect(await asset.sweep_borrowed()).to.equal(sweepAmount);
+            expect(await asset.sweepBorrowed()).to.equal(sweepAmount);
         });
 
         it('check LP token minted', async () => {
@@ -161,7 +151,7 @@ contract('Uniswap V3 Asset', async () => {
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
             liquidity = await asset.liquidity();
-            if(liquidity > 0) {
+            if (liquidity > 0) {
                 await expect(asset.burnNFT()).to.be.revertedWith('Not cleared');
                 await asset.divest(liquidity);
             }

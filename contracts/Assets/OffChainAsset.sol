@@ -14,13 +14,13 @@ import "../Stabilizer/Stabilizer.sol";
 
 contract OffChainAsset is Stabilizer {
     // Variables
-    bool public redeem_mode;
-    uint256 public redeem_amount;
-    uint256 public redeem_time;
-    uint256 public current_value;
-    uint256 public valuation_time;
+    bool public redeemMode;
+    uint256 public redeemAmount;
+    uint256 public redeemTime;
+    uint256 public actualValue;
+    uint256 public valuationTime;
     address public wallet;
-    address public collateral_agent;
+    address public collateralAgent;
 
     // Events
     event Payback(address token, uint256 amount);
@@ -31,29 +31,29 @@ contract OffChainAsset is Stabilizer {
     error NotEnoughAmount();
 
     modifier onlyCollateralAgent() {
-        if (msg.sender != collateral_agency())
+        if (msg.sender != collateralAgency())
             revert NotCollateralAgent();
         _;
     }
 
     constructor(
-        string memory _name,
-        address _sweep_address,
-        address _usdx_address,
-        address _wallet,
-        address _collateral_agent,
-        address _borrower
+        string memory name,
+        address sweepAddress,
+        address usdxAddress,
+        address wallet_,
+        address collateralAgent_,
+        address borrower
     )
         Stabilizer(
-            _name,
-            _sweep_address,
-            _usdx_address,
-            _borrower
+            name,
+            sweepAddress,
+            usdxAddress,
+            borrower
         )
     {
-        wallet = _wallet;
-        collateral_agent = _collateral_agent;
-        redeem_mode = false;
+        wallet = wallet_;
+        collateralAgent = collateralAgent_;
+        redeemMode = false;
     }
 
     /* ========== Views ========== */
@@ -63,140 +63,140 @@ contract OffChainAsset is Stabilizer {
      * @return uint256.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accrued_fee_in_usd = SWEEP.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accrued_fee_in_usd;
+        uint256 accruedFeeInUSD = SWEEP.convertToUSD(accruedFee());
+        return assetValue() + super.currentValue() - accruedFeeInUSD;
     }
 
     /**
      * @notice Asset Value of investment.
      */
     function assetValue() public view returns (uint256) {
-        return current_value;
+        return actualValue;
     }
 
     /**
      * @notice Get Collateral Agent Address
      * @return address
      */
-    function collateral_agency() public view returns (address) {
+    function collateralAgency() public view returns (address) {
         return
-            collateral_agent != address(0) ? collateral_agent : SWEEP.owner();
+            collateralAgent != address(0) ? collateralAgent : SWEEP.owner();
     }
 
     /* ========== Actions ========== */
 
     /**
      * @notice Update wallet to send the investment to.
-     * @param _wallet New wallet address.
+     * @param wallet_ New wallet address.
      */
     function setWallet(
-        address _wallet
+        address wallet_
     ) external onlyBorrower onlySettingsEnabled {
-        wallet = _wallet;
+        wallet = wallet_;
     }
 
     /**
      * @notice Set Collateral Agent
-     * @param _agent_address.
+     * @param agentAddress.
      */
     function setCollateralAgent(
-        address _agent_address
-    ) external onlyBorrower validAddress(_agent_address) onlySettingsEnabled {
-        collateral_agent = _agent_address;
+        address agentAddress
+    ) external onlyBorrower validAddress(agentAddress) onlySettingsEnabled {
+        collateralAgent = agentAddress;
 
-        emit CollateralAgentSet(_agent_address);
+        emit CollateralAgentSet(agentAddress);
     }
 
     /**
      * @notice Invest
-     * @param _usdx_amount USDX Amount to be invested.
-     * @param _sweep_amount SWEEP Amount to be invested.
+     * @param usdxAmount USDX Amount to be invested.
+     * @param sweepAmount SWEEP Amount to be invested.
      */
     function invest(
-        uint256 _usdx_amount,
-        uint256 _sweep_amount
+        uint256 usdxAmount,
+        uint256 sweepAmount
     )
         external
         onlyBorrower
         whenNotPaused
-        validAmount(_usdx_amount)
-        validAmount(_sweep_amount)
+        validAmount(usdxAmount)
+        validAmount(sweepAmount)
     {
-        _invest(_usdx_amount, _sweep_amount);
+        _invest(usdxAmount, sweepAmount);
     }
 
     /**
      * @notice Divest
-     * @param _usdx_amount Amount to be divested.
+     * @param usdxAmount Amount to be divested.
      */
     function divest(
-        uint256 _usdx_amount
-    ) external onlyBorrower validAmount(_usdx_amount) {
-        _divest(_usdx_amount);
+        uint256 usdxAmount
+    ) external onlyBorrower validAmount(usdxAmount) {
+        _divest(usdxAmount);
     }
 
     /**
      * @notice Payback stable coins to Asset
-     * @param _token token address to payback. USDX, SWEEP ...
-     * @param _amount The amount of usdx to payback.
+     * @param token token address to payback. USDX, SWEEP ...
+     * @param amount The amount of usdx to payback.
      */
-    function payback(address _token, uint256 _amount) external {
-        if (_token != sweep_address && _token != address(usdx))
+    function payback(address token, uint256 amount) external {
+        if (token != sweepAddress && token != address(usdx))
             revert InvalidToken();
-        if (_token == sweep_address) _amount = SWEEP.convertToUSD(_amount);
-        if (redeem_amount > _amount) revert NotEnoughAmount();
+        if (token == sweepAddress) amount = SWEEP.convertToUSD(amount);
+        if (redeemAmount > amount) revert NotEnoughAmount();
 
-        current_value -= _amount;
-        redeem_mode = false;
-        redeem_amount = 0;
+        actualValue -= amount;
+        redeemMode = false;
+        redeemAmount = 0;
 
         TransferHelper.safeTransferFrom(
-            _token,
+            token,
             msg.sender,
             address(this),
-            _amount
+            amount
         );
 
-        emit Payback(_token, _amount);
+        emit Payback(token, amount);
     }
 
     /**
      * @notice Update Value of investment.
-     * @param _value New value of investment.
-     * @dev tracks the time when current_value was updated.
+     * @param value New value of investment.
+     * @dev tracks the time when actualValue was updated.
      */
-    function updateValue(uint256 _value) external onlyCollateralAgent {
-        current_value = _value;
-        valuation_time = block.timestamp;
+    function updateValue(uint256 value) external onlyCollateralAgent {
+        actualValue = value;
+        valuationTime = block.timestamp;
     }
 
     /* ========== Internals ========== */
 
     function _invest(
-        uint256 _usdx_amount,
-        uint256 _sweep_amount
+        uint256 usdxAmount,
+        uint256 sweepAmount
     ) internal override {
-        (uint256 usdx_balance, uint256 sweep_balance) = _balances();
-        if(usdx_balance < _usdx_amount) _usdx_amount = usdx_balance;
-        if(sweep_balance < _sweep_amount) _sweep_amount = sweep_balance;
+        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
+        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if(sweepBalance < sweepAmount) sweepAmount = sweepBalance;
 
-        TransferHelper.safeTransfer(address(usdx), wallet, _usdx_amount);
+        TransferHelper.safeTransfer(address(usdx), wallet, usdxAmount);
 
-        TransferHelper.safeTransfer(sweep_address, wallet, _sweep_amount);
+        TransferHelper.safeTransfer(sweepAddress, wallet, sweepAmount);
 
-        uint256 sweep_in_usd = SWEEP.convertToUSD(_sweep_amount);
-        current_value += _usdx_amount;
-        current_value += sweep_in_usd;
-        valuation_time = block.timestamp;
+        uint256 sweep_in_usd = SWEEP.convertToUSD(sweepAmount);
+        actualValue += usdxAmount;
+        actualValue += sweep_in_usd;
+        valuationTime = block.timestamp;
 
-        emit Invested(_usdx_amount, _sweep_amount);
+        emit Invested(usdxAmount, sweepAmount);
     }
 
-    function _divest(uint256 _usdx_amount) internal override {
-        redeem_amount = _usdx_amount;
-        redeem_mode = true;
-        redeem_time = block.timestamp;
+    function _divest(uint256 usdxAmount) internal override {
+        redeemMode = true;
+        redeemAmount = usdxAmount;
+        redeemTime = block.timestamp;
 
-        emit Divested(_usdx_amount, 0);
+        emit Divested(usdxAmount, 0);
     }
 }

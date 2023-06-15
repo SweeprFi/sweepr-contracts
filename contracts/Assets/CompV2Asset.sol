@@ -23,7 +23,7 @@ contract CompV2Asset is Stabilizer {
     ERC20 private immutable comp;
     ICompComptroller private immutable compController;
 
-    address private immutable comp_oracle;
+    address private immutable compOracle;
     uint256 private constant COMP_FREQUENCY = 1 hours;
 
     // Events
@@ -33,26 +33,26 @@ contract CompV2Asset is Stabilizer {
     error TransferFailure();
 
     constructor(
-        string memory _name,
-        address _sweep_address,
-        address _usdx_address,
-        address _compound_address,
-        address _cusdc_address,
-        address _controller_address,
-        address _oracle_comp_address,
-        address _borrower
+        string memory name,
+        address sweepAddress,
+        address usdxAddress,
+        address compoundAddress,
+        address cusdcAddress,
+        address controllerAddress,
+        address compOracleAddress,
+        address borrower
     )
         Stabilizer(
-            _name,
-            _sweep_address,
-            _usdx_address,
-            _borrower
+            name,
+            sweepAddress,
+            usdxAddress,
+            borrower
         )
     {
-        cUSDC = IcUSDC(_cusdc_address);
-        comp = ERC20(_compound_address);
-        compController = ICompComptroller(_controller_address);
-        comp_oracle = _oracle_comp_address;
+        cUSDC = IcUSDC(cusdcAddress);
+        comp = ERC20(compoundAddress);
+        compController = ICompComptroller(controllerAddress);
+        compOracle = compOracleAddress;
     }
 
     /* ========== Views ========== */
@@ -62,8 +62,8 @@ contract CompV2Asset is Stabilizer {
      * @return total with 6 decimal to be compatible with dollar coins.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accrued_fee_in_usd = SWEEP.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accrued_fee_in_usd;
+        uint256 accruedFeeInUsd = SWEEP.convertToUSD(accruedFee());
+        return assetValue() + super.currentValue() - accruedFeeInUsd;
     }
 
     /**
@@ -72,19 +72,18 @@ contract CompV2Asset is Stabilizer {
      * @dev the value of investment is calculated from cUSDC balance and Compound Rewards.
      */
     function assetValue() public view returns (uint256) {
-        uint256 comp_balance = comp.balanceOf(address(this));
+        uint256 compBalance = comp.balanceOf(address(this));
         (int256 answer, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            comp_oracle,
+            compOracle,
             amm().sequencer(),
             COMP_FREQUENCY
         );
 
-        comp_balance =
-            (comp_balance * uint256(answer) * 10 ** usdx.decimals()) /
+        compBalance =
+            (compBalance * uint256(answer) * 10 ** usdx.decimals()) /
             (10 ** (comp.decimals() + decimals));
-        uint256 usdx_amount = getAllocation();
 
-        return usdx_amount + comp_balance;
+        return compBalance + getAllocation();
     }
 
     /**
@@ -103,24 +102,24 @@ contract CompV2Asset is Stabilizer {
 
     /**
      * @notice Invest stable coins into Compound to get back cUSDC and COMP rewards.
-     * @param _usdx_amount Amount of usdx to be deposited and minted in cUSDC.
+     * @param usdxAmount Amount of usdx to be deposited and minted in cUSDC.
      * @dev the amount deposited will generate rewards in Compound token.
      */
     function invest(
-        uint256 _usdx_amount
-    ) external onlyBorrower whenNotPaused validAmount(_usdx_amount) {
-        _invest(_usdx_amount, 0);
+        uint256 usdxAmount
+    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+        _invest(usdxAmount, 0);
     }
 
     /**
      * @notice Divests From Compound.
-     * @param _usdx_amount Amount to be divested.
+     * @param usdxAmount Amount to be divested.
      * @dev first redeem from cUSDC and then transfer obtained to message sender.
      */
     function divest(
-        uint256 _usdx_amount
-    ) external onlyBorrower validAmount(_usdx_amount) {
-        _divest(_usdx_amount);
+        uint256 usdxAmount
+    ) external onlyBorrower validAmount(usdxAmount) {
+        _divest(usdxAmount);
     }
 
     /**
@@ -145,23 +144,23 @@ contract CompV2Asset is Stabilizer {
 
     /* ========== Internals ========== */
 
-    function _invest(uint256 _usdx_amount, uint256) internal override {
-        (uint256 usdx_balance, ) = _balances();
-        if(usdx_balance < _usdx_amount) _usdx_amount = usdx_balance;
+    function _invest(uint256 usdxAmount, uint256) internal override {
+        uint256 usdxBalance = usdx.balanceOf(address(this));
+        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        TransferHelper.safeApprove(address(usdx), address(cUSDC), _usdx_amount);
-        if(cUSDC.mint(_usdx_amount) > 0) revert TransferFailure();
+        TransferHelper.safeApprove(address(usdx), address(cUSDC), usdxAmount);
+        if(cUSDC.mint(usdxAmount) > 0) revert TransferFailure();
 
-        emit Invested(_usdx_amount, 0);
+        emit Invested(usdxAmount, 0);
     }
 
-    function _divest(uint256 _usdx_amount) internal override {
-        uint256 cusdc_amount = (_usdx_amount * (1e18)) /
+    function _divest(uint256 usdxAmount) internal override {
+        uint256 cusdcAmount = (usdxAmount * (1e18)) /
             cUSDC.exchangeRateStored();
-        uint256 staked_amount = cUSDC.balanceOf(address(this));
-        if(staked_amount < cusdc_amount) cusdc_amount = staked_amount;
+        uint256 stakedAmount = cUSDC.balanceOf(address(this));
+        if(stakedAmount < cusdcAmount) cusdcAmount = stakedAmount;
 
-        uint256 divestedAmount = cUSDC.redeem(cusdc_amount);
+        uint256 divestedAmount = cUSDC.redeem(cusdcAmount);
 
         emit Divested(divestedAmount, 0);
     }

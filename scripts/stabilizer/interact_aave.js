@@ -47,7 +47,7 @@ async function main() {
     console.log("\nConfig ---------------------------------------------------------------");
     console.log("              admin:", await sweep.owner());
     console.log("           borrower:", await asset.borrower());
-    console.log("   settings enabled:", await asset.settings_enabled());
+    console.log("   settings enabled:", await asset.settingsEnabled());
     console.log("------------------------------------------------------------------------");
     console.log("             sweep:", await asset.sweep());
     console.log("               usd:", await asset.usdx());
@@ -78,21 +78,21 @@ async function main() {
     console.log("------------------------------------------");
     console.log("               frozen:", await asset.frozen());
     console.log("            defaulted:", await asset.isDefaulted());
-    console.log(" minimum_equity_ratio:", pp(await asset.min_equity_ratio(), 4), "%");
-    console.log("           loan limit:", pp(await asset.loan_limit(), 18), "sweep")
+    console.log(" minimum_equity_ratio:", pp(await asset.minEquityRatio(), 4), "%");
+    console.log("           loan limit:", pp(await asset.loanLimit(), 18), "sweep")
     console.log("       mint available:", (await _getMintAvailable()).toFixed(3), "sweep")
-    console.log("       sweep borrowed:", pp(await asset.sweep_borrowed(), 18), "sweep")
+    console.log("       sweep borrowed:", pp(await asset.sweepBorrowed(), 18), "sweep")
     console.log("        sweep balance:", pp(await sweep.balanceOf(asset.address), 18), "sweep");
     console.log("         usdx balance:", pp(await usd.balanceOf(asset.address), 6), "usd");
     console.log("  Current Asset Value:", pp(await asset.currentValue(), 6), "usd");
     console.log("       Total invested:", pp(await asset.assetValue(), 6), "usd");
     console.log(" Junior Tranche Value:", pp(await asset.getJuniorTrancheValue(), 6), "usd");
     console.log("         Equity Ratio:", pp(await asset.getEquityRatio(), 4), "%");
-    console.log("           Spread fee:", pp(await asset.spread_fee(), 4), "%");
+    console.log("           Spread fee:", pp(await asset.spreadFee(), 4), "%");
     console.log("         Spread value:", pp(await asset.accruedFee(), 18), "sweep");
     console.log("         liquidatable:", await asset.liquidatable());
-    console.log("  liquidator discount:", pp(await asset.liquidator_discount(), 4), "%");
-    console.log("           call delay:", pp(await asset.call_delay(), 0), 's');
+    console.log("  liquidator discount:", pp(await asset.liquidatorDiscount(), 4), "%");
+    console.log("           call delay:", pp(await asset.callDelay(), 0), 's');
     console.log("                link:", await asset.link());
     console.log("\nUNISWAP POOL STATE");
     console.log("------------------------------------------");
@@ -103,43 +103,43 @@ async function main() {
   }
 
   async function set_config(
-    _min_equity_ratio, 
-    _spread_fee, 
-    _loan_limit, 
-    _liquidator_discount, 
-    _call_delay, 
-    _auto_invest_min_ratio, 
-    _auto_invest_min_amount, 
+    _minEquityRatio, 
+    _spreadFee, 
+    _loanLimit, 
+    _liquidatorDiscount, 
+    _callDelay, 
+    _autoInvestMinRatio, 
+    _autoInvestMinAmount, 
     _auto_invest, 
     _link
   ) {
-    console.log("setting min equity ratio to:", _min_equity_ratio, '%');
-    console.log("setting spread fee to:", _spread_fee, '%');
-    console.log("setting loan limit to:", _loan_limit);
-    console.log("setting liquidator discount to:", _liquidator_discount, '%');
-    console.log("setting call delay to:", _call_delay, 'days');
-    console.log("setting auto invest min equity ratio to:", _auto_invest_min_ratio);
-    console.log("setting auto invest min amount to:", _auto_invest_min_amount);
+    console.log("setting min equity ratio to:", _minEquityRatio, '%');
+    console.log("setting spread fee to:", _spreadFee, '%');
+    console.log("setting loan limit to:", _loanLimit);
+    console.log("setting liquidator discount to:", _liquidatorDiscount, '%');
+    console.log("setting call delay to:", _callDelay, 'days');
+    console.log("setting auto invest min equity ratio to:", _autoInvestMinRatio);
+    console.log("setting auto invest min amount to:", _autoInvestMinAmount);
     console.log("setting auto investable:", _auto_invest);
     console.log("setting link to:", _link);
 
-    _min_equity_ratio = _min_equity_ratio * 1e4;
-    _spread_fee = _spread_fee * 1e4;
-    _loan_limit = ethers.utils.parseUnits(_loan_limit, 18);
-    _liquidator_discount = _liquidator_discount * 1e4;
-    _call_delay = _call_delay * 24 * 3600;
-    _auto_invest_min_ratio = _auto_invest_min_ratio * 1e4;
-    _auto_invest_min_amount = ethers.utils.parseUnits(_auto_invest_min_amount, 18);
+    _minEquityRatio = _minEquityRatio * 1e4;
+    _spreadFee = _spreadFee * 1e4;
+    _loanLimit = ethers.utils.parseUnits(_loanLimit, 18);
+    _liquidatorDiscount = _liquidatorDiscount * 1e4;
+    _callDelay = _callDelay * 24 * 3600;
+    _autoInvestMinRatio = _autoInvestMinRatio * 1e4;
+    _autoInvestMinAmount = ethers.utils.parseUnits(_autoInvestMinAmount, 18);
 
     await impersonate(addresses.borrower);
     txn = await asset.connect(user).configure(
-      _min_equity_ratio, 
-      _spread_fee, 
-      _loan_limit, 
-      _liquidator_discount, 
-      _call_delay, 
-      _auto_invest_min_ratio, 
-      _auto_invest_min_amount, 
+      _minEquityRatio, 
+      _spreadFee, 
+      _loanLimit, 
+      _liquidatorDiscount, 
+      _callDelay, 
+      _autoInvestMinRatio, 
+      _autoInvestMinAmount, 
       _auto_invest, 
       _link
     );
@@ -343,9 +343,9 @@ async function main() {
     await impersonate(OWNER);
     txn = await sweep.connect(user).addMinter(liquidator.address, mintAmount)
     await txn.wait();
-    txn = await sweep.connect(liquidator).minter_mint(liquidator.address, sweepAmount);
+    txn = await sweep.connect(liquidator).minterMint(liquidator.address, sweepAmount);
     await txn.wait();
-    txn = await sweep.connect(liquidator).minter_mint(addresses.borrower, sweepAmount);
+    txn = await sweep.connect(liquidator).minterMint(addresses.borrower, sweepAmount);
     await txn.wait();
 
     await impersonate(addresses.usdc);
@@ -371,7 +371,7 @@ async function main() {
   async function increaseLiquidity() {
     const sweepAmount = ethers.utils.parseUnits("3000", 18);
     const usdcAmount = ethers.utils.parseUnits("3000", 6);
-    txn = await sweep.connect(liquidator).minter_mint(addresses.stabilizer_uniswap, sweepAmount);
+    txn = await sweep.connect(liquidator).minterMint(addresses.stabilizer_uniswap, sweepAmount);
     await txn.wait();
 
     await impersonate(addresses.usdc);
@@ -407,23 +407,23 @@ async function main() {
   }
 
   async function _getMintAvailable() {
-    const min_equity_ratio = Number(pp(await asset.min_equity_ratio(), 4));
+    const minEquityRatio = Number(pp(await asset.minEquityRatio(), 4));
     const total_value = Number(pp(await asset.currentValue(), 6));
-    const sweep_borrowed = await asset.sweep_borrowed();
-    const senior_tranche_in_usdx = Number(pp(await sweep.convertToUSD(sweep_borrowed), 6));
+    const sweepBorrowed = await asset.sweepBorrowed();
+    const senior_tranche_in_usdx = Number(pp(await sweep.convertToUSD(sweepBorrowed), 6));
 
     if (total_value == 0 || total_value <= senior_tranche_in_usdx) return 0;
 
-    const available_amount_in_usdx = (total_value - senior_tranche_in_usdx) * 100 / min_equity_ratio - total_value;
+    const available_amount_in_usdx = (total_value - senior_tranche_in_usdx) * 100 / minEquityRatio - total_value;
 
     if(available_amount_in_usdx <= 0) return 0;
     else return USDXinSWEEP(available_amount_in_usdx);
   }
 
   async function USDXinSWEEP(amount) {
-    const target_price = Number(pp(await sweep.target_price(), 6));
+    const targetPrice = Number(pp(await sweep.targetPrice(), 6));
 
-    return amount / target_price;
+    return amount / targetPrice;
   }
 
   async function marginCalls(amount) {

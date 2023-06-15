@@ -33,23 +33,23 @@ contract SweeprCoin is OFT, ERC20Burnable, Owned, ERC20Permit, ERC20Votes {
     ) OFT("SweeprCoin", "SWEEPR", _lzEndpoint) ERC20Permit("SweeprCoin") Owned(_sweep) {}
 
     /* ========== RESTRICTED FUNCTIONS ========== */
-    function mint(address _receiver, uint256 _amount) external onlyGov {
-        _mint(_receiver, _amount);
+    function mint(address receiver, uint256 amount) external onlyGov {
+        _mint(receiver, amount);
 
-        emit TokenMinted(_receiver, _amount);
+        emit TokenMinted(receiver, amount);
     }
 
-    function setPrice(uint256 _newPrice) external onlyGov {
-        price = _newPrice;
+    function setPrice(uint256 newPrice) external onlyGov {
+        price = newPrice;
 
-        emit SweeprPriceSet(_newPrice);
+        emit SweeprPriceSet(newPrice);
     }
 
-    function setTransferApprover(address _approver) external onlyGov {
-        if (_approver == address(0)) revert ZeroAddressDetected();
-        transferApprover = ITransferApprover(_approver);
+    function setTransferApprover(address newApprover) external onlyGov {
+        if (newApprover == address(0)) revert ZeroAddressDetected();
+        transferApprover = ITransferApprover(newApprover);
 
-        emit ApproverSet(_approver);
+        emit ApproverSet(newApprover);
     }
 
     /* ========== OVERRIDDEN FUNCTIONS ========== */

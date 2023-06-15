@@ -42,16 +42,16 @@ contract Balancer is Owned {
     error ModeMismatch(Mode intention, Mode state);
     error WrongDataLength();
 
-    constructor(address sweep) Owned(sweep) {}
+    constructor(address sweepAddress_) Owned(sweepAddress_) {}
 
     /**
      * @notice refresh interest rate periodically.
      * returns mode: 0 => idle, 1 => invest, 2 => call
      */
     function refreshInterestRate() public onlyMultisig returns (Mode mode) {
-        int256 interestRate = SWEEP.interest_rate();
-        int256 stepValue = SWEEP.step_value();
-        uint256 targetPrice = SWEEP.target_price();
+        int256 interestRate = SWEEP.interestRate();
+        int256 stepValue = SWEEP.stepValue();
+        uint256 targetPrice = SWEEP.targetPrice();
         
         mode = getMode();
 
@@ -71,9 +71,9 @@ contract Balancer is Owned {
     }
 
     function getMode() public view returns (Mode) {
-        uint256 twaPrice = SWEEP.twa_price();
-        uint256 targetPrice = SWEEP.target_price();
-        uint256 spread = SWEEP.arb_spread() * targetPrice / PRECISION;
+        uint256 twaPrice = SWEEP.twaPrice();
+        uint256 targetPrice = SWEEP.targetPrice();
+        uint256 spread = SWEEP.arbSpread() * targetPrice / PRECISION;
         uint256 upperBound = targetPrice + spread;
         uint256 lowerBound = targetPrice - spread;
 
@@ -95,7 +95,7 @@ contract Balancer is Owned {
     ) internal view returns (uint256) {
         SD59x18 precision = wrap(int256(PRECISION));
         SD59x18 year = wrap(int256(ONE_YEAR));
-        SD59x18 period = wrap(int256(SWEEP.period_time()));
+        SD59x18 period = wrap(int256(SWEEP.periodTime()));
         SD59x18 timeRatio = period.div(year);
         SD59x18 priceRatio = precision.add(wrap(interestRate));
 
@@ -137,18 +137,19 @@ contract Balancer is Owned {
     /**
      * @notice Add Actions
      * @dev Adds a new amounts to be called/invested when executing
-     * @param stabilizers_ addresses to be added.
+     * @param addresess to be added.
      * @param amounts_ to be called or invested,
      */
     function addActions(
-        address[] calldata stabilizers_,
+        address[] calldata addresess,
         uint256[] calldata amounts_
     ) external onlyMultisig {
-        if (stabilizers_.length != amounts_.length)
+        uint256 len = addresess.length;
+        if (len != amounts_.length)
             revert WrongDataLength();
 
-        for (uint256 i = 0; i < stabilizers_.length;) {
-            addAction(stabilizers_[i], amounts_[i]);
+        for (uint256 i = 0; i < len;) {
+            addAction(addresess[i], amounts_[i]);
             unchecked { ++i; }
         }
     }
@@ -186,7 +187,12 @@ contract Balancer is Owned {
      * @param intention 0 => idle, 1 => invests, 2 => calls
      * @param force the execution if the state does not corresponds to the intention
      */
-    function execute(Mode intention, bool force, uint256 price, uint256 slippage) external onlyMultisig {
+    function execute(
+        Mode intention,
+        bool force,
+        uint256 price,
+        uint256 slippage
+    ) external onlyMultisig {
         emit Execute(intention);
 
         Mode state = refreshInterestRate();
@@ -201,12 +207,12 @@ contract Balancer is Owned {
 
             if (amount > 0) {
                 if (intention == Mode.INVEST) {
-                    stabilizer.setLoanLimit(stabilizer.loan_limit() + amount);
+                    stabilizer.setLoanLimit(stabilizer.loanLimit() + amount);
                     stabilizer.autoInvest(amount, price, slippage);
                 } else {
                     // intention is CALL
                     stabilizer.autoCall(amount, price, slippage);
-                    stabilizer.setLoanLimit(stabilizer.loan_limit() - amount);
+                    stabilizer.setLoanLimit(stabilizer.loanLimit() - amount);
                 }
             }
 

@@ -1,11 +1,15 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { networks } = require("../hardhat.config");
 const { addresses, chainId } = require("../utils/address");
+const helpers = require("@nomicfoundation/hardhat-network-helpers");
 const { impersonate, sendEth, increaseTime, Const, toBN } = require("../utils/helper_functions");
 
 contract("gDAI Asset", async function () {
     before(async () => {
         if (Number(chainId) !== 42161) return;
+        url = networks.hardhat.forking.url;
+        blockNumber = await ethers.provider.getBlockNumber();
         
         [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
         // Variables
@@ -49,7 +53,7 @@ contract("gDAI Asset", async function () {
 
         // add asset as a minter
         await sweep.addMinter(asset.address, maxSweep);
-        // await sweep.minter_mint(amm.address, sweepAmount);
+        // await sweep.minterMint(amm.address, sweepAmount);
 
         // AMM initialize
         user = await impersonate(addresses.usdc)
@@ -59,6 +63,10 @@ contract("gDAI Asset", async function () {
         user = await impersonate(addresses.dai_holder)
         await sendEth(user.address);
         await dai.connect(user).transfer(amm.address, daiAmount);
+    });
+
+    after(async() => {
+        await helpers.reset(url, blockNumber);
     });
 
     const epochLoop = async (n) => {

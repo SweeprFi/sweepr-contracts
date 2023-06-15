@@ -2,13 +2,13 @@
 pragma solidity 0.8.19;
 
 // ==========================================================
-// ====================== Owned ========================
+// ======================= Owned.sol ========================
 // ==========================================================
 
 import "../Sweep/ISweep.sol";
 
 contract Owned {
-    address public immutable sweep_address;
+    address public immutable sweepAddress;
     ISweep public immutable SWEEP;
 
     // Errors
@@ -17,11 +17,11 @@ contract Owned {
     error NotGovOrMultisig();
     error ZeroAddressDetected();
 
-    constructor(address _sweep_address) {
-        if(_sweep_address == address(0)) revert ZeroAddressDetected();
+    constructor(address sweepAddress_) {
+        if(sweepAddress_ == address(0)) revert ZeroAddressDetected();
 
-        sweep_address = _sweep_address;
-        SWEEP = ISweep(_sweep_address);
+        sweepAddress = sweepAddress_;
+        SWEEP = ISweep(sweepAddress);
     }
 
     modifier onlyGov() {
@@ -30,13 +30,13 @@ contract Owned {
     }
 
     modifier onlyMultisig() {
-        if (msg.sender != SWEEP.fast_multisig())
+        if (msg.sender != SWEEP.fastMultisig())
             revert NotMultisig();
         _;
     }
 
     modifier onlyGovOrMultisig() {
-        if (msg.sender != SWEEP.fast_multisig() && msg.sender != SWEEP.owner())
+        if (msg.sender != SWEEP.fastMultisig() && msg.sender != SWEEP.owner())
             revert NotGovOrMultisig();
         _;
     }

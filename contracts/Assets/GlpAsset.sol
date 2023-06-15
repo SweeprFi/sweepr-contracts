@@ -22,8 +22,8 @@ contract GlpAsset is Stabilizer {
     IGlpManager private immutable glpManager;
     IRewardTracker private immutable stakedGlpTracker;
     IRewardTracker private immutable feeGlpTracker;
-    address private immutable reward_oracle;
-    IERC20Metadata public immutable reward_token;
+    address private immutable rewardOracle;
+    IERC20Metadata public immutable rewardToken;
 
     uint256 private constant REWARDS_FREQUENCY = 1 days;
 
@@ -31,26 +31,26 @@ contract GlpAsset is Stabilizer {
     event Collected(address reward, uint256 amount);
 
     constructor(
-        string memory _name,
-        address _sweep_address,
-        address _usdx_address,
-        address _reward_router_address,
-        address _reward_oracle_oracle_address,
-        address _borrower
+        string memory name,
+        address sweepAddress,
+        address usdxAddress,
+        address rewardRouterAddress,
+        address rewardOracleAddress,
+        address borrower
     )
         Stabilizer(
-            _name,
-            _sweep_address,
-            _usdx_address,
-            _borrower
+            name,
+            sweepAddress,
+            usdxAddress,
+            borrower
         )
     {
-        reward_oracle = _reward_oracle_oracle_address;
-        rewardRouter = IRewardRouter(_reward_router_address);
+        rewardOracle = rewardOracleAddress;
+        rewardRouter = IRewardRouter(rewardRouterAddress);
         glpManager = IGlpManager(rewardRouter.glpManager());
         stakedGlpTracker = IRewardTracker(rewardRouter.stakedGlpTracker());
         feeGlpTracker = IRewardTracker(rewardRouter.feeGlpTracker());
-        reward_token = IERC20Metadata(feeGlpTracker.rewardToken());
+        rewardToken = IERC20Metadata(feeGlpTracker.rewardToken());
     }
 
     /* ========== Views ========== */
@@ -60,8 +60,8 @@ contract GlpAsset is Stabilizer {
      * @return uint256.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accrued_fee_in_usd = SWEEP.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accrued_fee_in_usd;
+        uint256 accruedFeeInUSD = SWEEP.convertToUSD(accruedFee());
+        return assetValue() + super.currentValue() - accruedFeeInUSD;
     }
 
     /**
@@ -70,48 +70,48 @@ contract GlpAsset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         // Get staked GLP value in USDX
-        uint256 glp_price = getGlpPrice(false); // True: maximum, False: minimum
-        uint256 glp_balance = stakedGlpTracker.balanceOf(address(this));
-        uint256 staked_in_usd = (glp_balance * glp_price) /
+        uint256 glpPrice = getGlpPrice(false); // True: maximum, False: minimum
+        uint256 glpBalance = stakedGlpTracker.balanceOf(address(this));
+        uint256 stakedInUsd = (glpBalance * glpPrice) /
             10 ** stakedGlpTracker.decimals();
 
         // Get reward in USD
         uint256 reward = feeGlpTracker.claimable(address(this));
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            reward_oracle,
+            rewardOracle,
             amm().sequencer(),
             REWARDS_FREQUENCY
         );
 
-        uint256 reward_in_usd = (reward *
+        uint256 rewardInUsd = (reward *
             uint256(price) *
             10 ** usdx.decimals()) /
-            (10 ** (reward_token.decimals() + decimals));
+            (10 ** (rewardToken.decimals() + decimals));
 
-        return staked_in_usd + reward_in_usd;
+        return stakedInUsd + rewardInUsd;
     }
 
     /* ========== Actions ========== */
 
     /**
      * @notice Invest USDX
-     * @param _usdx_amount USDX Amount to be invested.
+     * @param usdxAmount USDX Amount to be invested.
      */
     function invest(
-        uint256 _usdx_amount
-    ) external onlyBorrower whenNotPaused validAmount(_usdx_amount) {
-        _invest(_usdx_amount, 0);
+        uint256 usdxAmount
+    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+        _invest(usdxAmount, 0);
     }
 
     /**
      * @notice Divests From GMX.
      * Sends balance from the GMX to the Asset.
-     * @param _usdx_amount Amount to be divested.
+     * @param usdxAmount Amount to be divested.
      */
     function divest(
-        uint256 _usdx_amount
-    ) external onlyBorrower validAmount(_usdx_amount) {
-        _divest(_usdx_amount);
+        uint256 usdxAmount
+    ) external onlyBorrower validAmount(usdxAmount) {
+        _divest(usdxAmount);
     }
 
     /**
@@ -119,7 +119,7 @@ contract GlpAsset is Stabilizer {
      */
     function collect() public onlyBorrower whenNotPaused {
         emit Collected(
-            address(reward_token),
+            address(rewardToken),
             feeGlpTracker.claimable(address(this))
         );
 
@@ -135,43 +135,43 @@ contract GlpAsset is Stabilizer {
         _liquidate(address(stakedGlpTracker));
     }
 
-    function _invest(uint256 _usdx_amount, uint256) internal override {
-        (uint256 usdx_balance, ) = _balances();
-        if(usdx_balance < _usdx_amount) _usdx_amount = usdx_balance;
+    function _invest(uint256 usdxAmount, uint256) internal override {
+        uint256 usdxBalance = usdx.balanceOf(address(this));
+        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         TransferHelper.safeApprove(
             address(usdx),
             address(glpManager),
-            _usdx_amount
+            usdxAmount
         );
-        rewardRouter.mintAndStakeGlp(address(usdx), _usdx_amount, 0, 0);
+        rewardRouter.mintAndStakeGlp(address(usdx), usdxAmount, 0, 0);
 
-        emit Invested(_usdx_amount, 0);
+        emit Invested(usdxAmount, 0);
     }
 
-    function _divest(uint256 _usdx_amount) internal override {
+    function _divest(uint256 usdxAmount) internal override {
         collect();
 
-        uint256 glp_price = getGlpPrice(false);
-        uint256 glp_balance = stakedGlpTracker.balanceOf(address(this));
-        uint256 glp_amount = (_usdx_amount *
-            10 ** stakedGlpTracker.decimals()) / glp_price;
+        uint256 glpPrice = getGlpPrice(false);
+        uint256 glpBalance = stakedGlpTracker.balanceOf(address(this));
+        uint256 glpAmount = (usdxAmount *
+            10 ** stakedGlpTracker.decimals()) / glpPrice;
 
-        if (glp_balance < glp_amount) glp_amount = glp_balance;
+        if (glpBalance < glpAmount) glpAmount = glpBalance;
 
         rewardRouter.unstakeAndRedeemGlp(
             address(usdx),
-            glp_amount,
+            glpAmount,
             0,
             address(this)
         );
 
-        emit Divested(glp_amount, 0);
+        emit Divested(glpAmount, 0);
     }
 
     // Get GLP price in usdx
-    function getGlpPrice(bool _maximise) internal view returns (uint256) {
-        uint256 price = glpManager.getPrice(_maximise); // True: maximum, False: minimum
+    function getGlpPrice(bool maximise) internal view returns (uint256) {
+        uint256 price = glpManager.getPrice(maximise); // True: maximum, False: minimum
 
         return (price * 10 ** usdx.decimals()) / glpManager.PRICE_PRECISION();
     }
