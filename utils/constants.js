@@ -14,6 +14,7 @@ const chainIDs = {
 
 // Andy:0x87212Bc566b54C60CAca777565F0340F458B1C1b
 // Sudb: 0x614Bdbe46B394ad2f1Db06E9236568C046007f67
+// New Owner: 0xdC7b17553FE28E195462A74f2BF74AFa5531a555
 
 const wallets = {
   owner: {
@@ -21,6 +22,7 @@ const wallets = {
     5: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A', // Ethereum Goerli
     421613: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A', // Arbitrum Goerli
     42161: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A', // Arbitrum One
+    // 42161: '0xdC7b17553FE28E195462A74f2BF74AFa5531a555', // Arbitrum One
   },
   borrower: {
     1: '',
@@ -40,7 +42,7 @@ const wallets = {
   treasury: {
     1: '',
     5: '0x44a0414409D83D34F0B2c65720bE79E769D00423',
-    42161: '0x0d6fF486F1cdBb024942f62E5AD8c07091A53772',
+    42161: '0x5265fD4F9210bD015D644b254930db8D6e0bF791',
   },
   usdc_holder: {
     1: '0xF977814e90dA44bFA03b6295A0616a897441aceC',
@@ -69,7 +71,7 @@ const tokens = {
     1: '',
     5: '0xa17DDf49c930f14981aF83a38de9e6E89fa2F0C8',
     421613: '0xdAd3fECde16f4c3f5F55781a4Ee5701732919a89', // Arbitrum Goerli
-    42161: '0x4F4219c9B851AEbB652DD182D944A99b0b68edcf',
+    42161: '0x51B46C315fB6C33eba9F43FC3691d9412Fec724b',
   },
   sweepr: {
     1: '',
@@ -147,7 +149,7 @@ const libraries = {
   liquidity_helper: {
     1: '',
     5: '0xD6eDDb13aD13767a2b4aD89eA94fcA0C6aB0f8D2',
-    42161: '0x08D052d1CAc852905E4C0cAddF782e1af2b8B214',
+    42161: '0xe7ce03256b3638EEF72063374E3bDAcd2705874F',
   },
   uniswap_oracle: {
     1: '',
@@ -261,7 +263,7 @@ const uniswap = {
   pool: {
     1: '',
     5: '0xde5789B9690298C8D7418CC6eCE24f6EBce55aC2',
-    42161: '0xF75F92BF819FcBA96209990aE040DABd9Fd1c067',
+    42161: '0x2fd34de7365f2902378d15E8b7bfE0c3CE66Cce9',
   },
   quoter: {
     1: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
@@ -284,7 +286,7 @@ const protocol = {
   balancer: {
     1: '',
     5: '0x74Cc1bB5B94D4A9F4Fe8b83a9fFa76E04c50B4F5',
-    42161: '0xd5268b0Eb94bC7507175046221f0f363e30596f0',
+    42161: '0xBCeb96250965299b58eC8e9e1Ad444822dC0e398',
   },
   distributor: {
     1: '',
@@ -294,7 +296,7 @@ const protocol = {
   uniswap_amm: {
     1: '',
     5: '0xd895F3549aBE7614db2C2B82a304aaA06253C66f',
-    42161: '0x57F45f0F38A9eEC3Db698b19eabF613a9207a9c7',
+    42161: '0x957C9Cffa67D4A416f39da264F89f23ae010A0E8',
   },
   omnichain_proposal_sender: {
     1: '',
@@ -330,7 +332,7 @@ const assets = {
     42161: '0xecA8FCe753e10B87E40EDca2B6810Ae5Ea508FA4'
     // OLD: '0x7D009f68cc4323246cC563BF4Ec6db3d88A69384',
   },
-  aave:{ // V3
+  aave: { // V3
     1: '',
     5: '0x924CCB6C4890b88F241cE3825c6C731967156897',
     42161: '0x99fb540EA905Ac084F938c4aC7cDBAb88d650e25',
@@ -338,8 +340,7 @@ const assets = {
   uniswap: {
     1: '',
     5: '0x26CC4A46484da4686c4D6E77767A6d7740F63f63',
-    42161: '0x6Cd2f49d74dd5A0f16105B4563a5887aC14e096D',
-    // OLD: '0x843aCEBB52B2B91DE9818DEE873103466379CaA1',
+    42161: '0x1c7bB78E0AB56b027b9B075cE37BA38f26da223c',
   },
   weth: {
     1: '',
@@ -351,17 +352,21 @@ const assets = {
     5: '',
     42161: '0xe45c18a04eB1027f8E2806b6291f23beAadC10a7',
   },
-  compound:{
+  compound: {
     1: '',
     5: '',
     42161: '',
   },
-  backed:{
+  backed: {
     1: '',
     5: '0x834557f46E2F3833e4f926Df1c4858F26A18E318',
     42161: '',
   },
-
+  market_maker: {
+    1: '',
+    5: '',
+    42161: '0xDDc84eb08f7f2E0cb08be15c1baB1E99c46ce5Fb',
+  },
 }
 
 module.exports = {
