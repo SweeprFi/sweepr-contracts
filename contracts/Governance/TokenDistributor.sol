@@ -18,9 +18,8 @@ import "../Common/Owned.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
 contract TokenDistributor is Owned {
-    SweeprCoin public sweepr;
+    SweeprCoin private sweepr;
     Treasury private treasury;
-    uint256 private constant PRECISION = 1e6;
 
     uint256 public saleAmount;
     uint256 public salePrice;
@@ -63,6 +62,10 @@ contract TokenDistributor is Owned {
 
         TransferHelper.safeTransferFrom(address(payToken), msg.sender, address(treasury), _tokenAmount);
         TransferHelper.safeTransfer(address(sweepr), msg.sender, sweeprAmount);
+
+        unchecked {
+            saleAmount -= sweeprAmount;
+        }
 
         emit SweeprBought(msg.sender, sweeprAmount);
     }
