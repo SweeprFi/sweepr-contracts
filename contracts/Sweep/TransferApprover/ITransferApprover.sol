@@ -2,8 +2,8 @@
 pragma solidity 0.8.19;
 
 interface ITransferApprover {
-    function checkTransfer(address from, address to)
-        external
-        view
-        returns (bool);
+    function checkTransfer(
+        address from,
+        address to
+    ) external view returns (bool);
 }

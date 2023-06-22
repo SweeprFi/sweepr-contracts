@@ -63,7 +63,7 @@ contract OffChainAsset is Stabilizer {
      * @return uint256.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = SWEEP.convertToUSD(accruedFee());
+        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
         return assetValue() + super.currentValue() - accruedFeeInUSD;
     }
 
@@ -80,7 +80,7 @@ contract OffChainAsset is Stabilizer {
      */
     function collateralAgency() public view returns (address) {
         return
-            collateralAgent != address(0) ? collateralAgent : SWEEP.owner();
+            collateralAgent != address(0) ? collateralAgent : sweep.owner();
     }
 
     /* ========== Actions ========== */
@@ -141,9 +141,9 @@ contract OffChainAsset is Stabilizer {
      * @param amount The amount of usdx to payback.
      */
     function payback(address token, uint256 amount) external {
-        if (token != sweepAddress && token != address(usdx))
+        if (token != address(sweep) && token != address(usdx))
             revert InvalidToken();
-        if (token == sweepAddress) amount = SWEEP.convertToUSD(amount);
+        if (token == address(sweep)) amount = sweep.convertToUSD(amount);
         if (redeemAmount > amount) revert NotEnoughAmount();
 
         actualValue -= amount;
@@ -182,9 +182,9 @@ contract OffChainAsset is Stabilizer {
 
         TransferHelper.safeTransfer(address(usdx), wallet, usdxAmount);
 
-        TransferHelper.safeTransfer(sweepAddress, wallet, sweepAmount);
+        TransferHelper.safeTransfer(address(sweep), wallet, sweepAmount);
 
-        uint256 sweep_in_usd = SWEEP.convertToUSD(sweepAmount);
+        uint256 sweep_in_usd = sweep.convertToUSD(sweepAmount);
         actualValue += usdxAmount;
         actualValue += sweep_in_usd;
         valuationTime = block.timestamp;

@@ -56,7 +56,7 @@ contract GDAIAsset is Stabilizer {
      * @return total with 6 decimal to be compatible with dollar coins.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = SWEEP.convertToUSD(accruedFee());
+        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
         return assetValue() + super.currentValue() - accruedFeeInUSD;
     }
 
@@ -184,7 +184,7 @@ contract GDAIAsset is Stabilizer {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        TransferHelper.safeApprove(address(usdx), SWEEP.amm(), usdxAmount);
+        TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
         uint256 daiAmount = amm().swapExactInput(
             address(usdx),
             address(dai),
@@ -209,7 +209,7 @@ contract GDAIAsset is Stabilizer {
         if (gDaiBalance < gDaiAmount) gDaiAmount = gDaiBalance;
         daiAmount = gDai.redeem(gDaiAmount, address(this), address(this));
 
-        TransferHelper.safeApprove(address(dai), SWEEP.amm(), daiAmount);
+        TransferHelper.safeApprove(address(dai), sweep.amm(), daiAmount);
         uint256 divested = amm().swapExactInput(
             address(dai),
             address(usdx),

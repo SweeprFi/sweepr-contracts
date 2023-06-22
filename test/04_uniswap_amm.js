@@ -113,7 +113,7 @@ contract("Uniswap AMM", async function () {
     it('converts token amount to USD amount', async () => {
       amount = 100e6;
       usdAmount = await amm.tokenToUSD(amount);
-      tokenAmount = await amm.USDtoToken(usdAmount);
+      tokenAmount = await amm.usdToToken(usdAmount);
       expect(tokenAmount).to.eq(amount);
     });
 

@@ -7,6 +7,7 @@ pragma solidity 0.8.19;
 
 import "./BaseSweep.sol";
 import "../AMM/IAMM.sol";
+import "../Stabilizer/IStabilizer.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract SweepCoin is BaseSweep {
@@ -39,14 +40,13 @@ contract SweepCoin is BaseSweep {
     event BalancerSet(address balancerAddress);
     event TreasurySet(address treasuryAddress);
     event NewPeriodStarted(uint256 periodStart);
-    event TargetPriceSet(
-        uint256 currentTargetPrice,
-        uint256 nextTargetPrice
-    );
+    event TargetPriceSet(uint256 currentTargetPrice, uint256 nextTargetPrice);
+    event WriteOff(uint256 newPrice);
 
     /* ========== Errors ========== */
 
     error MintNotAllowed();
+    error WriteOffNotAllowed();
     error NotOwnerOrBalancer();
     error NotBalancer();
     error NotPassedPeriodTime();
@@ -65,12 +65,7 @@ contract SweepCoin is BaseSweep {
         address fastMultisig,
         int256 stepValue_
     ) public initializer {
-        BaseSweep.__Sweep_init(
-            "SweepCoin",
-            "SWEEP",
-            lzEndpoint,
-            fastMultisig
-        );
+        BaseSweep.__Sweep_init("SweepCoin", "SWEEP", lzEndpoint, fastMultisig);
 
         stepValue = stepValue_;
         interestRate = 0;
@@ -178,9 +173,7 @@ contract SweepCoin is BaseSweep {
      * @notice Set AMM
      * @param ammAddress.
      */
-    function setAMM(
-        address ammAddress
-    ) external onlyGov {
+    function setAMM(address ammAddress) external onlyGov {
         if (ammAddress == address(0)) revert ZeroAddressDetected();
         amm = IAMM(ammAddress);
 
@@ -237,12 +230,39 @@ contract SweepCoin is BaseSweep {
     }
 
     /**
+     * @notice Write Off
+     * @param newPrice.
+     */
+    function writeOff(uint256 newPrice) external onlyGov whenPaused {
+        if (targetPrice() < ammPrice()) revert WriteOffNotAllowed();
+        uint256 multiplier = SPREAD_PRECISION.mulDiv(targetPrice(), newPrice);
+        uint256 len = minterAddresses.length;
+
+        for (uint256 i = 0; i < len; ) {
+            IStabilizer stabilizer = IStabilizer(minterAddresses[i]);
+            uint256 sweepAmount = stabilizer.sweepBorrowed();
+            if (sweepAmount > 0) {
+                sweepAmount = sweepAmount.mulDiv(multiplier, SPREAD_PRECISION);
+                stabilizer.updateSweepBorrowed(sweepAmount);
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        emit WriteOff(newPrice);
+    }
+
+    /**
      * @notice SWEEP in USD
      * Calculate the amount of USDX that are equivalent to the SWEEP input.
      * @param sweepAmount Amount of SWEEP.
      * @return usdAmount of USDX.
      */
-    function convertToUSD(uint256 sweepAmount) external view returns (uint256 usdAmount) {
+    function convertToUSD(
+        uint256 sweepAmount
+    ) external view returns (uint256 usdAmount) {
         usdAmount = sweepAmount.mulDiv(targetPrice(), 10 ** decimals());
     }
 
@@ -252,7 +272,9 @@ contract SweepCoin is BaseSweep {
      * @param usdAmount Amount of USDX.
      * @return sweepAmount of SWEEP.
      */
-    function convertToSWEEP(uint256 usdAmount) external view returns (uint256 sweepAmount) {
+    function convertToSWEEP(
+        uint256 usdAmount
+    ) external view returns (uint256 sweepAmount) {
         sweepAmount = usdAmount.mulDiv(10 ** decimals(), targetPrice());
     }
 }

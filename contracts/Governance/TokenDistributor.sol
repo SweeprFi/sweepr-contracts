@@ -45,7 +45,7 @@ contract TokenDistributor is Owned {
 
         if (sweeprAmount > sweeprBalance) revert NotEnoughBalance();
         
-        TransferHelper.safeTransferFrom(address(SWEEP), msg.sender, address(this), sweepAmount);
+        TransferHelper.safeTransferFrom(address(sweep), msg.sender, address(this), sweepAmount);
         TransferHelper.safeTransfer(address(sweepr), msg.sender, sweeprAmount);
 
         emit SweeprBought(msg.sender, sweeprAmount);
@@ -56,13 +56,13 @@ contract TokenDistributor is Owned {
      * @param sweeprAmount sweepr Amount to sell
      */
     function sell(uint256 sweeprAmount) external {
-        uint256 sweepBalance = SWEEP.balanceOf(address(this));
+        uint256 sweepBalance = sweep.balanceOf(address(this));
         uint256 sweepAmount = (sweeprAmount * PRECISION) / sweepr.price();
 
         if (sweepAmount > sweepBalance) revert NotEnoughBalance();
         
         TransferHelper.safeTransferFrom(address(sweepr), msg.sender, address(this), sweeprAmount);
-        TransferHelper.safeTransfer(address(SWEEP), msg.sender, sweepAmount);
+        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
         emit SweeprBought(msg.sender, sweepAmount);
     }
@@ -77,6 +77,6 @@ contract TokenDistributor is Owned {
         address tokenAddress, 
         uint256 tokenAmount
     ) external onlyGov {
-        TransferHelper.safeTransfer(address(tokenAddress), SWEEP.treasury(), tokenAmount);
+        TransferHelper.safeTransfer(address(tokenAddress), sweep.treasury(), tokenAmount);
     }
 }
