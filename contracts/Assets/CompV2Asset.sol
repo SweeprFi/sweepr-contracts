@@ -9,7 +9,6 @@ import "./Compound/IcUSDC.sol";
 import "./Compound/ICompComptroller.sol";
 import "../Oracle/ChainlinkPricer.sol";
 import "../Stabilizer/Stabilizer.sol";
-
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**

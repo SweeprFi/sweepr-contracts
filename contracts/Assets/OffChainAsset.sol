@@ -24,7 +24,7 @@ contract OffChainAsset is Stabilizer {
 
     // Events
     event Payback(address token, uint256 amount);
-    event CollateralAgentSet(address agent_address);
+    event CollateralAgentSet(address agent);
     error NotCollateralAgent();
 
     // Errors
@@ -181,12 +181,11 @@ contract OffChainAsset is Stabilizer {
         if(sweepBalance < sweepAmount) sweepAmount = sweepBalance;
 
         TransferHelper.safeTransfer(address(usdx), wallet, usdxAmount);
-
         TransferHelper.safeTransfer(address(sweep), wallet, sweepAmount);
 
-        uint256 sweep_in_usd = sweep.convertToUSD(sweepAmount);
+        uint256 sweepInUSD = sweep.convertToUSD(sweepAmount);
         actualValue += usdxAmount;
-        actualValue += sweep_in_usd;
+        actualValue += sweepInUSD;
         valuationTime = block.timestamp;
 
         emit Invested(usdxAmount, sweepAmount);
