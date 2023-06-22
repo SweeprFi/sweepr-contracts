@@ -250,6 +250,8 @@ contract SweepCoin is BaseSweep {
                 ++i;
             }
         }
+        
+        currentTargetPrice = newPrice;
 
         emit WriteOff(newPrice);
     }
