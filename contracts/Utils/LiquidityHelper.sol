@@ -11,7 +11,6 @@ import "@uniswap/v3-core/contracts/libraries/SqrtPriceMath.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
-
 import "abdk-libraries-solidity/ABDKMath64x64.sol";
 
 contract LiquidityHelper {
@@ -83,7 +82,7 @@ contract LiquidityHelper {
         int24 tickSpacing,
         bool flag
     ) external pure returns (int24 tick) {
-        int128 value1 = ABDKMath64x64.fromUInt(10**decimal);
+        int128 value1 = ABDKMath64x64.fromUInt(10 ** decimal);
         int128 value2 = ABDKMath64x64.fromUInt(price);
         int128 value = ABDKMath64x64.div(value2, value1);
         if (flag) {
@@ -103,10 +102,10 @@ contract LiquidityHelper {
     function getTickSpacing(
         address token0,
         address token1,
-        uint24 fee   
+        uint24 fee
     ) external view returns (int24 tickSpacing) {
         address poolAddress = uniswapV3Factory.getPool(token0, token1, fee);
-        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);   
+        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
 
         tickSpacing = pool.tickSpacing();
     }
@@ -114,10 +113,10 @@ contract LiquidityHelper {
     function getCurrentTick(
         address token0,
         address token1,
-        uint24 fee   
+        uint24 fee
     ) external view returns (int24 tickCurrent) {
         address poolAddress = uniswapV3Factory.getPool(token0, token1, fee);
-        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);   
+        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
 
         (, tickCurrent, , , , , ) = pool.slot0();
     }

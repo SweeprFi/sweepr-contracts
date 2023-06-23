@@ -41,7 +41,7 @@ contract ETSAsset is Stabilizer {
      * @return total with 6 decimal to be compatible with dollar coins.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = SWEEP.convertToUSD(accruedFee());
+        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
         return assetValue() + super.currentValue() - accruedFeeInUSD;
     }
 

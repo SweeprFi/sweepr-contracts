@@ -30,8 +30,10 @@ contract UniswapAMM {
     uint32 private constant LOOKBACK = 1 days;
     uint16 private constant DEADLINE_GAP = 15 minutes;
 
-    ISwapRouter private constant ROUTER = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
-    IUniswapV3Factory private constant FACTORY = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
+    ISwapRouter private constant ROUTER =
+        ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    IUniswapV3Factory private constant FACTORY =
+        IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
 
     address public immutable sequencer;
     uint24 public immutable poolFee;
@@ -100,12 +102,13 @@ contract UniswapAMM {
             baseUSDOracleUpdateFrequency
         );
 
-        address pool = FACTORY.getPool(address(baseToken), sweepAddress, poolFee);
-        // Get the average price tick first
-        (int24 arithmeticMeanTick, ) = OracleLibrary.consult(
-            pool,
-            LOOKBACK
+        address pool = FACTORY.getPool(
+            address(baseToken),
+            sweepAddress,
+            poolFee
         );
+        // Get the average price tick first
+        (int24 arithmeticMeanTick, ) = OracleLibrary.consult(pool, LOOKBACK);
 
         // Get the quote for selling 1 unit of a token.
         uint256 quote = OracleLibrary.getQuoteAtTick(
@@ -203,7 +206,9 @@ contract UniswapAMM {
     /**
      * @notice Calculate the amount USD that are equivalent to the USDX input.
      **/
-    function tokenToUSD(uint256 tokenAmount) external view returns (uint256 usdAmount) {
+    function tokenToUSD(
+        uint256 tokenAmount
+    ) external view returns (uint256 usdAmount) {
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             baseUSDOracle,
             sequencer,
@@ -211,15 +216,17 @@ contract UniswapAMM {
         );
 
         usdAmount = tokenAmount.mulDiv(
-            (10**USD_DECIMALS) * uint256(price),
-            10**(decimals + baseToken.decimals())
+            (10 ** USD_DECIMALS) * uint256(price),
+            10 ** (decimals + baseToken.decimals())
         );
     }
 
     /**
      * @notice Calculate the amount USDX that are equivalent to the USD input.
      **/
-    function USDtoToken(uint256 usdAmount) external view returns (uint256 tokenAmount) {
+    function usdToToken(
+        uint256 usdAmount
+    ) external view returns (uint256 tokenAmount) {
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             baseUSDOracle,
             sequencer,
@@ -227,8 +234,8 @@ contract UniswapAMM {
         );
 
         tokenAmount = usdAmount.mulDiv(
-            10**(decimals + baseToken.decimals()),
-            (10**USD_DECIMALS) * uint256(price)
+            10 ** (decimals + baseToken.decimals()),
+            (10 ** USD_DECIMALS) * uint256(price)
         );
     }
 }

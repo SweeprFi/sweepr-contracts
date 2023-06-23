@@ -83,7 +83,7 @@ contract UniswapMock {
     /**
      * @notice Calculate the amount USDX that are equivalent to the USD input.
      **/
-    function USDtoToken(uint256 usdAmount) external view returns (uint256 tokenAmount) {
+    function usdToToken(uint256 usdAmount) external view returns (uint256 tokenAmount) {
         price;
         tokenAmount = usdAmount;
     }

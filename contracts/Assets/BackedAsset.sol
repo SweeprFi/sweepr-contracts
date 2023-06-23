@@ -53,7 +53,7 @@ contract BackedAsset is Stabilizer {
      * @return total with 6 decimal to be compatible with dollar coins.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUsd = SWEEP.convertToUSD(accruedFee());
+        uint256 accruedFeeInUsd = sweep.convertToUSD(accruedFee());
         return assetValue() + super.currentValue() - accruedFeeInUsd;
     }
 

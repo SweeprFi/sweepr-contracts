@@ -9,24 +9,31 @@ interface IAMM {
         uint256 amountOutMin
     ) external returns (uint256);
 
-    function buySweep(address token, uint256 amountIn, uint256 amountOutMin)
-        external
-        returns (uint256);
+    function buySweep(
+        address token,
+        uint256 amountIn,
+        uint256 amountOutMin
+    ) external returns (uint256);
 
-    function sellSweep(address token, uint256 amountIn, uint256 amountOutMin)
-        external
-        returns (uint256);
+    function sellSweep(
+        address token,
+        uint256 amountIn,
+        uint256 amountOutMin
+    ) external returns (uint256);
 
-    function sequencer() external view returns(address);
+    function sequencer() external view returns (address);
 
-    function poolFee() external view returns(uint24);
+    function poolFee() external view returns (uint24);
 
     function getTWAPrice() external view returns (uint256 amountOut);
 
     function getPrice() external view returns (uint256 amountOut);
 
-    function tokenToUSD(uint256 tokenAmount) external view returns (uint256 usdAmount);
+    function tokenToUSD(
+        uint256 tokenAmount
+    ) external view returns (uint256 usdAmount);
 
-    function USDtoToken(uint256 usdAmount) external view returns (uint256 tokenAmount);
-
+    function usdToToken(
+        uint256 usdAmount
+    ) external view returns (uint256 tokenAmount);
 }
