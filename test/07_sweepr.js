@@ -25,7 +25,7 @@ contract("Sweepr", async function () {
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 		blacklistApprover = await BlacklistApprover.deploy();
 
-		sweepr = await Sweepr.deploy(sweep.address, lzEndpoint.address);
+		sweepr = await Sweepr.deploy(Const.TRUE, lzEndpoint.address); // TRUE means governance chain
 	});
 
 	it('sets a new transfer approver correctly', async () => {
@@ -36,7 +36,7 @@ contract("Sweepr", async function () {
 
 	it('reverts mint when caller is not owner', async () => {
 		await expect(sweepr.connect(sender).mint(sender.address, TRANSFER_AMOUNT))
-			.to.be.revertedWithCustomError(Sweepr, 'NotGovernance');
+			.to.be.revertedWith('Ownable: caller is not the owner');
 	});
 
 	it('mints and burns correctly by owner', async () => {
@@ -77,5 +77,17 @@ contract("Sweepr", async function () {
 
 		receiverBalance = await sweepr.balanceOf(receiver.address);
 		expect(receiverBalance).to.equal(TRANSFER_AMOUNT);
+	});
+
+	it('set governance chain correctly', async () => {
+		await expect(sweepr.connect(sender).setGovernanceChain(Const.FALSE))
+			.to.be.revertedWith('Ownable: caller is not the owner');
+
+		await sweepr.connect(owner).setGovernanceChain(Const.FALSE)
+
+		expect(await sweepr.isGovernanceChain()).to.equal(Const.FALSE);
+
+		await expect(sweepr.connect(owner).mint(sender.address, MINT_AMOUNT))
+			.to.be.revertedWithCustomError(Sweepr, 'NotGovernanceChain');
 	});
 });

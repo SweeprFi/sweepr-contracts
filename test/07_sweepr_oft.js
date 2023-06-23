@@ -27,7 +27,7 @@ contract("Sweep - OFT", async function () {
             2500 // 0.25%
         ]);
         sweepSrc = await srcProxy.deployed(Sweep);
-        OFTSrc = await Sweepr.deploy(sweepSrc.address, lzEndpointSrcMock.address);
+        OFTSrc = await Sweepr.deploy(Const.TRUE, lzEndpointSrcMock.address); // TRUE means governance chain
 
         const dstProxy = await upgrades.deployProxy(Sweep, [
             lzEndpointDstMock.address,
@@ -35,10 +35,14 @@ contract("Sweep - OFT", async function () {
             2500 // 0.25%
         ]);
         sweepDst = await dstProxy.deployed(Sweep);
-        OFTDst = await Sweepr.deploy(sweepDst.address, lzEndpointDstMock.address);
+        OFTDst = await Sweepr.deploy(Const.FALSE, lzEndpointDstMock.address); // FALSE means non-governance chain
 
         // Mint 100 SWEEPR for owner in source chain
         await OFTSrc.connect(deployer).mint(deployer.address, TRANSFER_AMOUNT);
+
+        // Reverts mint in destination chain, because destination chain is not governance chain
+        await expect(OFTDst.connect(deployer).mint(deployer.address, TRANSFER_AMOUNT))
+			.to.be.revertedWithCustomError(Sweepr, 'NotGovernanceChain');
     });
 
     beforeEach(async () => {
