@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { Const } = require("../utils/helper_functions");
 
 contract("TokenDistributor", async function () {
 	before(async () => {
@@ -23,7 +24,7 @@ contract("TokenDistributor", async function () {
 		]);
 		sweep = await Proxy.deployed();
 
-		sweepr = await Sweepr.deploy(sweep.address, lzEndpoint.address);
+		sweepr = await Sweepr.deploy(Const.TRUE, lzEndpoint.address);
 		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
 		treasury = await Treasury.deploy(sweep.address);
 
@@ -94,7 +95,7 @@ contract("TokenDistributor", async function () {
 		sweeprAmount = await sweepr.balanceOf(tokenDistributor.address);
 
 		await expect(tokenDistributor.connect(sender).recover(sweepr.address, sweeprAmount))
-			.to.be.revertedWithCustomError(Sweepr, 'NotGovernance');
+			.to.be.revertedWithCustomError(TokenDistributor, 'NotGovernance');
 	});
 
 	it('sends all sweepr amount to treasury', async () => {
