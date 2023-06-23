@@ -83,7 +83,7 @@ contract("Stabilizer's waterfall workflow", async function () {
 
       expect(await offChainAsset.borrower()).to.equal(borrower.address);
 
-      expect(await offChainAsset.SWEEP()).to.equal(sweep.address);
+      expect(await offChainAsset.sweep()).to.equal(sweep.address);
       expect(await offChainAsset.usdx()).to.equal(usdx.address);
     });
   });
