@@ -34,6 +34,10 @@ contract("Sweep - WriteOff", async function () {
 		amm = await Uniswap.deploy(sweep.address, Const.FEE);
 		await sweep.setAMM(amm.address);
 
+		// Oracle
+        Oracle = await ethers.getContractFactory("AggregatorMock");
+        wbtcOracle = await Oracle.deploy();
+		
 		// OffChain Asset
 		OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 		offChainAsset = await OffChainAsset.deploy(
@@ -52,7 +56,7 @@ contract("Sweep - WriteOff", async function () {
 			sweep.address,
 			usdx.address,
 			addresses.wbtc,
-			addresses.oracle_wbtc_usd,
+			wbtcOracle.address,
 			borrower.address
 		);
 	});
