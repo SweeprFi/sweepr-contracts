@@ -13,6 +13,7 @@ contract Owned {
     // Errors
     error NotGovernance();
     error NotMultisig();
+    error NotGovOrMultisig();
     error ZeroAddressDetected();
 
     constructor(address _sweep) {
@@ -29,6 +30,12 @@ contract Owned {
     modifier onlyMultisig() {
         if (msg.sender != sweep.fastMultisig())
             revert NotMultisig();
+        _;
+    }
+
+    modifier onlyGovOrMultisig() {
+        if (msg.sender != sweep.fastMultisig() && msg.sender != sweep.owner())
+            revert NotGovOrMultisig();
         _;
     }
 }

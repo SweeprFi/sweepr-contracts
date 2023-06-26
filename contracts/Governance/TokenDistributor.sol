@@ -8,75 +8,98 @@ pragma solidity 0.8.19;
 /**
  * @title Token Distributor
  * @dev Implementation:
- * Buy & sell SWEEPR.
- * Send remaining tokens to treasury after SWEEPR distribution.
+ * The tokenDistributor will sell the SWEEPR tokens, get coins, and 
+ * send those coins to the Sweep treasury.
  */
 
 import "./Sweepr.sol";
 import "../Common/Owned.sol";
 
 contract TokenDistributor is Owned {
-    SweeprCoin public sweepr;
-    uint256 private constant PRECISION = 1e6;
+    SweeprCoin private sweepr;
+
+    uint256 public saleAmount;
+    uint256 public salePrice;
+    address public sellTo;
+    address public payToken;
 
     /* ========== EVENTS ========== */
     event SweeprBought(address indexed to, uint256 sweeprAmount);
-    event SweeprSold(address indexed to, uint256 sweepAmount);
 
     /* ========== Errors ========== */
+    error OverSaleAmount();
     error NotEnoughBalance();
+    error NotRecipient();
+    error ZeroPrice();
+    error ZeroAmount();
 
     /* ========== CONSTRUCTOR ========== */
     constructor(
-        address sweepAddress_, 
-        address sweeprAddress
-    ) Owned(sweepAddress_) {
-        sweepr = SweeprCoin(sweeprAddress);
+        address _sweep, 
+        address _sweepr
+    ) Owned(_sweep) {
+        sweepr = SweeprCoin(_sweepr);
     }
 
     /* ========== PUBLIC FUNCTIONS ========== */
     /**
      * @notice A function to buy sweepr.
-     * @param sweepAmount sweep Amount to buy sweepr
+     * @param _tokenAmount sweep Amount to buy sweepr
      */
-    function buy(uint256 sweepAmount) external {
+    function buy(uint256 _tokenAmount) external {
         uint256 sweeprBalance = sweepr.balanceOf(address(this));
-        uint256 sweeprAmount = (sweepAmount * sweepr.price()) / PRECISION;
+        uint256 sweeprAmount = (_tokenAmount * 10 ** sweepr.decimals()) / salePrice;
 
+        if (msg.sender != sellTo) revert NotRecipient();
+        if (sweeprAmount > saleAmount) revert OverSaleAmount();
         if (sweeprAmount > sweeprBalance) revert NotEnoughBalance();
-        
-        TransferHelper.safeTransferFrom(address(sweep), msg.sender, address(this), sweepAmount);
+
+        TransferHelper.safeTransferFrom(payToken, msg.sender, sweep.treasury(), _tokenAmount);
         TransferHelper.safeTransfer(address(sweepr), msg.sender, sweeprAmount);
+
+        unchecked {
+            saleAmount -= sweeprAmount;
+        }
 
         emit SweeprBought(msg.sender, sweeprAmount);
     }
 
-    /**
-     * @notice A function to sell sweepr.
-     * @param sweeprAmount sweepr Amount to sell
-     */
-    function sell(uint256 sweeprAmount) external {
-        uint256 sweepBalance = sweep.balanceOf(address(this));
-        uint256 sweepAmount = (sweeprAmount * PRECISION) / sweepr.price();
-
-        if (sweepAmount > sweepBalance) revert NotEnoughBalance();
-        
-        TransferHelper.safeTransferFrom(address(sweepr), msg.sender, address(this), sweeprAmount);
-        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
-
-        emit SweeprBought(msg.sender, sweepAmount);
-    }
-
     /* ========== RESTRICTED FUNCTIONS ========== */
     /**
-     * @notice A function to send remaining tokens to treasury after distribution.
-     * @param tokenAddress token address to send
-     * @param tokenAmount token amount to send
+     * @notice A function to allow sale
+     * @param _saleAmount number of SWEEPR to sell
+     * @param _sellTo address of the recipient
+     * @param _salePrice price of SWEEPR in payToken
+     * @param _payToken token address to receive
      */
-    function recover(
-        address tokenAddress, 
-        uint256 tokenAmount
-    ) external onlyGov {
-        TransferHelper.safeTransfer(address(tokenAddress), sweep.treasury(), tokenAmount);
+    function allowSale(
+        uint256 _saleAmount,
+        address _sellTo,
+        uint256 _salePrice,
+        address _payToken
+    ) external onlyGovOrMultisig {
+        if (_sellTo == address(0) || _payToken == address(0)) revert ZeroAddressDetected();
+        if (_saleAmount == 0) revert ZeroAmount();
+        if (_salePrice == 0) revert ZeroPrice();
+
+        saleAmount = _saleAmount;
+        sellTo = _sellTo;
+        salePrice = _salePrice;
+        payToken = _payToken;
+    }
+
+    /**
+     * @notice A function to revoke sale
+     */
+    function revokeSale() external onlyGovOrMultisig {
+        saleAmount = 0;
+    }
+
+    /**
+     * @notice A function to burn SWEEPR
+     */
+    function burn() external onlyGovOrMultisig {
+        uint256 sweeprBalance = sweepr.balanceOf(address(this));
+        sweepr.burn(sweeprBalance);
     }
 }

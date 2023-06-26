@@ -4,28 +4,36 @@ const { Const } = require("../utils/helper_functions");
 
 contract("TokenDistributor", async function () {
 	before(async () => {
-		[owner, sender, lzEndpoint] = await ethers.getSigners();
+		[owner, multisig, sender, other, lzEndpoint] = await ethers.getSigners();
 		// ------------- Deployment of contracts -------------
-		Sweep = await ethers.getContractFactory("SweepMock");
+		Sweep = await ethers.getContractFactory("SweepCoin");
 		Sweepr = await ethers.getContractFactory("SweeprCoin");
 		Treasury = await ethers.getContractFactory("Treasury");
 		TokenDistributor = await ethers.getContractFactory("TokenDistributor");
 		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 
 		SWEEP_MINT_AMOUNT = ethers.utils.parseUnits("100000", 18);
-		SWEEPR_MINT_AMOUNT = ethers.utils.parseUnits("10000", 18);
+		SWEEPR_MINT_AMOUNT = ethers.utils.parseUnits("15000", 18);
+		USDC_AMOUNT = ethers.utils.parseUnits("20000", 6);
+		SALE_AMOUNT = ethers.utils.parseUnits("20000", 18);
+		USDC_SALE_PRICE = 1000000; // 1 USDC
+		SWEEP_SALE_PRICE = ethers.utils.parseUnits("2", 18); // 2 SWEEP
 		PRECISION = 1000000;
 		ZERO = 0;
 
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
-			owner.address,
+			multisig.address,
 			2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed();
 
-		sweepr = await Sweepr.deploy(Const.TRUE, lzEndpoint.address);
-		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
+		ERC20 = await ethers.getContractFactory("USDCMock");
+        usdc = await ERC20.deploy();
+
+		await usdc.transfer(sender.address, USDC_AMOUNT);
+
+		sweepr = await Sweepr.deploy(sweep.address, lzEndpoint.address);
 		treasury = await Treasury.deploy(sweep.address);
 
 		await sweep.setTreasury(treasury.address);
@@ -34,82 +42,181 @@ contract("TokenDistributor", async function () {
 		await sweep.connect(owner).addMinter(sender.address, SWEEP_MINT_AMOUNT);
 		await sweep.connect(sender).minterMint(sender.address, SWEEP_MINT_AMOUNT);
 
+		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
+
 		// mint sweepr for TokenDstributor contract
 		await sweepr.connect(owner).mint(tokenDistributor.address, SWEEPR_MINT_AMOUNT);
-		await sweepr.connect(owner).setPrice(1100000); // 1.1 SWEEP
 	});
 
-	it('buys sweepr', async () => {
+	it('revert calling allowSale() function when caller is not owner', async () => {
+		await expect(tokenDistributor.connect(sender).allowSale(
+			SALE_AMOUNT, 
+			sender.address, 
+			USDC_SALE_PRICE, 
+			usdc.address
+			)
+		).to.be.revertedWithCustomError(TokenDistributor, 'NotGovOrMultisig');
+	});
+
+	it('revert calling allowSale() function when sellAmount or sellPrice is zero', async () => {
+		await expect(tokenDistributor.connect(multisig).allowSale(
+			0, 
+			sender.address, 
+			USDC_SALE_PRICE, 
+			usdc.address
+			)
+		).to.be.revertedWithCustomError(TokenDistributor, 'ZeroAmount');
+
+		await expect(tokenDistributor.connect(multisig).allowSale(
+			SALE_AMOUNT, 
+			sender.address, 
+			0, 
+			usdc.address
+			)
+		).to.be.revertedWithCustomError(TokenDistributor, 'ZeroPrice');
+	});
+
+	it('allow sale correctly', async () => {
+		await tokenDistributor.connect(multisig).allowSale(
+			SALE_AMOUNT, 
+			sender.address, 
+			USDC_SALE_PRICE, 
+			usdc.address
+		);
+
+		expect(await tokenDistributor.saleAmount()).to.equal(SALE_AMOUNT);
+		expect(await tokenDistributor.salePrice()).to.equal(USDC_SALE_PRICE);
+		expect(await tokenDistributor.sellTo()).to.equal(sender.address);
+		expect(await tokenDistributor.payToken()).to.equal(usdc.address);
+	});
+
+	it('revert buying sweepr when caller is not equal to recipient address', async () => {
+		await expect(tokenDistributor.connect(multisig).buy(SALE_AMOUNT))
+			.to.be.revertedWithCustomError(TokenDistributor, 'NotRecipient');
+	});
+
+	it('revert buying sweepr when required sweepr amount is greater than sale amount', async () => {
+		tokenAmount = ethers.utils.parseUnits("25000", 6);
+
+		// revert buying, because required sweepr amount(15K) is greater than sale amount(10K)
+		await expect(tokenDistributor.connect(sender).buy(tokenAmount))
+			.to.be.revertedWithCustomError(TokenDistributor, 'OverSaleAmount');
+	});
+
+	it('buy sweepr correctly', async () => {
 		expect(await sweepr.balanceOf(sender.address)).to.equal(ZERO);
 
-		sweepAmount = ethers.utils.parseUnits("7000", 18);
-		sweeprPrice = await sweepr.price();
+		saleAmountBefore = Math.round(await tokenDistributor.saleAmount() / 1e18);
 
-		await sweep.connect(sender).approve(tokenDistributor.address, sweepAmount);
-		await tokenDistributor.connect(sender).buy(sweepAmount);
+		tokenAmount = ethers.utils.parseUnits("10000", 6);
+		await usdc.connect(sender).approve(tokenDistributor.address, tokenAmount);
 
-		sweeprAmount = Math.round(((sweepAmount * sweeprPrice) / PRECISION) / 1e18);
+		await tokenDistributor.connect(sender).buy(tokenAmount);
+
+		sweeprAmount = Math.round(((tokenAmount * PRECISION) / USDC_SALE_PRICE) / 1e6);
 		senderSweeprBalance = (await sweepr.balanceOf(sender.address)) / 1e18;
+		saleAmountAfter = Math.round(await tokenDistributor.saleAmount() / 1e18);
 
-		expect(await sweep.balanceOf(tokenDistributor.address)).to.equal(sweepAmount);
+		expect(await usdc.balanceOf(treasury.address)).to.equal(tokenAmount);
 		expect(senderSweeprBalance).to.equal(sweeprAmount);
+		expect(saleAmountAfter).to.equal(saleAmountBefore - sweeprAmount);
 	});
 
-	it('reverts buying sweepr when sweepr balancer of contract is not enough', async () => {
-		sweepAmount = ethers.utils.parseUnits("7000", 18);
-		sweeprPrice = await sweepr.price();
+	it('revert buying sweepr when there is no enough Sweepr balance in TokenDistributor contract', async () => {
+		tokenAmount = ethers.utils.parseUnits("7000", 6);
+		sweeprAmount = Math.round(((tokenAmount * PRECISION) / USDC_SALE_PRICE) / 1e6);
 
-		sweeprAmount = Math.round(((sweepAmount * sweeprPrice) / PRECISION) / 1e18);
-		distributorSweeprBalance = (await sweepr.balanceOf(tokenDistributor.address)) / 1e18;
+		expect(Math.round(await sweepr.balanceOf(tokenDistributor.address) / 1e18)).to.below(sweeprAmount);
 
-		expect(distributorSweeprBalance).to.lessThan(sweeprAmount);
-
-		await sweep.connect(sender).approve(tokenDistributor.address, sweepAmount);
-
-		await expect(tokenDistributor.connect(sender).buy(sweepAmount))
+		// revert buying, because there is no enough sweepr balance
+		await expect(tokenDistributor.connect(sender).buy(tokenAmount))
 			.to.be.revertedWithCustomError(TokenDistributor, 'NotEnoughBalance');
 	});
 
-	it('sells sweeper', async () => {
-		sellAmount = ethers.utils.parseUnits("1000", 18); // 1000 SWEEPR
-		sweepAmount = ethers.utils.parseUnits("10000", 18); // 10000 SWEEP
+	it('buy sweepr again', async () => {
+		saleAmountBefore = Math.round(await tokenDistributor.saleAmount() / 1e18);
+		senderBalanceBefore = (await sweepr.balanceOf(sender.address)) / 1e18;
+		treasuryBalanceBefore = (await usdc.balanceOf(treasury.address)) / 1e6;
 
-		senderSweepBeforeBalance = await sweep.balanceOf(sender.address) / 1e18;
-		distributorSweeprBeforeBalance = await sweepr.balanceOf(tokenDistributor.address) / 1e18;
+		tokenAmount = ethers.utils.parseUnits("3000", 6);
+		await usdc.connect(sender).approve(tokenDistributor.address, tokenAmount);
 
-		await sweepr.connect(sender).approve(tokenDistributor.address, sellAmount);
-		await expect(tokenDistributor.connect(sender).sell(sweepAmount))
-			.to.be.revertedWithCustomError(tokenDistributor, "NotEnoughBalance");
-		await tokenDistributor.connect(sender).sell(sellAmount);
+		await tokenDistributor.connect(sender).buy(tokenAmount);
 
-		sweepAmount = Math.round(((sellAmount * PRECISION) / sweeprPrice) / 1e18);
+		sweeprAmount = Math.round(((tokenAmount * PRECISION) / USDC_SALE_PRICE) / 1e6);
+		senderBalanceAfter = (await sweepr.balanceOf(sender.address)) / 1e18;
+		treasuryBalanceAfter = (await usdc.balanceOf(treasury.address)) / 1e6;
+		saleAmountAfter = Math.round(await tokenDistributor.saleAmount() / 1e18);
 
-		senderSweepAfterBalance = Math.round(((await sweep.balanceOf(sender.address)) / 1e18));
-		distributorSweeprAfterBalance = Math.round(((await sweepr.balanceOf(tokenDistributor.address)) / 1e18));
-
-		expect(senderSweepAfterBalance).to.equal(senderSweepBeforeBalance + sweepAmount);
-		expect(distributorSweeprAfterBalance).to.equal(distributorSweeprBeforeBalance + (sellAmount / 1e18));
+		expect(treasuryBalanceAfter).to.equal(treasuryBalanceBefore + tokenAmount / 1e6);
+		expect(senderBalanceAfter).to.equal(senderBalanceBefore + sweeprAmount);
+		expect(saleAmountAfter).to.equal(saleAmountBefore - sweeprAmount);
 	});
 
-	it('reverts calling recover() function when caller is not owner', async () => {
-		sweeprAmount = await sweepr.balanceOf(tokenDistributor.address);
+	it('burn Sweepr correctly', async () => {
+		sweeprBalance = await sweepr.balanceOf(tokenDistributor.address)
+		expect(sweeprBalance).to.above(Const.ZERO);
 
-		await expect(tokenDistributor.connect(sender).recover(sweepr.address, sweeprAmount))
-			.to.be.revertedWithCustomError(TokenDistributor, 'NotGovernance');
+		await tokenDistributor.burn();
+
+		expect(await sweepr.balanceOf(tokenDistributor.address)).to.equal(Const.ZERO);
+
+		// revert buying, because saleAmount is 0
+		tokenAmount = ethers.utils.parseUnits("1000", 6);
+		await expect(tokenDistributor.connect(sender).buy(tokenAmount))
+			.to.be.revertedWithCustomError(TokenDistributor, 'NotEnoughBalance');
 	});
 
-	it('sends all sweepr amount to treasury', async () => {
-		sweeprAmount = await sweepr.balanceOf(tokenDistributor.address);
+	it('revoke sale correctly', async () => {
+		expect(await tokenDistributor.saleAmount()).to.above(Const.ZERO);
 
-		treasurySweeprBeforeBalance = Math.round(((await sweepr.balanceOf(treasury.address)) / 1e18));
-		expect(treasurySweeprBeforeBalance).to.equal(ZERO);
+		await tokenDistributor.revokeSale();
 
-		await tokenDistributor.connect(owner).recover(sweepr.address, sweeprAmount)
+		expect(await tokenDistributor.saleAmount()).to.equal(Const.ZERO);
 
-		distributorSweeprAfterBalance = Math.round(((await sweepr.balanceOf(tokenDistributor.address)) / 1e18));
-		treasurySweeprAfterBalance = Math.round(((await sweepr.balanceOf(treasury.address)) / 1e18));
+		// revert buying, because saleAmount is 0
+		tokenAmount = ethers.utils.parseUnits("1000", 6);
+		await expect(tokenDistributor.connect(sender).buy(tokenAmount))
+			.to.be.revertedWithCustomError(TokenDistributor, 'OverSaleAmount');
+	});
 
-		expect(distributorSweeprAfterBalance).to.equal(ZERO);
-		expect(treasurySweeprAfterBalance).to.equal(sweeprAmount / 1e18);
+	it('allow sale for other user', async () => {
+		// add minter
+		await sweep.connect(owner).addMinter(other.address, SWEEP_MINT_AMOUNT);
+		await sweep.connect(other).minterMint(other.address, SWEEP_MINT_AMOUNT);
+
+		// mint sweepr again for TokenDstributor contract
+		await sweepr.connect(owner).mint(tokenDistributor.address, SWEEPR_MINT_AMOUNT);
+
+		await tokenDistributor.connect(multisig).allowSale(
+			SALE_AMOUNT, 
+			other.address, 
+			SWEEP_SALE_PRICE, 
+			sweep.address
+		);
+
+		expect(await tokenDistributor.saleAmount()).to.equal(SALE_AMOUNT);
+		expect(await tokenDistributor.salePrice()).to.equal(SWEEP_SALE_PRICE);
+		expect(await tokenDistributor.sellTo()).to.equal(other.address);
+		expect(await tokenDistributor.payToken()).to.equal(sweep.address);
+	});
+
+	it('buy sweepr by other user', async () => {
+		expect(await sweepr.balanceOf(other.address)).to.equal(ZERO);
+
+		saleAmountBefore = Math.round(await tokenDistributor.saleAmount() / 1e18);
+
+		tokenAmount = ethers.utils.parseUnits("10000", 18);
+		await sweep.connect(other).approve(tokenDistributor.address, tokenAmount);
+
+		await tokenDistributor.connect(other).buy(tokenAmount);
+
+		sweeprAmount = Math.round(((tokenAmount * 1e18) / SWEEP_SALE_PRICE) / 1e18);
+		senderSweeprBalance = (await sweepr.balanceOf(other.address)) / 1e18;
+		saleAmountAfter = Math.round(await tokenDistributor.saleAmount() / 1e18);
+
+		expect(await sweep.balanceOf(treasury.address)).to.equal(tokenAmount);
+		expect(senderSweeprBalance).to.equal(sweeprAmount);
+		expect(saleAmountAfter).to.equal(saleAmountBefore - sweeprAmount);
 	});
 });
