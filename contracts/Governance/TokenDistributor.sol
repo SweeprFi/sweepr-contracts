@@ -13,9 +13,7 @@ pragma solidity 0.8.19;
  */
 
 import "./Sweepr.sol";
-import "./Treasury.sol";
 import "../Common/Owned.sol";
-import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
 contract TokenDistributor is Owned {
     SweeprCoin private sweepr;
