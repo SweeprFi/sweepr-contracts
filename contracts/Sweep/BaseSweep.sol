@@ -5,15 +5,13 @@ pragma solidity 0.8.19;
 // ======================= BaseSweep.sol ==============================
 // ====================================================================
 
+import "./TransferApprover/ITransferApprover.sol";
 import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/oft/OFTUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "./TransferApprover/ITransferApprover.sol";
 
 contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
-    // Addresses
-    address public fastMultisig;
-
     ITransferApprover private transferApprover;
+    address public fastMultisig;
 
     // Structs
     struct Minter {
@@ -150,9 +148,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
      * A minter will be removed from the list.
      * @param minter Address to be removed.
      */
-    function removeMinter(
-        address minter
-    ) external onlyGov validMinter(minter) {
+    function removeMinter(address minter) external onlyGov validMinter(minter) {
         delete minters[minter]; // Delete minter from the mapping
 
         for (uint256 i = 0; i < minterAddresses.length; i++) {

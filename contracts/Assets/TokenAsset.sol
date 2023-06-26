@@ -49,7 +49,7 @@ contract TokenAsset is Stabilizer {
      * @return total with 6 decimal to be compatible with dollar coins.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = SWEEP.convertToUSD(accruedFee());
+        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
         return assetValue() + super.currentValue() - accruedFeeInUSD;
     }
 
@@ -110,7 +110,7 @@ contract TokenAsset is Stabilizer {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        TransferHelper.safeApprove(address(usdx), SWEEP.amm(), usdxAmount);
+        TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
         uint256 investedAmount = amm().swapExactInput(address(usdx), address(token), usdxAmount, 0);
 
         emit Invested(investedAmount, 0);
@@ -130,7 +130,7 @@ contract TokenAsset is Stabilizer {
         uint256 tokenBalance = token.balanceOf(address(this));
         if(tokenBalance < tokenAmount) tokenAmount = tokenBalance;
 
-        TransferHelper.safeApprove(address(token), SWEEP.amm(), tokenAmount);
+        TransferHelper.safeApprove(address(token), sweep.amm(), tokenAmount);
         uint256 divested = amm().swapExactInput(
             address(token),
             address(usdx),

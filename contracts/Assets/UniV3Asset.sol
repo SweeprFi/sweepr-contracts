@@ -80,7 +80,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @return total with 6 decimal to be compatible with dollar coins.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = SWEEP.convertToUSD(accruedFee());
+        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
         return assetValue() + super.currentValue() - accruedFeeInUSD;
     }
 
@@ -98,7 +98,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             ? (amount0, amount1)
             : (amount1, amount0);
 
-        return usdxAmount + SWEEP.convertToUSD(sweepAmount);
+        return usdxAmount + sweep.convertToUSD(sweepAmount);
     }
 
     /* ========== Actions ========== */
@@ -184,10 +184,10 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @return maxTick The maximum tick
      */
     function showTicks() internal view returns (int24 minTick, int24 maxTick) {
-        uint256 sweepPrice = SWEEP.targetPrice();
+        uint256 sweepPrice = sweep.targetPrice();
         uint256 minPrice = (sweepPrice * 99) / 100;
         uint256 maxPrice = (sweepPrice * 101) / 100;
-        uint8 decimals = SWEEP.decimals();
+        uint8 decimals = sweep.decimals();
 
         minTick = liquidityHelper.getTickFromPrice(
             minPrice,
@@ -281,7 +281,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         );
 
         TransferHelper.safeApprove(
-            sweepAddress,
+            address(sweep),
             address(nonfungiblePositionManager),
             sweepAmount
         );

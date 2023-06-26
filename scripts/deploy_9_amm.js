@@ -2,20 +2,15 @@ const { ethers } = require("hardhat");
 const { addresses, network } = require("../utils/address");
 
 async function main() {
-  let deployer = '';
+  [deployer] = await ethers.getSigners();
+  deployer = deployer.address;
+
   const sweep = addresses.sweep;
   const usdc = addresses.usdc;
   const oracle = addresses.oracle_usdc_usd;
   const sequencer = addresses.sequencer_feed;
   const fee = 500;
   const frequency = 86400;
-
-  if (network.type === "0") { // local
-    [deployer] = await ethers.getSigners();
-    deployer = deployer.address;
-  } else {
-    deployer = addresses.owner;
-  }
 
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 

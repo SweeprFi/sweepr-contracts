@@ -6,8 +6,12 @@ pragma solidity 0.8.19;
 // ====================================================================
 
 import "../Sweep/BaseSweep.sol";
+import "../Stabilizer/IStabilizer.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract SweepMock is BaseSweep {
+    using Math for uint256;
+    
     // Addresses
     address public amm;
     address public balancer;
@@ -43,10 +47,12 @@ contract SweepMock is BaseSweep {
         uint256 currentTargetPrice,
         uint256 nextTargetPrice
     );
+    event WriteOff(uint256 newPrice);
 
     // Errors
 
     error MintNotAllowed();
+    error WriteOffNotAllowed();
     error AlreadyExist();
     error NotOwnerOrBalancer();
     error NotPassedPeriodTime();
@@ -232,6 +238,33 @@ contract SweepMock is BaseSweep {
         periodStart = block.timestamp;
 
         emit NewPeriodStarted(periodStart);
+    }
+
+    /**
+     * @notice Write Off
+     * @param newPrice.
+     */
+    function writeOff(uint256 newPrice) external onlyGov whenPaused {
+        if (targetPrice() < ammPrice()) revert WriteOffNotAllowed();
+        uint256 multiplier = SPREAD_PRECISION.mulDiv(targetPrice(), newPrice);
+        uint256 len = minterAddresses.length;
+
+        for (uint256 i = 0; i < len; ) {
+            IStabilizer stabilizer = IStabilizer(minterAddresses[i]);
+            uint256 sweepAmount = stabilizer.sweepBorrowed();
+            if (sweepAmount > 0) {
+                sweepAmount = sweepAmount.mulDiv(multiplier, SPREAD_PRECISION);
+                stabilizer.updateSweepBorrowed(sweepAmount);
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+        
+        currentTargetPrice = newPrice;
+
+        emit WriteOff(newPrice);
     }
 
     /**

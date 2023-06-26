@@ -45,7 +45,7 @@ contract AaveV3Asset is Stabilizer {
      * @dev this value represents the invested amount plus the staked amount in the contract.
      */
     function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUsd = SWEEP.convertToUSD(accruedFee());
+        uint256 accruedFeeInUsd = sweep.convertToUSD(accruedFee());
         return assetValue() + super.currentValue() - accruedFeeInUsd;
     }
 

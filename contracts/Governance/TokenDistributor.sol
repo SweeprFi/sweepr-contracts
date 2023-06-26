@@ -54,7 +54,7 @@ contract TokenDistributor is Owned {
         if (sweeprAmount > saleAmount) revert OverSaleAmount();
         if (sweeprAmount > sweeprBalance) revert NotEnoughBalance();
 
-        TransferHelper.safeTransferFrom(payToken, msg.sender, SWEEP.treasury(), _tokenAmount);
+        TransferHelper.safeTransferFrom(payToken, msg.sender, sweep.treasury(), _tokenAmount);
         TransferHelper.safeTransfer(address(sweepr), msg.sender, sweeprAmount);
 
         unchecked {

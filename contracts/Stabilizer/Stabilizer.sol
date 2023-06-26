@@ -20,7 +20,6 @@ pragma solidity 0.8.19;
 import "../Sweep/ISweep.sol";
 import "../AMM/IAMM.sol";
 import "../Common/Owned.sol";
-
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -28,7 +27,7 @@ import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 
 contract Stabilizer is Owned, Pausable {
     using Math for uint256;
-    
+
     // Variables
     string public name;
     address public borrower;
@@ -73,6 +72,7 @@ contract Stabilizer is Owned, Pausable {
     event LoanLimitChanged(uint256 loanLimit);
     event Proposed(address indexed borrower);
     event Rejected(address indexed borrower);
+    event SweepBorrowedChanged(uint256 indexed sweepAmount);
 
     event Invested(uint256 indexed usdxAmount, uint256 indexed sweepAmount);
     event Divested(uint256 indexed usdxAmount, uint256 indexed sweepAmount);
@@ -97,6 +97,7 @@ contract Stabilizer is Owned, Pausable {
     /* ========== Errors ========== */
     error NotBorrower();
     error NotBalancer();
+    error NotSweep();
     error SettingsDisabled();
     error OverZero();
     error InvalidMinter();
@@ -117,7 +118,7 @@ contract Stabilizer is Owned, Pausable {
     }
 
     modifier onlyBalancer() {
-        if (msg.sender != SWEEP.balancer()) revert NotBalancer();
+        if (msg.sender != sweep.balancer()) revert NotBalancer();
         _;
     }
 
@@ -138,11 +139,11 @@ contract Stabilizer is Owned, Pausable {
 
     constructor(
         string memory assetName,
-        address sweepAddress_,
+        address sweepAddress,
         address usdxAddress,
         address borrowerAddress
-    ) Owned(sweepAddress_) {
-        if(borrowerAddress == address(0)) revert ZeroAddressDetected();
+    ) Owned(sweepAddress) {
+        if (borrowerAddress == address(0)) revert ZeroAddressDetected();
         name = assetName;
         usdx = IERC20Metadata(usdxAddress);
         borrower = borrowerAddress;
@@ -202,7 +203,7 @@ contract Stabilizer is Owned, Pausable {
      */
     function currentValue() public view virtual returns (uint256) {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-        uint256 sweepBalanceInUSD = SWEEP.convertToUSD(sweepBalance);
+        uint256 sweepBalanceInUSD = sweep.convertToUSD(sweepBalance);
 
         return (amm().tokenToUSD(usdxBalance) + sweepBalanceInUSD);
     }
@@ -212,7 +213,7 @@ contract Stabilizer is Owned, Pausable {
      * @return address.
      */
     function amm() public view virtual returns (IAMM) {
-        return IAMM(ISweep(sweepAddress).amm());
+        return IAMM(sweep.amm());
     }
 
     /**
@@ -220,7 +221,7 @@ contract Stabilizer is Owned, Pausable {
      * @return int256 calculated junior tranche amount.
      */
     function getJuniorTrancheValue() external view returns (int256) {
-        uint256 seniorTrancheInUSD = SWEEP.convertToUSD(sweepBorrowed);
+        uint256 seniorTrancheInUSD = sweep.convertToUSD(sweepBorrowed);
         uint256 totalValue = currentValue();
 
         return int256(totalValue) - int256(seniorTrancheInUSD);
@@ -232,7 +233,8 @@ contract Stabilizer is Owned, Pausable {
      */
     function getLiquidationValue() public view returns (uint256) {
         return
-            accruedFee() + SWEEP.convertToSWEEP(
+            accruedFee() +
+            sweep.convertToSWEEP(
                 (currentValue() * (1e6 - liquidatorDiscount)) / PRECISION
             );
     }
@@ -252,49 +254,49 @@ contract Stabilizer is Owned, Pausable {
 
     /**
      * @notice Configure intial settings
-     * @param min_equity_ratio The minimum equity ratio can be negative.
-     * @param spread_fee The fee that the protocol will get for providing the loan when the stabilizer takes debt
-     * @param loan_limit How much debt a Stabilizer can take in SWEEP.
-     * @param liquidator_discount A percentage that will be discounted in favor to the liquidator when the stabilizer is liquidated
-     * @param call_delay Time in seconds after AutoCall until the Stabilizer gets defaulted if the debt is not paid in that period
-     * @param auto_invest_min_ratio Minimum equity ratio that should be kept to allow the execution of an auto invest
-     * @param auto_invest_min_amount Minimum amount to be invested to allow the execution of an auto invest
-     * @param auto_invest_enable Represents if an auto invest execution is allowed or not
+     * @param _minEquityRatio The minimum equity ratio can be negative.
+     * @param _spreadFee The fee that the protocol will get for providing the loan when the stabilizer takes debt
+     * @param _loanLimit How much debt a Stabilizer can take in SWEEP.
+     * @param _liquidatorDiscount A percentage that will be discounted in favor to the liquidator when the stabilizer is liquidated
+     * @param _callDelay Time in seconds after AutoCall until the Stabilizer gets defaulted if the debt is not paid in that period
+     * @param _autoInvestMinRatio Minimum equity ratio that should be kept to allow the execution of an auto invest
+     * @param _autoInvestMinAmount Minimum amount to be invested to allow the execution of an auto invest
+     * @param _autoInvestEnabled Represents if an auto invest execution is allowed or not
      * @param url A URL link to a Web page that describes the borrower and the asset
      * @dev Sets the initial configuration of the Stabilizer.
      * This configuration will be analyzed by the protocol and if accepted,
      * used to include the Stabilizer in the minter's whitelist of Sweep.
      */
     function configure(
-        int256 min_equity_ratio,
-        uint256 spread_fee,
-        uint256 loan_limit,
-        uint256 liquidator_discount,
-        uint256 call_delay,
-        int256 auto_invest_min_ratio,
-        uint256 auto_invest_min_amount,
-        bool auto_invest_enable,
+        int256 _minEquityRatio,
+        uint256 _spreadFee,
+        uint256 _loanLimit,
+        uint256 _liquidatorDiscount,
+        uint256 _callDelay,
+        int256 _autoInvestMinRatio,
+        uint256 _autoInvestMinAmount,
+        bool _autoInvestEnabled,
         string calldata url
     ) external onlyBorrower onlySettingsEnabled {
-        minEquityRatio = min_equity_ratio;
-        spreadFee = spread_fee;
-        loanLimit = loan_limit;
-        liquidatorDiscount = liquidator_discount;
-        callDelay = call_delay;
-        autoInvestMinRatio = auto_invest_min_ratio;
-        autoInvestMinAmount = auto_invest_min_amount;
-        autoInvestEnabled = auto_invest_enable;
+        minEquityRatio = _minEquityRatio;
+        spreadFee = _spreadFee;
+        loanLimit = _loanLimit;
+        liquidatorDiscount = _liquidatorDiscount;
+        callDelay = _callDelay;
+        autoInvestMinRatio = _autoInvestMinRatio;
+        autoInvestMinAmount = _autoInvestMinAmount;
+        autoInvestEnabled = _autoInvestEnabled;
         link = url;
 
         emit ConfigurationChanged(
-            min_equity_ratio,
-            spread_fee,
-            loan_limit,
-            liquidator_discount,
-            call_delay,
-            auto_invest_min_ratio,
-            auto_invest_min_amount,
-            auto_invest_enable,
+            _minEquityRatio,
+            _spreadFee,
+            _loanLimit,
+            _liquidatorDiscount,
+            _callDelay,
+            _autoInvestMinRatio,
+            _autoInvestMinAmount,
+            _autoInvestEnabled,
             url
         );
     }
@@ -332,21 +334,20 @@ contract Stabilizer is Owned, Pausable {
     function borrow(
         uint256 sweepAmount
     ) external onlyBorrower whenNotPaused validAmount(sweepAmount) {
-        if (!SWEEP.isValidMinter(address(this))) revert InvalidMinter();
+        if (!sweep.isValidMinter(address(this))) revert InvalidMinter();
 
         uint256 sweepAvailable = loanLimit - sweepBorrowed;
         if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
 
         int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
-        if (currentEquityRatio < minEquityRatio)
-            revert EquityRatioExcessed();
+        if (currentEquityRatio < minEquityRatio) revert EquityRatioExcessed();
 
         _borrow(sweepAmount);
     }
 
     /**
      * @notice Repays Sweep
-     * Burns the sweep_amount to reduce the debt (senior tranche).
+     * Burns the sweep amount to reduce the debt (senior tranche).
      * @param sweepAmount Amount to be burnt by Sweep.
      * @dev Decreases the sweep borrowed.
      */
@@ -361,14 +362,14 @@ contract Stabilizer is Owned, Pausable {
         uint256 spreadAmount = accruedFee();
         spreadDate = block.timestamp;
 
-        uint256 sweepBalance = SWEEP.balanceOf(address(this));
+        uint256 sweepBalance = sweep.balanceOf(address(this));
 
         if (spreadAmount > sweepBalance) revert SpreadNotEnough();
 
         if (spreadAmount > 0) {
             TransferHelper.safeTransfer(
-                sweepAddress,
-                SWEEP.treasury(),
+                address(sweep),
+                sweep.treasury(),
                 spreadAmount
             );
 
@@ -388,16 +389,31 @@ contract Stabilizer is Owned, Pausable {
     }
 
     /**
+     * @notice Update Sweep Borrowed Amount.
+     * @param amount.
+     */
+    function updateSweepBorrowed(uint256 amount) external {
+        if (msg.sender != address(sweep)) revert NotSweep();
+        sweepBorrowed = amount;
+
+        emit SweepBorrowedChanged(amount);
+    }
+
+    /**
      * @notice Auto Call.
-     * @param sweep_amount to repay.
+     * @param sweepAmount to repay.
      * @dev Strategy:
      * 1) repays debt with SWEEP balance
      * 2) repays remaining debt by divesting
      * 3) repays remaining debt by buying on SWEEP in the AMM
      */
-    function autoCall(uint256 sweep_amount, uint256 price, uint256 slippage) external onlyBalancer {
+    function autoCall(
+        uint256 sweepAmount,
+        uint256 price,
+        uint256 slippage
+    ) external onlyBalancer {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-        uint256 repayAmount = sweep_amount.min(sweepBorrowed);
+        uint256 repayAmount = sweepAmount.min(sweepBorrowed);
 
         if (callDelay > 0) {
             callTime = block.timestamp + callDelay;
@@ -406,7 +422,9 @@ contract Stabilizer is Owned, Pausable {
 
         if (sweepBalance < repayAmount) {
             uint256 missingSweep = repayAmount - sweepBalance;
-            uint256 missingUsdx = amm().USDtoToken(SWEEP.convertToUSD(missingSweep));
+            uint256 missingUsdx = amm().usdToToken(
+                sweep.convertToUSD(missingSweep)
+            );
 
             if (missingUsdx > usdxBalance) {
                 _divest(missingUsdx - usdxBalance);
@@ -414,22 +432,26 @@ contract Stabilizer is Owned, Pausable {
 
             if (usdx.balanceOf(address(this)) > 0) {
                 uint256 missingUsd = amm().tokenToUSD(missingUsdx);
-                uint256 sweepAmount = missingUsd.mulDiv(10 ** SWEEP.decimals(), price);
-                uint256 minAmountOut = sweepAmount * (PRECISION - slippage) / PRECISION;
+                uint256 _sweepAmount = missingUsd.mulDiv(
+                    10 ** sweep.decimals(),
+                    price
+                );
+                uint256 minAmountOut = (_sweepAmount * (PRECISION - slippage)) /
+                    PRECISION;
                 _buy(missingUsdx, minAmountOut);
             }
         }
 
-        if (SWEEP.balanceOf(address(this)) > 0 && repayAmount > 0 ) {
+        if (sweep.balanceOf(address(this)) > 0 && repayAmount > 0) {
             _repay(repayAmount);
         }
 
-        emit AutoCalled(sweep_amount);
+        emit AutoCalled(sweepAmount);
     }
 
     /**
      * @notice Cancel Call
-     * @dev Cancels the auto call request by clearing variables for an asset 
+     * @dev Cancels the auto call request by clearing variables for an asset
      * that has a callDelay: meaning that it does not autorepay.
      */
     function cancelCall() external onlyBalancer {
@@ -444,20 +466,26 @@ contract Stabilizer is Owned, Pausable {
      * @param price.
      * @param slippage.
      */
-    function autoInvest(uint256 sweepAmount, uint256 price, uint256 slippage) external onlyBalancer {
-        uint256 sweepLimit = SWEEP.minters(address(this)).maxAmount;
+    function autoInvest(
+        uint256 sweepAmount,
+        uint256 price,
+        uint256 slippage
+    ) external onlyBalancer {
+        uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
         uint256 sweepAvailable = sweepLimit - sweepBorrowed;
         sweepAmount = sweepAmount.min(sweepAvailable);
         int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
-        
-        if(!autoInvestEnabled) revert NotAutoInvest();
-        if(sweepAmount < autoInvestMinAmount) revert NotAutoInvestMinAmount();
-        if(currentEquityRatio < autoInvestMinRatio) revert NotAutoInvestMinRatio();
+
+        if (!autoInvestEnabled) revert NotAutoInvest();
+        if (sweepAmount < autoInvestMinAmount) revert NotAutoInvestMinAmount();
+        if (currentEquityRatio < autoInvestMinRatio)
+            revert NotAutoInvestMinRatio();
 
         _borrow(sweepAmount);
 
-        uint256 usdAmount = sweepAmount.mulDiv(price, 10 ** SWEEP.decimals());
-        uint256 minAmountOut = amm().USDtoToken(usdAmount) * (PRECISION - slippage) / PRECISION;
+        uint256 usdAmount = sweepAmount.mulDiv(price, 10 ** sweep.decimals());
+        uint256 minAmountOut = (amm().usdToToken(usdAmount) *
+            (PRECISION - slippage)) / PRECISION;
         uint256 usdxAmount = _sell(sweepAmount, minAmountOut);
 
         _invest(usdxAmount, 0);
@@ -467,7 +495,7 @@ contract Stabilizer is Owned, Pausable {
 
     /**
      * @notice Buy
-     * Buys sweep_amount from the stabilizer's balance to the AMM (swaps USDX to SWEEP).
+     * Buys sweep amount from the stabilizer's balance to the AMM (swaps USDX to SWEEP).
      * @param usdxAmount Amount to be changed in the AMM.
      * @param amountOutMin Minimum amount out.
      * @dev Increases the sweep balance and decrease usdx balance.
@@ -499,15 +527,17 @@ contract Stabilizer is Owned, Pausable {
 
     /**
      * @notice Buy Sweep with Stabilizer
-     * Buys sweep_amount from the stabilizer's balance to the Borrower (swaps USDX to SWEEP).
+     * Buys sweep amount from the stabilizer's balance to the Borrower (swaps USDX to SWEEP).
      * @param usdxAmount.
      * @dev Decreases the sweep balance and increase usdx balance
      */
     function swapUsdxToSweep(
         uint256 usdxAmount
     ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
-        uint256 sweepAmount = SWEEP.convertToSWEEP(amm().tokenToUSD(usdxAmount));
-        uint256 sweepBalance = SWEEP.balanceOf(address(this));
+        uint256 sweepAmount = sweep.convertToSWEEP(
+            amm().tokenToUSD(usdxAmount)
+        );
+        uint256 sweepBalance = sweep.balanceOf(address(this));
         if (sweepAmount > sweepBalance) revert NotEnoughBalance();
 
         TransferHelper.safeTransferFrom(
@@ -516,27 +546,27 @@ contract Stabilizer is Owned, Pausable {
             address(this),
             usdxAmount
         );
-        TransferHelper.safeTransfer(sweepAddress, msg.sender, sweepAmount);
+        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
         emit BoughtSWEEP(sweepAmount);
     }
 
     /**
      * @notice Sell Sweep with Stabilizer
-     * Sells sweep_amount to the stabilizer (swaps SWEEP to USDX).
+     * Sells sweep amount to the stabilizer (swaps SWEEP to USDX).
      * @param sweepAmount.
      * @dev Decreases the sweep balance and increase usdx balance
      */
     function swapSweepToUsdx(
         uint256 sweepAmount
     ) external onlyBorrower whenNotPaused validAmount(sweepAmount) {
-        uint256 usdxAmount = amm().USDtoToken(SWEEP.convertToUSD(sweepAmount));
+        uint256 usdxAmount = amm().usdToToken(sweep.convertToUSD(sweepAmount));
         uint256 usdxBalance = usdx.balanceOf(address(this));
 
         if (usdxAmount > usdxBalance) revert NotEnoughBalance();
 
         TransferHelper.safeTransferFrom(
-            sweepAddress,
+            address(sweep),
             msg.sender,
             address(this),
             sweepAmount
@@ -557,15 +587,16 @@ contract Stabilizer is Owned, Pausable {
         address token,
         uint256 amount
     ) external onlyBorrower whenNotPaused validAmount(amount) {
-        if (token != sweepAddress && token != address(usdx))
+        if (token != address(sweep) && token != address(usdx))
             revert InvalidToken();
 
         if (amount > IERC20Metadata(token).balanceOf(address(this)))
             revert NotEnoughBalance();
 
         if (sweepBorrowed > 0) {
-            uint256 usdAmount = token == sweepAddress ?
-                SWEEP.convertToUSD(amount) : amm().tokenToUSD(amount);
+            uint256 usdAmount = token == address(sweep)
+                ? sweep.convertToUSD(amount)
+                : amm().tokenToUSD(amount);
             int256 currentEquityRatio = _calculateEquityRatio(0, usdAmount);
             if (currentEquityRatio < minEquityRatio)
                 revert EquityRatioExcessed();
@@ -604,13 +635,13 @@ contract Stabilizer is Owned, Pausable {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
         uint256 tokenBalance = IERC20Metadata(token).balanceOf(self);
         // Gives all the assets to the liquidator first
-        TransferHelper.safeTransfer(sweepAddress, msg.sender, sweepBalance);
+        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepBalance);
         TransferHelper.safeTransfer(address(usdx), msg.sender, usdxBalance);
         TransferHelper.safeTransfer(token, msg.sender, tokenBalance);
 
         // Takes SWEEP from the liquidator and repays as much debt as it can
         TransferHelper.safeTransferFrom(
-            sweepAddress,
+            address(sweep),
             msg.sender,
             self,
             sweepToLiquidate
@@ -630,7 +661,7 @@ contract Stabilizer is Owned, Pausable {
 
         if (usdxAmount == 0) revert NotEnoughBalance();
 
-        TransferHelper.safeApprove(address(usdx), SWEEP.amm(), usdxAmount);
+        TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
         uint256 sweepAmount = amm().buySweep(
             address(usdx),
             usdxAmount,
@@ -644,12 +675,12 @@ contract Stabilizer is Owned, Pausable {
         uint256 sweepAmount,
         uint256 amountOutMin
     ) internal returns (uint256) {
-        uint256 sweepBalance = SWEEP.balanceOf(address(this));
+        uint256 sweepBalance = sweep.balanceOf(address(this));
         sweepAmount = sweepAmount.min(sweepBalance);
 
         if (sweepAmount == 0) revert NotEnoughBalance();
 
-        TransferHelper.safeApprove(sweepAddress, SWEEP.amm(), sweepAmount);
+        TransferHelper.safeApprove(address(sweep), sweep.amm(), sweepAmount);
         uint256 usdxAmount = amm().sellSweep(
             address(usdx),
             sweepAmount,
@@ -661,14 +692,14 @@ contract Stabilizer is Owned, Pausable {
 
     function _borrow(uint256 sweepAmount) internal {
         uint256 spreadAmount = accruedFee();
-        SWEEP.minterMint(address(this), sweepAmount);
+        sweep.minterMint(address(this), sweepAmount);
         sweepBorrowed += sweepAmount;
         spreadDate = block.timestamp;
 
         if (spreadAmount > 0) {
             TransferHelper.safeTransfer(
-                sweepAddress,
-                SWEEP.treasury(),
+                address(sweep),
+                sweep.treasury(),
                 spreadAmount
             );
             emit PayFee(spreadAmount);
@@ -678,37 +709,38 @@ contract Stabilizer is Owned, Pausable {
     }
 
     function _repay(uint256 sweepAmount) internal {
-        uint256 sweepBalance = SWEEP.balanceOf(address(this));
+        uint256 sweepBalance = sweep.balanceOf(address(this));
         sweepAmount = sweepAmount.min(sweepBalance);
 
         if (sweepAmount == 0) revert NotEnoughBalance();
 
         callAmount = (callAmount > sweepAmount)
-            ? (callAmount - sweepAmount) : 0;
+            ? (callAmount - sweepAmount)
+            : 0;
 
         if (callDelay > 0 && callAmount == 0) callTime = 0;
 
         uint256 spreadAmount = accruedFee();
         spreadDate = block.timestamp;
 
-        uint256 sweep_amount = sweepAmount - spreadAmount;
-        if (sweepBorrowed < sweep_amount) {
-            sweep_amount = sweepBorrowed;
+        sweepAmount = sweepAmount - spreadAmount;
+        if (sweepBorrowed < sweepAmount) {
+            sweepAmount = sweepBorrowed;
             sweepBorrowed = 0;
         } else {
-            sweepBorrowed -= sweep_amount;
+            sweepBorrowed -= sweepAmount;
         }
 
         TransferHelper.safeTransfer(
-            sweepAddress,
-            SWEEP.treasury(),
+            address(sweep),
+            sweep.treasury(),
             spreadAmount
         );
 
-        TransferHelper.safeApprove(sweepAddress, address(this), sweep_amount);
-        SWEEP.minterBurnFrom(sweep_amount);
+        TransferHelper.safeApprove(address(sweep), address(this), sweepAmount);
+        sweep.minterBurnFrom(sweepAmount);
 
-        emit Repaid(sweep_amount);
+        emit Repaid(sweepAmount);
     }
 
     /**
@@ -724,12 +756,12 @@ contract Stabilizer is Owned, Pausable {
         uint256 usdDelta
     ) internal view returns (int256) {
         uint256 currentValue_ = currentValue();
-        uint256 sweepDeltaInUsd = SWEEP.convertToUSD(sweepDelta);
+        uint256 sweepDeltaInUsd = sweep.convertToUSD(sweepDelta);
         uint256 totalValue = currentValue_ + sweepDeltaInUsd - usdDelta;
 
         if (totalValue == 0) return 0;
 
-        uint256 seniorTrancheInUsd = SWEEP.convertToUSD(
+        uint256 seniorTrancheInUsd = sweep.convertToUSD(
             sweepBorrowed + sweepDelta
         );
 
@@ -751,7 +783,6 @@ contract Stabilizer is Owned, Pausable {
         returns (uint256 usdxBalance, uint256 sweepBalance)
     {
         usdxBalance = usdx.balanceOf(address(this));
-        sweepBalance = SWEEP.balanceOf(address(this));
+        sweepBalance = sweep.balanceOf(address(this));
     }
-
 }

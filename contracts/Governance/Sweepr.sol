@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import "@layerzerolabs/solidity-examples/contracts/token/oft/OFT.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
@@ -9,10 +10,11 @@ import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 
 import "../Governance/Treasury.sol";
 import "../Sweep/TransferApprover/ITransferApprover.sol";
-import "../Common/Owned.sol";
 
-contract SweeprCoin is OFT, ERC20Burnable, Owned, ERC20Permit, ERC20Votes {
+contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
     ITransferApprover private transferApprover;
+
+    bool public isGovernanceChain;
 
     /// @notice SWEEPR price. This is in SWEEP
     uint256 public price = 1e6; // 1 SWEEP
@@ -22,30 +24,42 @@ contract SweeprCoin is OFT, ERC20Burnable, Owned, ERC20Permit, ERC20Votes {
     event TokenMinted(address indexed to, uint256 amount);
     event SweeprPriceSet(uint256 price);
     event ApproverSet(address indexed approver);
+    event GovernanceChainSet(bool isGovernance);
 
     /* ========== Errors ========== */
     error TransferNotAllowed();
+    error ZeroAddressDetected();
+    error NotGovernanceChain();
 
     /* ========== CONSTRUCTOR ========== */
     constructor(
-        address _sweep,
-        address _lzEndpoint
-    ) OFT("SweeprCoin", "SWEEPR", _lzEndpoint) ERC20Permit("SweeprCoin") Owned(_sweep) {}
+        bool isGovernance,
+        address lzEndpoint
+    ) OFT("SweeprCoin", "SWEEPR", lzEndpoint) ERC20Permit("SweeprCoin") {
+        isGovernanceChain = isGovernance;
+    }
 
     /* ========== RESTRICTED FUNCTIONS ========== */
-    function mint(address receiver, uint256 amount) external onlyGov {
+    function mint(address receiver, uint256 amount) external onlyOwner {
+        if (!isGovernanceChain) revert NotGovernanceChain();
         _mint(receiver, amount);
 
         emit TokenMinted(receiver, amount);
     }
 
-    function setPrice(uint256 newPrice) external onlyGov {
+    function setGovernanceChain(bool isGovernance) external onlyOwner {
+        isGovernanceChain = isGovernance;
+
+        emit GovernanceChainSet(isGovernance);
+    }
+
+    function setPrice(uint256 newPrice) external onlyOwner {
         price = newPrice;
 
         emit SweeprPriceSet(newPrice);
     }
 
-    function setTransferApprover(address newApprover) external onlyGov {
+    function setTransferApprover(address newApprover) external onlyOwner {
         if (newApprover == address(0)) revert ZeroAddressDetected();
         transferApprover = ITransferApprover(newApprover);
 

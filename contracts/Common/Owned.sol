@@ -8,8 +8,7 @@ pragma solidity 0.8.19;
 import "../Sweep/ISweep.sol";
 
 contract Owned {
-    address public immutable sweepAddress;
-    ISweep public immutable SWEEP;
+    ISweep public immutable sweep;
 
     // Errors
     error NotGovernance();
@@ -17,26 +16,25 @@ contract Owned {
     error NotGovOrMultisig();
     error ZeroAddressDetected();
 
-    constructor(address sweepAddress_) {
-        if(sweepAddress_ == address(0)) revert ZeroAddressDetected();
+    constructor(address _sweep) {
+        if(_sweep == address(0)) revert ZeroAddressDetected();
 
-        sweepAddress = sweepAddress_;
-        SWEEP = ISweep(sweepAddress);
+        sweep = ISweep(_sweep);
     }
 
     modifier onlyGov() {
-        if (msg.sender != SWEEP.owner()) revert NotGovernance();
+        if (msg.sender != sweep.owner()) revert NotGovernance();
         _;
     }
 
     modifier onlyMultisig() {
-        if (msg.sender != SWEEP.fastMultisig())
+        if (msg.sender != sweep.fastMultisig())
             revert NotMultisig();
         _;
     }
 
     modifier onlyGovOrMultisig() {
-        if (msg.sender != SWEEP.fastMultisig() && msg.sender != SWEEP.owner())
+        if (msg.sender != sweep.fastMultisig() && msg.sender != sweep.owner())
             revert NotGovOrMultisig();
         _;
     }

@@ -23,11 +23,10 @@ contract TransferApproverWhitelist is Ownable2Step {
      * @param to beneficiary address
      * @return (bool) true - allowance, false - denial
      */
-    function checkTransfer(address from, address to)
-        external
-        view
-        returns (bool)
-    {
+    function checkTransfer(
+        address from,
+        address to
+    ) external view returns (bool) {
         if (from == address(0) || to == address(0)) return true;
 
         return whitelisted[to];

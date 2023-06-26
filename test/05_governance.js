@@ -45,10 +45,10 @@ contract('Governance', async (accounts) => {
         usdc = await ERC20.deploy();
 
 		// deploys
-		sweepr = await SWEEPR.deploy(sweep.address, LZENDPOINT);
+		sweepr = await SWEEPR.deploy(Const.TRUE, LZENDPOINT); // TRUE means governance chain
 		// await sweepr.setTransferApprover(addresses.approver);
 
-		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address, addresses.treasury);
+		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
 		governance = await Governance.deploy(sweepr.address, addresses.timelock, 10);
 
 		// Sets SWEEPR price to 1 SWEEP: 

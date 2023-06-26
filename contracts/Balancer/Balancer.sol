@@ -14,23 +14,20 @@ pragma solidity 0.8.19;
 
 import "../Common/Owned.sol";
 import "../Stabilizer/IStabilizer.sol";
-
-import { SD59x18, wrap, unwrap } from "@prb/math/src/SD59x18.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { SD59x18, wrap, unwrap } from "@prb/math/src/SD59x18.sol";
 
 
 contract Balancer is Owned {
-
     enum Mode { IDLE, INVEST, CALL }
 
+    uint256 public index;
     uint256 private constant ONE_YEAR = 365 * 1 days;
     uint256 private constant PRECISION = 1e6;    
     
-    uint256 public index;
     mapping(uint256 => address) public stabilizers;
     mapping(address => uint256) public amounts;
-
 
     // Events
     event InterestRateRefreshed(int256 interestRate);
@@ -49,9 +46,9 @@ contract Balancer is Owned {
      * returns mode: 0 => idle, 1 => invest, 2 => call
      */
     function refreshInterestRate() public onlyMultisig returns (Mode mode) {
-        int256 interestRate = SWEEP.interestRate();
-        int256 stepValue = SWEEP.stepValue();
-        uint256 targetPrice = SWEEP.targetPrice();
+        int256 interestRate = sweep.interestRate();
+        int256 stepValue = sweep.stepValue();
+        uint256 targetPrice = sweep.targetPrice();
         
         mode = getMode();
 
@@ -63,17 +60,17 @@ contract Balancer is Owned {
             interestRate
         );
 
-        SWEEP.startNewPeriod();
-        SWEEP.setInterestRate(interestRate);
-        SWEEP.setTargetPrice(targetPrice, nextTargetPrice);
+        sweep.startNewPeriod();
+        sweep.setInterestRate(interestRate);
+        sweep.setTargetPrice(targetPrice, nextTargetPrice);
 
         emit InterestRateRefreshed(interestRate);
     }
 
     function getMode() public view returns (Mode) {
-        uint256 twaPrice = SWEEP.twaPrice();
-        uint256 targetPrice = SWEEP.targetPrice();
-        uint256 spread = SWEEP.arbSpread() * targetPrice / PRECISION;
+        uint256 twaPrice = sweep.twaPrice();
+        uint256 targetPrice = sweep.targetPrice();
+        uint256 spread = sweep.arbSpread() * targetPrice / PRECISION;
         uint256 upperBound = targetPrice + spread;
         uint256 lowerBound = targetPrice - spread;
 
@@ -95,7 +92,7 @@ contract Balancer is Owned {
     ) internal view returns (uint256) {
         SD59x18 precision = wrap(int256(PRECISION));
         SD59x18 year = wrap(int256(ONE_YEAR));
-        SD59x18 period = wrap(int256(SWEEP.periodTime()));
+        SD59x18 period = wrap(int256(sweep.periodTime()));
         SD59x18 timeRatio = period.div(year);
         SD59x18 priceRatio = precision.add(wrap(interestRate));
 
@@ -103,7 +100,7 @@ contract Balancer is Owned {
             precision.pow(timeRatio)
         ));
 
-        return targetPrice * uint256(priceUnit) / (10 ** SWEEP.decimals());
+        return targetPrice * uint256(priceUnit) / (10 ** sweep.decimals());
     }
 
     /**
@@ -112,7 +109,7 @@ contract Balancer is Owned {
      * @param interestRate new value to be assigned.
      */
     function setInterestRate(int256 interestRate) external onlyMultisig {
-        SWEEP.setInterestRate(interestRate);
+        sweep.setInterestRate(interestRate);
     }
 
     /**
