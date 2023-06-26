@@ -42,7 +42,7 @@ contract("TokenDistributor", async function () {
 		await sweep.connect(owner).addMinter(sender.address, SWEEP_MINT_AMOUNT);
 		await sweep.connect(sender).minterMint(sender.address, SWEEP_MINT_AMOUNT);
 
-		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address, treasury.address);
+		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
 
 		// mint sweepr for TokenDstributor contract
 		await sweepr.connect(owner).mint(tokenDistributor.address, SWEEPR_MINT_AMOUNT);
@@ -56,6 +56,24 @@ contract("TokenDistributor", async function () {
 			usdc.address
 			)
 		).to.be.revertedWithCustomError(Sweepr, 'NotGovOrMultisig');
+	});
+
+	it('revert calling allowSale() function when sellAmount or sellPrice is zero', async () => {
+		await expect(tokenDistributor.connect(multisig).allowSale(
+			0, 
+			sender.address, 
+			USDC_SALE_PRICE, 
+			usdc.address
+			)
+		).to.be.revertedWithCustomError(TokenDistributor, 'ZeroAmount');
+
+		await expect(tokenDistributor.connect(multisig).allowSale(
+			SALE_AMOUNT, 
+			sender.address, 
+			0, 
+			usdc.address
+			)
+		).to.be.revertedWithCustomError(TokenDistributor, 'ZeroPrice');
 	});
 
 	it('allow sale correctly', async () => {

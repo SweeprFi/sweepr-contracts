@@ -19,7 +19,6 @@ import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
 contract TokenDistributor is Owned {
     SweeprCoin private sweepr;
-    Treasury private treasury;
 
     uint256 public saleAmount;
     uint256 public salePrice;
@@ -33,16 +32,15 @@ contract TokenDistributor is Owned {
     error OverSaleAmount();
     error NotEnoughBalance();
     error NotRecipient();
-
+    error ZeroPrice();
+    error ZeroAmount();
 
     /* ========== CONSTRUCTOR ========== */
     constructor(
         address _sweep, 
-        address _sweepr,
-        address payable _treasury
+        address _sweepr
     ) Owned(_sweep) {
         sweepr = SweeprCoin(_sweepr);
-        treasury = Treasury(_treasury);
     }
 
     /* ========== PUBLIC FUNCTIONS ========== */
@@ -52,15 +50,13 @@ contract TokenDistributor is Owned {
      */
     function buy(uint256 _tokenAmount) external {
         uint256 sweeprBalance = sweepr.balanceOf(address(this));
-        uint256 decimals = IERC20Metadata(sweepr).decimals();
-
-        uint256 sweeprAmount = (_tokenAmount * 10 ** decimals) / salePrice;
+        uint256 sweeprAmount = (_tokenAmount * 10 ** sweepr.decimals()) / salePrice;
 
         if (msg.sender != sellTo) revert NotRecipient();
         if (sweeprAmount > saleAmount) revert OverSaleAmount();
         if (sweeprAmount > sweeprBalance) revert NotEnoughBalance();
 
-        TransferHelper.safeTransferFrom(address(payToken), msg.sender, address(treasury), _tokenAmount);
+        TransferHelper.safeTransferFrom(payToken, msg.sender, SWEEP.treasury(), _tokenAmount);
         TransferHelper.safeTransfer(address(sweepr), msg.sender, sweeprAmount);
 
         unchecked {
@@ -84,6 +80,10 @@ contract TokenDistributor is Owned {
         uint256 _salePrice,
         address _payToken
     ) external onlyGovOrMultisig {
+        if (_sellTo == address(0) || _payToken == address(0)) revert ZeroAddressDetected();
+        if (_saleAmount == 0) revert ZeroAmount();
+        if (_salePrice == 0) revert ZeroPrice();
+
         saleAmount = _saleAmount;
         sellTo = _sellTo;
         salePrice = _salePrice;
