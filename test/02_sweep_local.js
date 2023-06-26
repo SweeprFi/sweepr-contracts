@@ -19,11 +19,6 @@ contract("Sweep", async function () {
 			2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed(Sweep);
-
-		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
-		WhitelistApprover = await ethers.getContractFactory("TransferApproverWhitelist");
-		blacklistApprover = await BlacklistApprover.deploy();
-		whitelistApprover = await WhitelistApprover.deploy();
 	});
 
 	it('set admin to multisig', async () => {

@@ -17,7 +17,6 @@ pragma solidity 0.8.19;
  * EquityRatio = Junior / (Junior + Senior)
  */
 
-import "../Sweep/ISweep.sol";
 import "../AMM/IAMM.sol";
 import "../Common/Owned.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";

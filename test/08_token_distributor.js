@@ -10,7 +10,6 @@ contract("TokenDistributor", async function () {
 		Sweepr = await ethers.getContractFactory("SweeprCoin");
 		Treasury = await ethers.getContractFactory("Treasury");
 		TokenDistributor = await ethers.getContractFactory("TokenDistributor");
-		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
 
 		SWEEP_MINT_AMOUNT = ethers.utils.parseUnits("100000", 18);
 		SWEEPR_MINT_AMOUNT = ethers.utils.parseUnits("15000", 18);

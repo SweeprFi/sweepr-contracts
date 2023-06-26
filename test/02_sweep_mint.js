@@ -10,8 +10,6 @@ contract("Sweep - Mint", async function () {
 		TRANSFER_AMOUNT = toBN("100", 18);
 		interestRate = 5e4; // 5%
 		// ------------- Deployment of contracts -------------
-		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
-		WhitelistApprover = await ethers.getContractFactory("TransferApproverWhitelist");
 		Sweep = await ethers.getContractFactory("SweepCoin");
 
 		const Proxy = await upgrades.deployProxy(Sweep, [
@@ -20,9 +18,6 @@ contract("Sweep - Mint", async function () {
 			2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed();
-
-		blacklistApprover = await BlacklistApprover.deploy();
-		whitelistApprover = await WhitelistApprover.deploy();
 	});
 
 	it('add and remove minters', async () => {
@@ -98,59 +93,9 @@ contract("Sweep - Mint", async function () {
 			.to.be.revertedWith("Pausable: paused");
 	});
 
-	it('reverts transfer when receiver is blacklisted', async () => {
-		await sweep.connect(owner).unpause();
-		await expect(sweep.setTransferApprover(Const.ADDRESS_ZERO))
-			.to.be.revertedWithCustomError(sweep, "ZeroAddressDetected");
-		await sweep.setTransferApprover(blacklistApprover.address);
-
-		let receiverBalance = await sweep.balanceOf(receiver.address);
-		expect(receiverBalance).to.equal(TRANSFER_AMOUNT);
-		expect(await blacklistApprover.isBlacklisted(receiver.address)).to.equal(false);
-
-		// Add receiver into blocklist
-		await blacklistApprover.connect(owner).blacklist(receiver.address);
-
-		expect(await blacklistApprover.isBlacklisted(receiver.address)).to.equal(true);
-
-		await expect(sweep.connect(owner).transfer(receiver.address, TRANSFER_AMOUNT))
-			.to.be.revertedWithCustomError(Sweep, 'TransferNotAllowed');
-	});
-
-	it('transfers token when receiver is unblacklisted', async () => {
-		let receiverBalance = await sweep.balanceOf(receiver.address);
-		expect(receiverBalance).to.equal(TRANSFER_AMOUNT);
-
-		// Unblacklist receiver
-		await blacklistApprover.connect(owner).unBlacklist(receiver.address);
-
-		await sweep.connect(receiver).transfer(newAddress.address, TRANSFER_AMOUNT)
-
-		expect(await sweep.balanceOf(receiver.address)).to.equal(Const.ZERO);
-		expect(await sweep.balanceOf(newAddress.address)).to.equal(TRANSFER_AMOUNT);
-	});
-
-	it('transfers token when receiver is whitelisted', async () => {
-		await sweep.setTransferApprover(whitelistApprover.address);
-
-		// whitelist receiver
-		expect(await whitelistApprover.isWhitelisted(receiver.address)).to.equal(Const.FALSE);
-		await whitelistApprover.connect(owner).whitelist(receiver.address);
-
-		await sweep.connect(newAddress).transfer(receiver.address, TRANSFER_AMOUNT)
-
-		expect(await sweep.balanceOf(newAddress.address)).to.equal(Const.ZERO);
-		expect(await sweep.balanceOf(receiver.address)).to.equal(TRANSFER_AMOUNT);
-
-		// unwhitelist receiver
-		await whitelistApprover.connect(owner).unWhitelist(receiver.address);
-
-		await expect(sweep.connect(receiver).transfer(owner.address, TRANSFER_AMOUNT))
-			.to.be.revertedWithCustomError(Sweep, 'TransferNotAllowed');
-	});
-
 	it('burns Sweeps correctly', async () => {
 		MAX_MINT_AMOUNT = toBN("500", 18);
+		await sweep.connect(owner).unpause();
 		await sweep.connect(owner).setMinterEnabled(newMinter.address, Const.TRUE);
 		await sweep.connect(owner).setMinterMaxAmount(newMinter.address, MAX_MINT_AMOUNT);
 

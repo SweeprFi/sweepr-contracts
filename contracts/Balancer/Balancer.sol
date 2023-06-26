@@ -14,10 +14,7 @@ pragma solidity 0.8.19;
 
 import "../Common/Owned.sol";
 import "../Stabilizer/IStabilizer.sol";
-import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { SD59x18, wrap, unwrap } from "@prb/math/src/SD59x18.sol";
-
 
 contract Balancer is Owned {
     enum Mode { IDLE, INVEST, CALL }

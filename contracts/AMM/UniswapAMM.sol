@@ -10,7 +10,6 @@ pragma solidity 0.8.19;
  * @dev Interactions with UniswapV3
  */
 
-import "../Common/Owned.sol";
 import "../Oracle/ChainlinkPricer.sol";
 
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
