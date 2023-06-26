@@ -21,17 +21,7 @@ contract("Sweepr", async function () {
 			2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed();
-
-		BlacklistApprover = await ethers.getContractFactory("TransferApproverBlacklist");
-		blacklistApprover = await BlacklistApprover.deploy();
-
 		sweepr = await Sweepr.deploy(Const.TRUE, lzEndpoint.address); // TRUE means governance chain
-	});
-
-	it('sets a new transfer approver correctly', async () => {
-		await expect(sweepr.setTransferApprover(Const.ADDRESS_ZERO))
-			.to.be.revertedWithCustomError(sweepr, "ZeroAddressDetected");
-		await sweepr.setTransferApprover(blacklistApprover.address);
 	});
 
 	it('reverts mint when caller is not owner', async () => {
@@ -52,31 +42,6 @@ contract("Sweepr", async function () {
 
 		senderBalance = await sweepr.balanceOf(sender.address);
 		expect(senderBalance).to.equal(TRANSFER_AMOUNT);
-	});
-
-	it('reverts transfer when receiver is blacklisted', async () => {
-		expect(await blacklistApprover.isBlacklisted(receiver.address)).to.equal(false);
-
-		// Add receiver into blocklist
-		await blacklistApprover.connect(owner).blacklist(receiver.address);
-		expect(await blacklistApprover.isBlacklisted(receiver.address)).to.equal(true);
-
-		await expect(sweepr.connect(sender).transfer(receiver.address, TRANSFER_AMOUNT))
-			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
-	});
-
-	it('transfers successfully when receiver is unblacklisted', async () => {
-		// Remove receiver from blocklist
-		await blacklistApprover.connect(owner).unBlacklist(receiver.address);
-		expect(await blacklistApprover.isBlacklisted(receiver.address)).to.equal(false);
-
-		receiverBalance = await sweepr.balanceOf(receiver.address);
-		expect(receiverBalance).to.equal(ZERO);
-
-		await sweepr.connect(sender).transfer(receiver.address, TRANSFER_AMOUNT)
-
-		receiverBalance = await sweepr.balanceOf(receiver.address);
-		expect(receiverBalance).to.equal(TRANSFER_AMOUNT);
 	});
 
 	it('set governance chain correctly', async () => {

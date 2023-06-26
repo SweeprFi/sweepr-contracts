@@ -6,9 +6,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-
-import "../Governance/Treasury.sol";
 import "../Sweep/TransferApprover/ITransferApprover.sol";
 
 contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {

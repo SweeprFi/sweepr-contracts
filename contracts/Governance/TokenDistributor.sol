@@ -14,6 +14,7 @@ pragma solidity 0.8.19;
 
 import "./Sweepr.sol";
 import "../Common/Owned.sol";
+import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 
 contract TokenDistributor is Owned {
     SweeprCoin private sweepr;
