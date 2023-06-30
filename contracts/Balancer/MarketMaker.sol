@@ -85,7 +85,7 @@ contract MarketMaker is Stabilizer {
         uint24 poolFee = amm().poolFee();
 
         if (sweep.ammPrice() > arbPriceUpper) {
-            uint256 usdxAmount = sellSweep(sweepAmount);
+            uint256 usdxAmount = sellSweepToAMM(sweepAmount);
 
             uint256 minPrice = ((PRECISION - tickSpread) * targetPrice) / PRECISION;
             uint256 maxPrice = targetPrice;
@@ -102,7 +102,7 @@ contract MarketMaker is Stabilizer {
      * @notice Sell Sweep.
      * @param sweepAmount to sell.
      */
-    function sellSweep(
+    function sellSweepToAMM(
         uint256 sweepAmount
     ) internal returns(uint256 usdxAmount) {
         uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
@@ -115,6 +115,36 @@ contract MarketMaker is Stabilizer {
 
         _borrow(sweepAmount);
         usdxAmount = _sell(sweepAmount, minAmountUSDx);
+    }
+
+    /**
+     * @notice Buy Sweep.
+     * @param sweepAmount to buy.
+     */
+    function buySweep(
+        uint256 sweepAmount
+    ) external {
+        // calculate amount to pay
+        uint24 poolFee = amm().poolFee();
+        uint256 targetPrice = sweep.targetPrice();
+        uint256 spread = sweep.arbSpread() * targetPrice / PRECISION;
+        uint256 price = targetPrice + spread;
+        uint256 usdxAmount = (sweepAmount * price) / (10 ** sweep.decimals());
+
+        TransferHelper.safeTransferFrom(
+            address(usdx),
+            msg.sender,
+            address(this),
+            usdxAmount
+        );
+        addSingleLiquidity(targetPrice, price, usdxAmount,  poolFee);
+
+        _borrow(sweepAmount);
+        TransferHelper.safeTransfer(
+            address(sweep),
+            msg.sender,
+            sweepAmount
+        );
     }
 
     /**

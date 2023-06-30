@@ -144,8 +144,7 @@ contract('Market Maker', async () => {
                 amountIn: swapAmount,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
-            }
-            );
+            });
 
             sweepPrice = await sweep.ammPrice();
             usdcPoolBalance = await usdc.balanceOf(poolAddress);
@@ -236,8 +235,7 @@ contract('Market Maker', async () => {
                 amountIn: swapAmount,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
-            }
-            );
+            });
 
             pool = await ethers.getContractAt("IUniswapV3Pool", poolAddress);
             poolData = await pool.slot0();
@@ -287,6 +285,54 @@ contract('Market Maker', async () => {
             expect(await sweep.balanceOf(marketmaker.address)).to.greaterThan(sweepAssetBalance);
 
             expect(await sweep.ammPrice()).to.equals(sweepPrice);
+        });
+
+        it('buys sweep from MM directly', async () => {
+            // Rise the sweep price to mint
+            usdcAmount = toBN("10000000", 6);
+            await swapRouter.exactInputSingle({
+                tokenIn: usdc.address,
+                tokenOut: sweep.address,
+                fee: 500,
+                recipient: marketmaker.address,
+                deadline: 2105300114,
+                amountIn: usdcAmount,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            });
+
+            balance = toBN("3000", 6);
+            await sweep.setArbSpread(3000);
+            await usdc.transfer(guest.address, balance);
+            await usdc.connect(guest).approve(marketmaker.address, balance);
+
+            // vars
+            amount = toBN("1000", 18);
+            precision = toBN("1", 6);
+            decimals = toBN("1", 18);
+            // calculate price and amount to pay
+            targetPrice = await sweep.targetPrice();
+            spread = await sweep.arbSpread();
+            spread = spread.mul(targetPrice).div(precision)
+            price = targetPrice.add(spread);
+            newAmount = amount.mul(price).div(decimals);
+
+            // get prev state
+            usdcBalanceBefore = await usdc.balanceOf(guest.address);
+            sweepBalanceBefore = await sweep.balanceOf(guest.address);
+            usdcPoolBalanceBefore = await usdc.balanceOf(poolAddress);
+            sweepPoolBalanceBefore = await sweep.balanceOf(poolAddress);
+
+            expect(usdcBalanceBefore).to.be.equal(balance);
+            expect(sweepBalanceBefore).to.be.equal(Const.ZERO);
+
+            await marketmaker.connect(guest).buySweep(amount);
+
+            // check the new state
+            expect(await usdc.balanceOf(guest.address)).to.be.equal(usdcBalanceBefore.sub(newAmount));
+            expect(await sweep.balanceOf(guest.address)).to.be.equal(amount);
+            expect(await usdc.balanceOf(poolAddress)).to.be.greaterThan(usdcPoolBalanceBefore);
+            expect(await sweep.balanceOf(poolAddress)).to.be.equal(sweepPoolBalanceBefore);
         });
     })
 });
