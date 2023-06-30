@@ -12,6 +12,10 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
     ITransferApprover private transferApprover;
 
     bool public isGovernanceChain;
+    // Destination Chain Ids
+    uint16[] public chainIds; 
+    // Map chain Id to Sweep address
+    mapping(uint16 => address) public chains;
 
     /// @notice SWEEPR price. This is in SWEEP
     uint256 public price = 1e6; // 1 SWEEP
@@ -22,6 +26,8 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
     event SweeprPriceSet(uint256 price);
     event ApproverSet(address indexed approver);
     event GovernanceChainSet(bool isGovernance);
+    event ChainAdded(uint16 dstChainId, address indexed sweep);
+    event ChainRemoved(uint16 dstChainId);
 
     /* ========== Errors ========== */
     error TransferNotAllowed();
@@ -34,6 +40,19 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
         address lzEndpoint
     ) OFT("SweeprCoin", "SWEEPR", lzEndpoint) ERC20Permit("SweeprCoin") {
         isGovernanceChain = isGovernance;
+    }
+
+    /* ========== VIEW FUNCTIONS ========== */
+    function chainCount() external view returns (uint256) {
+        return chainIds.length;
+    }
+
+    function getChainId(uint256 index) external view returns (uint16) {
+        return chainIds[index];
+    }
+
+    function getSweepWithChainId(uint16 chainId) external view returns (address) {
+        return chains[chainId];
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */
@@ -61,6 +80,32 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
         transferApprover = ITransferApprover(newApprover);
 
         emit ApproverSet(newApprover);
+    }
+
+    /**
+     * @notice Add Destination Chain
+     * @param dstChainId Destination Chain Id.
+     * @param sweep address of sweep in destination chain.
+     */
+    function addChain(uint16 dstChainId, address sweep) external onlyOwner {
+        chainIds.push(dstChainId);
+        chains[dstChainId] = sweep;
+
+        emit ChainAdded(dstChainId, sweep);
+    }
+
+    /**
+     * @notice Remove Destination Chain Id
+     * @param itemIndex index to remove.
+     */
+    function removeChain(uint256 itemIndex) external onlyOwner {
+        uint16 removedChainId = chainIds[itemIndex];
+        delete chains[removedChainId];
+
+        chainIds[itemIndex] = chainIds[chainIds.length -1];
+        chainIds.pop();
+
+        emit ChainRemoved(removedChainId);
     }
 
     /* ========== OVERRIDDEN FUNCTIONS ========== */

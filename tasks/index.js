@@ -27,6 +27,13 @@ task(
 .addParam("targetNetwork", "the target network to set as a trusted remote")
 
 task(
+    "setBalancerTrustedRemote",
+    "setBalancerTrustedRemote(chainId) to enable inbound/outbound messages with your other contracts",
+    require("./setBalancerTrustedRemote")
+)
+.addParam("targetNetwork", "the target network to set as a trusted remote")
+
+task(
     "setSenderTransferOwnership",
     "setSenderTransferOwnership() to transfer ownership of OmnichainProposalSender",
     require("./setSenderTransferOwnership")

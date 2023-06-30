@@ -21,7 +21,7 @@ contract("Balancer", async function () {
 		sweep = await SweepProxy.deployed();
 
 		Balancer = await ethers.getContractFactory("Balancer");
-		balancer = await Balancer.deploy(sweep.address);
+		balancer = await Balancer.deploy(sweep.address, lzEndpoint.address,);
 
 		await sweep.setBalancer(balancer.address);
 		stabilizers = [stab_1.address, stab_2.address, stab_3.address, stab_4.address]

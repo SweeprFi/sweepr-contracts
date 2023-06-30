@@ -135,5 +135,28 @@ contract("Sweep - OFT", async function () {
             // balance after transfer is sendQty
             expect(await OFTDst.balanceOf(deployer.address)).to.be.equal(sendQty)
         })
+
+        it("add destination chain", async function () {
+            expect(await OFTSrc.chainCount()).to.be.equal(Const.ZERO)
+
+            await OFTSrc.addChain(chainIdDst, sweepDst.address);
+            expect(await OFTSrc.chainCount()).to.be.equal(1);
+
+            chain = await OFTSrc.chains(chainIdDst);
+            expect(chain).to.equal(sweepDst.address);
+
+            sweepAddress = await OFTSrc.getSweepWithChainId(chainIdDst);
+            expect(sweepAddress).to.equal(sweepDst.address);
+        })
+
+        it("remove destination chain", async function () {
+            expect(await OFTSrc.chainCount()).to.be.equal(1)
+
+            await OFTSrc.removeChain(0);
+            expect(await OFTSrc.chainCount()).to.be.equal(Const.ZERO);
+
+            chain = await OFTSrc.chains(chainIdDst);
+            expect(chain).to.equal(Const.ADDRESS_ZERO);
+        })
     })
 })
