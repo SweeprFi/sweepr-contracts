@@ -40,7 +40,7 @@ contract('Balancer - Auto Call', async () => {
     await sweep.setAMM(amm.address);
 
     Balancer = await ethers.getContractFactory("Balancer");
-    balancer = await Balancer.deploy(sweep.address);
+    balancer = await Balancer.deploy(sweep.address, lzEndpoint.address);
 
     StabilizerAave = await ethers.getContractFactory("AaveV3Asset");
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");

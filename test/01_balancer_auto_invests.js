@@ -33,7 +33,7 @@ contract('Balancer - Auto Invests', async () => {
         usdc = await ERC20.attach(USDC_ADDRESS);
 
         Balancer = await ethers.getContractFactory("Balancer");
-        balancer = await Balancer.deploy(sweep.address);
+        balancer = await Balancer.deploy(sweep.address, lzEndpoint.address);
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
         amm = await Uniswap.deploy(sweep.address, Const.FEE);

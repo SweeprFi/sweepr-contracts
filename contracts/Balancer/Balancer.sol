@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.19;
+pragma abicoder v2;
 
 // ====================================================================
 // ======================== Balancer.sol ==============================
@@ -13,30 +14,41 @@ pragma solidity 0.8.19;
  */
 
 import "../Common/Owned.sol";
+import "../Governance/Sweepr.sol";
 import "../Stabilizer/IStabilizer.sol";
+import "@layerzerolabs/solidity-examples/contracts/lzApp/NonblockingLzApp.sol";
 import { SD59x18, wrap, unwrap } from "@prb/math/src/SD59x18.sol";
 
-contract Balancer is Owned {
+contract Balancer is NonblockingLzApp, Owned {
+    SweeprCoin public sweepr;
+
     enum Mode { IDLE, INVEST, CALL }
 
     uint256 public index;
     uint256 private constant ONE_YEAR = 365 * 1 days;
     uint256 private constant PRECISION = 1e6;    
+    uint16 public constant PT_INTEREST_RATE = 1; // packet type for sending interest rate
     
     mapping(uint256 => address) public stabilizers;
     mapping(address => uint256) public amounts;
 
     // Events
     event InterestRateRefreshed(int256 interestRate);
+    event SweeprSet(address indexed sweeprAddress);
     event ActionAdded(address stabilizer, uint256 amount);
     event ActionRemoved(address stabilizer);
+    event ChainAdded(uint16 dstChainId, address indexed sweep);
+    event ChainRemoved(uint16 dstChainId);
     event Execute(Mode mode);
     event Reset();
 
     error ModeMismatch(Mode intention, Mode state);
     error WrongDataLength();
+    error NotTrustedRemote();
+    error ZeroETH();
+    error NotEnoughETH();
 
-    constructor(address sweepAddress_) Owned(sweepAddress_) {}
+    constructor(address sweepAddress, address lzEndpoint) NonblockingLzApp(lzEndpoint) Owned(sweepAddress) {}
 
     /**
      * @notice refresh interest rate periodically.
@@ -45,23 +57,17 @@ contract Balancer is Owned {
     function refreshInterestRate() public onlyMultisig returns (Mode mode) {
         int256 interestRate = sweep.interestRate();
         int256 stepValue = sweep.stepValue();
-        uint256 targetPrice = sweep.targetPrice();
         
         mode = getMode();
 
         if (mode == Mode.CALL) interestRate += stepValue;
         if (mode == Mode.INVEST) interestRate -= stepValue;
 
-        uint256 nextTargetPrice = getNextTargetPrice(
-            targetPrice,
-            interestRate
-        );
+        setNewPeriod(interestRate);
 
-        sweep.startNewPeriod();
-        sweep.setInterestRate(interestRate);
-        sweep.setTargetPrice(targetPrice, nextTargetPrice);
-
-        emit InterestRateRefreshed(interestRate);
+        if (address(sweepr) != address(0) && sweepr.isGovernanceChain()) {
+            _sendInterestRate(interestRate);
+        }
     }
 
     function getMode() public view returns (Mode) {
@@ -100,6 +106,28 @@ contract Balancer is Owned {
         return targetPrice * uint256(priceUnit) / (10 ** sweep.decimals());
     }
 
+    function setNewPeriod(int256 interestRate) internal {
+        uint256 targetPrice = sweep.targetPrice();
+
+        uint256 nextTargetPrice = getNextTargetPrice(
+            targetPrice,
+            interestRate
+        );
+
+        sweep.startNewPeriod();
+        sweep.setInterestRate(interestRate);
+        sweep.setTargetPrice(targetPrice, nextTargetPrice);
+
+        emit InterestRateRefreshed(interestRate);
+    }
+
+    function setSweepr(address sweeprAddress) external onlyGov {
+        if (sweeprAddress == address(0)) revert ZeroAddressDetected();
+        sweepr = SweeprCoin(sweeprAddress);
+
+        emit SweeprSet(sweeprAddress);
+    }
+
     /**
      * @notice Set Interest Rate
      * @dev Assigns the value that will be set as the interest rate
@@ -107,6 +135,62 @@ contract Balancer is Owned {
      */
     function setInterestRate(int256 interestRate) external onlyMultisig {
         sweep.setInterestRate(interestRate);
+    }
+
+    function _sendInterestRate(int256 rate) internal {
+        uint chainCount = sweepr.chainCount();
+        for (uint i = 0; i < chainCount; ) {
+            uint16 dstChainId = sweepr.getChainId(i);
+            address sweepDstAddress = sweepr.getSweepWithChainId(dstChainId);
+
+            if (this.isTrustedRemote(dstChainId, abi.encodePacked(sweepDstAddress))) revert NotTrustedRemote();
+            if (address(this).balance == 0) revert ZeroETH();
+
+            // encode the payload with the number of pings
+            bytes memory payload = abi.encode(PT_INTEREST_RATE, rate);
+
+
+            // use adapterParams v1 to specify more gas for the destination
+            uint16 version = 1;
+            uint gasForDestinationLzReceive = 350000;
+            bytes memory adapterParams = abi.encodePacked(version, gasForDestinationLzReceive);
+
+            // get the fees we need to pay to LayerZero for message delivery
+            (uint messageFee, ) = lzEndpoint.estimateFees(dstChainId, address(this), payload, false, adapterParams);
+            if (address(this).balance < messageFee) revert NotEnoughETH();
+
+            // send LayerZero message
+            _lzSend( // {value: messageFee} will be paid out of this contract!
+                dstChainId, // destination chainId
+                payload, // abi.encode()'ed bytes
+                payable(this), // (msg.sender will be this contract) refund address (LayerZero will refund any extra gas back to caller of send()
+                address(0x0), // future param, unused for this example
+                adapterParams,
+                messageFee // v1 adapterParams, specify custom destination gas qty
+            );
+
+            unchecked { i++; }
+        }
+    }
+
+    function _nonblockingLzReceive(
+        uint16, 
+        bytes memory, 
+        uint64, 
+        bytes memory _payload
+    ) internal override {
+        uint16 packetType;
+        assembly {
+            packetType := mload(add(_payload, 32))
+        }
+
+        if (packetType == PT_INTEREST_RATE) {
+            (, int256 newInterestRate) = abi.decode(_payload, (uint16, int256));
+
+            setNewPeriod(newInterestRate);
+        } else {
+            revert("Balancer: unknown packet type");
+        }
     }
 
     /**
@@ -235,4 +319,8 @@ contract Balancer is Owned {
         emit Reset();
     }
 
+    /**
+     * @notice Receive Eth
+     */
+    receive() external payable {}
 }
