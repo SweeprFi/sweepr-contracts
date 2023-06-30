@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers, upgrades } = require("hardhat");
-const { addresses } = require('../utils/address');
+const { time } = require('@openzeppelin/test-helpers');
 const { toBN, Const, getBlockTimestamp, sendEth } = require("../utils/helper_functions");
 
 const chainIdSrc = 1;
@@ -33,7 +33,9 @@ contract("Balancer - Crosschain message", async function () {
 
         sweeprSrc = await Sweepr.deploy(Const.TRUE, lzEndpointSrcMock.address); // TRUE means governance chain
         await sweepSrc.setBalancer(balancerSrc.address);
-        await balancerSrc.setSweepr(sweeprSrc.address);
+        await sweepSrc.setPeriodTime(100);
+        await sweepSrc.setArbSpread(1000);
+        await sweepSrc.setTWAPrice(9000000);
 
         const dstProxy = await upgrades.deployProxy(Sweep, [
             lzEndpointDstMock.address,
@@ -45,7 +47,6 @@ contract("Balancer - Crosschain message", async function () {
         balancerDst = await Balancer.deploy(sweepDst.address, lzEndpointDstMock.address);
 
         await sweepDst.setBalancer(balancerDst.address);
-        await sweeprSrc.addChain(chainIdDst, sweepDst.address);
     });
 
     beforeEach(async () => {
@@ -63,9 +64,34 @@ contract("Balancer - Crosschain message", async function () {
         await sendEth(balancerSrc.address);
     })
 
-    it("set interest rate", async function () {
+    it("not send crosschain message when sweepr is not set to balancer", async function () {
         await balancerSrc.refreshInterestRate();
         
+        interestRate = await sweepSrc.interestRate();
+        expect(await sweepDst.interestRate()).to.not.eq(interestRate);
+    })
+
+    it("not send crosschain message when there is no chain added in sweepr", async function () {
+        await balancerSrc.setSweepr(sweeprSrc.address);
+
+        await time.increase(100);
+		await time.advanceBlock();
+
+        await balancerSrc.refreshInterestRate();
+        
+		interestRate = await sweepSrc.interestRate();
+
+        expect(await sweepDst.interestRate()).to.not.equal(interestRate);
+    })
+
+    it("set interest rate successfully", async function () {
+        await sweeprSrc.addChain(chainIdDst, sweepDst.address);
+
+        await time.increase(100);
+		await time.advanceBlock();
+
+        await balancerSrc.refreshInterestRate();
+
 		timestamp = await getBlockTimestamp();
         interestRate = await sweepSrc.interestRate();
 

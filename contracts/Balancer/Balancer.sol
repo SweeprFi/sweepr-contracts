@@ -138,7 +138,8 @@ contract Balancer is NonblockingLzApp, Owned {
     }
 
     function _sendInterestRate(int256 rate) internal {
-        for (uint i = 0; i < sweepr.chainCount(); ) {
+        uint chainCount = sweepr.chainCount();
+        for (uint i = 0; i < chainCount; ) {
             uint16 dstChainId = sweepr.getChainId(i);
             address sweepDstAddress = sweepr.getSweepWithChainId(dstChainId);
 
