@@ -111,7 +111,7 @@ contract GlpAsset is Stabilizer {
     function divest(
         uint256 usdxAmount
     ) external onlyBorrower validAmount(usdxAmount) {
-        _divest(usdxAmount);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -149,7 +149,7 @@ contract GlpAsset is Stabilizer {
         emit Invested(usdxAmount, 0);
     }
 
-    function _divest(uint256 usdxAmount) internal override {
+    function _divest(uint256 usdxAmount, uint256) internal override {
         collect();
 
         uint256 glpPrice = getGlpPrice(false);

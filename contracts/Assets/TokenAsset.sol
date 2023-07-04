@@ -78,23 +78,27 @@ contract TokenAsset is Stabilizer {
     /**
      * @notice Invest.
      * @param usdxAmount Amount of usdx to be swapped for token.
+     * @param slippage .
      * @dev Swap from usdx to token.
      */
     function invest(
-        uint256 usdxAmount
+        uint256 usdxAmount,
+        uint256 slippage
     ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
-        _invest(usdxAmount, 0);
+        _invest(usdxAmount, slippage);
     }
 
     /**
      * @notice Divest.
      * @param usdxAmount Amount to be divested.
+     * @param slippage .
      * @dev Swap from the token to usdx.
      */
     function divest(
-        uint256 usdxAmount
+        uint256 usdxAmount,
+        uint256 slippage
     ) external onlyBorrower validAmount(usdxAmount) {
-        _divest(usdxAmount);
+        _divest(usdxAmount, slippage);
     }
 
     /**
@@ -106,17 +110,23 @@ contract TokenAsset is Stabilizer {
 
     /* ========== Internals ========== */
 
-    function _invest(uint256 usdxAmount, uint256) internal override {
+    function _invest(uint256 usdxAmount, uint256 slippage) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        uint256 minAmountOut = _calculateMinAmountOut(usdxAmount, slippage);
 
         TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
-        uint256 investedAmount = amm().swapExactInput(address(usdx), address(token), usdxAmount, 0);
+        uint256 investedAmount = amm().swapExactInput(
+            address(usdx),
+            address(token),
+            usdxAmount,
+            minAmountOut
+        );
 
         emit Invested(investedAmount, 0);
     }
 
-    function _divest(uint256 usdxAmount) internal override {
+    function _divest(uint256 usdxAmount, uint256 slippage) internal override {
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             tokenOracle,
             amm().sequencer(),
@@ -129,13 +139,14 @@ contract TokenAsset is Stabilizer {
 
         uint256 tokenBalance = token.balanceOf(address(this));
         if(tokenBalance < tokenAmount) tokenAmount = tokenBalance;
+        uint256 minAmountOut = _calculateMinAmountOut(tokenAmount, slippage);
 
         TransferHelper.safeApprove(address(token), sweep.amm(), tokenAmount);
         uint256 divested = amm().swapExactInput(
             address(token),
             address(usdx),
             tokenAmount,
-            0
+            minAmountOut
         );
 
         emit Divested(divested, 0);

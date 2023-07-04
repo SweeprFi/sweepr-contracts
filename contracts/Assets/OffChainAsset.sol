@@ -132,7 +132,7 @@ contract OffChainAsset is Stabilizer {
     function divest(
         uint256 usdxAmount
     ) external onlyBorrower validAmount(usdxAmount) {
-        _divest(usdxAmount);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -191,7 +191,7 @@ contract OffChainAsset is Stabilizer {
         emit Invested(usdxAmount, sweepAmount);
     }
 
-    function _divest(uint256 usdxAmount) internal override {
+    function _divest(uint256 usdxAmount, uint256) internal override {
         redeemMode = true;
         redeemAmount = usdxAmount;
         redeemTime = block.timestamp;

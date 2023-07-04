@@ -98,7 +98,7 @@ contract BackedAsset is Stabilizer {
     function divest(
         uint256 usdxAmount
     ) external onlyBorrower validAmount(usdxAmount) {
-        _divest(usdxAmount);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -119,7 +119,7 @@ contract BackedAsset is Stabilizer {
         emit Invested(usdxAmount, 0);
     }
 
-    function _divest(uint256 usdxAmount) internal override {
+    function _divest(uint256 usdxAmount, uint256) internal override {
         (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
             tokenOracle,
             amm().sequencer(),

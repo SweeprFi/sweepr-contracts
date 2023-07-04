@@ -125,23 +125,27 @@ contract GDAIAsset is Stabilizer {
     /**
      * @notice Invest.
      * @param usdxAmount Amount of usdx to be invested for gDai.
+     * @param slippage .
      * @dev get gDai from the usdx.
      */
     function invest(
-        uint256 usdxAmount
+        uint256 usdxAmount,
+        uint256 slippage
     ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
-        _invest(usdxAmount, 0);
+        _invest(usdxAmount, slippage);
     }
 
     /**
      * @notice Divest.
      * @param usdxAmount Amount to be divested.
+     * @param slippage .
      * @dev get usdx from the gDai.
      */
     function divest(
-        uint256 usdxAmount
+        uint256 usdxAmount,
+        uint256 slippage
     ) external onlyBorrower validAmount(usdxAmount) {
-        _divest(usdxAmount);
+        _divest(usdxAmount, slippage);
     }
 
     /**
@@ -180,16 +184,17 @@ contract GDAIAsset is Stabilizer {
 
     /* ========== Internals ========== */
 
-    function _invest(uint256 usdxAmount, uint256) internal override {
+    function _invest(uint256 usdxAmount, uint256 slippage) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        uint256 minAmountOut = _calculateMinAmountOut(usdxAmount, slippage);
 
         TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
         uint256 daiAmount = amm().swapExactInput(
             address(usdx),
             address(dai),
             usdxAmount,
-            0
+            minAmountOut
         );
         TransferHelper.safeApprove(address(dai), address(gDai), daiAmount);
         gDai.deposit(daiAmount, address(this));
@@ -197,7 +202,7 @@ contract GDAIAsset is Stabilizer {
         emit Invested(daiAmount, 0);
     }
 
-    function _divest(uint256 usdxAmount) internal override {
+    function _divest(uint256 usdxAmount, uint256 slippage) internal override {
         (bool available, , ) = divestStatus();
         if (!available) revert DivestNotAvailable();
 
@@ -208,13 +213,14 @@ contract GDAIAsset is Stabilizer {
 
         if (gDaiBalance < gDaiAmount) gDaiAmount = gDaiBalance;
         daiAmount = gDai.redeem(gDaiAmount, address(this), address(this));
+        uint256 minAmountOut = _calculateMinAmountOut(daiAmount, slippage);
 
         TransferHelper.safeApprove(address(dai), sweep.amm(), daiAmount);
         uint256 divested = amm().swapExactInput(
             address(dai),
             address(usdx),
             daiAmount,
-            0
+            minAmountOut
         );
 
         emit Divested(divested, 0);

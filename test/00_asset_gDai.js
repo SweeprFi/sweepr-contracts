@@ -87,12 +87,12 @@ contract("gDAI Asset", async function () {
 
     describe("asset constraints", async function () {
         it("only borrower can inveset", async function () {
-            await expect(asset.connect(other).invest(depositAmount))
+            await expect(asset.connect(other).invest(depositAmount, Const.SLIPPAGE))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
         });
 
         it("only borrower can divest", async function () {
-            await expect(asset.connect(other).divest(depositAmount))
+            await expect(asset.connect(other).divest(depositAmount, Const.SLIPPAGE))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
         });
     });
@@ -106,7 +106,7 @@ contract("gDAI Asset", async function () {
 
         it("invest correctly", async function () {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
-            await asset.invest(depositAmount);
+            await asset.invest(depositAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
             expect(await gDai.balanceOf(asset.address)).to.above(Const.ZERO);
         });
@@ -147,7 +147,7 @@ contract("gDAI Asset", async function () {
             const usdcBalance = await usdc.balanceOf(asset.address);
             const gDaiBalance = await gDai.balanceOf(asset.address);
 
-            await asset.divest(withdrawAmount);
+            await asset.divest(withdrawAmount, Const.SLIPPAGE);
 
             expect(await usdc.balanceOf(asset.address)).to.above(usdcBalance);
             expect(await gDai.balanceOf(asset.address)).to.below(gDaiBalance);
