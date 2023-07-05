@@ -146,7 +146,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     function divest(
         uint256 liquidityAmount
     ) external onlyBorrower isMinted validAmount(liquidityAmount) {
-        _divest(liquidityAmount);
+        _divest(liquidityAmount, 0);
     }
 
     /**
@@ -316,7 +316,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         else emit Invested(amount1, amount0);
     }
 
-    function _divest(uint256 liquidityAmount) internal override {
+    function _divest(uint256 liquidityAmount, uint256) internal override {
         uint128 decreaseLP = uint128(liquidityAmount);
         if (decreaseLP > liquidity) decreaseLP = liquidity;
         liquidity -= decreaseLP;

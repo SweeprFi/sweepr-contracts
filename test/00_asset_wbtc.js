@@ -62,12 +62,12 @@ contract("WBTC Asset", async function () {
 
     describe("asset constraints", async function () {
         it("only borrower can inveset", async function () {
-            await expect(wbtc_asset.connect(other).invest(depositAmount))
+            await expect(wbtc_asset.connect(other).invest(depositAmount, Const.SLIPPAGE))
                 .to.be.revertedWithCustomError(wbtc_asset, 'NotBorrower');
         });
 
         it("only borrower can divest", async function () {
-            await expect(wbtc_asset.connect(other).divest(depositAmount))
+            await expect(wbtc_asset.connect(other).divest(depositAmount, Const.SLIPPAGE))
                 .to.be.revertedWithCustomError(wbtc_asset, 'NotBorrower');
         });
     });
@@ -81,13 +81,13 @@ contract("WBTC Asset", async function () {
 
         it("invest correctly", async function () {
             expect(await wbtc_asset.assetValue()).to.equal(Const.ZERO);
-            await wbtc_asset.invest(withdrawAmount);
+            await wbtc_asset.invest(withdrawAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(wbtc_asset.address)).to.equal(Const.ZERO);
             expect(await wbtc.balanceOf(wbtc_asset.address)).to.above(Const.ZERO);
         });
 
         it("divest correctly", async function () {
-            await wbtc_asset.divest(depositAmount);
+            await wbtc_asset.divest(depositAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(wbtc_asset.address)).to.above(Const.ZERO);
             expect(await wbtc.balanceOf(wbtc_asset.address)).to.equal(Const.ZERO);
         });

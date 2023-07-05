@@ -80,7 +80,7 @@ contract USDPlusAsset is Stabilizer {
     function divest(
         uint256 usdxAmount
     ) external onlyBorrower validAmount(usdxAmount) {
-        _divest(usdxAmount);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -107,7 +107,7 @@ contract USDPlusAsset is Stabilizer {
         emit Invested(usdxAmount, 0);
     }
 
-    function _divest(uint256 usdxAmount) internal override {
+    function _divest(uint256 usdxAmount, uint256) internal override {
         uint256 tokenAmount = (usdxAmount * 10 ** token.decimals()) /
             10 ** usdx.decimals();
 

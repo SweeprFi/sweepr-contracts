@@ -63,12 +63,12 @@ contract("WETH Asset", async function () {
 
     describe("asset constraints", async function () {
         it("only borrower can inveset", async function () {
-            await expect(weth_asset.connect(other).invest(depositAmount))
+            await expect(weth_asset.connect(other).invest(depositAmount, Const.SLIPPAGE))
                 .to.be.revertedWithCustomError(weth_asset, 'NotBorrower');
         });
 
         it("only borrower can divest", async function () {
-            await expect(weth_asset.connect(other).divest(depositAmount))
+            await expect(weth_asset.connect(other).divest(depositAmount, Const.SLIPPAGE))
                 .to.be.revertedWithCustomError(weth_asset, 'NotBorrower');
         });
     });
@@ -82,13 +82,13 @@ contract("WETH Asset", async function () {
 
         it("invest correctly", async function () {
             expect(await weth_asset.assetValue()).to.equal(Const.ZERO);
-            await weth_asset.invest(depositAmount);
+            await weth_asset.invest(depositAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(weth_asset.address)).to.equal(Const.ZERO);
             expect(await weth.balanceOf(weth_asset.address)).to.above(Const.ZERO);
         });
 
         it("divest correctly", async function () {
-            await weth_asset.divest(withdrawAmount);
+            await weth_asset.divest(withdrawAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(weth_asset.address)).to.above(Const.ZERO);
             expect(await weth.balanceOf(weth_asset.address)).to.equal(Const.ZERO);
         });

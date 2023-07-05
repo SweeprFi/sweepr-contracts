@@ -118,7 +118,7 @@ contract CompV2Asset is Stabilizer {
     function divest(
         uint256 usdxAmount
     ) external onlyBorrower validAmount(usdxAmount) {
-        _divest(usdxAmount);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -153,7 +153,7 @@ contract CompV2Asset is Stabilizer {
         emit Invested(usdxAmount, 0);
     }
 
-    function _divest(uint256 usdxAmount) internal override {
+    function _divest(uint256 usdxAmount, uint256) internal override {
         uint256 cusdcAmount = (usdxAmount * (1e18)) /
             cUSDC.exchangeRateStored();
         uint256 stakedAmount = cUSDC.balanceOf(address(this));

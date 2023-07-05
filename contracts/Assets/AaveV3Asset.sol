@@ -80,7 +80,7 @@ contract AaveV3Asset is Stabilizer {
     function divest(
         uint256 usdxAmount
     ) external onlyBorrower validAmount(usdxAmount) {
-        _divest(usdxAmount);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -116,7 +116,7 @@ contract AaveV3Asset is Stabilizer {
      * @notice Divest
      * @dev Withdraws the amount from the Aave V3 pool.
      */
-    function _divest(uint256 usdxAmount) internal override {
+    function _divest(uint256 usdxAmount, uint256) internal override {
         if (aaveUSDXToken.balanceOf(address(this)) < usdxAmount)
             usdxAmount = type(uint256).max;
 

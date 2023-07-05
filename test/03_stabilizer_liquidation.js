@@ -96,7 +96,7 @@ contract("Stabilizer - Liquidation", async function () {
       await weth_asset.connect(user).sellSweepOnAMM(amount, Const.ZERO);
 
       balance = await usdc.balanceOf(weth_asset.address);
-      await weth_asset.connect(user).invest(balance);
+      await weth_asset.connect(user).invest(balance, Const.SLIPPAGE);
 
       expect(await weth_asset.currentValue()).to.not.equal(Const.ZERO);
       expect(await usdc.balanceOf(weth_asset.address)).to.equal(Const.ZERO);

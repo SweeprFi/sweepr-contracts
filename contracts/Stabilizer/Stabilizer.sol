@@ -426,7 +426,7 @@ contract Stabilizer is Owned, Pausable {
             );
 
             if (missingUsdx > usdxBalance) {
-                _divest(missingUsdx - usdxBalance);
+                _divest(missingUsdx - usdxBalance, slippage);
             }
 
             if (usdx.balanceOf(address(this)) > 0) {
@@ -435,8 +435,7 @@ contract Stabilizer is Owned, Pausable {
                     10 ** sweep.decimals(),
                     price
                 );
-                uint256 minAmountOut = (_sweepAmount * (PRECISION - slippage)) /
-                    PRECISION;
+                uint256 minAmountOut = _calculateMinAmountOut(_sweepAmount, slippage);
                 _buy(missingUsdx, minAmountOut);
             }
         }
@@ -483,11 +482,10 @@ contract Stabilizer is Owned, Pausable {
         _borrow(sweepAmount);
 
         uint256 usdAmount = sweepAmount.mulDiv(price, 10 ** sweep.decimals());
-        uint256 minAmountOut = (amm().usdToToken(usdAmount) *
-            (PRECISION - slippage)) / PRECISION;
+        uint256 minAmountOut = _calculateMinAmountOut(amm().usdToToken(usdAmount), slippage);
         uint256 usdxAmount = _sell(sweepAmount, minAmountOut);
 
-        _invest(usdxAmount, 0);
+        _invest(usdxAmount, slippage);
 
         emit AutoInvested(sweepAmount);
     }
@@ -611,15 +609,12 @@ contract Stabilizer is Owned, Pausable {
     /**
      * @notice Invest To Asset.
      */
-    function _invest(
-        uint256 usdxAmount,
-        uint256 sweepAmount
-    ) internal virtual {}
+    function _invest(uint256, uint256) internal virtual {}
 
     /**
      * @notice Divest From Asset.
      */
-    function _divest(uint256 amount) internal virtual {}
+    function _divest(uint256, uint256) internal virtual {}
 
     /**
      * @notice Liquidates
@@ -783,5 +778,12 @@ contract Stabilizer is Owned, Pausable {
     {
         usdxBalance = usdx.balanceOf(address(this));
         sweepBalance = sweep.balanceOf(address(this));
+    }
+
+    function _calculateMinAmountOut(
+        uint256 amount,
+        uint256 slippage
+    ) internal pure returns (uint256) {
+        return (amount * (PRECISION - slippage)) / PRECISION;
     }
 }
