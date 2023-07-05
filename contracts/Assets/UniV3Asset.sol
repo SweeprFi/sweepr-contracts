@@ -42,6 +42,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     error AlreadyMinted();
     error InvalidTokenID();
     error NonEmptyLiquidity();
+    error OnlyPositionManager();
 
     /* ========== Modifies ========== */
 
@@ -112,6 +113,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         uint256 tokenId_,
         bytes calldata
     ) external override returns (bytes4) {
+        if(msg.sender != address(nonfungiblePositionManager)) revert OnlyPositionManager();
         if (tokenId > 0) revert AlreadyMinted();
         _createDeposit(tokenId_);
 
