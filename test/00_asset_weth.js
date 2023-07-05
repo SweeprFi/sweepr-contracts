@@ -10,7 +10,7 @@ contract("WETH Asset", async function () {
 
         BORROWER = borrower.address;
         depositAmount = 10e6;
-        withdrawAmount = 15e6;
+        divestAmount = 15e6;
         maxSweep = toBN("500000", 18);
         maxBorrow = toBN("100", 18);
 
@@ -37,7 +37,7 @@ contract("WETH Asset", async function () {
         amm = await Uniswap.deploy(sweep.address, Const.FEE);
         await sweep.setAMM(amm.address);
 
-        await amm.setPrice(Const.WETH_PRICE);
+        await amm.setPrice(Const.WETH_AMM);
         await wethOracle.setPrice(Const.WETH_PRICE);
 
         WETHAsset = await ethers.getContractFactory("TokenAsset");

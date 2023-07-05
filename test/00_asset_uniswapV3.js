@@ -115,6 +115,7 @@ contract('Uniswap V3 Asset', async () => {
 
             expect(await asset.tokenId()).to.not.equal(Const.ZERO);
             expect(await asset.liquidity()).to.above(Const.ZERO);
+            expect(await asset.assetValue()).to.greaterThan(Const.ZERO);
             expect(await sweep.balanceOf(pool_address)).to.above(Const.ZERO);
             expect(await usdc.balanceOf(pool_address)).to.above(Const.ZERO);
         });
@@ -153,7 +154,7 @@ contract('Uniswap V3 Asset', async () => {
             liquidity = await asset.liquidity();
             if (liquidity > 0) {
                 await expect(asset.burnNFT()).to.be.revertedWith('Not cleared');
-                await asset.divest(liquidity);
+                await asset.divest(liquidity.mul(10));
             }
 
             await asset.burnNFT();
