@@ -307,6 +307,7 @@ contract('Market Maker', async () => {
             await usdc.connect(guest).approve(marketmaker.address, balance);
 
             // vars
+            exceededAmount = toBN("20000000", 18);
             amount = toBN("1000", 18);
             precision = toBN("1", 6);
             decimals = toBN("1", 18);
@@ -325,6 +326,9 @@ contract('Market Maker', async () => {
 
             expect(usdcBalanceBefore).to.be.equal(balance);
             expect(sweepBalanceBefore).to.be.equal(Const.ZERO);
+
+            await expect(marketmaker.connect(guest).buySweep(exceededAmount))
+                .to.be.revertedWithCustomError(marketmaker, "NotEnoughBalance");
 
             await marketmaker.connect(guest).buySweep(amount);
 

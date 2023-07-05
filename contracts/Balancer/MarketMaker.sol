@@ -124,6 +124,9 @@ contract MarketMaker is Stabilizer {
     function buySweep(
         uint256 sweepAmount
     ) external {
+        uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
+        uint256 sweepAvailable = sweepLimit - sweepBorrowed;
+        if(sweepAvailable < sweepAmount) revert NotEnoughBalance();
         // calculate amount to pay
         uint24 poolFee = amm().poolFee();
         uint256 targetPrice = sweep.targetPrice();
