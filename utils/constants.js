@@ -69,14 +69,15 @@ const wallets = {
 const tokens = {
   sweep: {
     1: '',
-    5: '0xa17DDf49c930f14981aF83a38de9e6E89fa2F0C8',
-    421613: '0xdAd3fECde16f4c3f5F55781a4Ee5701732919a89', // Arbitrum Goerli
+    5: '0xA3C4fe10d40676D376F60F2Ed91b4E53bC7303A8',
     42161: '0x51B46C315fB6C33eba9F43FC3691d9412Fec724b',
+    421613: '0x13aA6774D72963A690bD43073a1B1a0AA21c9BA0', // Arbitrum Goerli
   },
   sweepr: {
     1: '',
-    5: '0x3535eF56511C676a1f12b8b1f208E7757Cd0f731',
+    5: '0xb0D6437e303689278d0743D950F7FCF259844F2b',
     42161: '0x4d20a1d57435bA91614c215F843362e6E95555Bd',
+    421613: '0x3554fF0232a5f5315651B07783d40DDEa5fB1635',
   },
   usdc: {
     1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
@@ -143,7 +144,7 @@ const tokens = {
 const libraries = {
   liquidity_helper: {
     1: '',
-    5: '0xD6eDDb13aD13767a2b4aD89eA94fcA0C6aB0f8D2',
+    5: '0x899F526037579DE26b3a5af7D8f29e28E1B1fFbF',
     42161: '0xe7ce03256b3638EEF72063374E3bDAcd2705874F',
   },
   uniswap_oracle: {
@@ -198,16 +199,19 @@ const chainlink_oracle = {
     1: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', // ETH - USD
     5: '0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e', // ETH - USD
     42161: '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612',
+    421613: '0x62CAe0FA2da220f43a51F86Db2EDb36DcA9A5A08'
   },
   wbtc_usd: {
     1: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c', // BTC - USD
     5: '0xA39434A63A52E749F02807ae27335515BA4b07F7', // BTC - USD
     42161: '0xd0C7101eACbB49F3deCcCc166d238410D6D46d57',
+    421613: '0x6550bc2301936011c1334555e62A87705A81C12C'
   },
   usdc_usd: {
     1: '0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6',
     5: '0xAb5c49580294Aff77670F839ea425f5b78ab3Ae7',
-    42161: '0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3'
+    42161: '0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3',
+    421613: '0x1692Bdd32F31b831caAc1b0c9fAF68613682813b'
   },
   backed_usd: {
     1: '0x788D911ae7c95121A89A0f0306db65D87422E1de',
@@ -218,8 +222,8 @@ const chainlink_oracle = {
   sequencer_feed: {
     1: '0x0000000000000000000000000000000000000000',
     5: '0x0000000000000000000000000000000000000000',
+    42161: '0xfdb631f5ee196f0ed6faa767959853a9f217697d',
     421613: '0x4da69F028a5790fCCAfe81a75C0D24f46ceCDd69',
-    42161: '0xfdb631f5ee196f0ed6faa767959853a9f217697d'
   }
 }
 
@@ -247,7 +251,7 @@ const uniswap = {
   },
   pool: {
     1: '',
-    5: '0xde5789B9690298C8D7418CC6eCE24f6EBce55aC2',
+    5: '0x611Ad0453cfe436A210f0ddd49a2C8E7545CE626',
     42161: '0x2fd34de7365f2902378d15E8b7bfE0c3CE66Cce9',
   },
   quoter: {
@@ -270,8 +274,9 @@ const protocol = {
   },
   balancer: {
     1: '',
-    5: '0x74Cc1bB5B94D4A9F4Fe8b83a9fFa76E04c50B4F5',
+    5: '0xe641b90fE581747d50f89a98B77aC61298e72db0',
     42161: '0xBCeb96250965299b58eC8e9e1Ad444822dC0e398',
+    421613: '0xf4E7bC4fb6187Db7532DcaBc27A2C5ECe124b3E8'
   },
   distributor: {
     1: '',
@@ -280,8 +285,9 @@ const protocol = {
   },
   uniswap_amm: {
     1: '',
-    5: '0xd895F3549aBE7614db2C2B82a304aaA06253C66f',
+    5: '0x442F74Bf64b0CA1Eb659eA38743DAb75120b5F47',
     42161: '0x957C9Cffa67D4A416f39da264F89f23ae010A0E8',
+    421613: ''
   },
   omnichain_proposal_sender: {
     1: '',
@@ -324,7 +330,7 @@ const assets = {
   },
   uniswap: {
     1: '',
-    5: '0x26CC4A46484da4686c4D6E77767A6d7740F63f63',
+    5: '0x5D70c0799f672EdD6C886727eeF8323a09f98Fc9',
     42161: '0x1c7bB78E0AB56b027b9B075cE37BA38f26da223c',
   },
   weth: {

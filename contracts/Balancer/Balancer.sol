@@ -63,9 +63,8 @@ contract Balancer is NonblockingLzApp, Owned {
         if (mode == Mode.CALL) interestRate += stepValue;
         if (mode == Mode.INVEST) interestRate -= stepValue;
 
-        setNewPeriod(interestRate);
-
         if (address(sweepr) != address(0) && sweepr.isGovernanceChain()) {
+            setNewPeriod(interestRate);
             _sendInterestRate(interestRate);
         }
     }
@@ -141,14 +140,13 @@ contract Balancer is NonblockingLzApp, Owned {
         uint chainCount = sweepr.chainCount();
         for (uint i = 0; i < chainCount; ) {
             uint16 dstChainId = sweepr.getChainId(i);
-            address sweepDstAddress = sweepr.getSweepWithChainId(dstChainId);
+            address balancerDstAddress = sweepr.getBalancerWithChainId(dstChainId);
+            bool isTrusted = this.isTrustedRemote(dstChainId, abi.encodePacked(balancerDstAddress, address(this)));
 
-            if (this.isTrustedRemote(dstChainId, abi.encodePacked(sweepDstAddress))) revert NotTrustedRemote();
-            if (address(this).balance == 0) revert ZeroETH();
+            if (!isTrusted) revert NotTrustedRemote();
 
             // encode the payload with the number of pings
             bytes memory payload = abi.encode(PT_INTEREST_RATE, rate);
-
 
             // use adapterParams v1 to specify more gas for the destination
             uint16 version = 1;

@@ -9,9 +9,9 @@ let dstPath, srcPath;
 
 let deployer, lzEndpointSrcMock, lzEndpointDstMock, OFTSrc, OFTDst, LZEndpointMock;
 
-contract("Sweep - OFT", async function () {
+contract("Sweepr - OFT", async function () {
     before(async () => {
-        [deployer, multisig, receiver, treasury, newAddress, newMinter] = await ethers.getSigners();
+        [deployer, multisig, receiver, treasury, newAddress, newMinter, balancer] = await ethers.getSigners();
         TRANSFER_AMOUNT = toBN("100", 18);
         interestRate = 5e4; // 5%
         // ------------- Deployment of contracts -------------
@@ -139,14 +139,14 @@ contract("Sweep - OFT", async function () {
         it("add destination chain", async function () {
             expect(await OFTSrc.chainCount()).to.be.equal(Const.ZERO)
 
-            await OFTSrc.addChain(chainIdDst, sweepDst.address);
+            await OFTSrc.addChain(chainIdDst, balancer.address);
             expect(await OFTSrc.chainCount()).to.be.equal(1);
 
             chain = await OFTSrc.chains(chainIdDst);
-            expect(chain).to.equal(sweepDst.address);
+            expect(chain).to.equal(balancer.address);
 
-            sweepAddress = await OFTSrc.getSweepWithChainId(chainIdDst);
-            expect(sweepAddress).to.equal(sweepDst.address);
+            sweepAddress = await OFTSrc.getBalancerWithChainId(chainIdDst);
+            expect(sweepAddress).to.equal(balancer.address);
         })
 
         it("remove destination chain", async function () {

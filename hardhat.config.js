@@ -45,7 +45,7 @@ module.exports = {
 			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
 		},
 		arbitrum_goerli: {
-			url: "https://arb-goerli.g.alchemy.com/v2/" + process.env.ARBITRUM_KEY,
+			url: "https://arb-goerli.g.alchemy.com/v2/" + process.env.ALCHEMY_KEY,
 			gas: 10000000,
 			chainId: 421613,
 			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
@@ -63,14 +63,14 @@ module.exports = {
 		},
 	},
 	etherscan: {
-		// apiKey: process.env.ETHERSCAN_API_KEY, // Goerli
-		apiKey: process.env.ARBISCAN_API_KEY, // Arbitrum
+		apiKey: process.env.ETHERSCAN_API_KEY, // Goerli
+		// apiKey: process.env.ARBISCAN_API_KEY, // Arbitrum
 	},
 	gasReporter: {
 		enabled: (process.env.REPORT_GAS) ? true : false,
 		currency: 'USD'
 	},
 	mocha: {
-    timeout: 100000000
-  }
+		timeout: 100000000
+	}
 };

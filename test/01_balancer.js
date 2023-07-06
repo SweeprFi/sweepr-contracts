@@ -20,10 +20,14 @@ contract("Balancer", async function () {
 		]);
 		sweep = await SweepProxy.deployed();
 
+		Sweepr = await ethers.getContractFactory("SweeprCoin");
+		sweepr = await Sweepr.deploy(Const.TRUE, lzEndpoint.address);
+
 		Balancer = await ethers.getContractFactory("Balancer");
 		balancer = await Balancer.deploy(sweep.address, lzEndpoint.address,);
 
 		await sweep.setBalancer(balancer.address);
+		await balancer.setSweepr(sweepr.address);
 		stabilizers = [stab_1.address, stab_2.address, stab_3.address, stab_4.address]
 		stabilizers.forEach(async (address) => {
 			await sweep.addMinter(address, loanLimit);

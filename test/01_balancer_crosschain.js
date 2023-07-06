@@ -5,9 +5,6 @@ const { toBN, Const, getBlockTimestamp, sendEth } = require("../utils/helper_fun
 
 const chainIdSrc = 1;
 const chainIdDst = 2;
-let dstPath, srcPath;
-
-let deployer, lzEndpointSrcMock, lzEndpointDstMock, OFTSrc, OFTDst, LZEndpointMock;
 
 contract("Balancer - Crosschain message", async function () {
     before(async () => {
@@ -64,11 +61,11 @@ contract("Balancer - Crosschain message", async function () {
         await sendEth(balancerSrc.address);
     })
 
-    it("not send crosschain message when sweepr is not set to balancer", async function () {
-        await balancerSrc.refreshInterestRate();
+    it("not refresh the interest rate when is not governance chain", async function () {
+        await balancerDst.refreshInterestRate();
         
         interestRate = await sweepSrc.interestRate();
-        expect(await sweepDst.interestRate()).to.not.eq(interestRate);
+        expect(await sweepDst.interestRate()).to.eq(interestRate);
     })
 
     it("not send crosschain message when there is no chain added in sweepr", async function () {
@@ -85,7 +82,7 @@ contract("Balancer - Crosschain message", async function () {
     })
 
     it("set interest rate successfully", async function () {
-        await sweeprSrc.addChain(chainIdDst, sweepDst.address);
+        await sweeprSrc.addChain(chainIdDst, balancerDst.address);
 
         await time.increase(100);
 		await time.advanceBlock();
