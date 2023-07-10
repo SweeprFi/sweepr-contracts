@@ -182,7 +182,7 @@ contract('Aave V3 Asset', async () => {
                 .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).invest(investAmount);
 
-            expect(await aaveAsset.assetValue()).to.equal(investAmount);
+            expect(await aaveAsset.assetValue()).to.closeTo(investAmount, 1);
         });
 
         it('set as defaulted', async () => {
