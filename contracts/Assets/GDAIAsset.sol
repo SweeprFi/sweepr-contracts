@@ -199,7 +199,7 @@ contract GDAIAsset is Stabilizer {
         TransferHelper.safeApprove(address(dai), address(gDai), daiAmount);
         gDai.deposit(daiAmount, address(this));
 
-        emit Invested(daiAmount, 0);
+        emit Invested(usdxAmount, 0);
     }
 
     function _divest(uint256 usdxAmount, uint256 slippage) internal override {

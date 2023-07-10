@@ -159,14 +159,14 @@ contract GlpAsset is Stabilizer {
 
         if (glpBalance < glpAmount) glpAmount = glpBalance;
 
-        rewardRouter.unstakeAndRedeemGlp(
+        uint256 divested = rewardRouter.unstakeAndRedeemGlp(
             address(usdx),
             glpAmount,
             0,
             address(this)
         );
 
-        emit Divested(glpAmount, 0);
+        emit Divested(divested, 0);
     }
 
     // Get GLP price in usdx

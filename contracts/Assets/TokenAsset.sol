@@ -116,14 +116,14 @@ contract TokenAsset is Stabilizer {
         uint256 minAmountOut = _calculateMinAmountOut(usdxAmount, slippage);
 
         TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
-        uint256 investedAmount = amm().swapExactInput(
+        amm().swapExactInput(
             address(usdx),
             address(token),
             usdxAmount,
             minAmountOut
         );
 
-        emit Invested(investedAmount, 0);
+        emit Invested(usdxAmount, 0);
     }
 
     function _divest(uint256 usdxAmount, uint256 slippage) internal override {
