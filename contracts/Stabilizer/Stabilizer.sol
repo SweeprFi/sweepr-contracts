@@ -233,11 +233,11 @@ contract Stabilizer is Owned, Pausable {
      * @notice Pause
      * @dev Stops investment actions.
      */
-    function pause() external onlyMultisig {
+    function pause() external onlyMultisigOrGov {
         _pause();
     }
 
-    function unpause() external onlyMultisig {
+    function unpause() external onlyMultisigOrGov {
         _unpause();
     }
 

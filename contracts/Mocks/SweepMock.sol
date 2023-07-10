@@ -220,7 +220,7 @@ contract SweepMock is BaseSweep {
      * @notice Set Treasury Address
      * @param treasury_.
      */
-    function setTreasury(address treasury_) external onlyMultisig {
+    function setTreasury(address treasury_) external onlyMultisigOrGov {
         if (treasury_ == address(0)) revert ZeroAddressDetected();
         if (treasury != address(0)) revert AlreadyExist();
         treasury = treasury_;

@@ -78,7 +78,7 @@ contract TokenDistributor is Owned {
         address _sellTo,
         uint256 _salePrice,
         address _payToken
-    ) external onlyGovOrMultisig {
+    ) external onlyMultisigOrGov {
         if (_sellTo == address(0) || _payToken == address(0)) revert ZeroAddressDetected();
         if (_saleAmount == 0) revert ZeroAmount();
         if (_salePrice == 0) revert ZeroPrice();
@@ -92,14 +92,14 @@ contract TokenDistributor is Owned {
     /**
      * @notice A function to revoke sale
      */
-    function revokeSale() external onlyGovOrMultisig {
+    function revokeSale() external onlyMultisigOrGov {
         saleAmount = 0;
     }
 
     /**
      * @notice A function to burn SWEEPR
      */
-    function burn() external onlyGovOrMultisig {
+    function burn() external onlyMultisigOrGov {
         uint256 sweeprBalance = sweepr.balanceOf(address(this));
         sweepr.burn(sweeprBalance);
     }
