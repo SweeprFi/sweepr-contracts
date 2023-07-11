@@ -323,7 +323,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
 
         // amount0Min and amount1Min are price slippage checks
         // if the amount received after burning is not greater than these minimums, transaction will fail
-        (uint256 amount0, uint256 amount1) = nonfungiblePositionManager.decreaseLiquidity(
+        nonfungiblePositionManager.decreaseLiquidity(
             INonfungiblePositionManager.DecreaseLiquidityParams({
                 tokenId: tokenId,
                 liquidity: decreaseLP,
@@ -333,10 +333,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             })
         );
 
-        (uint256 fee0, uint256 fee1) = collect();
-
-        amount0 += fee0;
-        amount1 += fee1;
+        (uint256 amount0, uint256 amount1) = collect();
 
         if (flag) emit Divested(amount0, amount1);
         else emit Divested(amount1, amount0);
