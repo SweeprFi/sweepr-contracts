@@ -25,7 +25,6 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     address public token0;
     address public token1;
     uint128 public liquidity;
-    uint256 private slippage;
     int24 public constant tickSpacing = 10; // TickSpacings are 10, 60, 200
     bool private immutable flag; // The sort status of tokens
 
@@ -127,12 +126,12 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @dev Pool must be initialized already to add liquidity
      * @param usdxAmount USDX Amount of asset to be deposited
      * @param sweepAmount Sweep Amount of asset to be deposited
-     * @param _slippage. 
+     * @param slippage. 
      */
     function invest(
         uint256 usdxAmount,
         uint256 sweepAmount,
-        uint256 _slippage
+        uint256 slippage
     )
         external
         onlyBorrower
@@ -140,8 +139,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         validAmount(usdxAmount)
         validAmount(sweepAmount)
     {
-        slippage = _slippage;
-        _invest(usdxAmount, sweepAmount);
+        _invest(usdxAmount, sweepAmount, slippage);
     }
 
     /**
@@ -241,7 +239,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      */
     function _mint(
         uint256 amount0ToMint,
-        uint256 amount1ToMint
+        uint256 amount1ToMint,
+        uint256 slippage
     )
         internal
         returns (
@@ -278,7 +277,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
 
     function _invest(
         uint256 usdxAmount,
-        uint256 sweepAmount
+        uint256 sweepAmount,
+        uint256 slippage
     ) internal override {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
         if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
@@ -304,7 +304,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             : (sweepAmount, usdxAmount);
 
         if (tokenId == 0) {
-            (, liquidity_, amount0, amount1) = _mint(amountAdd0, amountAdd1);
+            (, liquidity_, amount0, amount1) = _mint(amountAdd0, amountAdd1, slippage);
         } else {
             uint256 amountOut0 = _calculateMinAmountOut(amountAdd0, slippage);
             uint256 amountOut1 = _calculateMinAmountOut(amountAdd1, slippage);

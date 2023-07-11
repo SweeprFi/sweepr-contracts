@@ -132,7 +132,7 @@ contract GDAIAsset is Stabilizer {
         uint256 usdxAmount,
         uint256 slippage
     ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
-        _invest(usdxAmount, slippage);
+        _invest(usdxAmount, 0, slippage);
     }
 
     /**
@@ -184,7 +184,7 @@ contract GDAIAsset is Stabilizer {
 
     /* ========== Internals ========== */
 
-    function _invest(uint256 usdxAmount, uint256 slippage) internal override {
+    function _invest(uint256 usdxAmount, uint256, uint256 slippage) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
         uint256 minAmountOut = _calculateMinAmountOut(usdxAmount, slippage);

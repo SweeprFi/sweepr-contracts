@@ -479,7 +479,7 @@ contract Stabilizer is Owned, Pausable {
         uint256 minAmountOut = _calculateMinAmountOut(amm().usdToToken(usdAmount), slippage);
         uint256 usdxAmount = _sell(sweepAmount, minAmountOut);
 
-        _invest(usdxAmount, slippage);
+        _invest(usdxAmount, 0, slippage);
 
         emit AutoInvested(sweepAmount);
     }
@@ -603,7 +603,7 @@ contract Stabilizer is Owned, Pausable {
     /**
      * @notice Invest To Asset.
      */
-    function _invest(uint256, uint256) internal virtual {}
+    function _invest(uint256, uint256, uint256) internal virtual {}
 
     /**
      * @notice Divest From Asset.
