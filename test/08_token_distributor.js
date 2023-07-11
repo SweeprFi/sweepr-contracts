@@ -54,7 +54,7 @@ contract("TokenDistributor", async function () {
 			USDC_SALE_PRICE, 
 			usdc.address
 			)
-		).to.be.revertedWithCustomError(TokenDistributor, 'NotGovOrMultisig');
+		).to.be.revertedWithCustomError(TokenDistributor, 'NotMultisigOrGov');
 	});
 
 	it('revert calling allowSale() function when sellAmount or sellPrice is zero', async () => {

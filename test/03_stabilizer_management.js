@@ -50,7 +50,7 @@ contract("Stabilizer - Management Functions", async function () {
 
     it("only multisig can pause the stabilizer", async function () {
       await expect(offChainAsset.connect(borrower).pause())
-        .to.be.revertedWithCustomError(offChainAsset, 'NotMultisig');
+        .to.be.revertedWithCustomError(offChainAsset, 'NotMultisigOrGov');
     });
 
     it("only balancer can change the loan limit", async function () {

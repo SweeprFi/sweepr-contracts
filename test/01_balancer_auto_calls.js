@@ -246,7 +246,7 @@ contract('Balancer - Auto Call', async () => {
 
     it('cancels call correctly', async () => {
       await expect(balancer.connect(wallet).cancelCall(assets[4].address))
-        .to.be.revertedWithCustomError(balancer, "NotMultisig");
+        .to.be.revertedWithCustomError(balancer, "NotMultisigOrGov");
 
       await balancer.cancelCall(assets[4].address);
       expect(await assets[4].callTime()).to.equal(Const.ZERO);

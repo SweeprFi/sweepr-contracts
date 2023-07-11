@@ -113,7 +113,7 @@ contract('Balancer - Auto Invests', async () => {
             expect(await assets[2].loanLimit()).to.equal(Const.ZERO);
 
             await expect(balancer.connect(lzEndpoint).setLoanLimit(assets[2].address, loanLimit))
-                .to.be.revertedWithCustomError(balancer, "NotMultisig");
+                .to.be.revertedWithCustomError(balancer, "NotMultisigOrGov");
 
             await balancer.setLoanLimit(assets[2].address, loanLimit);
             expect(await assets[2].loanLimit()).to.equal(loanLimit);
