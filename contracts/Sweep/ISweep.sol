@@ -64,13 +64,13 @@ interface ISweep {
 
     function interestRate() external view returns (int256);
 
-    function periodTime() external view returns (uint256);
+    function periodStart() external view returns (uint256);
 
     function stepValue() external view returns (int256);
 
     function arbSpread() external view returns (uint256);
 
-    function setInterestRate(int256 newInterestRate) external;
+    function setInterestRate(int256 newInterestRate, uint256 newPeriodStart) external;
 
     function setTargetPrice(
         uint256 currentTargetPrice,

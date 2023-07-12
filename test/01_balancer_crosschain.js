@@ -5,9 +5,6 @@ const { toBN, Const, getBlockTimestamp, sendEth } = require("../utils/helper_fun
 
 const chainIdSrc = 1;
 const chainIdDst = 2;
-let dstPath, srcPath;
-
-let deployer, lzEndpointSrcMock, lzEndpointDstMock, OFTSrc, OFTDst, LZEndpointMock;
 
 contract("Balancer - Crosschain message", async function () {
     before(async () => {
