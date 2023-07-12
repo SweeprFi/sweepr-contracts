@@ -20,10 +20,12 @@ contract SweepCoin is BaseSweep {
     address public treasury;
 
     // Variables
-    int256 public interestRate; // 4 decimals of precision, e.g. 50000 = 5%
+    int256 public currentInterestRate; // 4 decimals of precision, e.g. 50000 = 5%
+    int256 public nextInterestRate;
     int256 public stepValue; // Amount to change SWEEP interest rate. 4 decimals of precision and default value is 2500 (0.25%)
-    uint256 public periodStart; // Start time for new period
-    uint256 public periodTime; // Period Time. Default = 604800 (7 days)
+
+    uint256 public currentPeriodStart; // Start time for new period
+    uint256 public nextPeriodStart; // Start time for new period
     uint256 public currentTargetPrice; // The cuurent target price of SWEEP
     uint256 public nextTargetPrice; // The next target price of SWEEP
     uint256 public arbSpread; // 4 decimals of precision, e.g. 1000 = 0.1%
@@ -33,9 +35,8 @@ contract SweepCoin is BaseSweep {
 
     /* ========== Events ========== */
 
-    event PeriodTimeSet(uint256 newPeriodTime);
     event ArbSpreadSet(uint256 newArbSpread);
-    event InterestRateSet(int256 newInterestRate);
+    event InterestRateSet(int256 newInterestRate, uint256 newPeriodStart);
     event AMMSet(address ammAddress);
     event BalancerSet(address balancerAddress);
     event TreasurySet(address treasuryAddress);
@@ -68,11 +69,8 @@ contract SweepCoin is BaseSweep {
         BaseSweep.__Sweep_init("SweepCoin", "SWEEP", lzEndpoint, fastMultisig);
 
         stepValue = stepValue_;
-        interestRate = 0;
         currentTargetPrice = 1e6;
         nextTargetPrice = 1e6;
-        periodTime = 604800; // 7 days
-        arbSpread = 0;
     }
 
     /* ========== VIEWS ========== */
@@ -96,18 +94,40 @@ contract SweepCoin is BaseSweep {
     }
 
     /**
+     * @notice Get Sweep Interest Rate
+     * @return uint256 Sweep Interest Rate
+     */
+    function interestRate() external view returns (int256) {
+        if (block.timestamp < nextPeriodStart) {
+            return currentInterestRate;
+        } else {
+            return nextInterestRate;
+        }
+    }
+
+    /**
      * @notice Get Sweep Target Price
      * Target Price will be used to peg the Sweep Price safely.
      * It must have 6 decimals as USD_DECIMALS in IAMM.
      * @return uint256 Sweep target price
      */
     function targetPrice() public view returns (uint256) {
-        if (block.timestamp - periodStart >= periodTime) {
-            // if over period, return next target price for new period
-            return nextTargetPrice;
-        } else {
-            // if in period, return current target price
+        if (block.timestamp < nextPeriodStart) {
             return currentTargetPrice;
+        } else {
+            return nextTargetPrice;
+        }
+    }
+
+    /**
+     * @notice Get Sweep Period Start
+     * @return uint256 Sweep Period Start
+     */
+    function periodStart() external view returns (uint256) {
+        if (block.timestamp < nextPeriodStart) {
+            return currentPeriodStart;
+        } else {
+            return nextPeriodStart;
         }
     }
 
@@ -119,6 +139,10 @@ contract SweepCoin is BaseSweep {
         uint256 arbPrice = ((SPREAD_PRECISION - arbSpread) * targetPrice()) /
             SPREAD_PRECISION;
         return (ammPrice() >= arbPrice);
+    }
+
+    function daysInterest() public view returns (uint256) {
+        return (nextPeriodStart - currentPeriodStart) / 1 days;
     }
 
     /* ========== Actions ========== */
@@ -136,16 +160,6 @@ contract SweepCoin is BaseSweep {
             revert MintNotAllowed();
 
         super.minterMint(minter, amount);
-    }
-
-    /**
-     * @notice Set Period Time
-     * @param newPeriodTime.
-     */
-    function setPeriodTime(uint256 newPeriodTime) external onlyGov {
-        periodTime = newPeriodTime;
-
-        emit PeriodTimeSet(newPeriodTime);
     }
 
     /**
@@ -182,12 +196,21 @@ contract SweepCoin is BaseSweep {
 
     /**
      * @notice Set Interest Rate
-     * @param newInterestRate.
+     * @param dailyRate.
+     * @param newPeriodStart.
      */
-    function setInterestRate(int256 newInterestRate) external onlyBalancer {
-        interestRate = newInterestRate;
+    function setInterestRate(int256 dailyRate, uint256 newPeriodStart) external onlyBalancer {
+        if (block.timestamp < nextPeriodStart) revert NotPassedPeriodTime();
 
-        emit InterestRateSet(newInterestRate);
+        currentInterestRate = nextInterestRate;
+        currentTargetPrice = nextTargetPrice;
+        currentPeriodStart = nextPeriodStart;
+
+        nextInterestRate = dailyRate;
+        nextPeriodStart = newPeriodStart;
+        nextTargetPrice = currentTargetPrice * uint256(currentInterestRate) * daysInterest();
+
+        emit InterestRateSet(dailyRate, newPeriodStart);
     }
 
     /**
@@ -203,18 +226,6 @@ contract SweepCoin is BaseSweep {
         nextTargetPrice = newNextTargetPrice;
 
         emit TargetPriceSet(newCurrentTargetPrice, newNextTargetPrice);
-    }
-
-    /**
-     * @notice Start New Period
-     */
-    function startNewPeriod() external onlyBalancer {
-        if (block.timestamp - periodStart < periodTime)
-            revert NotPassedPeriodTime();
-
-        periodStart = block.timestamp;
-
-        emit NewPeriodStarted(periodStart);
     }
 
     /**

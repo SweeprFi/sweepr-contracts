@@ -57,15 +57,6 @@ contract("Sweep", async function () {
 		expect(await sweep.arbSpread()).to.eq(1000);
 	});
 
-	it('sets a new period time correctly', async () => {
-		periodTime = await sweep.periodTime();
-		await sweep.connect(multisig).setPeriodTime(Const.ZERO);
-		new_periodTime = await sweep.periodTime();
-
-		expect(periodTime).to.equal(604800);
-		expect(new_periodTime).to.equal(Const.ZERO);
-	});
-
 	it('sets a new AMM and gets price correctly', async () => {
 		expect(await sweep.amm()).to.equal(Const.ADDRESS_ZERO);
 
@@ -97,28 +88,18 @@ contract("Sweep", async function () {
 		expect(await sweep.nextTargetPrice()).to.equal(99000);
 	});
 
-	it('starts a new period correctly', async () => {
-		periodStart = await sweep.periodStart();
-		await sweep.connect(newAddress).startNewPeriod();
-		newPeriodStart = await sweep.periodStart();
-
-		expect(newPeriodStart).to.above(periodStart);
-	});
-
 	it('upgrades Sweep', async () => {
-		await expect(sweep.connect(multisig).setInterestRate(interestRate))
-			.to.be.revertedWithCustomError(sweep, "NotBalancer");
-		await sweep.connect(newAddress).setInterestRate(interestRate);
-		const interestRateBefore = await sweep.interestRate();
+		await sweep.connect(multisig).setArbSpread(1000);
+		const arbSpreadBefore = await sweep.arbSpread();
 
 		// Sweep Upgrade
 		Sweep2 = await ethers.getContractFactory("SweepCoin");
 		upgraded = await upgrades.upgradeProxy(sweep.address, Sweep2);
 
-		const interestRateAfter = await sweep.interestRate();
+		const arbSpreadAfter = await sweep.arbSpread();
 
 		// Check to see if upgraded Sweep contract keeps interest rate of previous contract
-		expect(interestRateBefore.toNumber()).to.equal(interestRateAfter.toNumber());
+		expect(arbSpreadBefore.toNumber()).to.equal(arbSpreadAfter.toNumber());
 	});
 
 	it('sets a new minter and gets his information correctly', async () => {

@@ -28,7 +28,7 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
     event SweeprPriceSet(uint256 price);
     event ApproverSet(address indexed approver);
     event GovernanceChainSet(bool isGovernance);
-    event ChainAdded(uint16 dstChainId, address indexed sweep);
+    event ChainAdded(uint16 dstChainId, address indexed balancer);
     event ChainRemoved(uint16 dstChainId);
 
     /* ========== Errors ========== */
@@ -53,7 +53,7 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
         return chainIds[index];
     }
 
-    function getSweepWithChainId(uint16 chainId) external view returns (address) {
+    function getBalancerWithChainId(uint16 chainId) external view returns (address) {
         return chains[chainId];
     }
 
@@ -89,13 +89,13 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
     /**
      * @notice Add Destination Chain
      * @param dstChainId Destination Chain Id.
-     * @param sweep address of sweep in destination chain.
+     * @param balancer address of balancer in destination chain.
      */
-    function addChain(uint16 dstChainId, address sweep) external onlyOwner {
+    function addChain(uint16 dstChainId, address balancer) external onlyOwner {
         chainIds.push(dstChainId);
-        chains[dstChainId] = sweep;
+        chains[dstChainId] = balancer;
 
-        emit ChainAdded(dstChainId, sweep);
+        emit ChainAdded(dstChainId, balancer);
     }
 
     /**
