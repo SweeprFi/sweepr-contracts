@@ -5,6 +5,7 @@ require("@nomiclabs/hardhat-web3");
 require("@nomiclabs/hardhat-truffle5");
 require('@nomicfoundation/hardhat-chai-matchers');
 require('hardhat-contract-sizer');
+require("hardhat-tracer");
 require('solidity-coverage');
 require('dotenv').config();
 require('./tasks');
