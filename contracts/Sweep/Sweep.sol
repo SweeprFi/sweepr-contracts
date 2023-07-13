@@ -41,7 +41,7 @@ contract SweepCoin is BaseSweep {
     event BalancerSet(address balancerAddress);
     event TreasurySet(address treasuryAddress);
     event NewPeriodStarted(uint256 periodStart);
-    event TargetPriceSet(uint256 currentTargetPrice, uint256 nextTargetPrice);
+    event TargetPriceSet(uint256 currentTargetPrice);
     event WriteOff(uint256 newPrice);
 
     /* ========== Errors ========== */
@@ -52,6 +52,10 @@ contract SweepCoin is BaseSweep {
     error NotBalancer();
     error NotPassedPeriodTime();
     error AlreadyExist();
+    error InvalidPeriodStart();
+    error InvalidInterestRate();
+    error LessTargetPrice();
+    error OutOfTargetPriceChange();
 
     /* ======= MODIFIERS ====== */
 
@@ -69,8 +73,16 @@ contract SweepCoin is BaseSweep {
         BaseSweep.__Sweep_init("SweepCoin", "SWEEP", lzEndpoint, fastMultisig);
 
         stepValue = stepValue_;
+        currentInterestRate = 0;
+        nextInterestRate = 0;
+
         currentTargetPrice = 1e6;
         nextTargetPrice = 1e6;
+
+        currentPeriodStart = block.timestamp;
+        nextPeriodStart = currentPeriodStart + 1 days;
+
+        arbSpread = 1000;
     }
 
     /* ========== VIEWS ========== */
@@ -97,7 +109,7 @@ contract SweepCoin is BaseSweep {
      * @notice Get Sweep Interest Rate
      * @return uint256 Sweep Interest Rate
      */
-    function interestRate() external view returns (int256) {
+    function interestRate() public view returns (int256) {
         if (block.timestamp < nextPeriodStart) {
             return currentInterestRate;
         } else {
@@ -112,10 +124,12 @@ contract SweepCoin is BaseSweep {
      * @return uint256 Sweep target price
      */
     function targetPrice() public view returns (uint256) {
+        uint256 accumulatedRate = (SPREAD_PRECISION + uint256(interestRate())) * daysInterest();
+
         if (block.timestamp < nextPeriodStart) {
-            return currentTargetPrice;
+            return (currentTargetPrice * accumulatedRate) / SPREAD_PRECISION;
         } else {
-            return nextTargetPrice;
+            return (nextTargetPrice * accumulatedRate) / SPREAD_PRECISION;
         }
     }
 
@@ -142,7 +156,11 @@ contract SweepCoin is BaseSweep {
     }
 
     function daysInterest() public view returns (uint256) {
-        return (nextPeriodStart - currentPeriodStart) / 1 days;
+        if (block.timestamp < nextPeriodStart) {
+            return (block.timestamp - currentPeriodStart) / 1 days;
+        } else {
+            return (block.timestamp - nextPeriodStart ) / 1 days;
+        }
     }
 
     /* ========== Actions ========== */
@@ -200,15 +218,24 @@ contract SweepCoin is BaseSweep {
      * @param newPeriodStart.
      */
     function setInterestRate(int256 dailyRate, uint256 newPeriodStart) external onlyBalancer {
-        if (block.timestamp < nextPeriodStart) revert NotPassedPeriodTime();
+        // newPeriodStart should be after current block time.
+        if (newPeriodStart < block.timestamp) revert InvalidPeriodStart();
+        // dailyRate should be less than 0.1% and larger than zero
+        if (dailyRate < 0 || dailyRate >= 1000) revert InvalidInterestRate();
 
-        currentInterestRate = nextInterestRate;
-        currentTargetPrice = nextTargetPrice;
-        currentPeriodStart = nextPeriodStart;
+        if (block.timestamp >= nextPeriodStart) {
+            currentInterestRate = nextInterestRate;
+            currentTargetPrice = nextTargetPrice;
+            currentPeriodStart = nextPeriodStart;
+        }
 
         nextInterestRate = dailyRate;
         nextPeriodStart = newPeriodStart;
-        nextTargetPrice = currentTargetPrice * uint256(currentInterestRate) * daysInterest();
+
+        uint256 interestTime = nextPeriodStart - currentPeriodStart;
+        uint256 accumulatedRate = ((SPREAD_PRECISION + uint256(currentInterestRate)) * interestTime) / 1 days;
+
+        nextTargetPrice = (currentTargetPrice * accumulatedRate) / SPREAD_PRECISION;
 
         emit InterestRateSet(dailyRate, newPeriodStart);
     }
@@ -216,16 +243,17 @@ contract SweepCoin is BaseSweep {
     /**
      * @notice Set Target Price
      * @param newCurrentTargetPrice.
-     * @param newNextTargetPrice.
      */
-    function setTargetPrice(
-        uint256 newCurrentTargetPrice,
-        uint256 newNextTargetPrice
-    ) external onlyBalancer {
-        currentTargetPrice = newCurrentTargetPrice;
-        nextTargetPrice = newNextTargetPrice;
+    function setTargetPrice(uint256 newCurrentTargetPrice) external onlyBalancer {
+        // newCurrentTargetPrice should be bigger than currentTargetPrice
+        if (newCurrentTargetPrice < currentTargetPrice) revert LessTargetPrice();
+        // Up to 2% price change is allowed
+        if (((newCurrentTargetPrice - currentTargetPrice) * SPREAD_PRECISION) / currentTargetPrice > 20000)
+            revert OutOfTargetPriceChange();
 
-        emit TargetPriceSet(newCurrentTargetPrice, newNextTargetPrice);
+        currentTargetPrice = newCurrentTargetPrice;
+
+        emit TargetPriceSet(newCurrentTargetPrice);
     }
 
     /**
@@ -262,7 +290,7 @@ contract SweepCoin is BaseSweep {
             }
         }
         
-        currentTargetPrice = newPrice;
+        nextTargetPrice = newPrice;
 
         emit WriteOff(newPrice);
     }
