@@ -1,9 +1,9 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses, chainId } = require("../utils/address");
-const { impersonate, Const, toBN } = require("../utils/helper_functions");
+const { impersonate, Const, toBN, resetNetwork, sendEth } = require("../utils/helper_functions");
 
-contract.skip("USDPlus Asset", async function () {
+contract("USDPlus Asset", async function () {
     before(async () => {
         if (Number(chainId) !== 42161) return;
         
@@ -16,17 +16,21 @@ contract.skip("USDPlus Asset", async function () {
         maxSweep = toBN("500000", 18);
         sweepAmount = toBN("1000", 18);
 
+        blockNumber = await ethers.provider.getBlockNumber();
+        await resetNetwork(Const.BLOCK_NUMBER);
+        await sendEth(Const.EXCHANGER_ADMIN);
+        await sendEth(addresses.usdc);
+
         // ------------- Deployment of contracts -------------
         
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [
             lzEndpoint.address,
-            addresses.owner,
+            borrower.address,
             2500 // 0.25%
         ]);
         sweep = await Proxy.deployed();
-        user = await impersonate(addresses.owner);
-        await sweep.connect(user).setTreasury(addresses.treasury);
+        await sweep.setTreasury(addresses.treasury);
 
         Token = await ethers.getContractFactory("ERC20");
         usdc = await Token.attach(addresses.usdc);
@@ -50,6 +54,10 @@ contract.skip("USDPlus Asset", async function () {
         await sweep.addMinter(asset.address, maxSweep);
     });
 
+    after(async () => {
+        await resetNetwork(blockNumber);
+    });
+
     describe("asset constraints", async function () {
         it("only borrower can inveset", async function () {
             await expect(asset.connect(other).invest(depositAmount))
@@ -71,6 +79,7 @@ contract.skip("USDPlus Asset", async function () {
 
         it("invest correctly", async function () {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
+            expect(await asset.currentValue()).to.equal(depositAmount);
             await asset.invest(depositAmount);
             expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
             expect(await usdPlus.balanceOf(asset.address)).to.above(Const.ZERO);
