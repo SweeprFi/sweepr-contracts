@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { roles } = require("./address");
+const { networks } = require("../hardhat.config");
+const helpers = require("@nomicfoundation/hardhat-network-helpers");
 
 const sendEth = async (account) => {
     await hre.network.provider.request({
@@ -29,6 +31,11 @@ const getBlockTimestamp = async () => {
     blockNumber = await ethers.provider.getBlockNumber();
     block = await ethers.provider.getBlock(blockNumber);
     return block.timestamp;
+}
+
+const resetNetwork = async (blockNumber) => {
+    url = networks.hardhat.forking.url;
+    await helpers.reset(url, blockNumber);
 }
 
 const getPriceAndData = (sweep, token, sweepAmount, tokenAmount) => {
@@ -91,6 +98,8 @@ const Const = {
     ADDRESS_ZERO: ethers.constants.AddressZero,
     WBTC_HOLDER: '0x489ee077994b6658eafa855c308275ead8097c4a',
     WETH_HOLDER: '0xe50fa9b3c56ffb159cb0fca61f5c9d750e8128c8',
+    EXCHANGER_ADMIN: '0x5CB01385d3097b6a189d1ac8BA3364D900666445',
+    BLOCK_NUMBER: 64774877, // before adds BlockGetter
 }
 
 module.exports = {
@@ -99,6 +108,7 @@ module.exports = {
     sendEth,
     impersonate,
     increaseTime,
+    resetNetwork,
     getPriceAndData,
     getBlockTimestamp,
 }
