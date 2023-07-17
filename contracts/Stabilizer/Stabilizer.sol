@@ -98,6 +98,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     error NotSweep();
     error SettingsDisabled();
     error OverZero();
+    error WrongMinimumRatio();
     error InvalidMinter();
     error NotEnoughBalance();
     error EquityRatioExcessed();
@@ -254,6 +255,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @dev Sets the initial configuration of the Stabilizer.
      * This configuration will be analyzed by the protocol and if accepted,
      * used to include the Stabilizer in the minter's whitelist of Sweep.
+     * The minimum equity ratio can not be less than 1%
      */
     function configure(
         int256 _minEquityRatio,
@@ -266,6 +268,8 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         bool _autoInvestEnabled,
         string calldata url
     ) external onlyBorrower onlySettingsEnabled {
+        if(_minEquityRatio < 1e4) revert WrongMinimumRatio();
+
         minEquityRatio = _minEquityRatio;
         spreadFee = _spreadFee;
         loanLimit = _loanLimit;

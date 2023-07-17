@@ -59,7 +59,7 @@ contract('Market Maker', async () => {
 
         // config market maker
         await marketmaker.connect(borrower).configure(
-            0, // 0% equity ratio
+            1e4, // 1% equity ratio
             Const.spreadFee,
             sweepAmount,
             Const.DISCOUNT,
