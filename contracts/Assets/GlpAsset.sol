@@ -99,7 +99,13 @@ contract GlpAsset is Stabilizer {
      */
     function invest(
         uint256 usdxAmount
-    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+    )
+        external
+        onlyBorrower
+        whenNotPaused
+        nonReentrant
+        validAmount(usdxAmount)
+    {
         _invest(usdxAmount, 0, 0);
     }
 
@@ -110,7 +116,7 @@ contract GlpAsset is Stabilizer {
      */
     function divest(
         uint256 usdxAmount
-    ) external onlyBorrower validAmount(usdxAmount) {
+    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
         _divest(usdxAmount, 0);
     }
 

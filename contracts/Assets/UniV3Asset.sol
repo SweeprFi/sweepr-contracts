@@ -136,6 +136,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         external
         onlyBorrower
         whenNotPaused
+        nonReentrant
         validAmount(usdxAmount)
         validAmount(sweepAmount)
     {
@@ -149,7 +150,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     function divest(
         uint256 liquidityAmount,
         uint256 _slippage
-    ) external onlyBorrower isMinted validAmount(liquidityAmount) {
+    ) external onlyBorrower isMinted nonReentrant validAmount(liquidityAmount) {
         _divest(liquidityAmount, _slippage);
     }
 

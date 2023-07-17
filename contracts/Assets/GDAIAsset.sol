@@ -131,7 +131,13 @@ contract GDAIAsset is Stabilizer {
     function invest(
         uint256 usdxAmount,
         uint256 slippage
-    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+    )
+        external
+        onlyBorrower
+        whenNotPaused
+        nonReentrant
+        validAmount(usdxAmount)
+    {
         _invest(usdxAmount, 0, slippage);
     }
 
@@ -144,7 +150,7 @@ contract GDAIAsset is Stabilizer {
     function divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) external onlyBorrower validAmount(usdxAmount) {
+    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
         _divest(usdxAmount, slippage);
     }
 

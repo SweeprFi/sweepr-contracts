@@ -120,6 +120,7 @@ contract OffChainAsset is Stabilizer {
         external
         onlyBorrower
         whenNotPaused
+        nonReentrant
         validAmount(usdxAmount)
         validAmount(sweepAmount)
     {
@@ -132,7 +133,7 @@ contract OffChainAsset is Stabilizer {
      */
     function divest(
         uint256 usdxAmount
-    ) external onlyBorrower validAmount(usdxAmount) {
+    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
         _divest(usdxAmount, 0);
     }
 

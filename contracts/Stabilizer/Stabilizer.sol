@@ -23,8 +23,9 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Stabilizer is Owned, Pausable {
+contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     using Math for uint256;
 
     // Variables
@@ -322,7 +323,7 @@ contract Stabilizer is Owned, Pausable {
      */
     function borrow(
         uint256 sweepAmount
-    ) external onlyBorrower whenNotPaused validAmount(sweepAmount) {
+    ) external onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant {
         if (!sweep.isValidMinter(address(this))) revert InvalidMinter();
 
         uint256 sweepAvailable = loanLimit - sweepBorrowed;
@@ -340,14 +341,14 @@ contract Stabilizer is Owned, Pausable {
      * @param sweepAmount Amount to be burnt by Sweep.
      * @dev Decreases the sweep borrowed.
      */
-    function repay(uint256 sweepAmount) external onlyBorrower {
+    function repay(uint256 sweepAmount) external onlyBorrower nonReentrant {
         _repay(sweepAmount);
     }
 
     /**
      * @notice Pay the spread to the treasury
      */
-    function payFee() external onlyBorrower {
+    function payFee() external onlyBorrower nonReentrant {
         uint256 spreadAmount = accruedFee();
         spreadDate = block.timestamp;
 
@@ -401,7 +402,7 @@ contract Stabilizer is Owned, Pausable {
         uint256 sweepAmount,
         uint256 price,
         uint256 slippage
-    ) external {
+    ) external nonReentrant {
         if (msg.sender != sweep.balancer()) revert NotBalancer();
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
         uint256 repayAmount = sweepAmount.min(sweepBorrowed);
@@ -461,7 +462,7 @@ contract Stabilizer is Owned, Pausable {
         uint256 sweepAmount,
         uint256 price,
         uint256 slippage
-    ) external {
+    ) external nonReentrant {
         if (msg.sender != sweep.balancer()) revert NotBalancer();
         uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
         uint256 sweepAvailable = sweepLimit - sweepBorrowed;
@@ -494,7 +495,7 @@ contract Stabilizer is Owned, Pausable {
     function buySweepOnAMM(
         uint256 usdxAmount,
         uint256 amountOutMin
-    ) external onlyBorrower whenNotPaused returns (uint256 sweepAmount) {
+    ) external onlyBorrower whenNotPaused nonReentrant returns (uint256 sweepAmount) {
         sweepAmount = _buy(usdxAmount, amountOutMin);
 
         emit Bought(sweepAmount);
@@ -510,7 +511,7 @@ contract Stabilizer is Owned, Pausable {
     function sellSweepOnAMM(
         uint256 sweepAmount,
         uint256 amountOutMin
-    ) external onlyBorrower whenNotPaused returns (uint256 usdxAmount) {
+    ) external onlyBorrower whenNotPaused nonReentrant returns (uint256 usdxAmount) {
         usdxAmount = _sell(sweepAmount, amountOutMin);
 
         emit Sold(sweepAmount);
@@ -524,7 +525,7 @@ contract Stabilizer is Owned, Pausable {
      */
     function swapUsdxToSweep(
         uint256 usdxAmount
-    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) nonReentrant {
         uint256 sweepAmount = sweep.convertToSWEEP(
             amm().tokenToUSD(usdxAmount)
         );
@@ -550,7 +551,7 @@ contract Stabilizer is Owned, Pausable {
      */
     function swapSweepToUsdx(
         uint256 sweepAmount
-    ) external onlyBorrower whenNotPaused validAmount(sweepAmount) {
+    ) external onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant {
         uint256 usdxAmount = amm().usdToToken(sweep.convertToUSD(sweepAmount));
         uint256 usdxBalance = usdx.balanceOf(address(this));
 
@@ -577,7 +578,7 @@ contract Stabilizer is Owned, Pausable {
     function withdraw(
         address token,
         uint256 amount
-    ) external onlyBorrower whenNotPaused validAmount(amount) {
+    ) external onlyBorrower whenNotPaused validAmount(amount) nonReentrant {
         if (token != address(sweep) && token != address(usdx))
             revert InvalidToken();
 
