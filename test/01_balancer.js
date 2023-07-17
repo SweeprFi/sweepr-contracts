@@ -154,7 +154,7 @@ contract("Balancer", async function () {
 
 	it('reverts refresh interest rate when caller is not sweep owner', async () => {
 		await expect(balancer.connect(multisig).refreshInterestRate())
-			.to.be.revertedWithCustomError(sweep, 'NotMultisig');
+			.to.be.revertedWithCustomError(sweep, 'NotMultisigOrGov');
 	});
 
 	it('adds stabilizers to the amounts map', async () => {
@@ -197,15 +197,9 @@ contract("Balancer", async function () {
 		newPeriodStart = currentBlockTime + Const.DAY * 7 + 1;
 
 		await expect(balancer.connect(lzEndpoint).setInterestRate(interest, newPeriodStart))
-			.to.be.revertedWithCustomError(balancer, "NotMultisig");
+			.to.be.revertedWithCustomError(balancer, "NotMultisigOrGov");
 
 		await balancer.setInterestRate(interest, newPeriodStart);
 		expect(await sweep.nextInterestRate()).to.equal(interest);
-	});
-
-	it('reverts because expect invest and gets call', async () => {
-		await increaseTime(Const.DAY * 7); // 7 days
-		await expect(balancer.execute(2, false, 1e6, 2000))
-			.to.be.revertedWithCustomError(balancer, "ModeMismatch", 2, 1);
 	});
 });

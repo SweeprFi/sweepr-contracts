@@ -86,7 +86,7 @@ contract("Sweep - Mint", async function () {
 
 		// Pause sweep
 		await expect(sweep.connect(newAddress).pause())
-			.to.be.revertedWithCustomError(sweep, "NotMultisig");
+			.to.be.revertedWithCustomError(sweep, "NotMultisigOrGov");
 		await sweep.connect(owner).pause();
 
 		await expect(sweep.connect(owner).transfer(receiver.address, TRANSFER_AMOUNT))

@@ -41,6 +41,7 @@
     "@uniswap/v3-periphery": "github:Uniswap/v3-periphery#0.8",
     "abdk-libraries-solidity": "^3.2.0",
     "bignumber.js": "^9.1.1",
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "hardhat-tracer": "^2.5.1"
   }
 }

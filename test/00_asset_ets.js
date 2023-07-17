@@ -1,12 +1,12 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses, chainId } = require("../utils/address");
-const { impersonate, sendEth, increaseTime, Const, toBN } = require("../utils/helper_functions");
+const { impersonate, sendEth, resetNetwork, Const, toBN } = require("../utils/helper_functions");
 
-contract.skip("ETS Asset", async function () {
+contract("ETS Asset", async function () {
     before(async () => {
         if (Number(chainId) !== 42161) return;
-        
+
         [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
         // Variables
         usdxAmount = 5000e6;
@@ -16,17 +16,20 @@ contract.skip("ETS Asset", async function () {
         maxSweep = toBN("500000", 18);
         sweepAmount = toBN("1000", 18);
 
+        blockNumber = await ethers.provider.getBlockNumber();
+        await resetNetwork(Const.BLOCK_NUMBER);
+        await sendEth(Const.EXCHANGER_ADMIN);
+        await sendEth(addresses.usdc);
         // ------------- Deployment of contracts -------------
-        
+
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [
             lzEndpoint.address,
-            addresses.owner,
+            borrower.address,
             2500 // 0.25%
         ]);
         sweep = await Proxy.deployed();
-        user = await impersonate(addresses.owner);
-        await sweep.connect(user).setTreasury(addresses.treasury);
+        await sweep.setTreasury(addresses.treasury);
 
         Token = await ethers.getContractFactory("ERC20");
         usdc = await Token.attach(addresses.usdc);
@@ -48,6 +51,16 @@ contract.skip("ETS Asset", async function () {
 
         // add asset as a minter
         await sweep.addMinter(asset.address, maxSweep);
+
+        // remove blockGetter and whitelist the asset
+        exchanger = await ethers.getContractAt("IHedgeExchangerMock", addresses.ets_exchanger);
+        ROLE = await exchanger.WHITELIST_ROLE();
+        user = await impersonate(Const.EXCHANGER_ADMIN);
+        await exchanger.connect(user).grantRole(ROLE, asset.address);
+    });
+
+    after(async () => {
+        await resetNetwork(blockNumber);
     });
 
     describe("asset constraints", async function () {
@@ -66,7 +79,8 @@ contract.skip("ETS Asset", async function () {
         it('deposit usdc to the asset', async () => {
             user = await impersonate(addresses.usdc);
             await usdc.connect(user).transfer(asset.address, depositAmount);
-            expect(await usdc.balanceOf(asset.address)).to.equal(depositAmount)
+            expect(await usdc.balanceOf(asset.address)).to.equal(depositAmount);
+            expect(await asset.currentValue()).to.equal(depositAmount);
         });
 
         it("invest correctly", async function () {

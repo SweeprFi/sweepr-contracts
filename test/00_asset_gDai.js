@@ -1,14 +1,11 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { networks } = require("../hardhat.config");
 const { addresses, chainId } = require("../utils/address");
-const helpers = require("@nomicfoundation/hardhat-network-helpers");
-const { impersonate, sendEth, increaseTime, Const, toBN } = require("../utils/helper_functions");
+const { impersonate, sendEth, increaseTime, Const, toBN, resetNetwork } = require("../utils/helper_functions");
 
 contract("gDAI Asset", async function () {
     before(async () => {
         if (Number(chainId) !== 42161) return;
-        url = networks.hardhat.forking.url;
         blockNumber = await ethers.provider.getBlockNumber();
         
         [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
@@ -66,7 +63,7 @@ contract("gDAI Asset", async function () {
     });
 
     after(async() => {
-        await helpers.reset(url, blockNumber);
+        await resetNetwork(blockNumber);
     });
 
     const epochLoop = async (n) => {
@@ -106,6 +103,7 @@ contract("gDAI Asset", async function () {
 
         it("invest correctly", async function () {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
+            expect(await asset.currentValue()).to.equal(depositAmount);
             await asset.invest(depositAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
             expect(await gDai.balanceOf(asset.address)).to.above(Const.ZERO);

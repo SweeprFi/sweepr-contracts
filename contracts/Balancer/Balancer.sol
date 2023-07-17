@@ -55,7 +55,7 @@ contract Balancer is NonblockingLzApp, Owned {
      * @notice refresh interest rate periodically.
      * returns mode: 0 => idle, 1 => invest, 2 => call
      */
-    function refreshInterestRate() public onlyMultisig returns (Mode mode) {
+    function refreshInterestRate() public onlyMultisigOrGov returns (Mode mode) {
         int256 interestRate = sweep.interestRate();
         int256 stepValue = sweep.stepValue();
         
@@ -96,7 +96,7 @@ contract Balancer is NonblockingLzApp, Owned {
      * @param interestRate new interest rate.
      * @param periodStart new period start.
      */
-    function setInterestRate(int256 interestRate, uint256 periodStart) external onlyMultisig {
+    function setInterestRate(int256 interestRate, uint256 periodStart) external onlyMultisigOrGov {
         sweep.setInterestRate(interestRate, periodStart);
     }
 
@@ -104,7 +104,7 @@ contract Balancer is NonblockingLzApp, Owned {
      * @notice Set Period for refreshing interest rate
      * @param newPeriod new period. For example, newPeriod = 7 means 7 days).
      */
-    function setPeriod(uint256 newPeriod) external onlyMultisig {
+    function setPeriod(uint256 newPeriod) external onlyMultisigOrGov {
         if (newPeriod == 0) revert ZeroAmount();
         period = newPeriod;
     }
@@ -173,7 +173,7 @@ contract Balancer is NonblockingLzApp, Owned {
      * @param stabilizer to assign the new loan limit to.
      * @param loanLimit new value to be assigned.
      */
-    function setLoanLimit(address stabilizer, uint256 loanLimit) external onlyMultisig {
+    function setLoanLimit(address stabilizer, uint256 loanLimit) external onlyMultisigOrGov {
         IStabilizer(stabilizer).setLoanLimit(loanLimit);
     }
 
@@ -182,7 +182,7 @@ contract Balancer is NonblockingLzApp, Owned {
      * @dev Cancels a call in an off chain stabilizer that is in the line to defaulted if it doesn't repay on time
      * @param stabilizer (offchain) to cancel the call
      */
-    function cancelCall(address stabilizer) external onlyMultisig {
+    function cancelCall(address stabilizer) external onlyMultisigOrGov {
         IStabilizer(stabilizer).cancelCall();
     }
 
@@ -195,7 +195,7 @@ contract Balancer is NonblockingLzApp, Owned {
     function addActions(
         address[] calldata addresess,
         uint256[] calldata amounts_
-    ) external onlyMultisig {
+    ) external onlyMultisigOrGov {
         uint256 len = addresess.length;
         if (len != amounts_.length)
             revert WrongDataLength();
@@ -215,7 +215,7 @@ contract Balancer is NonblockingLzApp, Owned {
     function addAction(
         address stabilizer,
         uint256 amount
-    ) public onlyMultisig {
+    ) public onlyMultisigOrGov {
         stabilizers[index++] = stabilizer;
         amounts[stabilizer] = amount;
 
@@ -227,7 +227,7 @@ contract Balancer is NonblockingLzApp, Owned {
      * @dev removes amount for the stabilizer
      * @param stabilizer stabilizer to be cleared
      */
-    function removeAction(address stabilizer) external onlyMultisig {
+    function removeAction(address stabilizer) external onlyMultisigOrGov {
         delete amounts[stabilizer];
 
         emit ActionRemoved(stabilizer);
@@ -244,7 +244,7 @@ contract Balancer is NonblockingLzApp, Owned {
         bool force,
         uint256 price,
         uint256 slippage
-    ) external onlyMultisig {
+    ) external onlyMultisigOrGov {
         emit Execute(intention);
 
         Mode state = refreshInterestRate();
@@ -281,7 +281,7 @@ contract Balancer is NonblockingLzApp, Owned {
      * @notice Reset
      * @dev Removes all the pending actions
      */
-    function reset() public onlyMultisig {
+    function reset() public onlyMultisigOrGov {
         for (uint256 i = 0; i < index;) {
             delete amounts[stabilizers[i]];
             delete stabilizers[i];

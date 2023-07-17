@@ -40,7 +40,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
 
     error InvalidMinter();
     error NotGovernance();
-    error NotMultisig();
+    error NotMultisigOrGov();
     error ZeroAmountDetected();
     error ZeroAddressDetected();
     error MintDisabled();
@@ -61,9 +61,9 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
         _;
     }
 
-    modifier onlyMultisig() {
+    modifier onlyMultisigOrGov() {
         if (msg.sender != owner() && msg.sender != fastMultisig)
-            revert NotMultisig();
+            revert NotMultisigOrGov();
         _;
     }
 
@@ -92,14 +92,14 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     /**
      * @notice Pause Sweep
      */
-    function pause() external onlyMultisig whenNotPaused {
+    function pause() external onlyMultisigOrGov whenNotPaused {
         _pause();
     }
 
     /**
      * @notice Unpause Sweep
      */
-    function unpause() external onlyMultisig whenPaused {
+    function unpause() external onlyMultisigOrGov whenPaused {
         _unpause();
     }
 
