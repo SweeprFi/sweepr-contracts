@@ -172,7 +172,7 @@ contract("Sweepr - OFT", async function () {
             chain = await OFTSrc.chains(chainIdDst);
             expect(chain).to.equal(sweepDst.address);
 
-            sweepAddress = await OFTSrc.getSweepWithChainId(chainIdDst);
+            sweepAddress = await OFTSrc.getBalancerWithChainId(chainIdDst);
             expect(sweepAddress).to.equal(sweepDst.address);
         })
 

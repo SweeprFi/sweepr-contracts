@@ -45,6 +45,7 @@ contract Balancer is NonblockingLzApp, Owned {
     error ModeMismatch(Mode intention, Mode state);
     error WrongDataLength();
     error NotTrustedRemote();
+    error ZeroAmount();
     error ZeroETH();
     error NotEnoughETH();
 
@@ -63,7 +64,7 @@ contract Balancer is NonblockingLzApp, Owned {
         if (mode == Mode.CALL) interestRate += stepValue;
         if (mode == Mode.INVEST) interestRate -= stepValue;
 
-        uint256 periodStart = sweep.periodStart() + period * 1 days;
+        uint256 periodStart = block.timestamp + period * 1 days;
         sweep.setInterestRate(interestRate, periodStart);
 
         if (address(sweepr) != address(0) && sweepr.isGovernanceChain()) {
@@ -104,6 +105,7 @@ contract Balancer is NonblockingLzApp, Owned {
      * @param newPeriod new period. For example, newPeriod = 7 means 7 days).
      */
     function setPeriod(uint256 newPeriod) external onlyMultisigOrGov {
+        if (newPeriod == 0) revert ZeroAmount();
         period = newPeriod;
     }
 

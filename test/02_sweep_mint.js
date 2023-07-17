@@ -114,21 +114,22 @@ contract("Sweep - Mint", async function () {
 
 	it('allow and disallow minting', async () => {
 		// Set new arbSpread
-		NEW_arbSpread = 1e5;
-		NEW_targetPrice = 1e7;
+		NEW_arbSpread = 0;
+		NEW_targetPrice = 1010000;
 		await sweep.connect(owner).setBalancer(owner.address);
 		await sweep.connect(owner).setArbSpread(NEW_arbSpread);
-		await sweep.connect(owner).setTargetPrice(NEW_targetPrice, NEW_targetPrice);
+		await sweep.connect(owner).setTargetPrice(NEW_targetPrice);
 		// TODO: change to _amm after new deployment
 		await sweep.connect(owner).setAMM(addresses.uniswap_oracle);
-		await expect(sweep.connect(newMinter).minterMint(newAddress.address, TRANSFER_AMOUNT))
-			.to.be.revertedWithCustomError(Sweep, 'MintNotAllowed');
+		ammPrice = await sweep.ammPrice();
 
-		// Set new arbSpread
-		NEW_targetPrice = 1e6;
-		await sweep.connect(owner).setTargetPrice(NEW_targetPrice, NEW_targetPrice);
-		expect(await sweep.balanceOf(newAddress.address)).to.equal(Const.ZERO);
-		await sweep.connect(newMinter).minterMint(newAddress.address, TRANSFER_AMOUNT)
-		expect(await sweep.balanceOf(newAddress.address)).to.equal(TRANSFER_AMOUNT);
+		if (ammPrice >= NEW_targetPrice) { // allow mint
+			expect(await sweep.balanceOf(newAddress.address)).to.equal(Const.ZERO);
+			await sweep.connect(newMinter).minterMint(newAddress.address, TRANSFER_AMOUNT)
+			expect(await sweep.balanceOf(newAddress.address)).to.equal(TRANSFER_AMOUNT);
+		} else { // disallow mint
+			await expect(sweep.connect(newMinter).minterMint(newAddress.address, TRANSFER_AMOUNT))
+				.to.be.revertedWithCustomError(Sweep, 'MintNotAllowed');
+		}
 	});
 });

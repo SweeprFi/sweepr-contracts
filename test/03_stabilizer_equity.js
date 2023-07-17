@@ -17,7 +17,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     const Proxy = await upgrades.deployProxy(Sweep, [
       lzEndpoint.address,
       addresses.owner,
-      2500 // 0.25%
+      50 // 0.005%
     ]);
     sweep = await Proxy.deployed();
 
@@ -68,23 +68,22 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     equity_ratio = await st.getEquityRatio();
     expect(equity_ratio.toNumber()).to.equal(100000); // expected 10%
 
-    // Set Target Price to 0.9
-    targetPrice = await sweep.targetPrice();
-    await sweep.setTargetPrice(targetPrice, 0.9e6);
+    // Set Target Price to 1.01
+    await sweep.setTargetPrice(1.01e6);
 
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(109890); // expected 10.98%    
+    expect(equity_ratio.toNumber()).to.equal(99108); // expected 10.98%    
 
     // Sell Sweep
     await st.sellSweepOnAMM(mintAmount, 0);
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(189635); // expected 18.96%
+    expect(equity_ratio.toNumber()).to.equal(90590); // expected 18.96%
 
-    // Set Target Price to 1.2
+    // Set Target Price to 1.02
     targetPrice = await sweep.targetPrice();
-    await sweep.setTargetPrice(targetPrice, 1.2e6);
+    await sweep.setTargetPrice(1.02e6);
 
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(-80486); // expected -18.99%
+    expect(equity_ratio.toNumber()).to.equal(81586); // expected -18.99%
   });
 });
