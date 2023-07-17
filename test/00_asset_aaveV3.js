@@ -19,7 +19,7 @@ contract('Aave V3 Asset', async () => {
         const Proxy = await upgrades.deployProxy(Sweep, [
             lzEndpoint.address,
             addresses.owner,
-            2500 // 0.25%
+            50 // 0.005%
         ]);
         sweep = await Proxy.deployed();
         user = await impersonate(addresses.owner);

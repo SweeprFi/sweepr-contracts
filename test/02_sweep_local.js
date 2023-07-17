@@ -52,25 +52,9 @@ contract("Sweep", async function () {
 	});
 
 	it('sets a new arb spread correctly', async () => {
-		expect(await sweep.arbSpread()).to.eq(Const.ZERO);
-		await sweep.connect(multisig).setArbSpread(1000);
 		expect(await sweep.arbSpread()).to.eq(1000);
-	});
-
-	it('sets a new AMM and gets price correctly', async () => {
-		expect(await sweep.amm()).to.equal(Const.ADDRESS_ZERO);
-
-		// TODO: change to _amm after new deployment
-		amm = addresses.uniswap_oracle;
-
-		await expect(sweep.connect(multisig).setAMM(Const.ADDRESS_ZERO))
-			.to.be.revertedWithCustomError(sweep, "ZeroAddressDetected")
-		await sweep.connect(multisig).setAMM(amm);
-
-		expect(await sweep.amm()).to.equal(amm);
-
-		price = await sweep.ammPrice();
-		expect(price).to.above(Const.ZERO);
+		await sweep.connect(multisig).setArbSpread(2000);
+		expect(await sweep.arbSpread()).to.eq(2000);
 	});
 
 	it('sets a new balancer address correctly', async () => {
@@ -82,10 +66,10 @@ contract("Sweep", async function () {
 	});
 
 	it('sets a new current target price correctly', async () => {
+		newTargetPrice = 1010000;
 		expect(await sweep.currentTargetPrice()).to.equal(await sweep.nextTargetPrice());
-		await sweep.connect(newAddress).setTargetPrice(90000, 99000);
-		expect(await sweep.currentTargetPrice()).to.equal(90000);
-		expect(await sweep.nextTargetPrice()).to.equal(99000);
+		await sweep.connect(newAddress).setTargetPrice(newTargetPrice);
+		expect(await sweep.currentTargetPrice()).to.equal(newTargetPrice);
 	});
 
 	it('upgrades Sweep', async () => {
@@ -174,4 +158,20 @@ contract("Sweep", async function () {
 		sweepAmount = await sweep.convertToSWEEP(usdAmount);
 		expect(sweepAmount).to.eq(amount);
 	})
+
+	it('sets a new AMM and gets price correctly', async () => {
+		expect(await sweep.amm()).to.equal(Const.ADDRESS_ZERO);
+
+		// TODO: change to _amm after new deployment
+		amm = addresses.uniswap_oracle;
+
+		await expect(sweep.connect(multisig).setAMM(Const.ADDRESS_ZERO))
+			.to.be.revertedWithCustomError(sweep, "ZeroAddressDetected")
+		await sweep.connect(multisig).setAMM(amm);
+
+		expect(await sweep.amm()).to.equal(amm);
+
+		price = await sweep.ammPrice();
+		expect(price).to.above(Const.ZERO);
+	});
 });

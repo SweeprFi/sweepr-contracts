@@ -40,7 +40,6 @@ contract SweepCoin is BaseSweep {
     event AMMSet(address ammAddress);
     event BalancerSet(address balancerAddress);
     event TreasurySet(address treasuryAddress);
-    event NewPeriodStarted(uint256 periodStart);
     event TargetPriceSet(uint256 currentTargetPrice);
     event WriteOff(uint256 newPrice);
 
@@ -50,10 +49,9 @@ contract SweepCoin is BaseSweep {
     error WriteOffNotAllowed();
     error NotOwnerOrBalancer();
     error NotBalancer();
-    error NotPassedPeriodTime();
     error AlreadyExist();
-    error InvalidPeriodStart();
-    error InvalidInterestRate();
+    error OldPeriodStart();
+    error OutOfRateRange();
     error LessTargetPrice();
     error OutOfTargetPriceChange();
 
@@ -82,7 +80,7 @@ contract SweepCoin is BaseSweep {
         currentPeriodStart = block.timestamp;
         nextPeriodStart = currentPeriodStart + 1 days;
 
-        arbSpread = 1000;
+        arbSpread = 1000; // 0.1%
     }
 
     /* ========== VIEWS ========== */
@@ -97,7 +95,7 @@ contract SweepCoin is BaseSweep {
     }
 
     /**
-     * @notice Get Sweep Time Weighted Averate Price
+     * @notice Get Sweep Time Weighted Average Price
      * The Sweep Price comes from the AMM.
      * @return uint256 Sweep price
      */
@@ -124,7 +122,7 @@ contract SweepCoin is BaseSweep {
      * @return uint256 Sweep target price
      */
     function targetPrice() public view returns (uint256) {
-        uint256 accumulatedRate = (SPREAD_PRECISION + uint256(interestRate())) * daysInterest();
+        uint256 accumulatedRate = SPREAD_PRECISION + uint256(interestRate()) * daysInterest();
 
         if (block.timestamp < nextPeriodStart) {
             return (currentTargetPrice * accumulatedRate) / SPREAD_PRECISION;
@@ -219,21 +217,27 @@ contract SweepCoin is BaseSweep {
      */
     function setInterestRate(int256 dailyRate, uint256 newPeriodStart) external onlyBalancer {
         // newPeriodStart should be after current block time.
-        if (newPeriodStart < block.timestamp) revert InvalidPeriodStart();
+        if (newPeriodStart < block.timestamp) revert OldPeriodStart();
         // dailyRate should be less than 0.1% and larger than zero
-        if (dailyRate < 0 || dailyRate >= 1000) revert InvalidInterestRate();
+        if (dailyRate < -100 || dailyRate >= 1000) revert OutOfRateRange();
 
         if (block.timestamp >= nextPeriodStart) {
             currentInterestRate = nextInterestRate;
             currentTargetPrice = nextTargetPrice;
-            currentPeriodStart = nextPeriodStart;
+            currentPeriodStart = block.timestamp;
         }
 
         nextInterestRate = dailyRate;
         nextPeriodStart = newPeriodStart;
 
-        uint256 interestTime = nextPeriodStart - currentPeriodStart;
-        uint256 accumulatedRate = ((SPREAD_PRECISION + uint256(currentInterestRate)) * interestTime) / 1 days;
+        uint256 interestTime = SPREAD_PRECISION * (nextPeriodStart - currentPeriodStart);
+        uint256 accumulatedRate;
+
+        if (nextInterestRate >= 0) {
+            accumulatedRate = SPREAD_PRECISION + (uint256(nextInterestRate) * interestTime) / (1 days * SPREAD_PRECISION);
+        } else {
+            accumulatedRate = SPREAD_PRECISION - (uint256(-nextInterestRate) * interestTime) / (1 days * SPREAD_PRECISION);
+        }
 
         nextTargetPrice = (currentTargetPrice * accumulatedRate) / SPREAD_PRECISION;
 
@@ -290,6 +294,7 @@ contract SweepCoin is BaseSweep {
             }
         }
         
+        currentTargetPrice = newPrice;
         nextTargetPrice = newPrice;
 
         emit WriteOff(newPrice);
