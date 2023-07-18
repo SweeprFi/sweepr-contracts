@@ -48,15 +48,16 @@ contract("Balancer", async function () {
 		// set period to 7 days in balancer
 		await balancer.setPeriod(period);
 
+		periodStart = await sweep.periodStart();
+
 		/*------- Start 1st period ------*/
-		currentBlockTime = await getBlockTimestamp();
 		await balancer.refreshInterestRate();
 
 		expect(await sweep.currentInterestRate()).to.be.equal(Const.ZERO);
 		expect(await sweep.nextInterestRate()).to.be.equal(newInterestRate);
 		expect(await sweep.currentTargetPrice()).to.be.equal(nextTargetPrice);
-		expect(await sweep.currentPeriodStart()).to.be.equal(currentBlockTime + 1);
-		expect(await sweep.nextPeriodStart()).to.be.equal(currentBlockTime + Const.DAY * 7 + 1);
+		expect(await sweep.currentPeriodStart()).to.be.equal(periodStart);
+		expect(await sweep.nextPeriodStart()).to.be.equal(periodStart.add(Const.DAY * 7));
 
 		interestTime = PRECISION * period; // nextPeriodStart - currentPeriodStart = 7 days
         accumulatedRate = PRECISION + (newInterestRate * interestTime) / PRECISION;
@@ -71,16 +72,16 @@ contract("Balancer", async function () {
 		newInterestRate = interestRate.add(stepValue);
 		nextInterestRate = await sweep.nextInterestRate();
 		nextTargetPrice = await sweep.nextTargetPrice();
+		periodStart = await sweep.periodStart();
 
 		/*------- Start 2nd period ------*/
-		currentBlockTime = await getBlockTimestamp();
 		await balancer.refreshInterestRate();
 
 		expect(await sweep.currentInterestRate()).to.be.equal(nextInterestRate);
 		expect(await sweep.nextInterestRate()).to.be.equal(newInterestRate);
 		expect(await sweep.currentTargetPrice()).to.be.equal(nextTargetPrice);
-		expect(await sweep.currentPeriodStart()).to.be.equal(currentBlockTime + 1);
-		expect(await sweep.nextPeriodStart()).to.be.equal(currentBlockTime + Const.DAY * 7 + 1);
+		expect(await sweep.currentPeriodStart()).to.be.equal(periodStart);
+		expect(await sweep.nextPeriodStart()).to.be.equal(periodStart.add(Const.DAY * 7));
 
 		// advance 3 day to calculate target price
 		await increaseTime(Const.DAY * 3);
@@ -89,7 +90,7 @@ contract("Balancer", async function () {
 		interestRate = await sweep.interestRate();
 		daysInterest = await sweep.daysInterest();
 
-		expect(daysInterest).to.be.equal(3);
+		expect(daysInterest).to.be.equal(4);
 
 		accumulatedRate = PRECISION + interestRate * daysInterest;
 		targetPrice = Math.round((currentTargetPrice * accumulatedRate) / PRECISION);
@@ -98,27 +99,22 @@ contract("Balancer", async function () {
 	});
 
 	it('decreases the interest rate because the TWA price is higher', async () => {
-		await increaseTime(Const.DAY * 7); // 7 days
 		await sweep.setTWAPrice(1100000);
 
-		nextInterestRate = await sweep.nextInterestRate();
-		newInterestRate = nextInterestRate - stepValue;
-		nextTargetPrice = await sweep.nextTargetPrice();
+		interestRate = await sweep.interestRate();
+		newInterestRate = interestRate - stepValue;
 
 		/*------- Start 3rd period ------*/
 		await balancer.refreshInterestRate();
 
 		expect(await sweep.nextInterestRate()).to.be.equal(newInterestRate);
-		expect(await sweep.targetPrice()).to.be.equal(nextTargetPrice);
-		expect(await sweep.currentTargetPrice()).to.be.equal(nextTargetPrice);
-		expect(await sweep.nextTargetPrice()).to.be.above(nextTargetPrice);
 	});
 
 	it('decreases the interest rate because the TWA price is higher', async () => {
 		await increaseTime(Const.DAY * 7); // 7 days
 		nextTargetPrice = await sweep.nextTargetPrice();
-		nextInterestRate = await sweep.nextInterestRate();
-		newInterestRate = nextInterestRate - stepValue;
+		interestRate = await sweep.interestRate();
+		newInterestRate = interestRate - stepValue;
 
 		/*------- Start 4th period ------*/
 		await balancer.refreshInterestRate();
@@ -126,30 +122,33 @@ contract("Balancer", async function () {
 		expect(await sweep.nextInterestRate()).to.be.equal(newInterestRate);
 		expect(await sweep.targetPrice()).to.be.equal(nextTargetPrice);
 		expect(await sweep.currentTargetPrice()).to.be.equal(nextTargetPrice);
-		expect(await sweep.nextTargetPrice()).to.be.equal(nextTargetPrice);
+		expect(await sweep.nextTargetPrice()).to.be.lessThan(nextTargetPrice);
 	});
 
 	it('sets a negative interest rate and decreaces the next target price', async () => {
 		await increaseTime(Const.DAY * 7); // 7 days
+
+		interestRate = await sweep.interestRate();
+		newInterestRate = interestRate - stepValue; // 0.001%
+
 		next_tp = await sweep.nextTargetPrice();
 
 		/*------- Start 5th period ------*/
 		await balancer.refreshInterestRate();
 
-		expect(await sweep.nextInterestRate()).to.be.equal(-stepValue);
-		expect(await sweep.targetPrice()).to.be.equal(next_tp);
+		expect(await sweep.nextInterestRate()).to.be.equal(newInterestRate);
 		expect(await sweep.currentTargetPrice()).to.be.equal(next_tp);
-		expect(await sweep.nextTargetPrice()).to.not.above(next_tp);
+		expect(await sweep.nextTargetPrice()).to.lessThan(next_tp);
 
 		await increaseTime(Const.DAY * 7); // 7 days
 
-		expect(await sweep.interestRate()).to.be.equal(-stepValue);
+		expect(await sweep.interestRate()).to.be.equal(newInterestRate);
 		currentTargetPrice = await sweep.currentTargetPrice();
 
 		/*------- Start 6th period ------*/
-		await balancer.refreshInterestRate();
-
-		expect(await sweep.nextTargetPrice()).to.below(currentTargetPrice);
+		// revert when newInterest rate is lower than -0.001%
+		await expect(balancer.refreshInterestRate())
+			.to.be.revertedWithCustomError(Sweep, 'OutOfRateRange');
 	});
 
 	it('reverts refresh interest rate when caller is not sweep owner', async () => {

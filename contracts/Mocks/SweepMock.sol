@@ -124,7 +124,13 @@ contract SweepMock is BaseSweep {
      * @return uint256 Sweep target price
      */
     function targetPrice() public view returns (uint256) {
-        uint256 accumulatedRate = SPREAD_PRECISION + uint256(interestRate()) * daysInterest();
+        uint256 accumulatedRate;
+
+        if (interestRate() >= 0) {
+            accumulatedRate = SPREAD_PRECISION + uint256(interestRate()) * daysInterest();
+        } else {
+            accumulatedRate = SPREAD_PRECISION - uint256(-interestRate()) * daysInterest();
+        }
 
         if (block.timestamp < nextPeriodStart) {
             return (currentTargetPrice * accumulatedRate) / SPREAD_PRECISION;
@@ -197,7 +203,7 @@ contract SweepMock is BaseSweep {
         if (block.timestamp >= nextPeriodStart) {
             currentInterestRate = nextInterestRate;
             currentTargetPrice = nextTargetPrice;
-            currentPeriodStart = block.timestamp;
+            currentPeriodStart = nextPeriodStart;
         }
 
         nextInterestRate = dailyRate;
