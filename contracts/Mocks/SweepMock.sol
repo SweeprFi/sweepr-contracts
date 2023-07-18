@@ -191,7 +191,7 @@ contract SweepMock is BaseSweep {
     function setInterestRate(int256 dailyRate, uint256 newPeriodStart) external onlyBalancer {
         // newPeriodStart should be after current block time.
         if (newPeriodStart < block.timestamp) revert OldPeriodStart();
-        // dailyRate should be less than 0.1% and larger than zero
+        // dailyRate should be less than 0.1% and larger than -0.01%
         if (dailyRate < -100 || dailyRate >= 1000) revert OutOfRateRange();
 
         if (block.timestamp >= nextPeriodStart) {
