@@ -116,7 +116,7 @@ async function binary_search() {
         // sets a lower target price to can mint more Sweep
         user = await impersonate(BALANCER);
         await sweep.connect(user).setTargetPrice(100, 100);
-        await sweep.minterMint(tester.address, SWEEP_AMOUNT);
+        await sweep.connect(tester).mint(SWEEP_AMOUNT);
 
         await sweep.approve(addresses.uniswap_amm, SWEEP_AMOUNT.mul(100));
         await usdc.approve(addresses.uniswap_amm, USDC_AMOUNT.mul(100));

@@ -29,7 +29,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     /* ========== Events ========== */
 
     event TokenBurned(address indexed from, uint256 amount);
-    event TokenMinted(address indexed from, address indexed to, uint256 amount);
+    event TokenMinted(address indexed to, uint256 amount);
     event MinterAdded(address indexed minterAddress, Minter minter);
     event MinterUpdated(address indexed minterAddress, Minter minter);
     event MinterRemoved(address indexed minterAddress);
@@ -210,11 +210,9 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     /**
      * @notice Mint
      * This function is what other minters will call to mint new tokens
-     * @param minter Address of a minter.
      * @param amount Amount for mint.
      */
-    function minterMint(
-        address minter,
+    function mint(
         uint256 amount
     ) public virtual validMinter(msg.sender) whenNotPaused {
         if (!minters[msg.sender].isEnabled) revert MintDisabled();
@@ -224,9 +222,9 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
         ) revert MintCapReached();
 
         minters[msg.sender].mintedAmount += amount;
-        super._mint(minter, amount);
+        super._mint(msg.sender, amount);
 
-        emit TokenMinted(msg.sender, minter, amount);
+        emit TokenMinted(msg.sender, amount);
     }
 
     /**
@@ -234,7 +232,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
      * Used by minters when user redeems
      * @param amount Amount for burn.
      */
-    function minterBurnFrom(
+    function burn(
         uint256 amount
     ) external validMinter(msg.sender) whenNotPaused {
         if (minters[msg.sender].mintedAmount < amount)

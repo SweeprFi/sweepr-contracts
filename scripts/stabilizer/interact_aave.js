@@ -343,9 +343,11 @@ async function main() {
     await impersonate(OWNER);
     txn = await sweep.connect(user).addMinter(liquidator.address, mintAmount)
     await txn.wait();
-    txn = await sweep.connect(liquidator).minterMint(liquidator.address, sweepAmount);
+    txn = await sweep.connect(liquidator).mint(sweepAmount);
     await txn.wait();
-    txn = await sweep.connect(liquidator).minterMint(addresses.borrower, sweepAmount);
+    txn = await sweep.connect(liquidator).mint(sweepAmount);
+    await txn.wait();
+    txn = await sweep.connect(liquidator).transfer(addresses.borrower, sweepAmount);
     await txn.wait();
 
     await impersonate(addresses.usdc);
@@ -371,7 +373,9 @@ async function main() {
   async function increaseLiquidity() {
     const sweepAmount = ethers.utils.parseUnits("3000", 18);
     const usdcAmount = ethers.utils.parseUnits("3000", 6);
-    txn = await sweep.connect(liquidator).minterMint(addresses.stabilizer_uniswap, sweepAmount);
+    txn = await sweep.connect(liquidator).mint(sweepAmount);
+    await txn.wait();
+    txn = await sweep.connect(liquidator).transfer(addresses.stabilizer_uniswap, sweepAmount);
     await txn.wait();
 
     await impersonate(addresses.usdc);

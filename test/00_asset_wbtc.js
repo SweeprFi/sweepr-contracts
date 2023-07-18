@@ -52,7 +52,9 @@ contract("WBTC Asset", async function () {
 
         // simulates a pool in uniswap with 10000 SWEEP/USDX
         await sweep.addMinter(BORROWER, maxSweep);
-        await sweep.minterMint(amm.address, maxBorrow);
+        user = await impersonate(BORROWER);
+        await sweep.connect(user).mint(maxBorrow);
+        await sweep.connect(user).transfer(amm.address, maxBorrow);
 
         user = await impersonate(addresses.usdc)
         await usdc.connect(user).transfer(amm.address, 100e6);

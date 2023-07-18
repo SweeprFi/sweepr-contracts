@@ -50,7 +50,6 @@ contract("gDAI Asset", async function () {
 
         // add asset as a minter
         await sweep.addMinter(asset.address, maxSweep);
-        // await sweep.minterMint(amm.address, sweepAmount);
 
         // AMM initialize
         user = await impersonate(addresses.usdc)

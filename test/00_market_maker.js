@@ -54,7 +54,7 @@ contract('Market Maker', async () => {
         await sweep.addMinter(marketmaker.address, sweepAmount);
 
         // sends usdx to owner for creating liquidity position in uniswap v3 pool
-        await sweep.minterMint(owner.address, sweepAmount.mul(5));
+        await sweep.connect(owner).mint(sweepAmount.mul(5));
         await usdc.transfer(owner.address, usdxAmount.mul(5));
 
         // config market maker

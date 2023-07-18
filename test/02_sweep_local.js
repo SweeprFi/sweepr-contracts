@@ -135,10 +135,10 @@ contract("Sweep", async function () {
 	});
 
 	it('mints SWEEP for a valid minter', async () => {
-		await expect(sweep.connect(treasury).minterMint(newMinter.address, 10))
+		await expect(sweep.connect(treasury).mint(10))
 			.to.be.revertedWithCustomError(Sweep, 'InvalidMinter');
 
-		await sweep.connect(newMinter).minterMint(newMinter.address, 10)
+		await sweep.connect(newMinter).mint(10)
 		minterInfo = await sweep.minters(newMinter.address);
 
 		expect(minterInfo.maxAmount).to.equal(TRANSFER_AMOUNT);
@@ -148,10 +148,10 @@ contract("Sweep", async function () {
 	});
 
 	it('burns SWEEP for a valid minter', async () => {
-		await expect(sweep.connect(treasury).minterBurnFrom(10))
+		await expect(sweep.connect(treasury).burn(10))
 			.to.be.revertedWithCustomError(Sweep, 'InvalidMinter');
 
-		await sweep.connect(newMinter).minterBurnFrom(10)
+		await sweep.connect(newMinter).burn(10)
 		minterInfo = await sweep.minters(newMinter.address);
 
 		expect(minterInfo.maxAmount).to.equal(TRANSFER_AMOUNT);
@@ -169,11 +169,11 @@ contract("Sweep", async function () {
 		expect(minterInfo.isListed).to.equal(Const.TRUE);
 		expect(minterInfo.isEnabled).to.equal(Const.TRUE);
 
-		await sweep.connect(newMinter).minterMint(newMinter.address, TRANSFER_AMOUNT);
+		await sweep.connect(newMinter).mint(TRANSFER_AMOUNT);
 		await sweep.connect(multisig).setMinterEnabled(newMinter.address, Const.FALSE);
 		minterInfo = await sweep.minters(newMinter.address);
 
-		await expect(sweep.connect(newMinter).minterMint(newMinter.address, 10))
+		await expect(sweep.connect(newMinter).mint(10))
 			.to.be.revertedWithCustomError(Sweep, 'MintDisabled');
 
 		expect(minterInfo.maxAmount).to.equal(TRANSFER_AMOUNT.mul(2));

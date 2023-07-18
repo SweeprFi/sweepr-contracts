@@ -53,8 +53,10 @@ contract("Stabilizer - Liquidation", async function () {
 
     // simulates a pool in uniswap with 10000 SWEEP/USDX
     await sweep.addMinter(borrower.address, maxSweep);
-    await sweep.minterMint(amm.address, maxBorrow);
-    await sweep.minterMint(liquidator.address, liquidatorBalance);
+    await sweep.connect(borrower).mint(maxBorrow);
+    await sweep.connect(borrower).transfer(amm.address, maxBorrow);
+    await sweep.connect(borrower).mint(liquidatorBalance);
+    await sweep.connect(borrower).transfer(liquidator.address, liquidatorBalance);
 
     user = await impersonate(addresses.usdc)
     await usdc.connect(user).transfer(amm.address, 100e6);

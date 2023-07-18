@@ -680,7 +680,7 @@ contract Stabilizer is Owned, Pausable {
 
     function _borrow(uint256 sweepAmount) internal {
         uint256 spreadAmount = accruedFee();
-        sweep.minterMint(address(this), sweepAmount);
+        sweep.mint(sweepAmount);
         sweepBorrowed += sweepAmount;
         spreadDate = block.timestamp;
 
@@ -726,7 +726,7 @@ contract Stabilizer is Owned, Pausable {
         );
 
         TransferHelper.safeApprove(address(sweep), address(this), sweepAmount);
-        sweep.minterBurnFrom(sweepAmount);
+        sweep.burn(sweepAmount);
 
         emit Repaid(sweepAmount);
     }
