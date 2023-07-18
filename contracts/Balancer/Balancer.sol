@@ -64,7 +64,7 @@ contract Balancer is NonblockingLzApp, Owned {
         if (mode == Mode.CALL) interestRate += stepValue;
         if (mode == Mode.INVEST) interestRate -= stepValue;
 
-        uint256 periodStart = block.timestamp + period * 1 days;
+        uint256 periodStart = sweep.periodStart() + period * 1 days;
         sweep.setInterestRate(interestRate, periodStart);
 
         if (address(sweepr) != address(0) && sweepr.isGovernanceChain()) {
@@ -118,7 +118,6 @@ contract Balancer is NonblockingLzApp, Owned {
             bool isTrusted = this.isTrustedRemote(dstChainId, abi.encodePacked(balancerDstAddress, address(this)));
 
             if (!isTrusted) revert NotTrustedRemote();
-            if (address(this).balance == 0) revert ZeroETH();
 
             // encode the payload with the number of pings
             bytes memory payload = abi.encode(PT_INTEREST_RATE, rate, periodStart);

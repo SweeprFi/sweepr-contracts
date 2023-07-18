@@ -27,6 +27,7 @@ contract("Balancer - Crosschain message", async function () {
 
         sweepSrc = await srcProxy.deployed(Sweep);
 		balancerSrc = await Balancer.deploy(sweepSrc.address, lzEndpointSrcMock.address);
+        balancerSrc.setPeriod(7);
 
         sweeprSrc = await Sweepr.deploy(Const.TRUE, lzEndpointSrcMock.address); // TRUE means governance chain
         await sweepSrc.setBalancer(balancerSrc.address);
@@ -77,9 +78,8 @@ contract("Balancer - Crosschain message", async function () {
 
         await balancerSrc.refreshInterestRate();
         
-		interestRate = await sweepSrc.interestRate();
-
-        expect(await sweepDst.interestRate()).to.not.equal(interestRate);
+		interestRate = await sweepSrc.nextInterestRate();
+        expect(await sweepDst.nextInterestRate()).to.not.equal(interestRate);
     })
 
     it("set interest rate successfully", async function () {
