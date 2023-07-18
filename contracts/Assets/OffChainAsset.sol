@@ -31,8 +31,7 @@ contract OffChainAsset is Stabilizer {
     error NotEnoughAmount();
 
     modifier onlyCollateralAgent() {
-        if (msg.sender != collateralAgency())
-            revert NotCollateralAgent();
+        if (msg.sender != collateralAgency()) revert NotCollateralAgent();
         _;
     }
 
@@ -43,14 +42,7 @@ contract OffChainAsset is Stabilizer {
         address wallet_,
         address collateralAgent_,
         address borrower
-    )
-        Stabilizer(
-            name,
-            sweepAddress,
-            usdxAddress,
-            borrower
-        )
-    {
+    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
         wallet = wallet_;
         collateralAgent = collateralAgent_;
         redeemMode = false;
@@ -79,8 +71,7 @@ contract OffChainAsset is Stabilizer {
      * @return address
      */
     function collateralAgency() public view returns (address) {
-        return
-            collateralAgent != address(0) ? collateralAgent : sweep.owner();
+        return collateralAgent != address(0) ? collateralAgent : sweep.owner();
     }
 
     /* ========== Actions ========== */
@@ -92,6 +83,7 @@ contract OffChainAsset is Stabilizer {
     function setWallet(
         address wallet_
     ) external onlyBorrower onlySettingsEnabled {
+        if (wallet_ == address(0)) revert ZeroAddressDetected();
         wallet = wallet_;
     }
 
@@ -178,8 +170,8 @@ contract OffChainAsset is Stabilizer {
         uint256 sweepAmount
     ) internal override {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
-        if(sweepBalance < sweepAmount) sweepAmount = sweepBalance;
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if (sweepBalance < sweepAmount) sweepAmount = sweepBalance;
 
         TransferHelper.safeTransfer(address(usdx), wallet, usdxAmount);
         TransferHelper.safeTransfer(address(sweep), wallet, sweepAmount);

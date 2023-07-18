@@ -107,6 +107,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
      * @notice Unpause Sweep
      */
     function setFastMultisig(address multisig) external onlyGov {
+        if (multisig == address(0)) revert ZeroAddressDetected();
         fastMultisig = multisig;
         emit FastMultisigSet(multisig);
     }
