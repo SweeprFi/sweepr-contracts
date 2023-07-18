@@ -65,10 +65,8 @@ contract GlpAsset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         // Get staked GLP value in USDX
-        uint256 glpPrice = getGlpPrice(false); // True: maximum, False: minimum
         uint256 glpBalance = stakedGlpTracker.balanceOf(address(this));
-        uint256 stakedInUsd = (glpBalance * glpPrice) /
-            10 ** stakedGlpTracker.decimals();
+        uint256 stakedInUsd = getUsdAmount(glpBalance);
 
         // Get reward in USD
         uint256 reward = feeGlpTracker.claimable(address(this));
@@ -93,7 +91,8 @@ contract GlpAsset is Stabilizer {
      * @param usdxAmount USDX Amount to be invested.
      */
     function invest(
-        uint256 usdxAmount
+        uint256 usdxAmount,
+        uint256 slippage
     )
         external
         onlyBorrower
@@ -101,7 +100,7 @@ contract GlpAsset is Stabilizer {
         nonReentrant
         validAmount(usdxAmount)
     {
-        _invest(usdxAmount, 0, 0);
+        _invest(usdxAmount, 0, slippage);
     }
 
     /**
@@ -110,9 +109,10 @@ contract GlpAsset is Stabilizer {
      * @param usdxAmount Amount to be divested.
      */
     function divest(
-        uint256 usdxAmount
+        uint256 usdxAmount,
+        uint256 slippage
     ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
-        _divest(usdxAmount, 0);
+        _divest(usdxAmount, slippage);
     }
 
     /**
@@ -136,7 +136,7 @@ contract GlpAsset is Stabilizer {
         _liquidate(address(stakedGlpTracker));
     }
 
-    function _invest(uint256 usdxAmount, uint256, uint256) internal override {
+    function _invest(uint256 usdxAmount, uint256, uint256 slippage) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
@@ -146,30 +146,31 @@ contract GlpAsset is Stabilizer {
             address(glpManager),
             usdxAmount
         );
-        uint256 glpAmount = rewardRouter.mintAndStakeGlp(
-            address(usdx),
-            usdxAmount,
-            0,
-            0
-        );
+
+        uint256 minOutUsdx = _calculateMinAmountOut(usdxAmount, slippage);
+        uint256 minGlp = getGlpAmount(minOutUsdx);
+
+        uint256 glpAmount = rewardRouter.mintAndStakeGlp(address(usdx), usdxAmount, minOutUsdx, minGlp);
 
         emit Invested(glpAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256) internal override {
+    function _divest(uint256 usdxAmount, uint256 slippage) internal override {
         collect();
-
-        uint256 glpPrice = getGlpPrice(false);
         uint256 glpBalance = stakedGlpTracker.balanceOf(address(this));
-        uint256 glpAmount = (usdxAmount * 10 ** stakedGlpTracker.decimals()) /
-            glpPrice;
+        uint256 glpAmount = getGlpAmount(usdxAmount);
 
-        if (glpBalance < glpAmount) glpAmount = glpBalance;
+        if (glpBalance < glpAmount) {
+            glpAmount = glpBalance;
+            usdxAmount = getUsdAmount(glpAmount);
+        }
+
+        uint256 minOutUsdx = _calculateMinAmountOut(usdxAmount, slippage);
 
         uint256 divested = rewardRouter.unstakeAndRedeemGlp(
             address(usdx),
             glpAmount,
-            0,
+            minOutUsdx,
             address(this)
         );
 
@@ -181,5 +182,17 @@ contract GlpAsset is Stabilizer {
         uint256 price = glpManager.getPrice(maximise); // True: maximum, False: minimum
 
         return (price * 10 ** usdx.decimals()) / glpManager.PRICE_PRECISION();
+    }
+
+    function getGlpAmount(uint256 usdxAmount) internal view returns (uint256) {
+        uint256 glpPrice = getGlpPrice(false);
+
+        return (usdxAmount * 10 ** stakedGlpTracker.decimals()) / glpPrice;
+    }
+
+    function getUsdAmount(uint256 glpAmount) internal view returns (uint256) {
+        uint256 glpPrice = getGlpPrice(false);
+
+        return (glpAmount * glpPrice ) / (10 ** stakedGlpTracker.decimals());
     }
 }
