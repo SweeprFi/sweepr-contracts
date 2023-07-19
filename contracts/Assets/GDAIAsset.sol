@@ -192,7 +192,7 @@ contract GDAIAsset is Stabilizer {
 
     function _invest(uint256 usdxAmount, uint256 slippage) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
-        if (usdxBalance == 0) revert OverZero();
+        if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
         uint256 minAmountOut = _calculateMinAmountOut(usdxAmount, slippage);
 

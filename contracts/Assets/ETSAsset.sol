@@ -117,7 +117,7 @@ contract ETSAsset is Stabilizer {
         if (!mintable) revert NotAvailableInvest();
 
         uint256 usdxBalance = usdx.balanceOf(address(this));
-        if (usdxBalance == 0) revert OverZero();
+        if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         TransferHelper.safeApprove(
