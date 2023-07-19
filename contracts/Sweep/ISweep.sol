@@ -50,9 +50,9 @@ interface ISweep {
 
     function fastMultisig() external view returns (address);
 
-    function minterBurnFrom(uint256 amount) external;
+    function burn(uint256 amount) external;
 
-    function minterMint(address minterAaddress, uint256 amount) external;
+    function mint(uint256 amount) external;
 
     function minters(address minterAaddress) external returns (Minter memory);
 

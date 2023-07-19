@@ -35,7 +35,7 @@ contract("Sweep - OFT", async function () {
         OFTDst = await dstProxy.deployed(Sweep);
 
         await OFTSrc.connect(deployer).addMinter(deployer.address, TRANSFER_AMOUNT);
-        await OFTSrc.connect(deployer).minterMint(deployer.address, TRANSFER_AMOUNT);
+        await OFTSrc.connect(deployer).mint(TRANSFER_AMOUNT);
     });
 
     beforeEach(async () => {

@@ -8,14 +8,13 @@ contract("Sweep - Mint", async function () {
 		[owner, receiver, treasury, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 
 		TRANSFER_AMOUNT = toBN("100", 18);
-		interestRate = 5e4; // 5%
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepCoin");
 
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
 			addresses.owner,
-			2500 // 0.25%
+			50 // 0.005%
 		]);
 		sweep = await Proxy.deployed();
 	});
@@ -69,14 +68,14 @@ contract("Sweep - Mint", async function () {
 
 	it('transfers tokens when unpaused and unblacklisted', async () => {
 		await sweep.connect(owner).addMinter(newMinter.address, TRANSFER_AMOUNT);
-		await sweep.connect(newMinter).minterMint(newAddress.address, TRANSFER_AMOUNT);
+		await sweep.connect(newMinter).mint(TRANSFER_AMOUNT);
 
 		let receiverBalance = await sweep.balanceOf(receiver.address);
 		expect(receiverBalance).to.equal(Const.ZERO);
 
-		await sweep.connect(newAddress).transfer(receiver.address, TRANSFER_AMOUNT)
+		await sweep.connect(newMinter).transfer(receiver.address, TRANSFER_AMOUNT)
 
-		expect(await sweep.balanceOf(newAddress.address)).to.equal(Const.ZERO);
+		expect(await sweep.balanceOf(newMinter.address)).to.equal(Const.ZERO);
 		expect(await sweep.balanceOf(receiver.address)).to.equal(TRANSFER_AMOUNT);
 	});
 
@@ -100,15 +99,15 @@ contract("Sweep - Mint", async function () {
 		await sweep.connect(owner).setMinterMaxAmount(newMinter.address, MAX_MINT_AMOUNT);
 
 		expect(await sweep.balanceOf(newMinter.address)).to.equal(Const.ZERO);
-		await sweep.connect(newMinter).minterMint(newMinter.address, TRANSFER_AMOUNT);
-		await expect(sweep.connect(newMinter).minterMint(newMinter.address, MAX_MINT_AMOUNT))
+		await sweep.connect(newMinter).mint(TRANSFER_AMOUNT);
+		await expect(sweep.connect(newMinter).mint(MAX_MINT_AMOUNT))
 			.to.be.revertedWithCustomError(sweep, "MintCapReached");
 
 		expect(await sweep.balanceOf(newMinter.address)).to.equal(TRANSFER_AMOUNT);
 
-		await expect(sweep.connect(newMinter).minterBurnFrom(MAX_MINT_AMOUNT))
+		await expect(sweep.connect(newMinter).burn(MAX_MINT_AMOUNT))
 			.to.be.revertedWithCustomError(sweep, "ExceedBurnAmount");
-		await sweep.connect(newMinter).minterBurnFrom(TRANSFER_AMOUNT);
+		await sweep.connect(newMinter).burn(TRANSFER_AMOUNT);
 		expect(await sweep.balanceOf(newMinter.address)).to.equal(Const.ZERO);
 	});
 
@@ -124,11 +123,11 @@ contract("Sweep - Mint", async function () {
 		ammPrice = await sweep.ammPrice();
 
 		if (ammPrice >= NEW_targetPrice) { // allow mint
-			expect(await sweep.balanceOf(newAddress.address)).to.equal(Const.ZERO);
-			await sweep.connect(newMinter).minterMint(newAddress.address, TRANSFER_AMOUNT)
-			expect(await sweep.balanceOf(newAddress.address)).to.equal(TRANSFER_AMOUNT);
+			newMinterBalance = await sweep.balanceOf(newMinter.address);
+			await sweep.connect(newMinter).mint(TRANSFER_AMOUNT)
+			expect(await sweep.balanceOf(newMinter.address)).to.equal(newMinterBalance.add(TRANSFER_AMOUNT));
 		} else { // disallow mint
-			await expect(sweep.connect(newMinter).minterMint(newAddress.address, TRANSFER_AMOUNT))
+			await expect(sweep.connect(newMinter).mint(TRANSFER_AMOUNT))
 				.to.be.revertedWithCustomError(Sweep, 'MintNotAllowed');
 		}
 	});

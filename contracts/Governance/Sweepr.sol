@@ -141,7 +141,7 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
     {
         if (
             address(transferApprover) != address(0) &&
-            !transferApprover.checkTransfer(from, to)
+            !transferApprover.checkTransfer(from, to, amount)
         ) revert TransferNotAllowed();
 
         super._beforeTokenTransfer(from, to, amount);

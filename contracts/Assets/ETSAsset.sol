@@ -18,6 +18,10 @@ contract ETSAsset is Stabilizer {
     IERC20Metadata private immutable token;
     IHedgeExchanger private immutable exchanger;
 
+    // Events
+    event Invested(uint256 indexed tokenAmount);
+    event Divested(uint256 indexed usdxAmount);
+
     // Errors
     error NotAvailableInvest();
     error NotAvailableDivest();
@@ -84,7 +88,13 @@ contract ETSAsset is Stabilizer {
      */
     function invest(
         uint256 usdxAmount
-    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+    )
+        external
+        onlyBorrower
+        whenNotPaused
+        nonReentrant
+        validAmount(usdxAmount)
+    {
         _invest(usdxAmount, 0, 0);
     }
 
@@ -95,14 +105,14 @@ contract ETSAsset is Stabilizer {
      */
     function divest(
         uint256 usdxAmount
-    ) external onlyBorrower validAmount(usdxAmount) {
+    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
         _divest(usdxAmount, 0);
     }
 
     /**
      * @notice Liquidate
      */
-    function liquidate() external {
+    function liquidate() external nonReentrant {
         _liquidate(address(token));
     }
 
@@ -113,6 +123,7 @@ contract ETSAsset is Stabilizer {
         if (!mintable) revert NotAvailableInvest();
 
         uint256 usdxBalance = usdx.balanceOf(address(this));
+        if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         TransferHelper.safeApprove(
@@ -120,10 +131,9 @@ contract ETSAsset is Stabilizer {
             address(exchanger),
             usdxAmount
         );
+        uint256 tokenAmount = exchanger.buy(usdxAmount, "");
 
-        exchanger.buy(usdxAmount, "");
-
-        emit Invested(usdxAmount, 0);
+        emit Invested(tokenAmount);
     }
 
     function _divest(uint256 usdxAmount, uint256) internal override {
@@ -137,6 +147,6 @@ contract ETSAsset is Stabilizer {
 
         uint256 redeemedAmount = exchanger.redeem(tokenAmount);
 
-        emit Divested(redeemedAmount, 0);
+        emit Divested(redeemedAmount);
     }
 }

@@ -18,20 +18,17 @@ contract CompV3Asset is Stabilizer {
     // Variables
     IcUSDC private immutable cUSDC;
 
+    // Events
+    event Invested(uint256 indexed usdxAmount);
+    event Divested(uint256 indexed usdxAmount);
+
     constructor(
         string memory name,
         address sweepAddress,
         address usdxAddress,
         address cusdcAddress,
         address borrower
-    )
-        Stabilizer(
-            name,
-            sweepAddress,
-            usdxAddress,
-            borrower
-        )
-    {
+    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
         cUSDC = IcUSDC(cusdcAddress);
     }
 
@@ -64,7 +61,13 @@ contract CompV3Asset is Stabilizer {
      */
     function invest(
         uint256 usdxAmount
-    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+    )
+        external
+        onlyBorrower
+        whenNotPaused
+        nonReentrant
+        validAmount(usdxAmount)
+    {
         _invest(usdxAmount, 0, 0);
     }
 
@@ -75,14 +78,14 @@ contract CompV3Asset is Stabilizer {
      */
     function divest(
         uint256 usdxAmount
-    ) external onlyBorrower validAmount(usdxAmount) {
+    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
         _divest(usdxAmount, 0);
     }
 
     /**
      * @notice Liquidate
      */
-    function liquidate() external {
+    function liquidate() external nonReentrant {
         _liquidate(address(cUSDC));
     }
 
@@ -90,20 +93,21 @@ contract CompV3Asset is Stabilizer {
 
     function _invest(uint256 usdxAmount, uint256, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
-        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if (usdxBalance == 0) revert NotEnoughBalance();
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         TransferHelper.safeApprove(address(usdx), address(cUSDC), usdxAmount);
         cUSDC.supply(address(usdx), usdxAmount);
 
-        emit Invested(usdxAmount, 0);
+        emit Invested(usdxAmount);
     }
 
     function _divest(uint256 usdxAmount, uint256) internal override {
         uint256 stakedAmount = cUSDC.balanceOf(address(this));
-        if(stakedAmount < usdxAmount) usdxAmount = type(uint256).max;
+        if (stakedAmount < usdxAmount) usdxAmount = type(uint256).max;
 
         cUSDC.withdraw(address(usdx), usdxAmount);
 
-        emit Divested(usdxAmount, 0);
+        emit Divested(usdxAmount);
     }
 }

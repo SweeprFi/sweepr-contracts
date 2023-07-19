@@ -30,6 +30,8 @@ contract GDAIAsset is Stabilizer {
     uint256 private constant EPOCH_DURATION = 3 days;
 
     // Events
+    event Invested(uint256 indexed gDaiAmount);
+    event Divested(uint256 indexed usdxAmount);
     event Request(uint256 gDaiAmount, uint256 epoch, uint256 startTime);
 
     // Errors
@@ -89,7 +91,8 @@ contract GDAIAsset is Stabilizer {
         uint256 currentEpochStartTime = gDai.currentEpochStart();
         available = (openTradesPnlFeed.nextEpochValuesRequestCount() == 0);
         startTime = block.timestamp > currentEpochStartTime + DIVEST_DURATION
-            ? currentEpochStartTime + EPOCH_DURATION : currentEpochStartTime;
+            ? currentEpochStartTime + EPOCH_DURATION
+            : currentEpochStartTime;
         endTime = startTime + DIVEST_DURATION;
     }
 
@@ -111,7 +114,8 @@ contract GDAIAsset is Stabilizer {
         );
         uint256 currentEpoch = gDai.currentEpoch();
         startTime = requestAmount > 0 && currentEpoch <= unlockEpoch
-            ? divestStartTime : 0;
+            ? divestStartTime
+            : 0;
         endTime = startTime > 0 ? startTime + DIVEST_DURATION : 0;
         available =
             currentEpoch == unlockEpoch &&
@@ -131,7 +135,13 @@ contract GDAIAsset is Stabilizer {
     function invest(
         uint256 usdxAmount,
         uint256 slippage
-    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+    )
+        external
+        onlyBorrower
+        whenNotPaused
+        nonReentrant
+        validAmount(usdxAmount)
+    {
         _invest(usdxAmount, 0, slippage);
     }
 
@@ -144,7 +154,7 @@ contract GDAIAsset is Stabilizer {
     function divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) external onlyBorrower validAmount(usdxAmount) {
+    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
         _divest(usdxAmount, slippage);
     }
 
@@ -170,7 +180,9 @@ contract GDAIAsset is Stabilizer {
         uint256 epochsTimelock = gDai.withdrawEpochsTimelock();
         unlockEpoch = gDai.currentEpoch() + epochsTimelock;
         divestStartTime =
-            gDai.currentEpochStart() + epochsTimelock * EPOCH_DURATION;
+            gDai.currentEpochStart() +
+            epochsTimelock *
+            EPOCH_DURATION;
 
         emit Request(gDaiAmount, unlockEpoch, divestStartTime);
     }
@@ -178,7 +190,7 @@ contract GDAIAsset is Stabilizer {
     /**
      * @notice Liquidate
      */
-    function liquidate() external {
+    function liquidate() external nonReentrant {
         _liquidate(address(gDai));
     }
 
@@ -186,6 +198,7 @@ contract GDAIAsset is Stabilizer {
 
     function _invest(uint256 usdxAmount, uint256, uint256 slippage) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
+        if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
         uint256 minAmountOut = _calculateMinAmountOut(usdxAmount, slippage);
 
@@ -197,9 +210,9 @@ contract GDAIAsset is Stabilizer {
             minAmountOut
         );
         TransferHelper.safeApprove(address(dai), address(gDai), daiAmount);
-        gDai.deposit(daiAmount, address(this));
+        uint256 gDaiAmount = gDai.deposit(daiAmount, address(this));
 
-        emit Invested(usdxAmount, 0);
+        emit Invested(gDaiAmount);
     }
 
     function _divest(uint256 usdxAmount, uint256 slippage) internal override {
@@ -223,6 +236,6 @@ contract GDAIAsset is Stabilizer {
             minAmountOut
         );
 
-        emit Divested(divested, 0);
+        emit Divested(divested);
     }
 }

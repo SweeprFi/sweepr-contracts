@@ -35,6 +35,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     uint256 private constant PRECISION = 1e6;
 
     // Events
+    event Invested(uint256 indexed usdxAmount, uint256 indexed sweepAmount);
+    event Divested(uint256 indexed usdxAmount, uint256 indexed sweepAmount);
     event Mint(uint256 tokenId, uint128 liquidity);
     event Collected(uint256 amount0, uint256 amount1);
 
@@ -58,14 +60,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         address usdxAddress,
         address liquidityHelper_,
         address borrower
-    )
-        Stabilizer(
-            name,
-            sweepAddress,
-            usdxAddress,
-            borrower
-        )
-    {
+    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
         flag = usdxAddress < sweepAddress;
 
         (token0, token1) = flag
@@ -114,7 +109,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         uint256 tokenId_,
         bytes calldata
     ) external override returns (bytes4) {
-        if(msg.sender != address(nonfungiblePositionManager)) revert OnlyPositionManager();
+        if (msg.sender != address(nonfungiblePositionManager))
+            revert OnlyPositionManager();
         if (tokenId > 0) revert AlreadyMinted();
         _createDeposit(tokenId_);
 
@@ -136,6 +132,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         external
         onlyBorrower
         whenNotPaused
+        nonReentrant
         validAmount(usdxAmount)
         validAmount(sweepAmount)
     {
@@ -149,7 +146,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     function divest(
         uint256 liquidityAmount,
         uint256 _slippage
-    ) external onlyBorrower isMinted validAmount(liquidityAmount) {
+    ) external onlyBorrower isMinted nonReentrant validAmount(liquidityAmount) {
         _divest(liquidityAmount, _slippage);
     }
 
@@ -215,8 +212,20 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     }
 
     function _createDeposit(uint256 tokenId_) internal {
-        (,,address token0_,address token1_,,,,uint128 liquidity_,,,,) = 
-            nonfungiblePositionManager.positions(tokenId_);
+        (
+            ,
+            ,
+            address token0_,
+            address token1_,
+            ,
+            ,
+            ,
+            uint128 liquidity_,
+            ,
+            ,
+            ,
+
+        ) = nonfungiblePositionManager.positions(tokenId_);
 
         if (token0 != token0_ || token1 != token1_) revert InvalidTokenID();
 
@@ -281,8 +290,9 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         uint256 slippage
     ) internal override {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
-        if(sweepBalance < sweepAmount) sweepAmount = sweepBalance;
+        if (usdxBalance == 0 || sweepBalance == 0) revert NotEnoughBalance();
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if (sweepBalance < sweepAmount) sweepAmount = sweepBalance;
 
         TransferHelper.safeApprove(
             address(usdx),

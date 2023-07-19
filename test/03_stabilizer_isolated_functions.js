@@ -64,8 +64,9 @@ contract("Stabilizer - Isolated Functions", async function () {
 
     // simulates a pool in uniswap with 10000 SWEEP/USDX
     await sweep.addMinter(owner.address, sweepAmount.mul(2));
-    await sweep.minterMint(amm.address, sweepAmount);
-    await sweep.minterMint(other.address, sweepAmount);
+    await sweep.connect(owner).mint(sweepAmount.mul(2));
+    await sweep.connect(owner).transfer(amm.address, sweepAmount);
+    await sweep.connect(owner).transfer(other.address, sweepAmount);
     await usdx.transfer(amm.address, usdxAmount);
   });
 
