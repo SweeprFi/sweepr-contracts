@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 interface ITransferApprover {
     function checkTransfer(
         address from,
-        address to
-    ) external view returns (bool);
+        address to,
+        uint256 amount
+    ) external returns (bool);
 }

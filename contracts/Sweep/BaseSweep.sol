@@ -258,7 +258,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     ) internal override whenNotPaused {
         if (
             address(transferApprover) != address(0) &&
-            !transferApprover.checkTransfer(from, to)
+            !transferApprover.checkTransfer(from, to, amount)
         ) revert TransferNotAllowed();
 
         super._beforeTokenTransfer(from, to, amount);
@@ -277,7 +277,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
 
         if (
             address(transferApprover) != address(0) &&
-            !transferApprover.checkTransfer(from, toAddress)
+            !transferApprover.checkTransfer(from, toAddress, amount)
         ) revert TransferNotAllowed();
 
         super._debitFrom(from, dstChainId, to, amount);
@@ -291,7 +291,7 @@ contract BaseSweep is Initializable, OFTUpgradeable, PausableUpgradeable {
     ) internal override returns (uint) {
         if (
             address(transferApprover) != address(0) &&
-            !transferApprover.checkTransfer(toAddress, toAddress)
+            !transferApprover.checkTransfer(toAddress, toAddress, amount)
         ) revert TransferNotAllowed();
 
         super._creditTo(srcChainId, toAddress, amount);
