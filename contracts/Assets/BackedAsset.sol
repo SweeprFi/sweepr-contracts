@@ -23,6 +23,10 @@ contract BackedAsset is Stabilizer {
     // Zero value will avoid to check StalePrice.
     uint256 private constant TOKEN_FREQUENCY = 0;
 
+    // Events
+    event Invested(uint256 indexed usdxAmount);
+    event Divested(uint256 indexed usdxAmount);
+
     constructor(
         string memory name,
         address sweepAddress,
@@ -32,14 +36,7 @@ contract BackedAsset is Stabilizer {
         address redeemAddress_,
         address tokenOracleAddress,
         address borrower
-    )
-        Stabilizer(
-            name,
-            sweepAddress,
-            usdxAddress,
-            borrower
-        )
-    {
+    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
         token = IERC20Metadata(tokenAddress);
         mintAddress = mintAddress_;
         redeemAddress = redeemAddress_;
@@ -112,11 +109,12 @@ contract BackedAsset is Stabilizer {
 
     function _invest(uint256 usdxAmount, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
-        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if (usdxBalance == 0) revert OverZero();
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         TransferHelper.safeTransfer(address(usdx), mintAddress, usdxAmount);
 
-        emit Invested(usdxAmount, 0);
+        emit Invested(usdxAmount);
     }
 
     function _divest(uint256 usdxAmount, uint256) internal override {
@@ -131,10 +129,10 @@ contract BackedAsset is Stabilizer {
             (uint256(price) * 10 ** usdx.decimals());
 
         uint256 tokenBalance = token.balanceOf(address(this));
-        if(tokenBalance < tokenAmount) tokenAmount = tokenBalance;
+        if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
 
         TransferHelper.safeTransfer(address(token), redeemAddress, tokenAmount);
 
-        emit Divested(usdxAmount, 0);
+        emit Divested(usdxAmount);
     }
 }

@@ -23,12 +23,14 @@ contract OffChainAsset is Stabilizer {
     address public collateralAgent;
 
     // Events
+    event Invested(uint256 indexed usdxAmount, uint256 indexed sweepAmount);
+    event Divested(uint256 indexed usdxAmount);
     event Payback(address token, uint256 amount);
     event CollateralAgentSet(address agent);
-    error NotCollateralAgent();
 
     // Errors
     error NotEnoughAmount();
+    error NotCollateralAgent();
 
     modifier onlyCollateralAgent() {
         if (msg.sender != collateralAgency()) revert NotCollateralAgent();
@@ -170,6 +172,7 @@ contract OffChainAsset is Stabilizer {
         uint256 sweepAmount
     ) internal override {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
+        if (usdxBalance == 0) revert OverZero();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
         if (sweepBalance < sweepAmount) sweepAmount = sweepBalance;
 
@@ -189,6 +192,6 @@ contract OffChainAsset is Stabilizer {
         redeemAmount = usdxAmount;
         redeemTime = block.timestamp;
 
-        emit Divested(usdxAmount, 0);
+        emit Divested(usdxAmount);
     }
 }

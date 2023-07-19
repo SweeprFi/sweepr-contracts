@@ -18,6 +18,10 @@ contract AaveV3Asset is Stabilizer {
     IERC20 private immutable aaveUSDXToken;
     IPool private immutable aaveV3Pool;
 
+    // Events
+    event Invested(uint256 indexed usdxAmount);
+    event Divested(uint256 indexed usdxAmount);
+
     constructor(
         string memory name,
         address sweepAddress,
@@ -25,14 +29,7 @@ contract AaveV3Asset is Stabilizer {
         address aaveUsdxAddress,
         address aaveV3PoolAddress,
         address borrower
-    )
-        Stabilizer(
-            name,
-            sweepAddress,
-            usdxAddress,
-            borrower
-        )
-    {
+    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
         aaveUSDXToken = IERC20(aaveUsdxAddress); //aaveUSDC
         aaveV3Pool = IPool(aaveV3PoolAddress);
     }
@@ -100,7 +97,8 @@ contract AaveV3Asset is Stabilizer {
      */
     function _invest(uint256 usdxAmount, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
-        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if (usdxBalance == 0) revert OverZero();
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         TransferHelper.safeApprove(
             address(usdx),
@@ -109,7 +107,7 @@ contract AaveV3Asset is Stabilizer {
         );
         aaveV3Pool.supply(address(usdx), usdxAmount, address(this), 0);
 
-        emit Invested(usdxAmount, 0);
+        emit Invested(usdxAmount);
     }
 
     /**
@@ -120,8 +118,12 @@ contract AaveV3Asset is Stabilizer {
         if (aaveUSDXToken.balanceOf(address(this)) < usdxAmount)
             usdxAmount = type(uint256).max;
 
-        uint256 divestedAmount = aaveV3Pool.withdraw(address(usdx), usdxAmount, address(this));
+        uint256 divestedAmount = aaveV3Pool.withdraw(
+            address(usdx),
+            usdxAmount,
+            address(this)
+        );
 
-        emit Divested(divestedAmount, 0);
+        emit Divested(divestedAmount);
     }
 }

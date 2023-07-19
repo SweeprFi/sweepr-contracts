@@ -73,8 +73,6 @@ contract Stabilizer is Owned, Pausable {
     event Rejected(address indexed borrower);
     event SweepBorrowedChanged(uint256 indexed sweepAmount);
 
-    event Invested(uint256 indexed usdxAmount, uint256 indexed sweepAmount);
-    event Divested(uint256 indexed usdxAmount, uint256 indexed sweepAmount);
     event Liquidated(address indexed user);
 
     event AutoCalled(uint256 indexed sweepAmount);
