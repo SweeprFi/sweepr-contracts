@@ -196,7 +196,7 @@ contract("Balancer", async function () {
 		newPeriodStart = currentBlockTime + Const.DAY * 7 + 1;
 
 		await expect(balancer.connect(lzEndpoint).setInterestRate(interest, newPeriodStart))
-			.to.be.revertedWithCustomError(balancer, "NotMultisig");
+			.to.be.revertedWithCustomError(balancer, "NotMultisigOrGov");
 
 		await balancer.setInterestRate(interest, newPeriodStart);
 		expect(await sweep.nextInterestRate()).to.equal(interest);
