@@ -12,6 +12,7 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
     ITransferApprover private transferApprover;
 
     bool public isGovernanceChain;
+    uint256 private _totalMinted;
     // Destination Chain Ids
     uint16[] public chainIds; 
     // Map chain Id to Sweep address
@@ -23,6 +24,7 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
 
     /* ========== EVENTS ========== */
     event TokenMinted(address indexed to, uint256 amount);
+    event TokenBurned(address indexed to, uint256 amount);
     event SweeprPriceSet(uint256 price);
     event ApproverSet(address indexed approver);
     event GovernanceChainSet(bool isGovernance);
@@ -59,6 +61,8 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
     function mint(address receiver, uint256 amount) external onlyOwner {
         if (!isGovernanceChain) revert NotGovernanceChain();
         _mint(receiver, amount);
+
+        _totalMinted += amount;
 
         emit TokenMinted(receiver, amount);
     }
@@ -106,6 +110,28 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
         chainIds.pop();
 
         emit ChainRemoved(removedChainId);
+    }
+
+    function burn(uint256 amount) public override {
+        if (!isGovernanceChain) revert NotGovernanceChain();
+        super.burn(amount);
+
+        _totalMinted -= amount;
+
+        emit TokenBurned(msg.sender, amount);
+    }
+
+    function burnFrom(address account, uint256 amount) public override {
+        if (!isGovernanceChain) revert NotGovernanceChain();
+        super.burnFrom(account, amount);
+
+        _totalMinted -= amount;
+
+        emit TokenBurned(account, amount);
+    }
+
+    function totalMinted() external view returns(uint256) {
+        return _totalMinted;
     }
 
     /* ========== OVERRIDDEN FUNCTIONS ========== */

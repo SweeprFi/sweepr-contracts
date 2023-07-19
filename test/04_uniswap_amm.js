@@ -81,7 +81,7 @@ contract("Uniswap AMM", async function () {
 
       await usdc.transfer(asset.address, USDC_MINT);
       await asset.borrow(SWEEP_MINT);
-      await asset.invest(USDC_INVEST, SWEEP_MINT);
+      await asset.invest(USDC_INVEST, SWEEP_MINT, Const.UNISWAP_SLIPPAGE);
     });
 
     it("buys sweep correctly", async function () {

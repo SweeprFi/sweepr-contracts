@@ -100,7 +100,7 @@ contract GlpAsset is Stabilizer {
     function invest(
         uint256 usdxAmount
     ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
-        _invest(usdxAmount, 0);
+        _invest(usdxAmount, 0, 0);
     }
 
     /**
@@ -135,7 +135,7 @@ contract GlpAsset is Stabilizer {
         _liquidate(address(stakedGlpTracker));
     }
 
-    function _invest(uint256 usdxAmount, uint256) internal override {
+    function _invest(uint256 usdxAmount, uint256, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
