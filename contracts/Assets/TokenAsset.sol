@@ -81,7 +81,13 @@ contract TokenAsset is Stabilizer {
     function invest(
         uint256 usdxAmount,
         uint256 slippage
-    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+    )
+        external
+        onlyBorrower
+        whenNotPaused
+        nonReentrant
+        validAmount(usdxAmount)
+    {
         _invest(usdxAmount, 0, slippage);
     }
 
@@ -94,14 +100,14 @@ contract TokenAsset is Stabilizer {
     function divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) external onlyBorrower validAmount(usdxAmount) {
+    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
         _divest(usdxAmount, slippage);
     }
 
     /**
      * @notice Liquidate
      */
-    function liquidate() external {
+    function liquidate() external nonReentrant {
         _liquidate(address(token));
     }
 

@@ -65,7 +65,13 @@ contract AaveV3Asset is Stabilizer {
      */
     function invest(
         uint256 usdxAmount
-    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
+    ) 
+        external
+        onlyBorrower
+        whenNotPaused
+        nonReentrant
+        validAmount(usdxAmount)
+    {
         _invest(usdxAmount, 0, 0);
     }
 
@@ -76,7 +82,7 @@ contract AaveV3Asset is Stabilizer {
      */
     function divest(
         uint256 usdxAmount
-    ) external onlyBorrower validAmount(usdxAmount) {
+    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
         _divest(usdxAmount, 0);
     }
 
@@ -85,7 +91,7 @@ contract AaveV3Asset is Stabilizer {
      * @dev When the asset is defaulted anyone can liquidate it by
      * repaying the debt and getting the same value at a discount.
      */
-    function liquidate() external {
+    function liquidate() external nonReentrant {
         _liquidate(address(aaveUSDXToken));
     }
 
