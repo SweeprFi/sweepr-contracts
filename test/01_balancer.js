@@ -50,7 +50,7 @@ contract("Balancer", async function () {
 		await sweep.setArbSpread(300);
 		await sweep.setTWAPrice(999600);
 		
-		period = 7; // 7 days
+		period = 604800; // 7 days
 		stepValue = await sweep.stepValue()
 
 		// new interest rate = stepValue(0.005%), because currentInterestRate = 0

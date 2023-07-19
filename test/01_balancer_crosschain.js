@@ -27,7 +27,7 @@ contract("Balancer - Crosschain message", async function () {
 
         sweepSrc = await srcProxy.deployed(Sweep);
 		balancerSrc = await Balancer.deploy(sweepSrc.address, lzEndpointSrcMock.address);
-        balancerSrc.setPeriod(7);
+        balancerSrc.setPeriod(604800); // 7 days
 
         sweeprSrc = await Sweepr.deploy(Const.TRUE, lzEndpointSrcMock.address); // TRUE means governance chain
         await sweepSrc.setBalancer(balancerSrc.address);

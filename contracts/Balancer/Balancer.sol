@@ -24,8 +24,7 @@ contract Balancer is NonblockingLzApp, Owned {
     enum Mode { IDLE, INVEST, CALL }
 
     uint256 public index;
-    uint256 public period = 1; // 1 day
-    uint256 private constant ONE_YEAR = 365 * 1 days;
+    uint256 public period = 1 days;
     uint256 private constant PRECISION = 1e6;    
     uint16 public constant PT_INTEREST_RATE = 1; // packet type for sending interest rate
     
@@ -64,7 +63,7 @@ contract Balancer is NonblockingLzApp, Owned {
         if (mode == Mode.CALL) interestRate += stepValue;
         if (mode == Mode.INVEST) interestRate -= stepValue;
 
-        uint256 periodStart = sweep.periodStart() + period * 1 days;
+        uint256 periodStart = sweep.periodStart() + period;
         sweep.setInterestRate(interestRate, periodStart);
 
         if (address(sweepr) != address(0) && sweepr.isGovernanceChain()) {
@@ -102,7 +101,7 @@ contract Balancer is NonblockingLzApp, Owned {
 
     /**
      * @notice Set Period for refreshing interest rate
-     * @param newPeriod new period. For example, newPeriod = 7 means 7 days).
+     * @param newPeriod new period. For example, newPeriod = 604800 means 7 days.
      */
     function setPeriod(uint256 newPeriod) external onlyMultisigOrGov {
         if (newPeriod == 0) revert ZeroAmount();
