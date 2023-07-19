@@ -228,8 +228,8 @@ contract MarketMaker is Stabilizer {
                     tickUpper: maxTick,
                     amount0Desired: amount0Mint,
                     amount1Desired: amount1Mint,
-                    amount0Min: 0,
-                    amount1Min: 0,
+                    amount0Min: amount0Mint,
+                    amount1Min: amount1Mint,
                     recipient: address(this),
                     deadline: block.timestamp
                 })
