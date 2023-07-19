@@ -94,7 +94,7 @@ contract AaveV3Asset is Stabilizer {
      * @dev When the asset is defaulted anyone can liquidate it by
      * repaying the debt and getting the same value at a discount.
      */
-    function liquidate() external {
+    function liquidate() external nonReentrant {
         _liquidate(address(aaveUSDXToken));
     }
 

@@ -88,7 +88,7 @@ contract CompV3Asset is Stabilizer {
     /**
      * @notice Liquidate
      */
-    function liquidate() external {
+    function liquidate() external nonReentrant {
         _liquidate(address(cUSDC));
     }
 

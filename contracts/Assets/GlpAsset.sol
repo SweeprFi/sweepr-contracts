@@ -135,7 +135,7 @@ contract GlpAsset is Stabilizer {
     /**
      * @notice liquidate
      */
-    function liquidate() external {
+    function liquidate() external nonReentrant {
         collect();
 
         _liquidate(address(stakedGlpTracker));

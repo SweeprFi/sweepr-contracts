@@ -110,7 +110,7 @@ contract BackedAsset is Stabilizer {
     /**
      * @notice Liquidate
      */
-    function liquidate() external {
+    function liquidate() external nonReentrant {
         _liquidate(address(token));
     }
 
