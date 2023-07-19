@@ -23,6 +23,10 @@ contract TokenAsset is Stabilizer {
     // WETH and WBTC has the same frequency - check others
     uint256 private constant TOKEN_FREQUENCY = 1 days;
 
+    // Events
+    event Invested(uint256 indexed tokenAmount);
+    event Divested(uint256 indexed usdxAmount);
+
     constructor(
         string memory name,
         address sweepAddress,
@@ -30,14 +34,7 @@ contract TokenAsset is Stabilizer {
         address tokenAddress,
         address tokenOracleAddress,
         address borrower
-    )
-        Stabilizer(
-            name,
-            sweepAddress,
-            usdxAddress,
-            borrower
-        )
-    {
+    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
         token = IERC20Metadata(tokenAddress);
         tokenOracle = tokenOracleAddress;
     }
@@ -112,18 +109,19 @@ contract TokenAsset is Stabilizer {
 
     function _invest(uint256 usdxAmount, uint256, uint256 slippage) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
-        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if (usdxBalance == 0) revert NotEnoughBalance();
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
         uint256 minAmountOut = _calculateMinAmountOut(usdxAmount, slippage);
 
         TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
-        amm().swapExactInput(
+        uint256 tokenAmount = amm().swapExactInput(
             address(usdx),
             address(token),
             usdxAmount,
             minAmountOut
         );
 
-        emit Invested(usdxAmount, 0);
+        emit Invested(tokenAmount);
     }
 
     function _divest(uint256 usdxAmount, uint256 slippage) internal override {
@@ -138,7 +136,7 @@ contract TokenAsset is Stabilizer {
             (uint256(price) * 10 ** usdx.decimals());
 
         uint256 tokenBalance = token.balanceOf(address(this));
-        if(tokenBalance < tokenAmount) tokenAmount = tokenBalance;
+        if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
         uint256 minAmountOut = _calculateMinAmountOut(tokenAmount, slippage);
 
         TransferHelper.safeApprove(address(token), sweep.amm(), tokenAmount);
@@ -149,6 +147,6 @@ contract TokenAsset is Stabilizer {
             minAmountOut
         );
 
-        emit Divested(divested, 0);
+        emit Divested(divested);
     }
 }

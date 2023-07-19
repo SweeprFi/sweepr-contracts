@@ -39,7 +39,7 @@ contract("TokenDistributor", async function () {
 
 		// mint sweep for sender
 		await sweep.connect(owner).addMinter(sender.address, SWEEP_MINT_AMOUNT);
-		await sweep.connect(sender).minterMint(sender.address, SWEEP_MINT_AMOUNT);
+		await sweep.connect(sender).mint(SWEEP_MINT_AMOUNT);
 
 		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
 
@@ -182,7 +182,7 @@ contract("TokenDistributor", async function () {
 	it('allow sale for other user', async () => {
 		// add minter
 		await sweep.connect(owner).addMinter(other.address, SWEEP_MINT_AMOUNT);
-		await sweep.connect(other).minterMint(other.address, SWEEP_MINT_AMOUNT);
+		await sweep.connect(other).mint(SWEEP_MINT_AMOUNT);
 
 		// mint sweepr again for TokenDstributor contract
 		await sweepr.connect(owner).mint(tokenDistributor.address, SWEEPR_MINT_AMOUNT);

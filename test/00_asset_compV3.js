@@ -50,8 +50,9 @@ contract('Compound V3 Asset', async () => {
 
         // simulates a pool in uniswap with 10000 SWEEP/USDX
         await sweep.addMinter(borrower.address, maxMint.mul(2));
-        await sweep.minterMint(amm.address, maxMint);
-        await sweep.minterMint(guest.address, maxMint);
+        await sweep.connect(borrower).mint(maxMint.mul(2));
+        await sweep.connect(borrower).transfer(amm.address, maxMint);
+        await sweep.connect(borrower).transfer(guest.address, maxMint);
 
         user = await impersonate(addresses.usdc)
         await usdx.connect(user).transfer(amm.address, 10000e6);

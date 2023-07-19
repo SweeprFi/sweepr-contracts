@@ -125,17 +125,15 @@ contract SweepCoin is BaseSweep {
 
     /**
      * @notice Mint (Override)
-     * @param minter Address of a minter.
      * @param amount Amount for mint.
      */
-    function minterMint(
-        address minter,
+    function mint(
         uint256 amount
     ) public override validMinter(msg.sender) whenNotPaused {
         if (address(amm) != address(0) && !isMintingAllowed())
             revert MintNotAllowed();
 
-        super.minterMint(minter, amount);
+        super.mint(amount);
     }
 
     /**

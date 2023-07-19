@@ -49,9 +49,10 @@ contract('Aave V3 Asset', async () => {
 
         // mint sweep for the liquidator
         // simulates a pool in uniswap with 10000 SWEEP/USDX
-        await sweep.minterMint(liquidator.address, sweepAmount);
-        await sweep.minterMint(uniswap_amm.address, sweepAmount);
-        await sweep.minterMint(addresses.multisig, sweepAmount);
+        await sweep.connect(admin).mint(sweepAmount.mul(3));
+        await sweep.connect(admin).transfer(liquidator.address, sweepAmount);
+        await sweep.connect(admin).transfer(uniswap_amm.address, sweepAmount);
+        await sweep.connect(admin).transfer(addresses.multisig, sweepAmount);
 
         user = await impersonate(addresses.usdc)
         await usdx.connect(user).transfer(uniswap_amm.address, usdxAmount);

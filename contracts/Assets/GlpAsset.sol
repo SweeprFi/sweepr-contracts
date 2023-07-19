@@ -28,6 +28,8 @@ contract GlpAsset is Stabilizer {
     uint256 private constant REWARDS_FREQUENCY = 1 days;
 
     // Events
+    event Invested(uint256 indexed glpAmount);
+    event Divested(uint256 indexed usdxAmount);
     event Collected(address reward, uint256 amount);
 
     constructor(
@@ -37,14 +39,7 @@ contract GlpAsset is Stabilizer {
         address rewardRouterAddress,
         address rewardOracleAddress,
         address borrower
-    )
-        Stabilizer(
-            name,
-            sweepAddress,
-            usdxAddress,
-            borrower
-        )
-    {
+    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
         rewardOracle = rewardOracleAddress;
         rewardRouter = IRewardRouter(rewardRouterAddress);
         glpManager = IGlpManager(rewardRouter.glpManager());
@@ -137,16 +132,22 @@ contract GlpAsset is Stabilizer {
 
     function _invest(uint256 usdxAmount, uint256, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
-        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if (usdxBalance == 0) revert NotEnoughBalance();
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         TransferHelper.safeApprove(
             address(usdx),
             address(glpManager),
             usdxAmount
         );
-        rewardRouter.mintAndStakeGlp(address(usdx), usdxAmount, 0, 0);
+        uint256 glpAmount = rewardRouter.mintAndStakeGlp(
+            address(usdx),
+            usdxAmount,
+            0,
+            0
+        );
 
-        emit Invested(usdxAmount, 0);
+        emit Invested(glpAmount);
     }
 
     function _divest(uint256 usdxAmount, uint256) internal override {
@@ -154,8 +155,8 @@ contract GlpAsset is Stabilizer {
 
         uint256 glpPrice = getGlpPrice(false);
         uint256 glpBalance = stakedGlpTracker.balanceOf(address(this));
-        uint256 glpAmount = (usdxAmount *
-            10 ** stakedGlpTracker.decimals()) / glpPrice;
+        uint256 glpAmount = (usdxAmount * 10 ** stakedGlpTracker.decimals()) /
+            glpPrice;
 
         if (glpBalance < glpAmount) glpAmount = glpBalance;
 
@@ -166,7 +167,7 @@ contract GlpAsset is Stabilizer {
             address(this)
         );
 
-        emit Divested(divested, 0);
+        emit Divested(divested);
     }
 
     // Get GLP price in usdx

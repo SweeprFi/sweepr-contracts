@@ -23,16 +23,17 @@ contract OffChainAsset is Stabilizer {
     address public collateralAgent;
 
     // Events
+    event Invested(uint256 indexed usdxAmount, uint256 indexed sweepAmount);
+    event Divested(uint256 indexed usdxAmount);
     event Payback(address token, uint256 amount);
     event CollateralAgentSet(address agent);
-    error NotCollateralAgent();
 
     // Errors
     error NotEnoughAmount();
+    error NotCollateralAgent();
 
     modifier onlyCollateralAgent() {
-        if (msg.sender != collateralAgency())
-            revert NotCollateralAgent();
+        if (msg.sender != collateralAgency()) revert NotCollateralAgent();
         _;
     }
 
@@ -43,14 +44,7 @@ contract OffChainAsset is Stabilizer {
         address wallet_,
         address collateralAgent_,
         address borrower
-    )
-        Stabilizer(
-            name,
-            sweepAddress,
-            usdxAddress,
-            borrower
-        )
-    {
+    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
         wallet = wallet_;
         collateralAgent = collateralAgent_;
         redeemMode = false;
@@ -79,8 +73,7 @@ contract OffChainAsset is Stabilizer {
      * @return address
      */
     function collateralAgency() public view returns (address) {
-        return
-            collateralAgent != address(0) ? collateralAgent : sweep.owner();
+        return collateralAgent != address(0) ? collateralAgent : sweep.owner();
     }
 
     /* ========== Actions ========== */
@@ -92,6 +85,7 @@ contract OffChainAsset is Stabilizer {
     function setWallet(
         address wallet_
     ) external onlyBorrower onlySettingsEnabled {
+        if (wallet_ == address(0)) revert ZeroAddressDetected();
         wallet = wallet_;
     }
 
@@ -179,8 +173,9 @@ contract OffChainAsset is Stabilizer {
         uint256
     ) internal override {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-        if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
-        if(sweepBalance < sweepAmount) sweepAmount = sweepBalance;
+        if (usdxBalance == 0) revert NotEnoughBalance();
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+        if (sweepBalance < sweepAmount) sweepAmount = sweepBalance;
 
         TransferHelper.safeTransfer(address(usdx), wallet, usdxAmount);
         TransferHelper.safeTransfer(address(sweep), wallet, sweepAmount);
@@ -198,6 +193,6 @@ contract OffChainAsset is Stabilizer {
         redeemAmount = usdxAmount;
         redeemTime = block.timestamp;
 
-        emit Divested(usdxAmount, 0);
+        emit Divested(usdxAmount);
     }
 }
