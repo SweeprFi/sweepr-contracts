@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses, chainId } = require("../utils/address");
-const { impersonate, Const, increaseTime } = require("../utils/helper_functions")
+const { impersonate, Const } = require("../utils/helper_functions")
 
 contract('GLP Asset', async () => {
     // GLP Asset only work on the Arbitrum.
@@ -10,8 +10,10 @@ contract('GLP Asset', async () => {
     before(async () => {
         [lzEndpoint] = await ethers.getSigners();
         BORROWER = addresses.multisig;
-        depositAmount = 100e6;
+        depositAmount = 200e6;
+        investAmount = 100e6;
         divestAmount = 150e6;
+        slippage = 5000;
 
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [
@@ -27,7 +29,6 @@ contract('GLP Asset', async () => {
         usdx = await ERC20.attach(addresses.usdc);
 
         Oracle = await ethers.getContractFactory("AggregatorMock");
-        usdOracle = await Oracle.deploy();
         wethOracle = await Oracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
@@ -61,29 +62,27 @@ contract('GLP Asset', async () => {
         });
 
         it('invest and divest to the GMX', async () => {
-            await expect(asset.invest(depositAmount))
+            await expect(asset.invest(depositAmount, slippage))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
-
-            await usdx.connect(user).transfer(asset.address, depositAmount);
 
             user = await impersonate(BORROWER);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
-            await asset.connect(user).invest(depositAmount);
+            await asset.connect(user).invest(investAmount, slippage);
             expect(await asset.assetValue()).to.above(Const.ZERO);
 
-            await asset.connect(user).invest(depositAmount*2);
+            await asset.connect(user).invest(depositAmount, slippage);
 
             // Collect Reward
             await asset.connect(user).collect();
 
             // Divest usdx
-            await expect(asset.divest(divestAmount))
+            await expect(asset.divest(divestAmount, slippage))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
             assetValue = await asset.assetValue();
-            await asset.connect(user).divest(divestAmount);
+            await asset.connect(user).divest(divestAmount, slippage);
 
             expect(await asset.assetValue()).to.not.greaterThan(assetValue);
-            await asset.connect(user).divest(divestAmount);
+            await asset.connect(user).divest(divestAmount, slippage);
         });
     });
 });
