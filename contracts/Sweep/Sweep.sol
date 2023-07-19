@@ -239,10 +239,10 @@ contract SweepCoin is BaseSweep {
         uint256 interestTime = SPREAD_PRECISION * (nextPeriodStart - currentPeriodStart);
         uint256 accumulatedRate;
 
-        if (nextInterestRate >= 0) {
-            accumulatedRate = SPREAD_PRECISION + (uint256(nextInterestRate) * interestTime) / (1 days * SPREAD_PRECISION);
+        if (currentInterestRate >= 0) {
+            accumulatedRate = SPREAD_PRECISION + (uint256(currentInterestRate) * interestTime) / (1 days * SPREAD_PRECISION);
         } else {
-            accumulatedRate = SPREAD_PRECISION - (uint256(-nextInterestRate) * interestTime) / (1 days * SPREAD_PRECISION);
+            accumulatedRate = SPREAD_PRECISION - (uint256(-currentInterestRate) * interestTime) / (1 days * SPREAD_PRECISION);
         }
 
         nextTargetPrice = (currentTargetPrice * accumulatedRate) / SPREAD_PRECISION;
