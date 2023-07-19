@@ -10,7 +10,7 @@ contract("WETH Asset", async function () {
 
         BORROWER = borrower.address;
         depositAmount = 10e6;
-        divestAmount = 15e6;
+        withdrawAmount = 15e6;
         maxSweep = toBN("500000", 18);
         maxBorrow = toBN("100", 18);
 

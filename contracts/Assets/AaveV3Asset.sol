@@ -69,7 +69,7 @@ contract AaveV3Asset is Stabilizer {
     function invest(
         uint256 usdxAmount
     ) external onlyBorrower whenNotPaused validAmount(usdxAmount) {
-        _invest(usdxAmount, 0);
+        _invest(usdxAmount, 0, 0);
     }
 
     /**
@@ -98,7 +98,7 @@ contract AaveV3Asset is Stabilizer {
      * @notice Invest
      * @dev Deposits the amount into the Aave V3 pool.
      */
-    function _invest(uint256 usdxAmount, uint256) internal override {
+    function _invest(uint256 usdxAmount, uint256, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 

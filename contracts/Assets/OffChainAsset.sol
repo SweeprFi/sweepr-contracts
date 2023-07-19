@@ -123,7 +123,7 @@ contract OffChainAsset is Stabilizer {
         validAmount(usdxAmount)
         validAmount(sweepAmount)
     {
-        _invest(usdxAmount, sweepAmount);
+        _invest(usdxAmount, sweepAmount, 0);
     }
 
     /**
@@ -175,7 +175,8 @@ contract OffChainAsset is Stabilizer {
 
     function _invest(
         uint256 usdxAmount,
-        uint256 sweepAmount
+        uint256 sweepAmount,
+        uint256
     ) internal override {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
         if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;

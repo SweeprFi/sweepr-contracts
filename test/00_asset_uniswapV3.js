@@ -95,7 +95,7 @@ contract('Uniswap V3 Asset', async () => {
         });
 
         it('check LP token minted', async () => {
-            await expect(asset.divest(usdxAmount))
+            await expect(asset.divest(usdxAmount, Const.UNISWAP_SLIPPAGE))
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
             await expect(asset.collect())
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
@@ -111,7 +111,7 @@ contract('Uniswap V3 Asset', async () => {
             expect(await sweep.balanceOf(pool_address)).to.equal(Const.ZERO);
             expect(await usdc.balanceOf(pool_address)).to.equal(Const.ZERO);
 
-            await asset.invest(mintLPUsdxAmount, mintLPSweepAmount);
+            await asset.invest(mintLPUsdxAmount, mintLPSweepAmount, Const.UNISWAP_SLIPPAGE);
 
             expect(await asset.tokenId()).to.not.equal(Const.ZERO);
             expect(await asset.liquidity()).to.above(Const.ZERO);
@@ -125,7 +125,7 @@ contract('Uniswap V3 Asset', async () => {
             balanceSweep = await sweep.balanceOf(pool_address);
             balanceUSDC = await usdc.balanceOf(pool_address);
 
-            await asset.invest(increaseLPUsdxAmount, increaseLPSweepAmount);
+            await asset.invest(increaseLPUsdxAmount, increaseLPSweepAmount, Const.UNISWAP_SLIPPAGE);
 
             expect(await sweep.balanceOf(pool_address)).to.above(balanceSweep);
             expect(await usdc.balanceOf(pool_address)).to.above(balanceUSDC);
@@ -141,9 +141,9 @@ contract('Uniswap V3 Asset', async () => {
         it('removes liquidity', async () => {
             liquidity = await asset.liquidity();
             withdrawAmount = liquidity.div(2);
-            await expect(asset.connect(guest).divest(withdrawAmount))
+            await expect(asset.connect(guest).divest(withdrawAmount, Const.UNISWAP_SLIPPAGE))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
-            await asset.divest(withdrawAmount);
+            await asset.divest(withdrawAmount, Const.UNISWAP_SLIPPAGE);
         });
 
         it('burn LP token', async () => {
@@ -154,7 +154,7 @@ contract('Uniswap V3 Asset', async () => {
             liquidity = await asset.liquidity();
             if (liquidity > 0) {
                 await expect(asset.burnNFT()).to.be.revertedWith('Not cleared');
-                await asset.divest(liquidity.mul(10));
+                await asset.divest(liquidity.mul(10), Const.UNISWAP_SLIPPAGE);
             }
 
             await asset.burnNFT();

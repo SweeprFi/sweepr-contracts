@@ -10,7 +10,7 @@ contract("WBTC Asset", async function () {
         BORROWER = borrower.address;
         depositAmount = 100e6;
         investAmount = 150e6;
-        divestAmount = 50e6;
+        withdrawAmount = 50e6;
         maxSweep = toBN("500000", 18);
         maxBorrow = toBN("1000", 8);
 
@@ -82,13 +82,13 @@ contract("WBTC Asset", async function () {
 
         it("invest correctly", async function () {
             expect(await wbtc_asset.assetValue()).to.equal(Const.ZERO);
-            await wbtc_asset.invest(withdrawAmount, Const.SLIPPAGE);
+            await wbtc_asset.invest(investAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(wbtc_asset.address)).to.equal(Const.ZERO);
             expect(await wbtc.balanceOf(wbtc_asset.address)).to.greaterThan(Const.ZERO);
         });
 
         it("divest correctly", async function () {
-            await wbtc_asset.divest(divestAmount, Const.SLIPPAGE);
+            await wbtc_asset.divest(withdrawAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(wbtc_asset.address)).to.greaterThan(Const.ZERO);
             expect(await wbtc.balanceOf(wbtc_asset.address)).to.greaterThan(Const.ZERO);
 

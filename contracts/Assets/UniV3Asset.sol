@@ -32,6 +32,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     INonfungiblePositionManager public constant nonfungiblePositionManager =
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     LiquidityHelper private immutable liquidityHelper;
+    uint256 private constant PRECISION = 1e6;
 
     // Events
     event Mint(uint256 tokenId, uint128 liquidity);
@@ -125,10 +126,12 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @dev Pool must be initialized already to add liquidity
      * @param usdxAmount USDX Amount of asset to be deposited
      * @param sweepAmount Sweep Amount of asset to be deposited
+     * @param slippage. 
      */
     function invest(
         uint256 usdxAmount,
-        uint256 sweepAmount
+        uint256 sweepAmount,
+        uint256 slippage
     )
         external
         onlyBorrower
@@ -136,7 +139,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         validAmount(usdxAmount)
         validAmount(sweepAmount)
     {
-        _invest(usdxAmount, sweepAmount);
+        _invest(usdxAmount, sweepAmount, slippage);
     }
 
     /**
@@ -144,9 +147,10 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @param liquidityAmount Liquidity Amount to decrease
      */
     function divest(
-        uint256 liquidityAmount
+        uint256 liquidityAmount,
+        uint256 _slippage
     ) external onlyBorrower isMinted validAmount(liquidityAmount) {
-        _divest(liquidityAmount, 0);
+        _divest(liquidityAmount, _slippage);
     }
 
     /**
@@ -235,7 +239,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      */
     function _mint(
         uint256 amount0ToMint,
-        uint256 amount1ToMint
+        uint256 amount1ToMint,
+        uint256 slippage
     )
         internal
         returns (
@@ -246,6 +251,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         )
     {
         (int24 minTick, int24 maxTick) = showTicks();
+        uint256 amountOut0 = _calculateMinAmountOut(amount0ToMint, slippage);
+        uint256 amountOut1 = _calculateMinAmountOut(amount1ToMint, slippage);
 
         (tokenId_, liquidity_, amount0, amount1) = nonfungiblePositionManager
             .mint(
@@ -257,8 +264,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
                     tickUpper: maxTick,
                     amount0Desired: amount0ToMint,
                     amount1Desired: amount1ToMint,
-                    amount0Min: 0,
-                    amount1Min: 0,
+                    amount0Min: amountOut0,
+                    amount1Min: amountOut1,
                     recipient: address(this),
                     deadline: block.timestamp
                 })
@@ -270,7 +277,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
 
     function _invest(
         uint256 usdxAmount,
-        uint256 sweepAmount
+        uint256 sweepAmount,
+        uint256 slippage
     ) internal override {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
         if(usdxBalance < usdxAmount) usdxAmount = usdxBalance;
@@ -296,16 +304,18 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             : (sweepAmount, usdxAmount);
 
         if (tokenId == 0) {
-            (, liquidity_, amount0, amount1) = _mint(amountAdd0, amountAdd1);
+            (, liquidity_, amount0, amount1) = _mint(amountAdd0, amountAdd1, slippage);
         } else {
+            uint256 amountOut0 = _calculateMinAmountOut(amountAdd0, slippage);
+            uint256 amountOut1 = _calculateMinAmountOut(amountAdd1, slippage);
             (liquidity_, amount0, amount1) = nonfungiblePositionManager
                 .increaseLiquidity(
                     INonfungiblePositionManager.IncreaseLiquidityParams({
                         tokenId: tokenId,
                         amount0Desired: amountAdd0,
                         amount1Desired: amountAdd1,
-                        amount0Min: 0,
-                        amount1Min: 0,
+                        amount0Min: amountOut0,
+                        amount1Min: amountOut1,
                         deadline: block.timestamp + 60 // Expiration: 1 hour from now
                     })
                 );
@@ -316,10 +326,24 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         else emit Invested(amount1, amount0);
     }
 
-    function _divest(uint256 liquidityAmount, uint256) internal override {
+    function _divest(uint256 liquidityAmount, uint256 _slippage) internal override {
+        uint256 ratioLiquidity;
         uint128 decreaseLP = uint128(liquidityAmount);
-        if (decreaseLP > liquidity) decreaseLP = liquidity;
+        if (decreaseLP > liquidity) {
+            decreaseLP = liquidity;
+            ratioLiquidity = PRECISION; // 100%
+        } else {
+            ratioLiquidity = (decreaseLP * PRECISION) / liquidity;
+        }
         liquidity -= decreaseLP;
+
+        (uint256 totalAmount0, uint256 totalAmount1) = liquidityHelper
+            .getTokenAmountsFromLP(tokenId, token0, token1, amm().poolFee());
+
+        uint256 ratioAmount0 = (totalAmount0 * ratioLiquidity) / PRECISION;
+        uint256 ratioAmount1 = (totalAmount1 * ratioLiquidity) / PRECISION;
+        uint256 amountOut0 = _calculateMinAmountOut(ratioAmount0, _slippage);
+        uint256 amountOut1 = _calculateMinAmountOut(ratioAmount1, _slippage);
 
         // amount0Min and amount1Min are price slippage checks
         // if the amount received after burning is not greater than these minimums, transaction will fail
@@ -327,8 +351,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             INonfungiblePositionManager.DecreaseLiquidityParams({
                 tokenId: tokenId,
                 liquidity: decreaseLP,
-                amount0Min: 0,
-                amount1Min: 0,
+                amount0Min: amountOut0,
+                amount1Min: amountOut1,
                 deadline: block.timestamp
             })
         );
