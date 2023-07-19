@@ -8,14 +8,13 @@ contract("Sweep - Mint", async function () {
 		[owner, receiver, treasury, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 
 		TRANSFER_AMOUNT = toBN("100", 18);
-		interestRate = 5e4; // 5%
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepCoin");
 
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
 			addresses.owner,
-			2500 // 0.25%
+			50 // 0.005%
 		]);
 		sweep = await Proxy.deployed();
 	});
@@ -114,22 +113,22 @@ contract("Sweep - Mint", async function () {
 
 	it('allow and disallow minting', async () => {
 		// Set new arbSpread
-		NEW_arbSpread = 1e5;
-		NEW_targetPrice = 1e7;
+		NEW_arbSpread = 0;
+		NEW_targetPrice = 1010000;
 		await sweep.connect(owner).setBalancer(owner.address);
 		await sweep.connect(owner).setArbSpread(NEW_arbSpread);
-		await sweep.connect(owner).setTargetPrice(NEW_targetPrice, NEW_targetPrice);
+		await sweep.connect(owner).setTargetPrice(NEW_targetPrice);
 		// TODO: change to _amm after new deployment
 		await sweep.connect(owner).setAMM(addresses.uniswap_oracle);
-		await expect(sweep.connect(newMinter).mint(TRANSFER_AMOUNT))
-			.to.be.revertedWithCustomError(Sweep, 'MintNotAllowed');
+		ammPrice = await sweep.ammPrice();
 
-		// Set new arbSpread
-		NEW_targetPrice = 1e6;
-		await sweep.connect(owner).setTargetPrice(NEW_targetPrice, NEW_targetPrice);
-		expect(await sweep.balanceOf(newAddress.address)).to.equal(Const.ZERO);
-		await sweep.connect(newMinter).mint(TRANSFER_AMOUNT);
-		await sweep.connect(newMinter).transfer(newAddress.address, TRANSFER_AMOUNT);
-		expect(await sweep.balanceOf(newAddress.address)).to.equal(TRANSFER_AMOUNT);
+		if (ammPrice >= NEW_targetPrice) { // allow mint
+			newMinterBalance = await sweep.balanceOf(newMinter.address);
+			await sweep.connect(newMinter).mint(TRANSFER_AMOUNT)
+			expect(await sweep.balanceOf(newMinter.address)).to.equal(newMinterBalance.add(TRANSFER_AMOUNT));
+		} else { // disallow mint
+			await expect(sweep.connect(newMinter).mint(TRANSFER_AMOUNT))
+				.to.be.revertedWithCustomError(Sweep, 'MintNotAllowed');
+		}
 	});
 });

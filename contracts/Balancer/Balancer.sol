@@ -17,7 +17,6 @@ import "../Common/Owned.sol";
 import "../Governance/Sweepr.sol";
 import "../Stabilizer/IStabilizer.sol";
 import "@layerzerolabs/solidity-examples/contracts/lzApp/NonblockingLzApp.sol";
-import { SD59x18, wrap, unwrap } from "@prb/math/src/SD59x18.sol";
 
 contract Balancer is NonblockingLzApp, Owned {
     SweeprCoin public sweepr;
@@ -25,7 +24,7 @@ contract Balancer is NonblockingLzApp, Owned {
     enum Mode { IDLE, INVEST, CALL }
 
     uint256 public index;
-    uint256 private constant ONE_YEAR = 365 * 1 days;
+    uint256 public period = 1 days;
     uint256 private constant PRECISION = 1e6;    
     uint16 public constant PT_INTEREST_RATE = 1; // packet type for sending interest rate
     
@@ -45,6 +44,7 @@ contract Balancer is NonblockingLzApp, Owned {
     error ModeMismatch(Mode intention, Mode state);
     error WrongDataLength();
     error NotTrustedRemote();
+    error ZeroAmount();
     error ZeroETH();
     error NotEnoughETH();
 
@@ -63,10 +63,11 @@ contract Balancer is NonblockingLzApp, Owned {
         if (mode == Mode.CALL) interestRate += stepValue;
         if (mode == Mode.INVEST) interestRate -= stepValue;
 
-        setNewPeriod(interestRate);
+        uint256 periodStart = sweep.periodStart() + period;
+        sweep.setInterestRate(interestRate, periodStart);
 
         if (address(sweepr) != address(0) && sweepr.isGovernanceChain()) {
-            _sendInterestRate(interestRate);
+            _sendInterestRate(interestRate, periodStart);
         }
     }
 
@@ -82,45 +83,6 @@ contract Balancer is NonblockingLzApp, Owned {
         return Mode.IDLE;
     }
 
-    /* get next target price with the following formula:
-        next_price = p * (1 + r) ^ (t / y)
-        * r: interest rate per year
-        * t: time period to pay the rate
-        * y: time in one year
-        * p: current price
-    */
-    function getNextTargetPrice(
-        uint256 targetPrice,
-        int256 interestRate
-    ) internal view returns (uint256) {
-        SD59x18 precision = wrap(int256(PRECISION));
-        SD59x18 year = wrap(int256(ONE_YEAR));
-        SD59x18 period = wrap(int256(sweep.periodTime()));
-        SD59x18 timeRatio = period.div(year);
-        SD59x18 priceRatio = precision.add(wrap(interestRate));
-
-        int256 priceUnit = unwrap(priceRatio.pow(timeRatio).div(
-            precision.pow(timeRatio)
-        ));
-
-        return targetPrice * uint256(priceUnit) / (10 ** sweep.decimals());
-    }
-
-    function setNewPeriod(int256 interestRate) internal {
-        uint256 targetPrice = sweep.targetPrice();
-
-        uint256 nextTargetPrice = getNextTargetPrice(
-            targetPrice,
-            interestRate
-        );
-
-        sweep.startNewPeriod();
-        sweep.setInterestRate(interestRate);
-        sweep.setTargetPrice(targetPrice, nextTargetPrice);
-
-        emit InterestRateRefreshed(interestRate);
-    }
-
     function setSweepr(address sweeprAddress) external onlyGov {
         if (sweeprAddress == address(0)) revert ZeroAddressDetected();
         sweepr = SweeprCoin(sweeprAddress);
@@ -130,24 +92,34 @@ contract Balancer is NonblockingLzApp, Owned {
 
     /**
      * @notice Set Interest Rate
-     * @dev Assigns the value that will be set as the interest rate
-     * @param interestRate new value to be assigned.
+     * @param interestRate new interest rate.
+     * @param periodStart new period start.
      */
-    function setInterestRate(int256 interestRate) external onlyMultisigOrGov {
-        sweep.setInterestRate(interestRate);
+    function setInterestRate(int256 interestRate, uint256 periodStart) external onlyMultisigOrGov {
+        sweep.setInterestRate(interestRate, periodStart);
     }
 
-    function _sendInterestRate(int256 rate) internal {
+    /**
+     * @notice Set Period for refreshing interest rate
+     * @param newPeriod new period. For example, newPeriod = 604800 means 7 days.
+     */
+    function setPeriod(uint256 newPeriod) external onlyMultisigOrGov {
+        if (newPeriod == 0) revert ZeroAmount();
+        period = newPeriod;
+    }
+
+    function _sendInterestRate(int256 rate, uint256 periodStart) internal {
         uint chainCount = sweepr.chainCount();
         for (uint i = 0; i < chainCount; ) {
             uint16 dstChainId = sweepr.getChainId(i);
-            address sweepDstAddress = sweepr.getSweepWithChainId(dstChainId);
+            
+            address balancerDstAddress = sweepr.getBalancerWithChainId(dstChainId);
+            bool isTrusted = this.isTrustedRemote(dstChainId, abi.encodePacked(balancerDstAddress, address(this)));
 
-            if (this.isTrustedRemote(dstChainId, abi.encodePacked(sweepDstAddress))) revert NotTrustedRemote();
-            if (address(this).balance == 0) revert ZeroETH();
+            if (!isTrusted) revert NotTrustedRemote();
 
             // encode the payload with the number of pings
-            bytes memory payload = abi.encode(PT_INTEREST_RATE, rate);
+            bytes memory payload = abi.encode(PT_INTEREST_RATE, rate, periodStart);
 
 
             // use adapterParams v1 to specify more gas for the destination
@@ -185,9 +157,9 @@ contract Balancer is NonblockingLzApp, Owned {
         }
 
         if (packetType == PT_INTEREST_RATE) {
-            (, int256 newInterestRate) = abi.decode(_payload, (uint16, int256));
+            (, int256 newInterestRate, uint256 newPeriodStart) = abi.decode(_payload, (uint16, int256, uint256));
 
-            setNewPeriod(newInterestRate);
+            sweep.setInterestRate(newInterestRate, newPeriodStart);
         } else {
             revert("Balancer: unknown packet type");
         }

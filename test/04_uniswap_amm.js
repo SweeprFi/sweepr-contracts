@@ -14,6 +14,8 @@ contract("Uniswap AMM", async function () {
     SWEEP_MINT = toBN("10000", 18);
     USDC_INVEST = 20000e6;
     SWEEP_INVEST = toBN("20000", 18);
+    usdxAmount = 1000e6;
+    sweepAmount = toBN("1000", 18);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [OWNER, OWNER, 2500]);
@@ -79,7 +81,7 @@ contract("Uniswap AMM", async function () {
 
       await usdc.transfer(asset.address, USDC_MINT);
       await asset.borrow(SWEEP_MINT);
-      await asset.invest(USDC_INVEST, SWEEP_INVEST, Const.UNISWAP_SLIPPAGE);
+      await asset.invest(USDC_INVEST, SWEEP_MINT, Const.UNISWAP_SLIPPAGE);
     });
 
     it("buys sweep correctly", async function () {
