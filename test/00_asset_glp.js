@@ -72,6 +72,9 @@ contract('GLP Asset', async () => {
 
             await asset.connect(user).invest(depositAmount, slippage);
 
+            await expect(asset.connect(user).invest(depositAmount, slippage))
+                .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
+
             // Collect Reward
             await asset.connect(user).collect();
 

@@ -11,10 +11,8 @@ contract('Uniswap V3 Asset', async () => {
 
         usdxAmount = 1000e6;
         mintLPUsdxAmount = 100e6;
-        increaseLPUsdxAmount = 500e6;
         sweepAmount = ethers.utils.parseUnits("1000", 18);
         mintLPSweepAmount = ethers.utils.parseUnits("100", 18);
-        increaseLPSweepAmount = ethers.utils.parseUnits("500", 18);
         BORROWER = borrower.address;
 
         Sweep = await ethers.getContractFactory("SweepMock");
@@ -81,6 +79,9 @@ contract('Uniswap V3 Asset', async () => {
         });
 
         it('deposit usdc to the asset', async () => {
+            await expect(asset.invest(mintLPUsdxAmount, mintLPSweepAmount, Const.UNISWAP_SLIPPAGE))
+                .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
+
             expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
             await usdc.transfer(asset.address, usdxAmount);
             expect(await usdc.balanceOf(asset.address)).to.equal(usdxAmount);
@@ -125,7 +126,7 @@ contract('Uniswap V3 Asset', async () => {
             balanceSweep = await sweep.balanceOf(pool_address);
             balanceUSDC = await usdc.balanceOf(pool_address);
 
-            await asset.invest(increaseLPUsdxAmount, increaseLPSweepAmount, Const.UNISWAP_SLIPPAGE);
+            await asset.invest(usdxAmount, sweepAmount, Const.UNISWAP_SLIPPAGE);
 
             expect(await sweep.balanceOf(pool_address)).to.above(balanceSweep);
             expect(await usdc.balanceOf(pool_address)).to.above(balanceUSDC);

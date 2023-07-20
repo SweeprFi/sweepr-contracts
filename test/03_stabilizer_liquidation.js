@@ -5,7 +5,14 @@ const { impersonate, sendEth, Const, toBN } = require("../utils/helper_functions
 
 contract("Stabilizer - Liquidation", async function () {
   before(async () => {
-    [borrower, liquidator, other, treasury, lzEndpoint] = await ethers.getSigners();
+    [owner, borrower, liquidator, other, treasury, lzEndpoint] = await ethers.getSigners();
+    MAX_BORROW = toBN("100", 18);
+    MAX_SWEEP = toBN("3000", 18);
+    MAX_USDC = toBN("3000", 6);
+
+    DEPOSIT_AMOUNT = toBN("10", 6);
+    BORROW_AMOUNT = toBN("90", 18);
+    INVEST_AMOUNT = toBN("200", 6);
 
     maxBorrow = toBN("100", 18);
     maxSweep = toBN("500000", 18);
@@ -16,132 +23,189 @@ contract("Stabilizer - Liquidation", async function () {
     sweepMintAmount = toBN("50", 18);
 
     await sendEth(Const.WETH_HOLDER);
+    await sendEth(addresses.dai_holder);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [
       lzEndpoint.address,
-      addresses.owner,
+      owner.address,
       2500 // 0.25%
     ]);
-    sweep = await Proxy.deployed();
-    user = await impersonate(addresses.owner);
-    await sweep.connect(user).setTreasury(addresses.treasury);
-
-    USDC = await ethers.getContractFactory("ERC20");
-    WETH = await ethers.getContractFactory("ERC20");
-    usdc = await USDC.attach(addresses.usdc);
-    weth = await WETH.attach(addresses.weth);
-
+    TOKEN = await ethers.getContractFactory("ERC20");
     Oracle = await ethers.getContractFactory("AggregatorMock");
-    wethOracle = await Oracle.deploy();
-    await wethOracle.setPrice(Const.WETH_PRICE);
-
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, Const.FEE);
-    await sweep.setAMM(amm.address);
 
-    WETHAsset = await ethers.getContractFactory("TokenAsset");
-    // ------------- Initialize context -------------
-    weth_asset = await WETHAsset.deploy(
+    Aave = await ethers.getContractFactory("AaveV3Asset");
+    Compound = await ethers.getContractFactory("CompV3Asset");
+    GDAI = await ethers.getContractFactory("GDAIAsset");
+    WETH = await ethers.getContractFactory("TokenAsset");
+
+    sweep = await Proxy.deployed();
+    usdc = await TOKEN.attach(addresses.usdc);
+    weth = await TOKEN.attach(addresses.weth);
+    dai = await TOKEN.attach(addresses.dai);
+    gdai = await TOKEN.attach(addresses.gDai);
+    aave_usdx = await TOKEN.attach(addresses.aave_usdc);
+    cusdc = await TOKEN.attach(addresses.comp_cusdc);
+
+    wethOracle = await Oracle.deploy();
+    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    // ------------- deploy assets -------------
+    aave_asset = await Aave.deploy(
+      'Aave Asset',
+      sweep.address,
+      addresses.usdc,
+      addresses.aave_usdc,
+      addresses.aaveV3_pool,
+      borrower.address
+    );
+
+    comp_asset = await Compound.deploy(
+      'Compound V3 Asset',
+      sweep.address,
+      addresses.usdc,
+      addresses.comp_cusdc,
+      borrower.address
+    );
+
+    gdai_asset = await GDAI.deploy(
+      'GDAI Asset',
+      sweep.address,
+      addresses.usdc,
+      addresses.gDai,
+      borrower.address
+    );
+
+    weth_asset = await WETH.deploy(
       'WETH Asset',
       sweep.address,
       addresses.usdc,
       addresses.weth,
       wethOracle.address,
-      addresses.borrower
+      borrower.address
     );
 
-    // simulates a pool in uniswap with 10000 SWEEP/USDX
-    await sweep.addMinter(borrower.address, maxSweep);
-    await sweep.connect(borrower).mint(maxBorrow);
-    await sweep.connect(borrower).transfer(amm.address, maxBorrow);
-    await sweep.connect(borrower).mint(liquidatorBalance);
-    await sweep.connect(borrower).transfer(liquidator.address, liquidatorBalance);
-
-    user = await impersonate(addresses.usdc)
-    await usdc.connect(user).transfer(amm.address, 100e6);
-
-    user = await impersonate(Const.WETH_HOLDER);
-    await weth.connect(user).transfer(amm.address, maxBorrow);
+    assets = [aave_asset, comp_asset, gdai_asset, weth_asset];
   });
 
-  describe("liquidates a WETH Asset when this is defaulted", async function () {
+  describe("liquidates assets", async function () {
     it("environment setup", async function () {
-      expect(await weth_asset.isDefaulted()).to.equal(Const.FALSE);
-      ammPrice = await sweep.ammPrice();
+      await sweep.setTreasury(treasury.address);
+      await sweep.setAMM(amm.address);
+      await wethOracle.setPrice(Const.WETH_PRICE);
+      await sweep.transfer(amm.address, MAX_SWEEP);
+      await sweep.transfer(liquidator.address, MAX_SWEEP);
 
+      user = await impersonate(addresses.usdc)
+      await usdc.connect(user).transfer(amm.address, MAX_USDC);
+
+      user = await impersonate(Const.WETH_HOLDER);
+      await weth.connect(user).transfer(amm.address, MAX_SWEEP);
+
+      user = await impersonate(addresses.dai_holder)
+      await dai.connect(user).transfer(amm.address, MAX_SWEEP);
+
+      await Promise.all(
+        assets.map(async (asset) => {
+          await asset.connect(borrower).configure(
+            Const.RATIO, // 10%
+            Const.spreadFee,
+            MAX_BORROW,
+            Const.DISCOUNT,
+            Const.DAYS_5,
+            Const.RATIO,
+            MAX_BORROW,
+            Const.TRUE,
+            Const.URL
+          );
+        })
+      );
+
+      await Promise.all(
+        assets.map(async (asset) => {
+          await sweep.addMinter(asset.address, MAX_BORROW);
+        })
+      );
+    });
+
+    it("deposits, borrow and invest", async function () {
       user = await impersonate(addresses.usdc);
-      await usdc.connect(user).transfer(weth_asset.address, usdcAmount); // stabilizer deposit      
-      await sweep.addMinter(weth_asset.address, sweepMintAmount);
-      await sweep.addMinter(addresses.borrower, sweepMintAmount.mul(2));
+      await Promise.all(
+        assets.map(async (asset) => {
+          await usdc.connect(user).transfer(asset.address, DEPOSIT_AMOUNT);
+        })
+      );
 
-      user = await impersonate(addresses.borrower);
-      await weth_asset.connect(user).configure(
-        Const.RATIO,
-        Const.spreadFee,
-        maxBorrow,
-        Const.DISCOUNT,
-        Const.DAYS_5,
-        Const.RATIO,
-        maxBorrow,
-        Const.TRUE,
-        Const.URL
+      await Promise.all(
+        assets.map(async (asset) => {
+          await asset.connect(borrower).borrow(BORROW_AMOUNT);
+        })
+      );
+
+      await Promise.all(
+        assets.map(async (asset) => {
+          await asset.connect(borrower).sellSweepOnAMM(BORROW_AMOUNT, Const.ZERO);
+        })
+      );
+
+      await aave_asset.connect(borrower).invest(INVEST_AMOUNT);
+      await comp_asset.connect(borrower).invest(INVEST_AMOUNT);
+      await gdai_asset.connect(borrower).invest(INVEST_AMOUNT, Const.SLIPPAGE);
+
+      await amm.setPrice(Const.WETH_AMM);
+      await weth_asset.connect(borrower).invest(INVEST_AMOUNT, Const.SLIPPAGE);
+
+      await Promise.all(
+        assets.map(async (asset) => {
+          expect(await asset.sweepBorrowed()).to.equal(BORROW_AMOUNT);
+          expect(await asset.isDefaulted()).to.equal(Const.TRUE);
+        })
       );
     });
 
-    it("stabilizer takes a debt and invest into WETH Asset", async function () {
-      expect(await weth_asset.assetValue()).to.equal(Const.ZERO);
-      expect(await weth_asset.isDefaulted()).to.equal(Const.FALSE);
+    it("liquidates correctly", async function () {
+      sweep_balance = await sweep.balanceOf(liquidator.address);
+      aave_balance = await aave_usdx.balanceOf(liquidator.address);
+      cusdc_balance = await cusdc.balanceOf(liquidator.address);
+      gdai_balance = await gdai.balanceOf(liquidator.address);
+      weth_balance = await weth.balanceOf(liquidator.address);
 
-      amount = sweepAmount.mul(2)
-      await weth_asset.connect(user).borrow(amount);
-      await weth_asset.connect(user).sellSweepOnAMM(amount, Const.ZERO);
+      total = aave_balance.add(cusdc_balance).add(gdai_balance).add(weth_balance);
+      expect(total).to.be.equal(Const.ZERO);
 
-      balance = await usdc.balanceOf(weth_asset.address);
-      await weth_asset.connect(user).invest(balance, Const.SLIPPAGE);
+      await sweep.connect(liquidator).approve(aave_asset.address, MAX_SWEEP);
+      await sweep.connect(liquidator).approve(comp_asset.address, MAX_SWEEP);
+      await sweep.connect(liquidator).approve(gdai_asset.address, MAX_SWEEP);
+      await sweep.connect(liquidator).approve(weth_asset.address, MAX_SWEEP);
 
-      expect(await weth_asset.currentValue()).to.not.equal(Const.ZERO);
-      expect(await usdc.balanceOf(weth_asset.address)).to.equal(Const.ZERO);
-    });
-
-    it("liquidations correctly", async function () {
-      expect(await weth_asset.sweepBorrowed()).to.equal(amount);
-      expect(await weth_asset.isDefaulted()).to.equal(Const.FALSE);
-
-      currentValueBefore = await weth_asset.assetValue();
-      wethBalanceBefore = await weth.balanceOf(liquidator.address);
-
-      await weth_asset.connect(user).configure(
-        RATIO_DEFAULT,
-        Const.spreadFee,
-        maxBorrow,
-        Const.DISCOUNT,
-        Const.DAYS_5,
-        Const.RATIO,
-        maxBorrow,
-        Const.TRUE,
-        Const.URL
+      await Promise.all(
+        assets.map(async (asset) => {
+          await asset.connect(liquidator).liquidate();
+        })
+      );
+      
+      await Promise.all(
+        assets.map(async (asset) => {
+          expect(await asset.isDefaulted()).to.equal(Const.FALSE);
+          expect(await asset.sweepBorrowed()).to.equal(Const.ZERO);
+          expect(await asset.getDebt()).to.equal(Const.ZERO);
+        })
       );
 
-      expect(await weth_asset.isDefaulted()).to.equal(Const.TRUE);
-
-      await sweep.connect(liquidator).approve(weth_asset.address, liquidatorBalance);
-      await weth_asset.connect(liquidator).liquidate();
-
-      wethBalanceAfter = await weth.balanceOf(liquidator.address);
-      currentValueAfter = await weth_asset.assetValue();
-
-      expect(await weth_asset.isDefaulted()).to.equal(Const.FALSE);
-      expect(await weth_asset.sweepBorrowed()).to.equal(Const.ZERO);
-      expect(await weth_asset.getDebt()).to.equal(Const.ZERO);
-      expect(currentValueBefore).to.above(Const.ZERO);
-      expect(currentValueAfter).to.equal(Const.ZERO);
-      expect(wethBalanceAfter).to.above(wethBalanceBefore);
+      expect(await sweep.balanceOf(liquidator.address)).to.be.lessThan(sweep_balance);
+      expect(await aave_usdx.balanceOf(liquidator.address)).to.be.greaterThan(Const.ZERO);
+      expect(await cusdc.balanceOf(liquidator.address)).to.be.greaterThan(Const.ZERO);
+      expect(await gdai.balanceOf(liquidator.address)).to.be.greaterThan(Const.ZERO);
+      expect(await weth.balanceOf(liquidator.address)).to.be.greaterThan(Const.ZERO);
     });
 
     it("can not liquidate a Stabilizer after has been liquidated", async function () {
-      await expect(weth_asset.connect(liquidator).liquidate())
-        .to.be.revertedWithCustomError(weth_asset, 'NotDefaulted');
+      await Promise.all(
+        assets.map(async (asset) => {
+          await expect(asset.connect(liquidator).liquidate())
+            .to.be.revertedWithCustomError(asset, 'NotDefaulted');
+        })
+      );
     });
   });
 });

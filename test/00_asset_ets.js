@@ -11,7 +11,8 @@ contract("ETS Asset", async function () {
         // Variables
         usdxAmount = 5000e6;
         depositAmount = 1000e6;
-        withdrawAmount = 1000e6;
+        withdrawAmount = 500e6;
+        investAmount = 500e6;
         daiAmount = toBN("5000", 18);
         maxSweep = toBN("500000", 18);
         sweepAmount = toBN("1000", 18);
@@ -85,9 +86,17 @@ contract("ETS Asset", async function () {
 
         it("invest correctly", async function () {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
+            await asset.invest(investAmount);
+
+            expect(await usdc.balanceOf(asset.address)).to.equal(investAmount);
+            expect(await ets.balanceOf(asset.address)).to.above(Const.ZERO);
+            expect(await asset.assetValue()).to.above(Const.ZERO);
+
             await asset.invest(depositAmount);
             expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
-            expect(await ets.balanceOf(asset.address)).to.above(Const.ZERO);
+
+            await expect(asset.invest(investAmount))
+                .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
 
         it("divest correctly", async function () {
@@ -96,6 +105,10 @@ contract("ETS Asset", async function () {
             await asset.divest(withdrawAmount);
             expect(await usdc.balanceOf(asset.address)).to.above(usdcBalance);
             expect(await ets.balanceOf(asset.address)).to.below(etsBalance);
+
+            await asset.divest(withdrawAmount * 2);
+            expect(await ets.balanceOf(asset.address)).to.equal(Const.ZERO);
+            expect(await asset.assetValue()).to.equal(Const.ZERO);
         });
     });
 });

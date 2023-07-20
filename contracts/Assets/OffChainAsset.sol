@@ -174,7 +174,6 @@ contract OffChainAsset is Stabilizer {
         uint256
     ) internal override {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-        if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
         if (sweepBalance < sweepAmount) sweepAmount = sweepBalance;
 

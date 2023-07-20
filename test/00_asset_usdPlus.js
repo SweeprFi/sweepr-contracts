@@ -11,7 +11,8 @@ contract("USDPlus Asset", async function () {
         // Variables
         usdxAmount = 5000e6;
         depositAmount = 1000e6;
-        withdrawAmount = 1000e6;
+        investAmount = 600e6;
+        divestAmount = 600e6;
         daiAmount = toBN("5000", 18);
         maxSweep = toBN("500000", 18);
         sweepAmount = toBN("1000", 18);
@@ -80,17 +81,27 @@ contract("USDPlus Asset", async function () {
         it("invest correctly", async function () {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
             expect(await asset.currentValue()).to.equal(depositAmount);
-            await asset.invest(depositAmount);
-            expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
+
+            await asset.invest(investAmount);
             expect(await usdPlus.balanceOf(asset.address)).to.above(Const.ZERO);
+
+            await asset.invest(investAmount);
+            expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
+
+            await expect(asset.invest(investAmount))
+                .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
 
         it("divest correctly", async function () {
-            const usdcBalance = await usdc.balanceOf(asset.address);
-            const usdPlusBalance = await usdPlus.balanceOf(asset.address);
-            await asset.divest(withdrawAmount);
+            usdcBalance = await usdc.balanceOf(asset.address);
+            usdPlusBalance = await usdPlus.balanceOf(asset.address);
+
+            await asset.divest(divestAmount);
             expect(await usdc.balanceOf(asset.address)).to.above(usdcBalance);
             expect(await usdPlus.balanceOf(asset.address)).to.below(usdPlusBalance);
+
+            await asset.divest(divestAmount);
+            expect(await usdPlus.balanceOf(asset.address)).to.eq(Const.ZERO);
         });
     });
 });

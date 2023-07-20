@@ -1,9 +1,9 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { toBN, Const, increaseTime } = require("../utils/helper_functions");
+const { toBN, Const } = require("../utils/helper_functions");
 
-contract("Sweep", async function () {
+contract("Sweep - settings", async function () {
 	before(async () => {
 		[owner, multisig, receiver, treasury, newAddress, newMinter, lzEndpoint] = await ethers.getSigners();
 
@@ -19,6 +19,9 @@ contract("Sweep", async function () {
 			2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed(Sweep);
+
+		VestingApprover = await ethers.getContractFactory("VestingApprover");
+		vestingApprover = await VestingApprover.deploy(sweep.address);
 	});
 
 	it('set admin to multisig', async () => {
@@ -173,5 +176,15 @@ contract("Sweep", async function () {
 
 		price = await sweep.ammPrice();
 		expect(price).to.above(Const.ZERO);
+	});
+
+	it('sets a new transfer approver correctly', async () => {
+		await expect(sweep.connect(treasury).setTransferApprover(Const.ADDRESS_ZERO))
+			.to.be.revertedWithCustomError(sweep, "NotGovernance");
+
+		await expect(sweep.connect(multisig).setTransferApprover(Const.ADDRESS_ZERO))
+			.to.be.revertedWithCustomError(sweep, "ZeroAddressDetected");
+
+		await sweep.connect(multisig).setTransferApprover(vestingApprover.address)
 	});
 });

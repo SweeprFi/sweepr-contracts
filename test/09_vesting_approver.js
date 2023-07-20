@@ -1,21 +1,17 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { Const, toBN } = require("../utils/helper_functions");
+const { Const, toBN, increaseTime, getBlockTimestamp } = require("../utils/helper_functions");
 
 contract("VestingApprover", async function () {
 	before(async () => {
 		[owner, multisig, distributor, sender, other, lzEndpoint] = await ethers.getSigners();
+		VESTING_TIME = 1000;
+		VESTING_AMOUNT = toBN("1000", 18);
+		SWEEPR_MINT_AMOUNT = toBN("1500", 18);
 		// ------------- Deployment of contracts -------------
 		Sweepr = await ethers.getContractFactory("SweeprCoin");
-		VestingApprover = await ethers.getContractFactory("VestingApproverMock");
-
-      	START_TIME = 1622551248;
-      	VESTING_TIME = 1000;
-      	VESTING_AMOUNT = toBN("1000", 18);
-		SWEEPR_MINT_AMOUNT = toBN("1500", 18);
-
+		VestingApprover = await ethers.getContractFactory("VestingApprover");
 		sweepr = await Sweepr.deploy(Const.TRUE, lzEndpoint.address);
-
 		vestingApprover = await VestingApprover.deploy(sweepr.address);
 	});
 
@@ -25,6 +21,8 @@ contract("VestingApprover", async function () {
 		expect(await sweepr.balanceOf(distributor.address)).to.equal(SWEEPR_MINT_AMOUNT);
 
 		// set transfer approver
+		await expect(sweepr.connect(owner).setTransferApprover(Const.ADDRESS_ZERO))
+			.to.be.revertedWithCustomError(sweepr, "ZeroAddressDetected");
 		await sweepr.connect(owner).setTransferApprover(vestingApprover.address);
 	});
 
@@ -32,7 +30,7 @@ contract("VestingApprover", async function () {
 		const time = Date.now();
 
 		await expect(
-		  	vestingApprover.createVestingSchedule(
+			vestingApprover.createVestingSchedule(
 				Const.ADDRESS_ZERO,
 				time,
 				1000,
@@ -46,7 +44,7 @@ contract("VestingApprover", async function () {
 				0,
 				1000,
 				10001
-		  	)
+			)
 		).to.be.revertedWithCustomError(VestingApprover, "ZeroAmountDetected");
 
 		await expect(
@@ -55,12 +53,22 @@ contract("VestingApprover", async function () {
 				time,
 				0,
 				1000
-		  	)
+			)
+		).to.be.revertedWithCustomError(VestingApprover, "ZeroAmountDetected");
+
+		await expect(
+			vestingApprover.createVestingSchedule(
+				sender.address,
+				time,
+				1000,
+				0
+			)
 		).to.be.revertedWithCustomError(VestingApprover, "ZeroAmountDetected");
 	});
 
 	it("create vesting schedule successfully", async function () {
 		expect(await vestingApprover.getVestingSchedulesCount()).to.be.equal(Const.ZERO);
+		START_TIME = await getBlockTimestamp() + VESTING_TIME;
 
 		await vestingApprover.createVestingSchedule(
 			sender.address,
@@ -74,13 +82,26 @@ contract("VestingApprover", async function () {
 		beneficiary = await vestingApprover.beneficiaries(0);
 		expect(beneficiary).to.equal(sender.address);
 
-		schedule =await vestingApprover.vestingSchedules(sender.address);
+		schedule = await vestingApprover.vestingSchedules(sender.address);
 		expect(schedule.startTime).to.equal(START_TIME);
 		expect(schedule.vestingTime).to.equal(VESTING_TIME);
 
-		expect(
-			await vestingApprover.getLockedAmount(sender.address)
-		  ).to.be.equal(0);
+		expect(await vestingApprover.getLockedAmount(sender.address)).to.be.equal(0);
+	})
+
+	it("check vesting schedules", async function () {
+		await expect(vestingApprover.getVestingSchedule(Const.ADDRESS_ZERO))
+			.to.be.revertedWithCustomError(vestingApprover, "ZeroAddressDetected");
+
+		schedule = await vestingApprover.getVestingSchedule(owner.address);
+		expect(schedule.startTime).to.equal(Const.ZERO)
+		expect(schedule.vestingTime).to.equal(Const.ZERO)
+		expect(schedule.vestingAmount).to.equal(Const.ZERO)
+			
+		schedule = await vestingApprover.getVestingSchedule(sender.address);
+		expect(schedule.startTime).to.equal(START_TIME)
+		expect(schedule.vestingTime).to.equal(VESTING_TIME)
+		expect(schedule.vestingAmount).to.equal(VESTING_AMOUNT)
 	})
 
 	it("checkTransfer() should be called only from Sweepr contract", async function () {
@@ -101,8 +122,8 @@ contract("VestingApprover", async function () {
 
 	it("transfer token", async function () {
 		// set time to half the vesting period
-		halfTime = START_TIME + VESTING_TIME / 2;
-		await vestingApprover.setCurrentTime(halfTime);
+		HALF_TIME = (VESTING_TIME + VESTING_TIME/2) - 3;
+		await increaseTime(HALF_TIME);
 
 		expect(
 			await vestingApprover.getLockedAmount(sender.address)
@@ -111,7 +132,7 @@ contract("VestingApprover", async function () {
 		// transfer should be reverted if transfer amount is larger than vested amount
 		await expect(sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT))
 			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
-			
+
 		await sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT.div(2));
 
 		expect(await sweepr.balanceOf(sender.address)).to.equal(VESTING_AMOUNT.div(2));
@@ -120,12 +141,9 @@ contract("VestingApprover", async function () {
 		expect(schedule.transferredAmount).to.equal(VESTING_AMOUNT.div(2));
 
 		// set time to full vesting period
-		fullTime = START_TIME + VESTING_TIME;
-		await vestingApprover.setCurrentTime(fullTime);
+		await increaseTime(HALF_TIME);
 
-		expect(
-			await vestingApprover.getLockedAmount(sender.address)
-		).to.equal(VESTING_AMOUNT.div(2));
+		expect(await vestingApprover.getLockedAmount(sender.address)).to.equal(VESTING_AMOUNT.div(2));
 
 		// transfer should be reverted if transfer amount is larger than vested amount
 		await expect(sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT))
@@ -134,17 +152,14 @@ contract("VestingApprover", async function () {
 		await sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT.div(2));
 
 		expect(await sweepr.balanceOf(sender.address)).to.equal(VESTING_AMOUNT);
-	
+
 		schedule = await vestingApprover.vestingSchedules(sender.address);
 		expect(schedule.transferredAmount).to.equal(VESTING_AMOUNT);
 
 		// set time to over vesting period
-		overTime = START_TIME + VESTING_TIME * 3 / 2;
-		await vestingApprover.setCurrentTime(overTime);
+		await increaseTime(HALF_TIME);
 
-		expect(
-			await vestingApprover.getLockedAmount(sender.address)
-		).to.equal(Const.ZERO);
+		expect(await vestingApprover.getLockedAmount(sender.address)).to.equal(Const.ZERO);
 
 		// transfer should be reverted if vested amount is zero
 		await expect(sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT.div(2)))
@@ -165,13 +180,7 @@ contract("VestingApprover", async function () {
 		schedule = await vestingApprover.vestingSchedules(other.address);
 		expect(schedule.beneficiary).to.equal(other.address);
 
-		fullTime = START_TIME + VESTING_TIME;
-		await vestingApprover.setCurrentTime(fullTime);
-
-		expect(
-			await vestingApprover.getLockedAmount(other.address)
-		).to.equal(VESTING_AMOUNT);
-
+		expect(await vestingApprover.getLockedAmount(other.address)).to.equal(VESTING_AMOUNT);
 		await expect(sweepr.connect(sender).transfer(other.address, VESTING_AMOUNT))
 			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
 	})

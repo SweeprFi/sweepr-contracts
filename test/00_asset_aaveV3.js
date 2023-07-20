@@ -27,7 +27,6 @@ contract('Aave V3 Asset', async () => {
 
         ERC20 = await ethers.getContractFactory("ERC20");
         usdx = await ERC20.attach(addresses.usdc);
-        aave_usdx = await ERC20.attach(addresses.aave_usdc);
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
         uniswap_amm = await Uniswap.deploy(sweep.address, Const.FEE);
@@ -178,12 +177,13 @@ contract('Aave V3 Asset', async () => {
         });
 
         it('invest to the Aave', async () => {
-            investAmount = 50 * 1e6;
+            investAmount = 60e6;
             await expect(aaveAsset.connect(guest).invest(investAmount))
                 .to.be.revertedWithCustomError(aaveAsset, 'NotBorrower');
             await aaveAsset.connect(user).invest(investAmount);
 
-            expect(await aaveAsset.assetValue()).to.closeTo(investAmount, 1);
+            await expect(aaveAsset.connect(user).invest(investAmount))
+                .to.be.revertedWithCustomError(aaveAsset, 'NotEnoughBalance');
         });
 
         it('set as defaulted', async () => {

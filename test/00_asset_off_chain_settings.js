@@ -33,7 +33,7 @@ contract("Off-Chain Asset - Settings", async function () {
 			sweep.address,
 			usdx.address,
 			wallet.address,
-			amm.address,
+			Const.ADDRESS_ZERO,
 			borrower.address
 		);
 
@@ -73,16 +73,23 @@ contract("Off-Chain Asset - Settings", async function () {
 			it("Reverts when caller is not the borrower", async function () {
 				await expect(offChainAsset.connect(treasury).setWallet(wallet.address))
 					.to.be.revertedWithCustomError(offChainAsset, 'NotBorrower');
+
+				await expect(offChainAsset.connect(borrower).setWallet(Const.ADDRESS_ZERO))
+					.to.be.revertedWithCustomError(offChainAsset, 'ZeroAddressDetected');
 			});
 		});
 
 		describe("Use collateral agent", async function () {
 			it("Update value by collateral agent", async function () {
 				// Update value by collateral agent
+				sweep_owner = await sweep.owner();
+				expect(await offChainAsset.collateralAgency()).to.equal(sweep_owner);
 				await expect(offChainAsset.connect(borrower).setCollateralAgent(Const.ADDRESS_ZERO))
 					.to.be.revertedWithCustomError(offChainAsset, "ZeroAddressDetected");
 
 				await offChainAsset.connect(borrower).setCollateralAgent(wallet.address);
+				expect(await offChainAsset.collateralAgency()).to.equal(wallet.address);
+
 				await offChainAsset.connect(wallet).updateValue(amount);
 				timesmtamp = await getBlockTimestamp();
 
