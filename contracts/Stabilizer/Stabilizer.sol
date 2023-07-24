@@ -180,7 +180,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * debt = borrow_amount + spread fee
      * @return uint256 calculated debt amount.
      */
-    function getDebt() external view returns (uint256) {
+    function getDebt() public view returns (uint256) {
         return sweepBorrowed + accruedFee();
     }
 
@@ -618,23 +618,22 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         if (!isDefaulted()) revert NotDefaulted();
         address self = address(this);
 
-        uint256 sweepToLiquidate = getLiquidationValue();
-        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-        uint256 tokenBalance = IERC20Metadata(token).balanceOf(self);
-        // Gives all the assets to the liquidator first
-        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepBalance);
-        TransferHelper.safeTransfer(address(usdx), msg.sender, usdxBalance);
-        TransferHelper.safeTransfer(token, msg.sender, tokenBalance);
-
-        // Takes SWEEP from the liquidator and repays as much debt as it can
+        uint256 sweepToLiquidate = getDebt();
+        // Takes SWEEP from the liquidator and repays debt
         TransferHelper.safeTransferFrom(
             address(sweep),
             msg.sender,
             self,
             sweepToLiquidate
         );
-
         _repay(sweepToLiquidate);
+
+        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
+        uint256 tokenBalance = IERC20Metadata(token).balanceOf(self);
+        // Gives all the assets to the liquidator
+        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepBalance);
+        TransferHelper.safeTransfer(address(usdx), msg.sender, usdxBalance);
+        TransferHelper.safeTransfer(token, msg.sender, tokenBalance);
 
         emit Liquidated(msg.sender);
     }
