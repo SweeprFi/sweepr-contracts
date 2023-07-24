@@ -1,8 +1,10 @@
 const { expect } = require('chai');
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
-const { time } = require('@openzeppelin/test-helpers');
-const { impersonate, Const, toBN } = require('../utils/helper_functions');
+const {
+	impersonate, Const, toBN,
+	increaseTime, increaseBlockNumber
+} = require('../utils/helper_functions');
 let account;
 
 contract('Governance', async (accounts) => {
@@ -16,13 +18,13 @@ contract('Governance', async (accounts) => {
 		USER4 = accounts[5];
 		LZENDPOINT = accounts[6];
 		OWNER_SWEEPR = addresses.owner;
-		MINT_AMOUNT = toBN("100000", 18);
+		MINT_AMOUNT = toBN("1000000", 18); // 100K
 		SWEEP_AMOUNT = toBN("1400", 18);
-		SWEEPR_MINT_AMOUNT = toBN("10000", 18);
-		TRANSFER_AMOUNT = toBN("100", 18);
-		REMANENT_AMOUNT = toBN("9600", 18);
+		SWEEPR_MINT_AMOUNT = toBN("100000", 18); // 100K
+		TRANSFER_AMOUNT = toBN("5000", 18);
+		REMANENT_AMOUNT = toBN("80000", 18); // 80K
 		USDC_AMOUNT = ethers.utils.parseUnits("20000", 6);
-		SALE_AMOUNT = ethers.utils.parseUnits("10000", 18);
+		SALE_AMOUNT = ethers.utils.parseUnits("100000", 18);
 		SALE_PRICE = 1000000; // 1 USDC
 		// contracts
 		Sweep = await ethers.getContractFactory("SweepMock");
@@ -46,10 +48,8 @@ contract('Governance', async (accounts) => {
 
 		// deploys
 		sweepr = await SWEEPR.deploy(Const.TRUE, LZENDPOINT); // TRUE means governance chain
-		// await sweepr.setTransferApprover(addresses.approver);
-
 		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
-		governance = await Governance.deploy(sweepr.address, addresses.timelock, 10);
+		governance = await Governance.deploy(sweepr.address, addresses.timelock);
 
 		// Sets SWEEPR price to 1 SWEEP: 
 		await sweepr.setPrice(1000000);
@@ -66,7 +66,7 @@ contract('Governance', async (accounts) => {
 	});
 
 	it('delegates votes correctly', async () => {
-		tokenAmount = ethers.utils.parseUnits("10000", 6);
+		tokenAmount = ethers.utils.parseUnits("100000", 6);
 		await sweep.addMinter(PROPOSER, MINT_AMOUNT);
 		account = await impersonate(PROPOSER);
 
@@ -130,9 +130,9 @@ contract('Governance', async (accounts) => {
 		account = await impersonate(PROPOSER);
 		await governance.propose([sweep.address], [0], [calldata], proposeDescription);
 
-		// Advance one block so the voting can begin
-		await time.increase(15);
-		await time.advanceBlock();
+		// Advance 14400 blocks so the voting can begin
+		await increaseTime(15);
+		await increaseBlockNumber(14400); // ~ 2 days
 
 		proposal_id = await governance.hashProposal([sweep.address], [0], [calldata], descriptionHash);
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_ACTIVE);
@@ -198,8 +198,7 @@ contract('Governance', async (accounts) => {
 	});
 
 	it('queues proposal correctly', async () => {
-		await time.increase(300);
-		await time.advanceBlock();
+		await increaseBlockNumber(259200); // ~ 3 days
 
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_SUCCEEDED);
 		await governance.connect(account).queue([sweep.address], [0], [calldata], descriptionHash);
@@ -214,8 +213,7 @@ contract('Governance', async (accounts) => {
 
 	it('executes proposal correctly', async () => {
 		delay = await timelock.getMinDelay();
-		await time.increase(parseInt(delay));
-		await time.advanceBlock();
+		await increaseTime(parseInt(delay));
 
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_QUEUED);
 		await governance.connect(account).execute([sweep.address], [0], [calldata], descriptionHash);
@@ -230,8 +228,8 @@ contract('Governance', async (accounts) => {
 		account = await impersonate(PROPOSER);
 		await governance.propose([sweep.address], [0], [calldata], proposeDescription);
 
-		await time.increase(15);
-		await time.advanceBlock();
+		await increaseTime(15);
+		await increaseBlockNumber(14400); // ~ 2 days
 
 		proposal_id = await governance.hashProposal([sweep.address], [0], [calldata], descriptionHash);
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_ACTIVE);

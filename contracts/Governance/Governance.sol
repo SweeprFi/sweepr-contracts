@@ -18,9 +18,17 @@ contract SweepGovernor is Governor, GovernorSettings, GovernorCountingSimple, Go
         _;
     }
 
-    constructor(IVotes token, TimelockController timelock, uint256 delay)
+    /**
+     * @dev Initializes the contract with the following parameters:
+     * `token`: SWEEPR
+     * `proposalThreshold`: 10k SWEEPR ~ The number of votes required in order for a voter to become a proposer
+     * `quorum`: 40 ~ Minimum number of cast voted required for a proposal to be successful.
+     * `votingPeriod`: 259200 (3 days: 24*60*60*3) ~ Delay between the vote start and vote end. 
+     * `votingDelay`: 14400 (2 days: 60*60*24*2/12] ~ Delay, between the proposal is created and the vote starts.
+     */
+    constructor(IVotes token, TimelockController timelock)
         Governor("SweepGovernor")
-        GovernorSettings(1 /* 1 block */, delay, 1000e18)
+        GovernorSettings(14400, 259200, 10000e18)
         GovernorVotes(token)
         GovernorVotesQuorumFraction(40)
         GovernorTimelockControl(timelock)

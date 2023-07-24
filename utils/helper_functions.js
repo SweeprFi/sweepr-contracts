@@ -23,6 +23,10 @@ const increaseTime = async (seconds) => {
     await network.provider.send("evm_mine");
 }
 
+const increaseBlockNumber = async (blocks) => {
+    await helpers.mine(blocks);
+}
+
 const toBN = (numb, exp) => {
     return ethers.utils.parseUnits(numb, exp);
 }
@@ -109,6 +113,7 @@ module.exports = {
     sendEth,
     impersonate,
     increaseTime,
+    increaseBlockNumber,
     resetNetwork,
     getPriceAndData,
     getBlockTimestamp,

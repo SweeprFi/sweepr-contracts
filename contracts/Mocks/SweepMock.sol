@@ -32,7 +32,7 @@ contract SweepMock is BaseSweep {
     uint256 public twaPrice;
 
     // Constants
-    uint256 public constant GENESIS_SUPPLY = 10000e18;
+    uint256 public constant GENESIS_SUPPLY = 100000e18;
     uint256 internal constant SPREAD_PRECISION = 1e6;
 
     // Events
