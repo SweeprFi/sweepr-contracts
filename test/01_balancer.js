@@ -13,7 +13,7 @@ contract("Balancer", async function () {
 		NEW_loanLimit = toBN("150", 6);
 
 		// ------------- Deployment of contracts -------------
-		Sweep = await ethers.getContractFactory("SweepMock");
+		Sweep = await ethers.getContractFactory("SweepCoin");
 		SweepProxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
 			owner.address,
@@ -23,6 +23,11 @@ contract("Balancer", async function () {
 
 		Balancer = await ethers.getContractFactory("Balancer");
 		balancer = await Balancer.deploy(sweep.address, lzEndpoint.address,);
+
+		// AMM
+		Uniswap = await ethers.getContractFactory("UniswapMock");
+		amm = await Uniswap.deploy(sweep.address, Const.FEE);
+		await sweep.setAMM(amm.address);
 
 		await sweep.setBalancer(balancer.address);
 		stabilizers = [stab_1.address, stab_2.address, stab_3.address, stab_4.address]
@@ -48,7 +53,7 @@ contract("Balancer", async function () {
 	it('increases the interest rate because the TWA price is lower', async () => {
 		// Set arbspread and twaPrice to increase interest rate
 		await sweep.setArbSpread(300);
-		await sweep.setTWAPrice(999600);
+		await amm.setTWAPrice(999600);
 		
 		period = 604800; // 7 days
 		stepValue = await sweep.stepValue()
@@ -57,6 +62,9 @@ contract("Balancer", async function () {
 		newInterestRate = stepValue;
 		nextTargetPrice = await sweep.nextTargetPrice();
 		nextPeriodStart = await sweep.nextPeriodStart();
+
+		await expect(balancer.setPeriod(Const.ZERO))
+			.to.be.revertedWithCustomError(balancer, "ZeroAmount");
 
 		// advance 2 days to start new period
 		await increaseTime(Const.DAY * 1);
@@ -109,7 +117,7 @@ contract("Balancer", async function () {
 	});
 
 	it('decreases the interest rate because the TWA price is higher', async () => {
-		await sweep.setTWAPrice(1100000);
+		await amm.setTWAPrice(1100000);
 		// advance 4 days for new period
 		await increaseTime(Const.DAY * 4);
 
@@ -250,6 +258,15 @@ contract("Balancer", async function () {
 
 		await expect(balancer.connect(lzEndpoint).setInterestRate(interest, newPeriodStart))
 			.to.be.revertedWithCustomError(balancer, "NotMultisigOrGov");
+
+		await expect(balancer.setInterestRate(interest, currentBlockTime))
+			.to.be.revertedWithCustomError(sweep, "OldPeriodStart");
+
+		await expect(balancer.setInterestRate(2e3, newPeriodStart))
+			.to.be.revertedWithCustomError(sweep, "OutOfRateRange");
+
+		await expect(sweep.setInterestRate(interest, newPeriodStart))
+			.to.be.revertedWithCustomError(sweep, "NotBalancer");
 
 		await balancer.setInterestRate(interest, newPeriodStart);
 		expect(await sweep.nextInterestRate()).to.equal(interest);

@@ -12,13 +12,14 @@ contract('Balancer - Auto Invests', async () => {
         TREASURY = addresses.treasury;
         OWNER = addresses.owner;
         usdxAmount = 1000e6;
-        depositAmount = 10e6;
+        depositAmount = 100e6;
         sweepAmount = toBN("1000", 18);
-        maxBorrow = toBN("100", 18);
-        loanLimit = toBN("80", 18);
-        mintAmount = toBN("50", 18);
+        maxBorrow = toBN("1000", 18);
+        loanLimit = toBN("800", 18);
+        mintAmount = toBN("500", 18);
         autoInvestMinAmount = toBN("10", 18);
         minRatio = 5e4; // 5%
+        higherRatio = 5e5; // 5%
 
         // Deploys
         Sweep = await ethers.getContractFactory("SweepMock");
@@ -41,7 +42,7 @@ contract('Balancer - Auto Invests', async () => {
 
         AaveAsset = await ethers.getContractFactory("AaveV3Asset");
         assets = await Promise.all(
-            Array(3).fill().map(async () => {
+            Array(6).fill().map(async () => {
                 return await AaveAsset.deploy(
                     'Aave Asset',
                     sweep.address,
@@ -89,6 +90,45 @@ contract('Balancer - Auto Invests', async () => {
                 Const.URL
             );
 
+            // autoInvest = false
+            await assets[3].connect(user).configure(
+                Const.RATIO,
+                Const.spreadFee,
+                loanLimit,
+                Const.DISCOUNT,
+                Const.DAYS_5,
+                minRatio,
+                autoInvestMinAmount,
+                Const.False,
+                Const.URL
+            );
+
+            // autoInvestMinAmount - lower
+            await assets[4].connect(user).configure(
+                Const.RATIO,
+                Const.spreadFee,
+                loanLimit,
+                Const.DISCOUNT,
+                Const.DAYS_5,
+                minRatio,
+                10e6,
+                Const.TRUE,
+                Const.URL
+            );
+
+            // autoInvestMinRatio - higher
+            await assets[5].connect(user).configure(
+                Const.RATIO,
+                Const.spreadFee,
+                loanLimit,
+                Const.DISCOUNT,
+                Const.DAYS_5,
+                higherRatio,
+                autoInvestMinAmount,
+                Const.TRUE,
+                Const.URL
+            );
+
             // Set Balancer in the Sweep
             await sweep.setBalancer(balancer.address);
             user = await impersonate(addresses.owner);
@@ -105,7 +145,7 @@ contract('Balancer - Auto Invests', async () => {
             user = await impersonate(USDC_ADDRESS);
             await usdc.connect(user).transfer(BORROWER, usdxAmount);
 
-            await usdc.connect(user).transfer(amm.address, usdxAmount);
+            await usdc.connect(user).transfer(amm.address, usdxAmount*10);
             await sweep.transfer(amm.address, sweepAmount);
         });
 
@@ -169,13 +209,36 @@ contract('Balancer - Auto Invests', async () => {
             );
         });
 
+        it('autoinvest constraints', async () => {
+            await expect(assets[0].autoInvest(mintAmount, 1e6, 2000))
+                .to.be.revertedWithCustomError(AaveAsset, "NotBalancer");
+
+            // autoInvest - false
+            await balancer.addActions([assets[3].address], [mintAmount]);
+            await expect(balancer.execute(1, true, 1e6, 2000))
+                .to.be.revertedWithCustomError(AaveAsset, "NotAutoInvest");
+            
+            await balancer.reset();
+            // autoInvestMinAmount - lower
+            await balancer.addActions([assets[4].address], [9e6]);
+            await expect(balancer.execute(1, true, 1e6, 2000))
+                .to.be.revertedWithCustomError(AaveAsset, "NotAutoInvestMinAmount");
+
+            await balancer.reset();
+            // autoInvestMinRatio - higher
+            await balancer.addActions([assets[5].address], [mintAmount]);
+            await expect(balancer.execute(1, true, 1e6, 2000))
+                .to.be.revertedWithCustomError(AaveAsset, "NotAutoInvestMinRatio");
+        });
+
         it('Call auto invests in the Balancer', async () => {
-            targets = assets.map((asset) => { return asset.address });
+            await balancer.reset();
+            targets = assets.filter((_, index) => index < 3).map(asset => asset.address)
             investAmount = toBN("45", 18); // 45 Sweep more
             amounts = [investAmount, investAmount, investAmount]; // 45 Sweep to each stabilizer
 
-            expectedAmount = toBN("95", 18); // mintAmount(50) + amount(45) = 95
-            expectedLimit = toBN("125", 18); // oldLimit(80) + amount(45) = 125
+            expectedAmount = toBN("545", 18); // mintAmount(500) + amount(45) = 545
+            expectedLimit = toBN("845", 18); // oldLimit(800) + amount(45) = 845
 
             await balancer.addActions(targets, amounts);
             await balancer.execute(1, true, 1e6, 2000); // 1 => invests, force: true, 1 => price, 2000 => slippage
@@ -183,14 +246,10 @@ contract('Balancer - Auto Invests', async () => {
             expect(await assets[0].sweepBorrowed()).to.eq(expectedAmount);
             expect(await assets[1].sweepBorrowed()).to.eq(expectedAmount);
             expect(await assets[2].sweepBorrowed()).to.eq(expectedAmount);
-            // expect(await assets[3].sweepBorrowed()).to.eq(expectedAmount);
-            // expect(await assets[4].sweepBorrowed()).to.eq(expectedAmount);
 
             expect(await assets[0].loanLimit()).to.eq(expectedLimit);
             expect(await assets[1].loanLimit()).to.eq(expectedLimit);
             expect(await assets[2].loanLimit()).to.eq(expectedLimit);
-            // expect(await assets[3].loanLimit()).to.eq(expectedLimit);
-            // expect(await assets[4].loanLimit()).to.eq(expectedLimit);
         });
     });
 });

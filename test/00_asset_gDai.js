@@ -13,6 +13,8 @@ contract("gDAI Asset", async function () {
         usdxAmount = 5000e6;
         depositAmount = 1000e6;
         withdrawAmount = 1000e6;
+        investAmount = 600e6;
+        divestAmount = 600e6;
         daiAmount = toBN("5000", 18);
         maxSweep = toBN("500000", 18);
         sweepAmount = toBN("1000", 18);
@@ -103,9 +105,16 @@ contract("gDAI Asset", async function () {
         it("invest correctly", async function () {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
             expect(await asset.currentValue()).to.equal(depositAmount);
-            await asset.invest(depositAmount, Const.SLIPPAGE);
+
+            await asset.invest(investAmount, Const.SLIPPAGE);
+            expect(await gDai.balanceOf(asset.address)).to.above(Const.ZERO);
+
+            await asset.invest(investAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
             expect(await gDai.balanceOf(asset.address)).to.above(Const.ZERO);
+
+            await expect(asset.invest(investAmount, Const.SLIPPAGE))
+                .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
 
         it("send withdraw request", async function () {
@@ -125,10 +134,12 @@ contract("gDAI Asset", async function () {
             expect(await asset.unlockEpoch()).to.equal(Const.ZERO);
             expect(await asset.divestStartTime()).to.equal(Const.ZERO);
 
-            await asset.request(withdrawAmount);
+            await asset.request(divestAmount);
 
             expect(await asset.unlockEpoch()).to.above(Const.ZERO);
             expect(await asset.divestStartTime()).to.above(Const.ZERO);
+
+            await asset.request(withdrawAmount);
         });
 
         it("divest correctly", async function () {
@@ -144,10 +155,16 @@ contract("gDAI Asset", async function () {
             const usdcBalance = await usdc.balanceOf(asset.address);
             const gDaiBalance = await gDai.balanceOf(asset.address);
 
-            await asset.divest(withdrawAmount, Const.SLIPPAGE);
+            await asset.divest(divestAmount, Const.SLIPPAGE);
 
             expect(await usdc.balanceOf(asset.address)).to.above(usdcBalance);
             expect(await gDai.balanceOf(asset.address)).to.below(gDaiBalance);
+
+            await asset.divest(divestAmount, Const.SLIPPAGE);
+            expect(await gDai.balanceOf(asset.address)).to.equal(Const.ZERO);
+
+            await expect(asset.request(withdrawAmount))
+                .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
     });
 });

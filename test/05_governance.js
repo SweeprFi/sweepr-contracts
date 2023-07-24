@@ -65,6 +65,13 @@ contract('Governance', async (accounts) => {
 		await usdc.transfer(account.address, USDC_AMOUNT);
 	});
 
+	it('support interface', async () => {
+		// ERC165
+		expect(await governance.supportsInterface('0x01ffc9a7')).to.equal(Const.TRUE);
+		// any
+		expect(await governance.supportsInterface('0x0000000A')).to.equal(Const.FALSE);
+	});
+
 	it('delegates votes correctly', async () => {
 		tokenAmount = ethers.utils.parseUnits("10000", 6);
 		await sweep.addMinter(PROPOSER, MINT_AMOUNT);

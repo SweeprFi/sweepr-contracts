@@ -36,7 +36,6 @@ contract GDAIAsset is Stabilizer {
 
     // Errors
     error RequestNotAvailable();
-    error EmptyBalance();
     error DivestNotAvailable();
 
     constructor(
@@ -166,14 +165,16 @@ contract GDAIAsset is Stabilizer {
     function request(uint256 usdxAmount) external onlyBorrower {
         (bool available, , ) = requestStatus();
         if (!available) revert RequestNotAvailable();
-        if (gDai.balanceOf(address(this)) == 0) revert EmptyBalance();
+        if (gDai.balanceOf(address(this)) == 0) revert NotEnoughBalance();
 
         uint256 daiAmount = (usdxAmount * (10 ** gDai.decimals())) /
             (10 ** usdx.decimals());
         uint256 gDaiAmount = gDai.convertToShares(daiAmount);
         uint256 gDaiBalance = gDai.balanceOf(address(this));
+        uint256 shares = gDai.totalSharesBeingWithdrawn(address(this));
 
         if (gDaiBalance < gDaiAmount) gDaiAmount = gDaiBalance;
+        if(shares + gDaiAmount > gDaiBalance) gDaiAmount -= shares;
 
         gDai.makeWithdrawRequest(gDaiAmount, address(this));
 

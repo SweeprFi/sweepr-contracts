@@ -12,6 +12,7 @@ contract("Sweepr", async function () {
 
 		MINT_AMOUNT = ethers.utils.parseUnits("2000", 18);
 		TRANSFER_AMOUNT = ethers.utils.parseUnits("1000", 18);
+		BURN_AMOUNT = ethers.utils.parseUnits("500", 18);
 		PRECISION = 1000000;
 		ZERO = 0;
 
@@ -42,6 +43,17 @@ contract("Sweepr", async function () {
 
 		senderBalance = await sweepr.balanceOf(sender.address);
 		expect(senderBalance).to.equal(TRANSFER_AMOUNT);
+
+		await sweepr.connect(sender).transfer(receiver.address, TRANSFER_AMOUNT);
+		expect(await sweepr.balanceOf(sender.address)).to.equal(Const.ZERO);
+		expect(await sweepr.balanceOf(receiver.address)).to.equal(TRANSFER_AMOUNT);
+		expect(await sweepr.totalMinted()).to.equal(TRANSFER_AMOUNT);
+
+		await sweepr.connect(receiver).approve(sender.address, MINT_AMOUNT);
+		await sweepr.connect(sender).burnFrom(receiver.address, BURN_AMOUNT);
+
+		expect(await sweepr.totalMinted()).to.equal(BURN_AMOUNT);
+		expect(await sweepr.balanceOf(receiver.address)).to.equal(BURN_AMOUNT);
 	});
 
 	it('set governance chain correctly', async () => {

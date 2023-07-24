@@ -17,7 +17,7 @@ contract("Sweep - WriteOff", async function () {
 		// ------------- Deployment of contracts -------------
 
 		// SWEEP
-		Sweep = await ethers.getContractFactory("SweepMock");
+		Sweep = await ethers.getContractFactory("SweepCoin");
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
 			addresses.owner,
@@ -59,16 +59,30 @@ contract("Sweep - WriteOff", async function () {
 			wbtcOracle.address,
 			borrower.address
 		);
+
+		wethAsset = await WBTCAsset.deploy(
+			'WETH Asset',
+			sweep.address,
+			usdx.address,
+			addresses.weth,
+			wbtcOracle.address,
+			borrower.address
+		);
 	});
 
 	it('Initial Setting', async () => {
 		// Add minter
 		await sweep.addMinter(offChainAsset.address, maxBorrow);
 		await sweep.addMinter(wbtcAsset.address, maxBorrow);
+		await sweep.addMinter(wethAsset.address, maxBorrow);
+		await sweep.addMinter(wallet.address, maxBorrow);
+		await sweep.mint(maxBorrow);
 
 		// Send tokens to the AMM
 		await usdx.transfer(amm.address, usdxAmount);
 		await sweep.transfer(amm.address, sweepAmount);
+
+		await sweep.removeMinter(wallet.address);
 
 		// Config asset
 		await offChainAsset.connect(borrower).configure(
@@ -123,8 +137,15 @@ contract("Sweep - WriteOff", async function () {
 		expect(await sweep.paused()).to.equal(true);
 
 		// Check caller
-		await expect(offChainAsset.updateSweepBorrowed(sweepAmount)).to.be.revertedWithCustomError(offChainAsset, 'NotSweep');
+		await expect(offChainAsset.updateSweepBorrowed(sweepAmount))
+			.to.be.revertedWithCustomError(offChainAsset, 'NotSweep');
+
+		price = await sweep.targetPrice();
+		await amm.setPrice(price.mul(2));
+		await expect(sweep.writeOff(newTargetPrice))
+			.to.be.revertedWithCustomError(sweep, "WriteOffNotAllowed")
 		
+		await amm.setPrice(price);
 		await sweep.writeOff(newTargetPrice);
 
 		expect(await offChainAsset.sweepBorrowed()).to.above(mintAmount);

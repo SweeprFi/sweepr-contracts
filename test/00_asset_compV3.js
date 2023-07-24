@@ -96,6 +96,9 @@ contract('Compound V3 Asset', async () => {
             balance = await cusdc.balanceOf(compAsset.address);
             expect(await compAsset.assetValue()).to.equal(balance);
 
+            await expect(compAsset.invest(investAmount))
+                .to.be.revertedWithCustomError(compAsset, "NotEnoughBalance");
+
             // Delay 1 year
             await increaseTime(Const.DAY * 365);
 

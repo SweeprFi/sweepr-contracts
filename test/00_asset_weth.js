@@ -87,6 +87,9 @@ contract("WETH Asset", async function () {
             await weth_asset.invest(depositAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(weth_asset.address)).to.equal(Const.ZERO);
             expect(await weth.balanceOf(weth_asset.address)).to.above(Const.ZERO);
+
+            await expect(weth_asset.invest(depositAmount, Const.SLIPPAGE))
+                .to.be.revertedWithCustomError(weth_asset, "NotEnoughBalance");
         });
 
         it("divest correctly", async function () {

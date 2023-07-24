@@ -1,10 +1,10 @@
 const { expect } = require("chai");
 const { ethers, upgrades } = require("hardhat");
-const { time } = require('@openzeppelin/test-helpers');
-const { toBN, increaseTime, Const, getBlockTimestamp, sendEth } = require("../utils/helper_functions");
+const { toBN, increaseTime, Const, sendEth } = require("../utils/helper_functions");
 
 const chainIdSrc = 1;
 const chainIdDst = 2;
+const chainIdExt = 3;
 
 contract("Balancer - Crosschain message", async function () {
     before(async () => {
@@ -15,6 +15,8 @@ contract("Balancer - Crosschain message", async function () {
         LZEndpointMock = await ethers.getContractFactory("LZEndpointMock");
         lzEndpointSrcMock = await LZEndpointMock.deploy(chainIdSrc);
         lzEndpointDstMock = await LZEndpointMock.deploy(chainIdDst);
+        lzEndpointExtMock = await LZEndpointMock.deploy(chainIdExt);
+
         Sweep = await ethers.getContractFactory("SweepMock");
         Balancer = await ethers.getContractFactory("Balancer");
         Sweepr = await ethers.getContractFactory("SweeprCoin");
@@ -43,10 +45,17 @@ contract("Balancer - Crosschain message", async function () {
         sweepDst = await dstProxy.deployed(Sweep);
         balancerDst = await Balancer.deploy(sweepDst.address, lzEndpointDstMock.address);
 
-        await sweepDst.setBalancer(balancerDst.address);
-    });
+        const extProxy = await upgrades.deployProxy(Sweep, [
+            lzEndpointExtMock.address,
+            deployer.address,
+            50 // 0.05%
+        ]);
 
-    beforeEach(async () => {
+        sweepExt = await extProxy.deployed(Sweep);
+        balancerExt = await Balancer.deploy(sweepExt.address, lzEndpointExtMock.address);
+
+        await sweepDst.setBalancer(balancerDst.address);
+
         // internal bookkeeping for endpoints (not part of a real deploy, just for this test)
         lzEndpointSrcMock.setDestLzEndpoint(balancerDst.address, lzEndpointDstMock.address)
         lzEndpointDstMock.setDestLzEndpoint(balancerSrc.address, lzEndpointSrcMock.address)
@@ -57,9 +66,7 @@ contract("Balancer - Crosschain message", async function () {
 
         await balancerSrc.setTrustedRemote(chainIdDst, dstPath) // for A, set B
         await balancerDst.setTrustedRemote(chainIdSrc, srcPath) // for B, set A
-
-        await sendEth(balancerSrc.address);
-    })
+    });
 
     it("not send crosschain message when sweepr is not set to balancer", async function () {
         await balancerSrc.refreshInterestRate();
@@ -71,23 +78,37 @@ contract("Balancer - Crosschain message", async function () {
     })
 
     it("not send crosschain message when there is no chain added in sweepr", async function () {
+        await expect(balancerSrc.setSweepr(Const.ADDRESS_ZERO))
+            .to.be.revertedWithCustomError(balancerSrc, "ZeroAddressDetected");
         await balancerSrc.setSweepr(sweeprSrc.address);
 
-        await time.increase(100);
-		await time.advanceBlock();
+        await increaseTime(100);
 
-        await balancerSrc.refreshInterestRate();
+        // refresh the interest rate through execute
+        await balancerSrc.execute(0, false, 1e6, 2000);
         
 		interestRate = await sweepSrc.nextInterestRate();
         expect(await sweepDst.nextInterestRate()).to.not.equal(interestRate);
     })
 
+    it("not trusted remote", async function () {
+        await sweeprSrc.addChain(chainIdExt, balancerExt.address);
+
+        await expect(balancerSrc.refreshInterestRate())
+            .to.be.revertedWithCustomError(balancerSrc, "NotTrustedRemote");
+
+        await sweeprSrc.removeChain(Const.ZERO);
+    });
+
     it("set interest rate successfully", async function () {
         await sweeprSrc.addChain(chainIdDst, balancerDst.address);
 
-        await time.increase(100);
-		await time.advanceBlock();
+        await increaseTime(100);
 
+        await expect(balancerSrc.refreshInterestRate())
+            .to.be.revertedWithCustomError(balancerSrc, "NotEnoughETH");
+
+        await sendEth(balancerSrc.address);
         await balancerSrc.refreshInterestRate();
 
         nextInterestRate = await sweepSrc.nextInterestRate();

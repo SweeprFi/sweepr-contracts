@@ -20,6 +20,8 @@ interface IGToken {
 
     function convertToShares(uint256 assets) external view returns (uint256);
 
+    function totalSharesBeingWithdrawn(address owner) external view returns (uint256);
+
     function withdrawRequests(
         address account,
         uint256 epcho

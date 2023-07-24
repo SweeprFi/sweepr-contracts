@@ -196,6 +196,9 @@ contract('Balancer - Auto Call', async () => {
 
       assetValue3 = await assets[3].assetValue();
 
+      await expect(assets[0].autoCall(amount, 1e6, Const.SLIPPAGE))
+        .to.be.revertedWithCustomError(StabilizerAave, "NotBalancer");
+
       // constraints
       user = await impersonate(USDC_ADDRESS);
       await balancer.addActions(targets, amounts);
@@ -247,6 +250,9 @@ contract('Balancer - Auto Call', async () => {
     it('cancels call correctly', async () => {
       await expect(balancer.connect(wallet).cancelCall(assets[4].address))
         .to.be.revertedWithCustomError(balancer, "NotMultisigOrGov");
+
+      await expect(assets[0].cancelCall())
+        .to.be.revertedWithCustomError(StabilizerAave, "NotBalancer");
 
       await balancer.cancelCall(assets[4].address);
       expect(await assets[4].callTime()).to.equal(Const.ZERO);

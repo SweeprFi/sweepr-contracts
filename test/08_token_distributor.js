@@ -28,7 +28,7 @@ contract("TokenDistributor", async function () {
 		sweep = await Proxy.deployed();
 
 		ERC20 = await ethers.getContractFactory("USDCMock");
-        usdc = await ERC20.deploy();
+		usdc = await ERC20.deploy();
 
 		await usdc.transfer(sender.address, USDC_AMOUNT);
 
@@ -49,37 +49,55 @@ contract("TokenDistributor", async function () {
 
 	it('revert calling allowSale() function when caller is not owner', async () => {
 		await expect(tokenDistributor.connect(sender).allowSale(
-			SALE_AMOUNT, 
-			sender.address, 
-			USDC_SALE_PRICE, 
+			SALE_AMOUNT,
+			sender.address,
+			USDC_SALE_PRICE,
 			usdc.address
-			)
+		)
 		).to.be.revertedWithCustomError(TokenDistributor, 'NotMultisigOrGov');
 	});
 
 	it('revert calling allowSale() function when sellAmount or sellPrice is zero', async () => {
 		await expect(tokenDistributor.connect(multisig).allowSale(
-			0, 
-			sender.address, 
-			USDC_SALE_PRICE, 
+			0,
+			sender.address,
+			USDC_SALE_PRICE,
 			usdc.address
-			)
+		)
 		).to.be.revertedWithCustomError(TokenDistributor, 'ZeroAmount');
 
 		await expect(tokenDistributor.connect(multisig).allowSale(
-			SALE_AMOUNT, 
-			sender.address, 
-			0, 
+			SALE_AMOUNT,
+			sender.address,
+			0,
 			usdc.address
-			)
+		)
 		).to.be.revertedWithCustomError(TokenDistributor, 'ZeroPrice');
+	});
+
+	it('revert calling allowSale() function when zero address id detected', async () => {
+		await expect(tokenDistributor.connect(multisig).allowSale(
+			SALE_AMOUNT,
+			Const.ADDRESS_ZERO,
+			USDC_SALE_PRICE,
+			usdc.address
+		)
+		).to.be.revertedWithCustomError(TokenDistributor, 'ZeroAddressDetected');
+
+		await expect(tokenDistributor.connect(multisig).allowSale(
+			SALE_AMOUNT,
+			sender.address,
+			USDC_SALE_PRICE,
+			Const.ADDRESS_ZERO
+		)
+		).to.be.revertedWithCustomError(TokenDistributor, 'ZeroAddressDetected');
 	});
 
 	it('allow sale correctly', async () => {
 		await tokenDistributor.connect(multisig).allowSale(
-			SALE_AMOUNT, 
-			sender.address, 
-			USDC_SALE_PRICE, 
+			SALE_AMOUNT,
+			sender.address,
+			USDC_SALE_PRICE,
 			usdc.address
 		);
 
@@ -188,9 +206,9 @@ contract("TokenDistributor", async function () {
 		await sweepr.connect(owner).mint(tokenDistributor.address, SWEEPR_MINT_AMOUNT);
 
 		await tokenDistributor.connect(multisig).allowSale(
-			SALE_AMOUNT, 
-			other.address, 
-			SWEEP_SALE_PRICE, 
+			SALE_AMOUNT,
+			other.address,
+			SWEEP_SALE_PRICE,
 			sweep.address
 		);
 

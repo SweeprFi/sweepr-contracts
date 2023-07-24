@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract UniswapMock {
     uint256 public price;
+    uint256 public twaPrice;
     uint24 public immutable poolFee;
     address public sweepAddress;
     address public sequencer;
@@ -21,6 +22,18 @@ contract UniswapMock {
 
     function setPrice(uint256 _price) public {
         price = _price;
+    }
+
+    function getPrice() public view returns (uint256) {
+        return price;
+    }
+
+    function setTWAPrice(uint256 _price) public {
+        twaPrice = _price;
+    }
+
+    function getTWAPrice() public view returns (uint256) {
+        return twaPrice;
     }
 
     function buySweep(
