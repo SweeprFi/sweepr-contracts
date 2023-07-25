@@ -268,8 +268,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         bool _autoInvestEnabled,
         string calldata url
     ) external onlyBorrower onlySettingsEnabled {
-        if(_minEquityRatio < 1e4) revert WrongMinimumRatio();
-
         minEquityRatio = _minEquityRatio;
         spreadFee = _spreadFee;
         loanLimit = _loanLimit;
@@ -750,7 +748,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         uint256 sweepDeltaInUsd = sweep.convertToUSD(sweepDelta);
         uint256 totalValue = currentValue_ + sweepDeltaInUsd - usdDelta;
 
-        if (totalValue == 0) return 0;
+        if (totalValue == 0) return -1e6;
 
         uint256 seniorTrancheInUsd = sweep.convertToUSD(
             sweepBorrowed + sweepDelta

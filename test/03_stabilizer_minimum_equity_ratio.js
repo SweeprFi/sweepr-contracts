@@ -12,7 +12,7 @@ contract('Stabilizer - Minimum equity ratio', async () => {
     mintAmount = toBN("90", 18);
     maxBorrow = toBN("100", 18);
     sweepAmount = toBN("1000", 18);
-    ratio = toBN("1", 4); // 1 %
+    ratio = toBN("0", 4); // 0 %
 
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [
@@ -96,15 +96,11 @@ contract('Stabilizer - Minimum equity ratio', async () => {
 
       withdrawAmount1 = balance; // 100 %
       withdrawAmount2 = depositAmount; // 10 usd
-      withdrawAmount3 = 95e5; // 9,5 usd
   
-      await expect(aaveAsset.connect(user).withdraw(usdx.address, balance))
-        .to.be.revertedWithCustomError(aaveAsset, "EquityRatioExcessed");
-
       await expect(aaveAsset.connect(user).withdraw(usdx.address, withdrawAmount1))
         .to.be.revertedWithCustomError(aaveAsset, "EquityRatioExcessed");
 
-      await expect(aaveAsset.connect(user).withdraw(usdx.address, withdrawAmount3))
+      await expect(aaveAsset.connect(user).withdraw(usdx.address, withdrawAmount2))
         .to.be.revertedWithCustomError(aaveAsset, "EquityRatioExcessed");
     });
 
@@ -112,7 +108,6 @@ contract('Stabilizer - Minimum equity ratio', async () => {
       withdrawAmount4 = 9e6; // 9 usd
       ratio = await aaveAsset.minEquityRatio();
       valueBefore = await aaveAsset.currentValue();
-
       await aaveAsset.connect(user).withdraw(usdx.address, withdrawAmount4);
 
       expect(await aaveAsset.getEquityRatio()).to.be.greaterThan(ratio);
