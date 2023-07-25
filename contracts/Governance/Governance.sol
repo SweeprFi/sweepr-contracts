@@ -36,47 +36,6 @@ contract SweepGovernor is Governor, GovernorSettings, GovernorCountingSimple, Go
     }
 
     // The following functions are overrides required by Solidity.
-    function setVotingDelay(uint256 newVotingDelay) 
-        public 
-        override 
-        onlyGovernance 
-    {
-        super._setVotingDelay(newVotingDelay);
-    }
-
-    function setVotingPeriod(uint256 newVotingPeriod) 
-        public 
-        override 
-        onlyGovernance 
-    {
-        super._setVotingPeriod(newVotingPeriod);
-    }
-
-    function setProposalThreshold(uint256 newProposalThreshold) 
-        public 
-        override 
-        onlyGovernance 
-    {
-        super._setProposalThreshold(newProposalThreshold);
-    }
-
-    function updateQuorumNumerator(uint256 newQuorumNumerator) 
-        external 
-        override
-        onlyGovernance 
-    {
-        super._updateQuorumNumerator(newQuorumNumerator);
-    }
-
-    function votingDelay()
-        public
-        view
-        override(IGovernor, GovernorSettings)
-        returns (uint256)
-    {
-        return super.votingDelay();
-    }
-
     function votingPeriod()
         public
         view

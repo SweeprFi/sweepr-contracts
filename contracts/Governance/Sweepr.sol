@@ -62,7 +62,7 @@ contract SweeprCoin is OFT, ERC20Burnable, ERC20Permit, ERC20Votes {
     /* ========== RESTRICTED FUNCTIONS ========== */
     function mint(address receiver, uint256 amount) external onlyOwner {
         if (!isGovernanceChain) revert NotGovernanceChain();
-        if (totalSupply() > MAX_SUPPLY) revert OverMaxSupply();
+        if (totalSupply() + amount > MAX_SUPPLY) revert OverMaxSupply();
         
         _mint(receiver, amount);
         _totalMinted += amount;

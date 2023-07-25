@@ -11,6 +11,7 @@ contract("Sweepr", async function () {
 		Sweepr = await ethers.getContractFactory("SweeprCoin");
 
 		MINT_AMOUNT = ethers.utils.parseUnits("2000", 18);
+		MAX_MINT_AMOUNT = ethers.utils.parseUnits("10000000", 18);
 		TRANSFER_AMOUNT = ethers.utils.parseUnits("1000", 18);
 		PRECISION = 1000000;
 		ZERO = 0;
@@ -42,6 +43,11 @@ contract("Sweepr", async function () {
 
 		senderBalance = await sweepr.balanceOf(sender.address);
 		expect(senderBalance).to.equal(TRANSFER_AMOUNT);
+	});
+
+	it('revert when total supply + mint amount > max_mint_amount', async () => {
+		await expect(sweepr.connect(owner).mint(sender.address, MAX_MINT_AMOUNT))
+			.to.be.revertedWithCustomError(Sweepr, 'OverMaxSupply');
 	});
 
 	it('set governance chain correctly', async () => {

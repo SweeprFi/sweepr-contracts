@@ -30,7 +30,7 @@ async function main() {
   const governanceContract = await governanceInstance.deploy(sweeprAddress, timelockAddress, votingDelay, votingPeriod, proposalThreshold, votesQuorum);
 
   console.log("Governance deployed to:", governanceContract.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${governanceContract.address} ${sweeprAddress} ${timelockAddress} ${delay}`);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${governanceContract.address} ${sweeprAddress} ${timelockAddress} ${votingDelay} ${votingPeriod} ${proposalThreshold} ${votesQuorum}`);
 
   // Grant governor as proposer and executor
   PROPOSER_ROLE = roles.PROPOSER_ROLE;
