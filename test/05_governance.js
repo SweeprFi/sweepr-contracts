@@ -24,6 +24,12 @@ contract('Governance', async (accounts) => {
 		USDC_AMOUNT = ethers.utils.parseUnits("20000", 6);
 		SALE_AMOUNT = ethers.utils.parseUnits("10000", 18);
 		SALE_PRICE = 1000000; // 1 USDC
+
+		VOTING_DELAY = 1;
+		VOTING_PERIOD = 10;
+		PROPOSAL_THRESHOLD = toBN("1000", 18);
+		VOTES_QUORUM = 40;
+		NEW_VOTES_QUORUM = 20;
 		// contracts
 		Sweep = await ethers.getContractFactory("SweepMock");
 		const Proxy = await upgrades.deployProxy(Sweep, [
@@ -49,7 +55,14 @@ contract('Governance', async (accounts) => {
 		// await sweepr.setTransferApprover(addresses.approver);
 
 		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
-		governance = await Governance.deploy(sweepr.address, addresses.timelock, 10);
+		governance = await Governance.deploy(
+			sweepr.address, 
+			addresses.timelock, 
+			VOTING_DELAY, 
+			VOTING_PERIOD, 
+			PROPOSAL_THRESHOLD, 
+			VOTES_QUORUM
+		);
 
 		// Sets SWEEPR price to 1 SWEEP: 
 		await sweepr.setPrice(1000000);
@@ -122,42 +135,46 @@ contract('Governance', async (accounts) => {
 		// Transfer sweep ownership to governance
 		await sweep.transferOwnership(addresses.timelock);
 
-		// Make proposal to transfer ownership to OWNER_SWEEPR
-		calldata = sweep.interface.encodeFunctionData('transferOwnership', [OWNER_SWEEPR]);
-		proposeDescription = "Proposal #1: transfer ownership";
+		totalSupply = await sweepr.totalSupply();
+		blockNumber = await ethers.provider.getBlockNumber();
+		expect(await governance.quorum(blockNumber - 1)).to.equal(totalSupply.mul(VOTES_QUORUM).div(100));
+
+		// Make proposal to update votes quorum to 20%
+		calldata = governance.interface.encodeFunctionData('updateQuorumNumerator', [NEW_VOTES_QUORUM]);
+		proposeDescription = "Proposal #1: update quorum to 20%";
 		descriptionHash = ethers.utils.id(proposeDescription);
 
 		account = await impersonate(PROPOSER);
-		await governance.propose([sweep.address], [0], [calldata], proposeDescription);
+		await governance.propose([governance.address], [0], [calldata], proposeDescription);
 
 		// Advance one block so the voting can begin
 		await time.increase(15);
 		await time.advanceBlock();
 
-		proposal_id = await governance.hashProposal([sweep.address], [0], [calldata], descriptionHash);
+		proposal_id = await governance.hashProposal([governance.address], [0], [calldata], descriptionHash);
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_ACTIVE);
 	});
 
 	it('reverts propose if proposer votes below proposal threshold', async () => {
-		calldata = sweep.interface.encodeFunctionData('addMinter', [NEW_MINTER, MINT_AMOUNT]);
-		proposeDescription = "Proposal #2: Adding new minter";
+		calldata2 = sweep.interface.encodeFunctionData('addMinter', [NEW_MINTER, MINT_AMOUNT]);
+		proposeDescription2 = "Proposal #2: Adding new minter";
 
 		account = await impersonate(USER1);
-		await expect(governance.connect(account).propose([sweep.address], [0], [calldata], proposeDescription))
+		await expect(governance.connect(account).propose([sweep.address], [0], [calldata2], proposeDescription2))
 			.to.be.revertedWith('Governor: proposer votes below proposal threshold');
 	});
 
 	it('revert queuing proposal if voting period is not finished', async () => {
-		calldata = sweep.interface.encodeFunctionData('transferOwnership', [OWNER_SWEEPR]);
-		proposeDescription = "Proposal #1: transfer ownership";
+		calldata = governance.interface.encodeFunctionData('updateQuorumNumerator', [NEW_VOTES_QUORUM]);
+		proposeDescription = "Proposal #1: update quorum to 20%";
 		descriptionHash = ethers.utils.id(proposeDescription);
 
-		await expect(governance.queue([sweep.address], [0], [calldata], descriptionHash))
+		await expect(governance.queue([governance.address], [0], [calldata], descriptionHash))
 			.to.be.revertedWith('Governor: proposal not successful');
 	});
 
 	it('Revert executing proposal if proposal state is not success', async () => {
-		await expect(governance.execute([sweep.address], [0], [calldata], descriptionHash))
+		await expect(governance.execute([governance.address], [0], [calldata], descriptionHash))
 			.to.be.revertedWith('Governor: proposal not successful');
 	});
 
@@ -202,7 +219,7 @@ contract('Governance', async (accounts) => {
 		await time.advanceBlock();
 
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_SUCCEEDED);
-		await governance.connect(account).queue([sweep.address], [0], [calldata], descriptionHash);
+		await governance.connect(account).queue([governance.address], [0], [calldata], descriptionHash);
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_QUEUED);
 	});
 
@@ -218,8 +235,14 @@ contract('Governance', async (accounts) => {
 		await time.advanceBlock();
 
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_QUEUED);
-		await governance.connect(account).execute([sweep.address], [0], [calldata], descriptionHash);
+		await governance.connect(account).execute([governance.address], [0], [calldata], descriptionHash);
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_EXECUTED);
+
+		await time.increase(300);
+		await time.advanceBlock();
+
+		blockNumber = await ethers.provider.getBlockNumber();
+		expect(await governance.quorum(blockNumber - 1)).to.equal(totalSupply.mul(NEW_VOTES_QUORUM).div(100));
 	});
 
 	it('Cancel proposal', async () => {
