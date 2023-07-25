@@ -18,27 +18,24 @@ contract SweepGovernor is Governor, GovernorSettings, GovernorCountingSimple, Go
         _;
     }
 
-    constructor(IVotes token, TimelockController timelock, uint256 delay)
+    constructor(
+        IVotes token, 
+        TimelockController timelock,
+        uint256 votesDelay,
+        uint256 votesPeriod,
+        uint256 threshold,
+        uint256 votesQuorum
+    )
         Governor("SweepGovernor")
-        GovernorSettings(1 /* 1 block */, delay, 1000e18)
+        GovernorSettings(votesDelay, votesPeriod, threshold)
         GovernorVotes(token)
-        GovernorVotesQuorumFraction(40)
+        GovernorVotesQuorumFraction(votesQuorum)
         GovernorTimelockControl(timelock)
     {
         canceller = msg.sender;
     }
 
     // The following functions are overrides required by Solidity.
-
-    function votingDelay()
-        public
-        view
-        override(IGovernor, GovernorSettings)
-        returns (uint256)
-    {
-        return super.votingDelay();
-    }
-
     function votingPeriod()
         public
         view
