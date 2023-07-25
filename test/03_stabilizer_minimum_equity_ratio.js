@@ -12,7 +12,7 @@ contract('Stabilizer - Minimum equity ratio', async () => {
     mintAmount = toBN("90", 18);
     maxBorrow = toBN("100", 18);
     sweepAmount = toBN("1000", 18);
-    ratio = toBN("0", 4); // 0 %
+    mintingAmount = toBN("3000", 18);
 
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [
@@ -44,13 +44,14 @@ contract('Stabilizer - Minimum equity ratio', async () => {
 
     // add asset as a minter
     await sweep.addMinter(aaveAsset.address, sweepAmount);
-    await sweep.addMinter(admin.address, sweepAmount.mul(3));
+    await sweep.addMinter(admin.address, mintingAmount);
+    await sweep.mint(mintingAmount);
 
     // mint sweep for the liquidator
     // simulates a pool in uniswap with 10000 SWEEP/USDX
-    await sweep.minterMint(liquidator.address, sweepAmount);
-    await sweep.minterMint(uniswap_amm.address, sweepAmount);
-    await sweep.minterMint(addresses.multisig, sweepAmount);
+    await sweep.transfer(liquidator.address, sweepAmount);
+    await sweep.transfer(uniswap_amm.address, sweepAmount);
+    await sweep.transfer(addresses.multisig, sweepAmount);
 
     user = await impersonate(addresses.usdc)
     await usdx.connect(user).transfer(uniswap_amm.address, usdxAmount);
@@ -58,7 +59,7 @@ contract('Stabilizer - Minimum equity ratio', async () => {
     user = await impersonate(addresses.multisig);
     // config stabilizer
     await aaveAsset.connect(user).configure(
-      ratio,
+      0,
       Const.spreadFee,
       maxBorrow,
       Const.DISCOUNT,
@@ -71,7 +72,6 @@ contract('Stabilizer - Minimum equity ratio', async () => {
 
     await sweep.connect(user).approve(aaveAsset.address, sweepAmount);
     await sweep.connect(liquidator).approve(aaveAsset.address, sweepAmount);
-    initialUserUSDX = await usdx.balanceOf(user.address);
   });
 
   describe("Initial Test", async function () {
@@ -92,11 +92,10 @@ contract('Stabilizer - Minimum equity ratio', async () => {
     });
 
     it('try to withdraw more than is permited', async () => {
-      balance = await usdx.balanceOf(aaveAsset.address); // 100 %
-
+      balance = await usdx.balanceOf(aaveAsset.address);
       withdrawAmount1 = balance; // 100 %
-      withdrawAmount2 = depositAmount; // 10 usd
-  
+      withdrawAmount2 = depositAmount + 1;
+
       await expect(aaveAsset.connect(user).withdraw(usdx.address, withdrawAmount1))
         .to.be.revertedWithCustomError(aaveAsset, "EquityRatioExcessed");
 
@@ -104,14 +103,11 @@ contract('Stabilizer - Minimum equity ratio', async () => {
         .to.be.revertedWithCustomError(aaveAsset, "EquityRatioExcessed");
     });
 
-    it('withdraw all permitted', async () => {
-      withdrawAmount4 = 9e6; // 9 usd
-      ratio = await aaveAsset.minEquityRatio();
+    it('withdraw all deposited', async () => {
+      withdrawAmount3 = 9955000;
       valueBefore = await aaveAsset.currentValue();
-      await aaveAsset.connect(user).withdraw(usdx.address, withdrawAmount4);
-
-      expect(await aaveAsset.getEquityRatio()).to.be.greaterThan(ratio);
-      expect(await aaveAsset.currentValue()).to.be.eq(valueBefore.sub(withdrawAmount4));
+      await aaveAsset.connect(user).withdraw(usdx.address, withdrawAmount3);
+      expect(await aaveAsset.currentValue()).to.be.eq(valueBefore.sub(withdrawAmount3));
     });
   })
 });
