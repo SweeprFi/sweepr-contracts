@@ -617,8 +617,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     function _liquidate(address token) internal {
         if (!isDefaulted()) revert NotDefaulted();
         address self = address(this);
-
-        uint256 sweepToLiquidate = getDebt();
+        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
+        uint256 tokenBalance = IERC20Metadata(token).balanceOf(self);
+        uint256 debt = getDebt();
+        uint256 sweepToLiquidate = debt - sweepBalance;
         // Takes SWEEP from the liquidator and repays debt
         TransferHelper.safeTransferFrom(
             address(sweep),
@@ -626,12 +628,9 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
             self,
             sweepToLiquidate
         );
-        _repay(sweepToLiquidate);
+        _repay(debt);
 
-        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-        uint256 tokenBalance = IERC20Metadata(token).balanceOf(self);
         // Gives all the assets to the liquidator
-        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepBalance);
         TransferHelper.safeTransfer(address(usdx), msg.sender, usdxBalance);
         TransferHelper.safeTransfer(token, msg.sender, tokenBalance);
 
