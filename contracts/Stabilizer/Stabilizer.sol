@@ -98,6 +98,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     error NotSweep();
     error SettingsDisabled();
     error OverZero();
+    error WrongMinimumRatio();
     error InvalidMinter();
     error NotEnoughBalance();
     error EquityRatioExcessed();
@@ -254,6 +255,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @dev Sets the initial configuration of the Stabilizer.
      * This configuration will be analyzed by the protocol and if accepted,
      * used to include the Stabilizer in the minter's whitelist of Sweep.
+     * The minimum equity ratio can not be less than 1%
      */
     function configure(
         int256 _minEquityRatio,
@@ -426,7 +428,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
                     10 ** sweep.decimals(),
                     price
                 );
-                uint256 minAmountOut = _calculateMinAmountOut(_sweepAmount, slippage);
+                uint256 minAmountOut = _calculateMinAmountOut(
+                    _sweepAmount,
+                    slippage
+                );
                 _buy(missingUsdx, minAmountOut);
             }
         }
@@ -475,7 +480,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         _borrow(sweepAmount);
 
         uint256 usdAmount = sweepAmount.mulDiv(price, 10 ** sweep.decimals());
-        uint256 minAmountOut = _calculateMinAmountOut(amm().usdToToken(usdAmount), slippage);
+        uint256 minAmountOut = _calculateMinAmountOut(
+            amm().usdToToken(usdAmount),
+            slippage
+        );
         uint256 usdxAmount = _sell(sweepAmount, minAmountOut);
 
         _invest(usdxAmount, 0, slippage);
@@ -746,7 +754,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         uint256 sweepDeltaInUsd = sweep.convertToUSD(sweepDelta);
         uint256 totalValue = currentValue_ + sweepDeltaInUsd - usdDelta;
 
-        if (totalValue == 0) return 0;
+        if (totalValue == 0) {
+            if (sweepBorrowed > 0) return -1e6;
+            else return 0;
+        }
 
         uint256 seniorTrancheInUsd = sweep.convertToUSD(
             sweepBorrowed + sweepDelta
