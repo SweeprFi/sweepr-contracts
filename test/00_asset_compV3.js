@@ -191,7 +191,7 @@ contract('Compound V3 Asset', async () => {
             expect(await compAsset.getDebt()).to.equal(Const.ZERO);
             expect(await compAsset.assetValue()).to.equal(Const.ZERO);
             expect(await compAsset.isDefaulted()).to.equal(Const.FALSE);
-            expect(await compAsset.getEquityRatio()).to.equal(newRatio);
+            expect(await compAsset.getEquityRatio()).to.equal(Const.ZERO);
             expect(await cusdc.balanceOf(compAsset.address)).to.equal(Const.ZERO);
             expect(await cusdc.balanceOf(guest.address)).to.greaterThan(depositAmount);
         });

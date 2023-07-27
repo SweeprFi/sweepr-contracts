@@ -211,7 +211,7 @@ contract('Aave V3 Asset', async () => {
             expect(await aaveAsset.getDebt()).to.equal(Const.ZERO);
             expect(await aaveAsset.assetValue()).to.equal(Const.ZERO);
             expect(await aaveAsset.isDefaulted()).to.equal(Const.FALSE);
-            expect(await aaveAsset.getEquityRatio()).to.equal(newRatio);
+            expect(await aaveAsset.getEquityRatio()).to.equal(Const.ZERO);
         });
     })
 });
