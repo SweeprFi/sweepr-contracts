@@ -10,7 +10,7 @@ async function main() {
 	const proposeDescription = "Proposal #1: Accept ownership";
 	const descriptionHash = ethers.utils.id(proposeDescription);
 
-	const Governance = await ethers.getContractAt("SweepGovernor", addresses.governance);
+	const Governance = await ethers.getContractAt("SweeprGovernor", addresses.governance);
   	await Governance.cancel(
 		  [sweepAddress],
 		  [0], 

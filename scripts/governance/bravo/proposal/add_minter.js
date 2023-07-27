@@ -10,7 +10,7 @@ async function main() {
 	const calldata = sweep_token.interface.encodeFunctionData('addMinter', [NEW_MINTER, maxMintAmount]);
 	const proposeDescription = "Proposal #2: Adding new minter";
 
-	const Governance = await ethers.getContractAt("SweepGovernor", addresses.governance);
+	const Governance = await ethers.getContractAt("SweeprGovernor", addresses.governance);
 	await Governance.propose(
 		[sweepAddress],
 		[0],
