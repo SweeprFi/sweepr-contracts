@@ -41,7 +41,7 @@ contract("TokenDistributor", async function () {
 		await sweep.connect(owner).addMinter(sender.address, SWEEP_MINT_AMOUNT);
 		await sweep.connect(sender).mint(SWEEP_MINT_AMOUNT);
 
-		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
+		tokenDistributor = await TokenDistributor.deploy(sweepr.address, treasury.address);
 
 		// mint sweepr for TokenDstributor contract
 		await sweepr.connect(owner).mint(tokenDistributor.address, SWEEPR_MINT_AMOUNT);
@@ -54,11 +54,11 @@ contract("TokenDistributor", async function () {
 			USDC_SALE_PRICE,
 			usdc.address
 		)
-		).to.be.revertedWithCustomError(TokenDistributor, 'NotMultisigOrGov');
+		).to.be.revertedWithCustomError(TokenDistributor, 'NotOwner');
 	});
 
 	it('revert calling allowSale() function when sellAmount or sellPrice is zero', async () => {
-		await expect(tokenDistributor.connect(multisig).allowSale(
+		await expect(tokenDistributor.connect(owner).allowSale(
 			0,
 			sender.address,
 			USDC_SALE_PRICE,
@@ -66,7 +66,7 @@ contract("TokenDistributor", async function () {
 		)
 		).to.be.revertedWithCustomError(TokenDistributor, 'ZeroAmount');
 
-		await expect(tokenDistributor.connect(multisig).allowSale(
+		await expect(tokenDistributor.connect(owner).allowSale(
 			SALE_AMOUNT,
 			sender.address,
 			0,
@@ -76,7 +76,7 @@ contract("TokenDistributor", async function () {
 	});
 
 	it('revert calling allowSale() function when zero address id detected', async () => {
-		await expect(tokenDistributor.connect(multisig).allowSale(
+		await expect(tokenDistributor.connect(owner).allowSale(
 			SALE_AMOUNT,
 			Const.ADDRESS_ZERO,
 			USDC_SALE_PRICE,
@@ -84,7 +84,7 @@ contract("TokenDistributor", async function () {
 		)
 		).to.be.revertedWithCustomError(TokenDistributor, 'ZeroAddressDetected');
 
-		await expect(tokenDistributor.connect(multisig).allowSale(
+		await expect(tokenDistributor.connect(owner).allowSale(
 			SALE_AMOUNT,
 			sender.address,
 			USDC_SALE_PRICE,
@@ -94,7 +94,7 @@ contract("TokenDistributor", async function () {
 	});
 
 	it('allow sale correctly', async () => {
-		await tokenDistributor.connect(multisig).allowSale(
+		await tokenDistributor.connect(owner).allowSale(
 			SALE_AMOUNT,
 			sender.address,
 			USDC_SALE_PRICE,
@@ -108,7 +108,7 @@ contract("TokenDistributor", async function () {
 	});
 
 	it('revert buying sweepr when caller is not equal to recipient address', async () => {
-		await expect(tokenDistributor.connect(multisig).buy(SALE_AMOUNT))
+		await expect(tokenDistributor.connect(owner).buy(SALE_AMOUNT))
 			.to.be.revertedWithCustomError(TokenDistributor, 'NotRecipient');
 	});
 
@@ -205,7 +205,7 @@ contract("TokenDistributor", async function () {
 		// mint sweepr again for TokenDstributor contract
 		await sweepr.connect(owner).mint(tokenDistributor.address, SWEEPR_MINT_AMOUNT);
 
-		await tokenDistributor.connect(multisig).allowSale(
+		await tokenDistributor.connect(owner).allowSale(
 			SALE_AMOUNT,
 			other.address,
 			SWEEP_SALE_PRICE,

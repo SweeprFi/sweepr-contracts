@@ -13,11 +13,11 @@ pragma solidity 0.8.19;
  */
 
 import "./Sweepr.sol";
-import "../Common/Owned.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 
-contract TokenDistributor is Owned {
-    SweeprCoin private sweepr;
+contract TokenDistributor {
+    SweeprCoin public sweepr;
+    address public treasury;
 
     uint256 public saleAmount;
     uint256 public salePrice;
@@ -28,18 +28,27 @@ contract TokenDistributor is Owned {
     event SweeprBought(address indexed to, uint256 sweeprAmount);
 
     /* ========== Errors ========== */
+    error NotOwner();
     error OverSaleAmount();
     error NotEnoughBalance();
     error NotRecipient();
     error ZeroPrice();
     error ZeroAmount();
+    error ZeroAddressDetected();
+
+    /* ========== Modifies ========== */
+    modifier onlyOwner() {
+        if (msg.sender != sweepr.owner()) revert NotOwner();
+        _;
+    }
 
     /* ========== CONSTRUCTOR ========== */
     constructor(
-        address _sweep, 
-        address _sweepr
-    ) Owned(_sweep) {
+        address _sweepr,
+        address _treasury
+    ) {
         sweepr = SweeprCoin(_sweepr);
+        treasury = _treasury;
     }
 
     /* ========== PUBLIC FUNCTIONS ========== */
@@ -55,7 +64,7 @@ contract TokenDistributor is Owned {
         if (sweeprAmount > saleAmount) revert OverSaleAmount();
         if (sweeprAmount > sweeprBalance) revert NotEnoughBalance();
 
-        TransferHelper.safeTransferFrom(payToken, msg.sender, sweep.treasury(), _tokenAmount);
+        TransferHelper.safeTransferFrom(payToken, msg.sender, treasury, _tokenAmount);
         TransferHelper.safeTransfer(address(sweepr), msg.sender, sweeprAmount);
 
         unchecked {
@@ -78,7 +87,7 @@ contract TokenDistributor is Owned {
         address _sellTo,
         uint256 _salePrice,
         address _payToken
-    ) external onlyMultisigOrGov {
+    ) external onlyOwner {
         if (_sellTo == address(0) || _payToken == address(0)) revert ZeroAddressDetected();
         if (_saleAmount == 0) revert ZeroAmount();
         if (_salePrice == 0) revert ZeroPrice();
@@ -92,14 +101,14 @@ contract TokenDistributor is Owned {
     /**
      * @notice A function to revoke sale
      */
-    function revokeSale() external onlyMultisigOrGov {
+    function revokeSale() external onlyOwner {
         saleAmount = 0;
     }
 
     /**
      * @notice A function to burn SWEEPR
      */
-    function burn() external onlyMultisigOrGov {
+    function burn() external onlyOwner {
         uint256 sweeprBalance = sweepr.balanceOf(address(this));
         sweepr.burn(sweeprBalance);
     }
