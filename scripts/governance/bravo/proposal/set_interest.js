@@ -8,7 +8,7 @@ async function main() {
 	const calldata = sweep_token.interface.encodeFunctionData('setInterestRate', [NEW_INTEREST]);
 	const proposeDescription = "Proposal #5: Set interest rate";
 
-	const Governance = await ethers.getContractAt("SweepGovernor", addresses.governance);
+	const Governance = await ethers.getContractAt("SweeprGovernor", addresses.governance);
   	await Governance.propose(
 		  [sweepAddress],
 		  [0], 

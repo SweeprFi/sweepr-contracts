@@ -5,7 +5,7 @@ const { time } = require('@openzeppelin/test-helpers');
 const { impersonate, Const, toBN } = require('../utils/helper_functions');
 let account;
 
-contract('Governance', async (accounts) => {
+contract('Sweepr Governance', async (accounts) => {
 	before(async () => {
 		// constants
 		PROPOSER = accounts[0];
@@ -44,7 +44,7 @@ contract('Governance', async (accounts) => {
 		timelock = await ethers.getContractAt("TimelockController", addresses.timelock);
 
 		SWEEPR = await ethers.getContractFactory("SweeprCoin");
-		Governance = await ethers.getContractFactory("SweepGovernor");
+		Governance = await ethers.getContractFactory("SweeprGovernor");
 		TokenDistributor = await ethers.getContractFactory("TokenDistributor");
 
 		ERC20 = await ethers.getContractFactory("USDCMock");
