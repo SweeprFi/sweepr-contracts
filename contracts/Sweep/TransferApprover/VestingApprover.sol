@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.19;
 
+import "./ITransferApprover.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
 /**
  * @title VestingApprover
  */
-contract VestingApprover is Ownable {
+contract VestingApprover is ITransferApprover, Ownable {
     IERC20Metadata public sweepr;
 
     // Structure for the vesting schedule
@@ -26,17 +27,25 @@ contract VestingApprover is Ownable {
 
     // Vesting Schedules
     mapping(address => VestingSchedule) public vestingSchedules;
+    // Whitelists
+    mapping(address => bool) public whitelists;
     // Beneficiary Addresses
     address[] public beneficiaries;
 
+    // approver state
+    bool public isClosed;
+
     /* ========== EVENTS ========== */
     event ScheduleAdded(
-        address indexed beneficiary, 
+        address indexed beneficiary,
         uint256 startTime,
         uint256 vestingtime,
         uint256 vestingAmount
     );
     event ScheduleRemoved(address indexed beneficiary);
+    event Whitelisted(address indexed account);
+    event UnWhitelisted(address indexed account);
+    event StateSet(bool state);
 
     /* ========== Errors ========== */
     error NotSweepr();
@@ -52,6 +61,37 @@ contract VestingApprover is Ownable {
     /* ========== CONSTRUCTOR ========== */
     constructor(address sweeprAddress) {
         sweepr = IERC20Metadata(sweeprAddress);
+        isClosed = false;
+    }
+
+    /**
+     * @dev Adds account to whitelist
+     * @param account The address to whitelist
+     */
+    function whitelist(address account) external onlyOwner {
+        whitelists[account] = true;
+
+        emit Whitelisted(account);
+    }
+
+    /**
+     * @dev Removes account from whitelist
+     * @param account The address to remove from the blacklist
+     */
+    function unWhitelist(address account) external onlyOwner {
+        whitelists[account] = false;
+
+        emit UnWhitelisted(account);
+    }
+
+    /**
+     * @dev Set approver state
+     * @param state State of approver (true: Closed, false: Open)
+     */
+    function setState(bool state) external onlyOwner {
+        isClosed = state;
+
+        emit StateSet(state);
     }
 
     /**
@@ -68,8 +108,9 @@ contract VestingApprover is Ownable {
         uint256 _vestingAmount
     ) external onlyOwner {
         if (_beneficiary == address(0)) revert ZeroAddressDetected();
-        if (_startTime == 0 || _vestingTime == 0 || _vestingAmount == 0) revert ZeroAmountDetected();
-        
+        if (_startTime == 0 || _vestingTime == 0 || _vestingAmount == 0)
+            revert ZeroAmountDetected();
+
         vestingSchedules[_beneficiary] = VestingSchedule(
             _beneficiary,
             _startTime,
@@ -77,9 +118,14 @@ contract VestingApprover is Ownable {
             _vestingAmount,
             0
         );
-        
+
         beneficiaries.push(_beneficiary);
-        emit ScheduleAdded(_beneficiary, _startTime, _vestingTime, _vestingAmount);
+        emit ScheduleAdded(
+            _beneficiary,
+            _startTime,
+            _vestingTime,
+            _vestingAmount
+        );
     }
 
     /**
@@ -90,7 +136,7 @@ contract VestingApprover is Ownable {
         address beneficiary = beneficiaries[itemIndex];
         delete vestingSchedules[beneficiary];
 
-        beneficiaries[itemIndex] = beneficiaries[beneficiaries.length -1];
+        beneficiaries[itemIndex] = beneficiaries[beneficiaries.length - 1];
         beneficiaries.pop();
 
         emit ScheduleRemoved(beneficiary);
@@ -108,19 +154,29 @@ contract VestingApprover is Ownable {
         address to,
         uint256 amount
     ) external onlySweepr returns (bool) {
+        // Check if sender has enough balancer.
+        if (sweepr.balanceOf(from) < amount) return false;
+
+        // Check whitelist if approver state is 'Closed'
+        if (
+            isClosed &&
+            (from == address(0) || to == address(0) || whitelists[to])
+        ) return true;
+
         // Check if sender is not be beneficiary
         if (vestingSchedules[from].beneficiary != address(0)) return false;
         // Check if receiver is valid beneficiary
         if (vestingSchedules[to].beneficiary == address(0)) return false;
-        // Check if sender has enough balancer.
-        if (sweepr.balanceOf(from) < amount) return false;
 
-        VestingSchedule storage vestingSchedule = vestingSchedules[to];        
+        VestingSchedule storage vestingSchedule = vestingSchedules[to];
         uint256 vestedAmount = _computeTransferableAmount(vestingSchedule);
 
         if (vestedAmount < amount) return false;
 
-        vestingSchedule.transferredAmount = vestingSchedule.transferredAmount + amount;        
+        vestingSchedule.transferredAmount =
+            vestingSchedule.transferredAmount +
+            amount;
+
         return true;
     }
 
@@ -128,22 +184,31 @@ contract VestingApprover is Ownable {
      * @dev Computes the transferable amount of tokens for a vesting schedule.
      * @return the amount of transferable tokens
      */
-    function _computeTransferableAmount(
-        VestingSchedule memory vestingSchedule
-    ) internal view returns (uint256) {
+    function _computeTransferableAmount(VestingSchedule memory vestingSchedule)
+        internal
+        view
+        returns (uint256)
+    {
         uint256 currentTime = getCurrentTime();
 
         // If the current time is before the cliff, no tokens are transferable.
         if (currentTime < vestingSchedule.startTime) {
             return 0;
-        } else if (currentTime >= vestingSchedule.startTime + vestingSchedule.vestingTime) {
+        } else if (
+            currentTime >=
+            vestingSchedule.startTime + vestingSchedule.vestingTime
+        ) {
             // If the current time is after the vesting period, all tokens are transferaable,
             // minus the amount already transferred.
-            return vestingSchedule.vestingAmount - vestingSchedule.transferredAmount;
+            return
+                vestingSchedule.vestingAmount -
+                vestingSchedule.transferredAmount;
         } else {
             // Compute the amount of tokens that are vested.
-            uint256 vestedAmount = vestingSchedule.vestingAmount * 
-                (currentTime - vestingSchedule.startTime) / vestingSchedule.vestingTime;
+            uint256 vestedAmount = (vestingSchedule.vestingAmount *
+                (currentTime - vestingSchedule.startTime)) /
+                vestingSchedule.vestingTime;
+
             // Subtract the amount already transferred and return.
             return vestedAmount - vestingSchedule.transferredAmount;
         }
@@ -161,7 +226,10 @@ contract VestingApprover is Ownable {
      * @notice Get the vested amount of tokens for beneficiary
      * @return the vested amount
      */
-    function getLockedAmount(address beneficiary) external view returns (uint256)
+    function getLockedAmount(address beneficiary)
+        external
+        view
+        returns (uint256)
     {
         VestingSchedule storage vestingSchedule = vestingSchedules[beneficiary];
         return _computeTransferableAmount(vestingSchedule);
@@ -171,9 +239,21 @@ contract VestingApprover is Ownable {
      * @notice Returns the vesting schedule information for a given address.
      * @return the vesting schedule structure information
      */
-    function getVestingSchedule(address beneficiary) external view returns (VestingSchedule memory) {
+    function getVestingSchedule(address beneficiary)
+        external
+        view
+        returns (VestingSchedule memory)
+    {
         if (beneficiary == address(0)) revert ZeroAddressDetected();
         return vestingSchedules[beneficiary];
+    }
+
+    /**
+     * @dev Checks if account is whitelisted
+     * @param account The address to check
+     */
+    function isWhitelisted(address account) external view returns (bool) {
+        return whitelists[account];
     }
 
     /**

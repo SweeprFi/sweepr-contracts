@@ -4,7 +4,7 @@ const { Const, toBN, increaseTime, getBlockTimestamp } = require("../utils/helpe
 
 contract("VestingApprover", async function () {
 	before(async () => {
-		[owner, multisig, distributor, sender, other, lzEndpoint] = await ethers.getSigners();
+		[owner, multisig, distributor, sender, receiver, other, lzEndpoint] = await ethers.getSigners();
 		VESTING_TIME = 1000;
 		VESTING_AMOUNT = toBN("1000", 18);
 		SWEEPR_MINT_AMOUNT = toBN("1500", 18);
@@ -207,4 +207,57 @@ contract("VestingApprover", async function () {
 		schedule = await vestingApprover.vestingSchedules(other.address);
 		expect(schedule.beneficiary).to.equal(Const.ADDRESS_ZERO);
 	})
+
+	it('Add whitelist correctly', async () => {
+		await expect(vestingApprover.connect(multisig).whitelist(multisig.address))
+			.to.be.revertedWith("Ownable: caller is not the owner");
+
+		expect(await vestingApprover.isWhitelisted(multisig.address)).to.equal(Const.FALSE);
+		await vestingApprover.connect(owner).whitelist(multisig.address);
+		expect(await vestingApprover.isWhitelisted(multisig.address)).to.equal(Const.TRUE);
+
+	});
+
+	it('revert transfer when receiver is not whitelisted in closed state', async () => {
+		expect(await vestingApprover.isClosed()).to.equal(Const.FALSE);
+		await vestingApprover.connect(owner).setState(Const.TRUE);
+		expect(await vestingApprover.isClosed()).to.equal(Const.TRUE);
+
+		expect(await sweepr.balanceOf(sender.address)).to.equal(VESTING_AMOUNT);
+		expect(await vestingApprover.isWhitelisted(receiver.address)).to.equal(Const.FALSE);
+
+		await expect(sweepr.connect(sender).transfer(receiver.address, VESTING_AMOUNT))
+			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
+
+	});
+
+	it('transfer successfully when receiver is whitested in closed state', async () => {
+		expect(await sweepr.balanceOf(multisig.address)).to.equal(Const.ZERO);
+		expect(await vestingApprover.isWhitelisted(multisig.address)).to.equal(Const.TRUE);
+
+		await sweepr.connect(sender).transfer(multisig.address, VESTING_AMOUNT);
+		expect(await sweepr.balanceOf(multisig.address)).to.equal(VESTING_AMOUNT);
+	});
+
+	it('transfer successfully when vesting schedule is applied in closed state', async () => {
+		expect(await vestingApprover.getVestingSchedulesCount()).to.be.equal(1);
+		START_TIME = await getBlockTimestamp();
+
+		await vestingApprover.createVestingSchedule(
+			receiver.address,
+			START_TIME,
+			VESTING_TIME,
+			VESTING_AMOUNT
+		);
+
+		expect(await vestingApprover.getVestingSchedulesCount()).to.be.equal(2);
+
+		HALF_TIME = VESTING_TIME / 2;
+		await increaseTime(HALF_TIME);
+
+		expect(await sweepr.balanceOf(receiver.address)).to.equal(Const.ZERO);
+
+		await sweepr.connect(distributor).transfer(receiver.address, VESTING_AMOUNT.div(2));
+		expect(await sweepr.balanceOf(receiver.address)).to.equal(VESTING_AMOUNT.div(2));
+	});
 });
