@@ -122,7 +122,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @dev Pool must be initialized already to add liquidity
      * @param usdxAmount USDX Amount of asset to be deposited
      * @param sweepAmount Sweep Amount of asset to be deposited
-     * @param slippage. 
+     * @param slippage.
      */
     function invest(
         uint256 usdxAmount,
@@ -158,6 +158,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         public
         onlyBorrower
         whenNotPaused
+        nonReentrant
         isMinted
         returns (uint256 amount0, uint256 amount1)
     {
@@ -314,7 +315,11 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             : (sweepAmount, usdxAmount);
 
         if (tokenId == 0) {
-            (, liquidity_, amount0, amount1) = _mint(amountAdd0, amountAdd1, slippage);
+            (, liquidity_, amount0, amount1) = _mint(
+                amountAdd0,
+                amountAdd1,
+                slippage
+            );
         } else {
             uint256 amountOut0 = _calculateMinAmountOut(amountAdd0, slippage);
             uint256 amountOut1 = _calculateMinAmountOut(amountAdd1, slippage);
@@ -336,7 +341,10 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         else emit Invested(amount1, amount0);
     }
 
-    function _divest(uint256 liquidityAmount, uint256 _slippage) internal override {
+    function _divest(
+        uint256 liquidityAmount,
+        uint256 _slippage
+    ) internal override {
         uint256 ratioLiquidity;
         uint128 decreaseLP = uint128(liquidityAmount);
         if (decreaseLP > liquidity) {

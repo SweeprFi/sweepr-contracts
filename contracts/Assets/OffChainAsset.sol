@@ -136,7 +136,7 @@ contract OffChainAsset is Stabilizer {
      * @param token token address to payback. USDX, SWEEP ...
      * @param amount The amount of usdx to payback.
      */
-    function payback(address token, uint256 amount) external {
+    function payback(address token, uint256 amount) external nonReentrant {
         if (token != address(sweep) && token != address(usdx))
             revert InvalidToken();
         if (token == address(sweep)) amount = sweep.convertToUSD(amount);
