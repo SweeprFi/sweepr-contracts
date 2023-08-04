@@ -4,7 +4,6 @@ const { addresses, network } = require("../utils/address");
 async function main() {
   let deployer = '';
   const sweeprAddress = addresses.sweepr;
-  const sweeprAddress = addresses.sweepr;
 
   if (network.type === "0") { // local
     [deployer] = await ethers.getSigners();
@@ -15,11 +14,11 @@ async function main() {
 
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
-  const distributorApproverInstance = await ethers.getContractFactory("TokenDistributorApprover");
-  const distributorApproverContract = await distributorApproverInstance.deploy(sweeprAddress);
+  const vestingApproverInstance = await ethers.getContractFactory("VestingApprover");
+  const vestingApproverContract = await vestingApproverInstance.deploy(sweeprAddress);
 
-  console.log("VestingApprover deployed to:", distributorApproverContract.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${distributorApproverContract.address} ${sweeprAddress}`);
+  console.log("VestingApprover deployed to:", vestingApproverContract.address);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${vestingApproverContract.address} ${sweeprAddress}`);
 }
 
 main();

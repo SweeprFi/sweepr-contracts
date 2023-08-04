@@ -26,7 +26,7 @@ async function main() {
 
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
-  const governanceInstance = await ethers.getContractFactory("SweepGovernor");
+  const governanceInstance = await ethers.getContractFactory("SweeprGovernor");
   const governanceContract = await governanceInstance.deploy(sweeprAddress, timelockAddress, votingDelay, votingPeriod, proposalThreshold, votesQuorum);
 
   console.log("Governance deployed to:", governanceContract.address);

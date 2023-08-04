@@ -7,7 +7,7 @@ async function main() {
 	const calldata = sweep_token.interface.encodeFunctionData('startNewPeriod', []);
 	const proposeDescription = "Proposal #3: Start new period";
 
-	const Governance = await ethers.getContractAt("SweepGovernor", addresses.governance);
+	const Governance = await ethers.getContractAt("SweeprGovernor", addresses.governance);
 	await Governance.propose(
 		[sweepAddress],
 		[0],

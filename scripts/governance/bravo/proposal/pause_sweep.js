@@ -9,7 +9,7 @@ async function main() {
 	const calldata = sweep_token.interface.encodeFunctionData('pause', []);
 	const proposeDescription = "Proposal #4: Pause Sweep";
 
-	const Governance = await ethers.getContractAt("SweepGovernor", addresses.governance);
+	const Governance = await ethers.getContractAt("SweeprGovernor", addresses.governance);
   	await Governance.propose(
 		  [sweepAddress],
 		  [0], 

@@ -154,15 +154,14 @@ contract VestingApprover is ITransferApprover, Ownable {
         address to,
         uint256 amount
     ) external onlySweepr returns (bool) {
-        // Check if sender has enough balancer.
-        if (sweepr.balanceOf(from) < amount) return false;
-
         // Check whitelist if approver state is 'Closed'
         if (
             isClosed &&
             (from == address(0) || to == address(0) || whitelists[to])
         ) return true;
 
+        // Check if sender has enough balancer
+        if (sweepr.balanceOf(from) < amount) return false;
         // Check if sender is not be beneficiary
         if (vestingSchedules[from].beneficiary != address(0)) return false;
         // Check if receiver is valid beneficiary
