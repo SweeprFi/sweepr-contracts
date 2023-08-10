@@ -54,7 +54,7 @@ contract('Sweepr Governance', async (accounts) => {
 		sweepr = await SWEEPR.deploy(Const.TRUE, LZENDPOINT); // TRUE means governance chain
 		// await sweepr.setTransferApprover(addresses.approver);
 
-		tokenDistributor = await TokenDistributor.deploy(sweep.address, sweepr.address);
+		tokenDistributor = await TokenDistributor.deploy(sweepr.address, addresses.treasury);
 		governance = await Governance.deploy(
 			sweepr.address, 
 			addresses.timelock, 
