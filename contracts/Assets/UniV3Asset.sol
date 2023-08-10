@@ -155,23 +155,14 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @dev The contract must hold the erc721 token before it can collect fees
      */
     function collect()
-        public
+        external
         onlyBorrower
         whenNotPaused
         nonReentrant
         isMinted
-        returns (uint256 amount0, uint256 amount1)
+        returns (uint256, uint256)
     {
-        (amount0, amount1) = nonfungiblePositionManager.collect(
-            INonfungiblePositionManager.CollectParams({
-                tokenId: tokenId,
-                recipient: address(this),
-                amount0Max: type(uint128).max,
-                amount1Max: type(uint128).max
-            })
-        );
-
-        emit Collected(amount0, amount1);
+        return _collect();
     }
 
     /**
@@ -375,9 +366,22 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             })
         );
 
-        (uint256 amount0, uint256 amount1) = collect();
+        (uint256 amount0, uint256 amount1) = _collect();
 
         if (flag) emit Divested(amount0, amount1);
         else emit Divested(amount1, amount0);
+    }
+
+    function _collect() internal returns (uint256 amount0, uint256 amount1) {
+        (amount0, amount1) = nonfungiblePositionManager.collect(
+            INonfungiblePositionManager.CollectParams({
+                tokenId: tokenId,
+                recipient: address(this),
+                amount0Max: type(uint128).max,
+                amount1Max: type(uint128).max
+            })
+        );
+
+        emit Collected(amount0, amount1);
     }
 }
