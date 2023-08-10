@@ -64,7 +64,9 @@ contract MarketMaker is Stabilizer {
         uint256 tickSpread_
     ) Stabilizer(name, sweepAddress_, usdxAddress, borrower) {
         flag = usdxAddress < sweepAddress_;
-        (token0, token1) = flag ? (usdxAddress, sweepAddress_) : (sweepAddress_, usdxAddress);
+        (token0, token1) = flag
+            ? (usdxAddress, sweepAddress_)
+            : (sweepAddress_, usdxAddress);
         liquidityHelper = LiquidityHelper(liquidityHelper_);
         minEquityRatio = 0;
         topSpread = topSpread_;
@@ -77,20 +79,22 @@ contract MarketMaker is Stabilizer {
     /**
      * @notice Execute operation to peg to target price of SWEEP.
      */
-    function execute(uint256 sweepAmount) external {
+    function execute(uint256 sweepAmount) external nonReentrant {
         uint256 targetPrice = sweep.targetPrice();
-        uint256 arbPriceUpper = ((PRECISION + topSpread) * targetPrice) / PRECISION;
-        uint256 arbPriceLower = ((PRECISION - bottomSpread) * targetPrice) / PRECISION;
+        uint256 arbPriceUpper = ((PRECISION + topSpread) * targetPrice) /
+            PRECISION;
+        uint256 arbPriceLower = ((PRECISION - bottomSpread) * targetPrice) /
+            PRECISION;
 
         uint24 poolFee = amm().poolFee();
 
         if (sweep.ammPrice() > arbPriceUpper) {
             uint256 usdxAmount = sellSweepToAMM(sweepAmount);
-
-            uint256 minPrice = ((PRECISION - tickSpread) * targetPrice) / PRECISION;
+            uint256 minPrice = ((PRECISION - tickSpread) * targetPrice) /
+                PRECISION;
             uint256 maxPrice = targetPrice;
 
-            addSingleLiquidity(minPrice, maxPrice, usdxAmount,  poolFee);
+            addSingleLiquidity(minPrice, maxPrice, usdxAmount, poolFee);
         }
 
         if (sweep.ammPrice() < arbPriceLower && sweepAmount == 0) {
@@ -104,7 +108,7 @@ contract MarketMaker is Stabilizer {
      */
     function sellSweepToAMM(
         uint256 sweepAmount
-    ) internal returns(uint256 usdxAmount) {
+    ) internal returns (uint256 usdxAmount) {
         uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
         uint256 sweepAvailable = sweepLimit - sweepBorrowed;
         if (sweepAmount > sweepAvailable) sweepAmount = sweepAvailable;
@@ -112,8 +116,8 @@ contract MarketMaker is Stabilizer {
         // calculate usdx minimum amount for swap
         uint256 minAmountUSD = sweep.convertToUSD(sweepAmount);
         uint256 minAmountUSDx = amm().usdToToken(minAmountUSD);
-
         _borrow(sweepAmount);
+        
         usdxAmount = _sell(sweepAmount, minAmountUSDx);
     }
 
@@ -121,16 +125,14 @@ contract MarketMaker is Stabilizer {
      * @notice Buy Sweep.
      * @param sweepAmount to buy.
      */
-    function buySweep(
-        uint256 sweepAmount
-    ) external {
+    function buySweep(uint256 sweepAmount) external nonReentrant {
         uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
         uint256 sweepAvailable = sweepLimit - sweepBorrowed;
-        if(sweepAvailable < sweepAmount) revert NotEnoughBalance();
+        if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
         // calculate amount to pay
         uint24 poolFee = amm().poolFee();
         uint256 targetPrice = sweep.targetPrice();
-        uint256 spread = sweep.arbSpread() * targetPrice / PRECISION;
+        uint256 spread = (sweep.arbSpread() * targetPrice) / PRECISION;
         uint256 price = targetPrice + spread;
         uint256 usdxAmount = (sweepAmount * price) / (10 ** sweep.decimals());
 
@@ -140,14 +142,10 @@ contract MarketMaker is Stabilizer {
             address(this),
             usdxAmount
         );
-        addSingleLiquidity(targetPrice, price, usdxAmount,  poolFee);
-
+        addSingleLiquidity(targetPrice, price, usdxAmount, poolFee);
         _borrow(sweepAmount);
-        TransferHelper.safeTransfer(
-            address(sweep),
-            msg.sender,
-            sweepAmount
-        );
+
+        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
     }
 
     /**
@@ -256,11 +254,11 @@ contract MarketMaker is Stabilizer {
     function removeOutOfPositions(uint24 poolFee) internal {
         uint256 len = positionIds.length;
         int24 tickCurrent = liquidityHelper.getCurrentTick(
-                token0,
-                token1,
-                poolFee
-            );
-            
+            token0,
+            token1,
+            poolFee
+        );
+
         for (uint256 i = 0; i < len; ) {
             uint256 tokenId = positionIds[i];
             Position memory position = positions[tokenId];
