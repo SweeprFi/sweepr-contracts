@@ -136,9 +136,10 @@ contract DsrAsset is Stabilizer {
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
+        IAMM swapAMM = amm();
+        TransferHelper.safeApprove(address(usdx), address(swapAMM), usdxAmount);
         uint256 usdxInDai = _oracleUsdxToDai(usdxAmount);
-        uint256 daiAmount = amm().swapExactInput(
+        uint256 daiAmount = swapAMM.swapExactInput(
             address(usdx),
             address(dai),
             usdxAmount,
@@ -172,9 +173,10 @@ contract DsrAsset is Stabilizer {
         uint256 daiBalance = dai.balanceOf(address(this));
         if (daiBalance == 0) revert NotEnoughBalance();
 
+        IAMM swapAMM = amm();
         uint256 daiInUsdx = _oracleDaiToUsdx(daiBalance);
-        TransferHelper.safeApprove(address(dai), sweep.amm(), daiBalance);
-        uint256 divestedAmount = amm().swapExactInput(
+        TransferHelper.safeApprove(address(dai), address(swapAMM), daiBalance);
+        uint256 divestedAmount = swapAMM.swapExactInput(
             address(dai),
             address(usdx),
             daiBalance,
