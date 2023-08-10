@@ -45,6 +45,7 @@ contract OffChainAsset is Stabilizer {
         address collateralAgent_,
         address borrower
     ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
+        if (wallet_ == address(0)) revert ZeroAddressDetected();
         wallet = wallet_;
         collateralAgent = collateralAgent_;
         redeemMode = false;

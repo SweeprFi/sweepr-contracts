@@ -68,6 +68,8 @@ contract SweepCoin is BaseSweep {
         address fastMultisig,
         int256 stepValue_
     ) public initializer {
+        if (fastMultisig == address(0)) revert ZeroAddressDetected();
+        
         BaseSweep.__Sweep_init("SweepCoin", "SWEEP", lzEndpoint, fastMultisig);
 
         stepValue = stepValue_;
