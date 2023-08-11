@@ -1,7 +1,8 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { Const, getPriceAndData } = require("../utils/helper_functions");
+const { Const, getPriceAndData, getTokenAmounts } = require("../utils/helper_functions");
+const JSBI = require('jsbi');
 
 let pool_address;
 
@@ -96,7 +97,7 @@ contract('Uniswap V3 Asset', async () => {
         });
 
         it('check LP token minted', async () => {
-            await expect(asset.divest(usdxAmount, Const.UNISWAP_SLIPPAGE))
+            await expect(asset.divest(usdxAmount, 0, 0, Const.UNISWAP_SLIPPAGE))
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
             await expect(asset.collect())
                 .to.be.revertedWithCustomError(asset, 'NotMinted');
@@ -141,10 +142,16 @@ contract('Uniswap V3 Asset', async () => {
 
         it('removes liquidity', async () => {
             liquidity = await asset.liquidity();
+            tokenId = await asset.tokenId();
             withdrawAmount = liquidity.div(2);
-            await expect(asset.connect(guest).divest(withdrawAmount, Const.UNISWAP_SLIPPAGE))
+
+            slot0 = await pool.slot0();
+            position = await positionManager.positions(tokenId);
+            const { amount0, amount1 } = await getTokenAmounts(liquidity, slot0.sqrtPriceX96, position.tickLower, position.tickUpper);
+
+            await expect(asset.connect(guest).divest(withdrawAmount, 0, 0, Const.UNISWAP_SLIPPAGE))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
-            await asset.divest(withdrawAmount, Const.UNISWAP_SLIPPAGE);
+            await asset.divest(withdrawAmount, String(JSBI.BigInt(amount0)), String(JSBI.BigInt(amount1)), Const.UNISWAP_SLIPPAGE);
         });
 
         it('burn LP token', async () => {
@@ -154,8 +161,12 @@ contract('Uniswap V3 Asset', async () => {
 
             liquidity = await asset.liquidity();
             if (liquidity > 0) {
+                slot0 = await pool.slot0();
+                position = await positionManager.positions(tokenId);
+                const { amount0, amount1 } = await getTokenAmounts(liquidity, slot0.sqrtPriceX96, position.tickLower, position.tickUpper);
+
                 await expect(asset.burnNFT()).to.be.revertedWith('Not cleared');
-                await asset.divest(liquidity.mul(10), Const.UNISWAP_SLIPPAGE);
+                await asset.divest(liquidity.mul(10), String(JSBI.BigInt(amount0)), String(JSBI.BigInt(amount1)), Const.UNISWAP_SLIPPAGE);
             }
 
             await asset.burnNFT();

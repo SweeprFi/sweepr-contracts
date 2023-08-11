@@ -142,12 +142,16 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     /**
      * @notice A function that decreases the current liquidity.
      * @param liquidityAmount Liquidity Amount to decrease
+     * @param totalAmount0 totoal Amount of token0
+     * @param totalAmount1 totoal Amount of token1
      */
     function divest(
         uint256 liquidityAmount,
+        uint256 totalAmount0,
+        uint256 totalAmount1,
         uint256 _slippage
     ) external onlyBorrower isMinted nonReentrant validAmount(liquidityAmount) {
-        _divest(liquidityAmount, _slippage);
+        _divest(liquidityAmount, totalAmount0, totalAmount1, _slippage);
     }
 
     /**
@@ -334,8 +338,10 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
 
     function _divest(
         uint256 liquidityAmount,
+        uint256 totalAmount0,
+        uint256 totalAmount1,
         uint256 _slippage
-    ) internal override {
+    ) internal {
         uint256 ratioLiquidity;
         uint128 decreaseLP = uint128(liquidityAmount);
         if (decreaseLP > liquidity) {
@@ -345,9 +351,6 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
             ratioLiquidity = (decreaseLP * PRECISION) / liquidity;
         }
         liquidity -= decreaseLP;
-
-        (uint256 totalAmount0, uint256 totalAmount1) = liquidityHelper
-            .getTokenAmountsFromLP(tokenId, token0, token1, amm().poolFee());
 
         uint256 ratioAmount0 = (totalAmount0 * ratioLiquidity) / PRECISION;
         uint256 ratioAmount1 = (totalAmount1 * ratioLiquidity) / PRECISION;

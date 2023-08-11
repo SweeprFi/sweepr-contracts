@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { roles } = require("./address");
 const { networks } = require("../hardhat.config");
+const JSBI = require('jsbi');
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
 
 const sendEth = async (account) => {
@@ -68,6 +69,33 @@ const getPriceAndData = (sweep, token, sweepAmount, tokenAmount) => {
     return data;
 }
 
+const getTickAtSqrtPrice = (sqrtPriceX96) => {
+    const Q96 = Number(JSBI.toNumber(JSBI.exponentiate(JSBI.BigInt(2), JSBI.BigInt(96))));
+    let tick = Math.floor(Math.log((sqrtPriceX96 / Q96) ** 2) / Math.log(1.0001));
+    return tick;
+}
+
+const getTokenAmounts = async (liquidity, sqrtPriceX96, tickLow, tickHigh) => {
+    const Q96 = Number(JSBI.toNumber(JSBI.exponentiate(JSBI.BigInt(2), JSBI.BigInt(96))));
+    let sqrtRatioA = Math.sqrt(1.0001 ** tickLow);
+    let sqrtRatioB = Math.sqrt(1.0001 ** tickHigh);
+    let currentTick = getTickAtSqrtPrice(sqrtPriceX96);
+    let sqrtPrice = sqrtPriceX96 / Q96;
+    let amount0 = 0;
+    let amount1 = 0;
+
+    if (currentTick < tickLow) {
+        amount0 = Math.floor(liquidity * ((sqrtRatioB - sqrtRatioA) / (sqrtRatioA * sqrtRatioB)));
+    } else if (currentTick >= tickHigh) {
+        amount1 = Math.floor(liquidity * (sqrtRatioB - sqrtRatioA));
+    } else if (currentTick >= tickLow && currentTick < tickHigh) {
+        amount0 = Math.floor(liquidity * ((sqrtRatioB - sqrtPrice) / (sqrtPrice * sqrtRatioB)));
+        amount1 = Math.floor(liquidity * (sqrtPrice - sqrtRatioA));
+    }
+
+    return {amount0, amount1};
+}
+
 const Const = {
     ZERO: 0,
     TRUE: true,
@@ -111,6 +139,7 @@ module.exports = {
     increaseTime,
     resetNetwork,
     getPriceAndData,
+    getTokenAmounts,
     getBlockTimestamp,
 }
 
