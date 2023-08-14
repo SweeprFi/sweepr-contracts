@@ -12,13 +12,13 @@ pragma solidity 0.8.19;
 
 import "./GDAI/IGToken.sol";
 import "./GDAI/IOpenTradesPnlFeed.sol";
-import "../Oracle/ChainlinkPricer.sol";
 import "../Stabilizer/Stabilizer.sol";
 
 contract GDAIAsset is Stabilizer {
     IGToken private immutable gDai;
     IERC20Metadata private immutable dai;
     IOpenTradesPnlFeed private immutable openTradesPnlFeed;
+    IPriceFeed private immutable oracleDai;
 
     // Variables
     uint256 public unlockEpoch;
@@ -39,15 +39,18 @@ contract GDAIAsset is Stabilizer {
     error DivestNotAvailable();
 
     constructor(
-        string memory name,
-        address sweep,
-        address usdx,
-        address gDai_,
-        address borrower
-    ) Stabilizer(name, sweep, usdx, borrower) {
-        gDai = IGToken(gDai_);
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _gDai,
+        address _oracleUsdx,
+        address _oracleDai,
+        address _borrower
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        gDai = IGToken(_gDai);
         dai = IERC20Metadata(gDai.asset());
         openTradesPnlFeed = IOpenTradesPnlFeed(gDai.openTradesPnlFeed());
+        oracleDai = IPriceFeed(_oracleDai);
     }
 
     /* ========== Views ========== */
@@ -69,10 +72,8 @@ contract GDAIAsset is Stabilizer {
     function assetValue() public view returns (uint256) {
         uint256 gDaiBalance = gDai.balanceOf(address(this));
         uint256 daiBalance = gDai.previewRedeem(gDaiBalance);
-        uint256 usdxAmount = (daiBalance * 10 ** usdx.decimals()) /
-            (10 ** dai.decimals());
 
-        return usdxAmount;
+        return _oracleDaiToUsd(daiBalance);
     }
 
     /**
@@ -134,13 +135,7 @@ contract GDAIAsset is Stabilizer {
     function invest(
         uint256 usdxAmount,
         uint256 slippage
-    )
-        external
-        onlyBorrower
-        whenNotPaused
-        nonReentrant
-        validAmount(usdxAmount)
-    {
+    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
         _invest(usdxAmount, 0, slippage);
     }
 
@@ -153,8 +148,14 @@ contract GDAIAsset is Stabilizer {
     function divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
-        _divest(usdxAmount, slippage);
+    )
+        external
+        onlyBorrower
+        nonReentrant
+        validAmount(usdxAmount)
+        returns (uint256)
+    {
+        return _divest(usdxAmount, slippage);
     }
 
     /**
@@ -167,14 +168,13 @@ contract GDAIAsset is Stabilizer {
         if (!available) revert RequestNotAvailable();
         if (gDai.balanceOf(address(this)) == 0) revert NotEnoughBalance();
 
-        uint256 daiAmount = (usdxAmount * (10 ** gDai.decimals())) /
-            (10 ** usdx.decimals());
+        uint256 daiAmount = _oracleUsdxToDai(usdxAmount);
         uint256 gDaiAmount = gDai.convertToShares(daiAmount);
         uint256 gDaiBalance = gDai.balanceOf(address(this));
         uint256 shares = gDai.totalSharesBeingWithdrawn(address(this));
 
         if (gDaiBalance < gDaiAmount) gDaiAmount = gDaiBalance;
-        if(shares + gDaiAmount > gDaiBalance) gDaiAmount -= shares;
+        if (shares + gDaiAmount > gDaiBalance) gDaiAmount -= shares;
 
         gDai.makeWithdrawRequest(gDaiAmount, address(this));
 
@@ -197,18 +197,23 @@ contract GDAIAsset is Stabilizer {
 
     /* ========== Internals ========== */
 
-    function _invest(uint256 usdxAmount, uint256, uint256 slippage) internal override {
+    function _invest(
+        uint256 usdxAmount,
+        uint256,
+        uint256 slippage
+    ) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
-        uint256 minAmountOut = _calculateMinAmountOut(usdxAmount, slippage);
 
-        TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
-        uint256 daiAmount = amm().swapExactInput(
+        IAMM _amm = amm();
+        uint256 usdxInDai = _oracleUsdxToDai(usdxAmount);
+        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
+        uint256 daiAmount = _amm.swapExactInput(
             address(usdx),
             address(dai),
             usdxAmount,
-            minAmountOut
+            OvnMath.subBasisPoints(usdxInDai, slippage)
         );
         TransferHelper.safeApprove(address(dai), address(gDai), daiAmount);
         uint256 gDaiAmount = gDai.deposit(daiAmount, address(this));
@@ -216,27 +221,66 @@ contract GDAIAsset is Stabilizer {
         emit Invested(gDaiAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256 slippage) internal override {
+    function _divest(
+        uint256 usdxAmount,
+        uint256 slippage
+    ) internal override returns (uint256 divestedAmount) {
         (bool available, , ) = divestStatus();
         if (!available) revert DivestNotAvailable();
 
-        uint256 daiAmount = (usdxAmount * (10 ** gDai.decimals())) /
-            (10 ** usdx.decimals());
+        uint256 daiAmount = _oracleUsdxToDai(usdxAmount);
         uint256 gDaiAmount = gDai.convertToShares(daiAmount);
         uint256 gDaiBalance = gDai.balanceOf(address(this));
 
+        IAMM _amm = amm();
         if (gDaiBalance < gDaiAmount) gDaiAmount = gDaiBalance;
         daiAmount = gDai.redeem(gDaiAmount, address(this), address(this));
-        uint256 minAmountOut = _calculateMinAmountOut(daiAmount, slippage);
-
-        TransferHelper.safeApprove(address(dai), sweep.amm(), daiAmount);
-        uint256 divested = amm().swapExactInput(
+        uint256 daiInUsdx = _oracleDaiToUsdx(daiAmount);
+        TransferHelper.safeApprove(address(dai), address(_amm), daiAmount);
+        divestedAmount = _amm.swapExactInput(
             address(dai),
             address(usdx),
             daiAmount,
-            minAmountOut
+            OvnMath.subBasisPoints(daiInUsdx, slippage)
         );
 
-        emit Divested(divested);
+        emit Divested(divestedAmount);
+    }
+
+    function _oracleDaiToUsd(
+        uint256 daiAmount
+    ) internal view returns (uint256) {
+        return
+            ChainlinkLibrary.convertTokenToUsd(
+                daiAmount,
+                dai.decimals(),
+                oracleDai
+            );
+    }
+
+    function _oracleDaiToUsdx(
+        uint256 daiAmount
+    ) internal view returns (uint256) {
+        return
+            ChainlinkLibrary.convertTokenToToken(
+                daiAmount,
+                dai.decimals(),
+                usdx.decimals(),
+                oracleDai,
+                oracleUsdx
+            );
+    }
+
+    function _oracleUsdxToDai(
+        uint256 usdxAmount
+    ) internal view returns (uint256) {
+        return
+            ChainlinkLibrary.convertTokenToToken(
+                usdxAmount,
+                usdx.decimals(),
+                dai.decimals(),
+                oracleUsdx,
+                oracleDai
+            );
     }
 }

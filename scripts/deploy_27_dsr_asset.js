@@ -12,8 +12,12 @@ async function main() {
     const oracleDai = addresses.oracle_dai_usd;
     const borrower = addresses.borrower;
 
-    [deployer] = await ethers.getSigners();
-    deployer = deployer.address;
+    if (network.type === "0") { // local
+        [deployer] = await ethers.getSigners();
+        deployer = deployer.address;
+    } else {
+        deployer = addresses.owner;
+    }
 
     console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 

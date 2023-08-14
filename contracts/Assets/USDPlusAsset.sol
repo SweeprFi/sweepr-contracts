@@ -23,15 +23,16 @@ contract USDPlusAsset is Stabilizer {
     event Divested(uint256 indexed usdxAmount);
 
     constructor(
-        string memory name,
-        address sweep,
-        address usdx,
-        address token_,
-        address exchanger_,
-        address borrower
-    ) Stabilizer(name, sweep, usdx, borrower) {
-        token = IERC20Metadata(token_);
-        exchanger = IExchanger(exchanger_);
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _token,
+        address _exchanger,
+        address _oracleUsdx,
+        address _borrower
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        token = IERC20Metadata(_token);
+        exchanger = IExchanger(_exchanger);
     }
 
     /* ========== Views ========== */
@@ -60,7 +61,7 @@ contract USDPlusAsset is Stabilizer {
         uint256 usdxAmount = (tokenBalance * 10 ** usdx.decimals()) /
             10 ** token.decimals();
 
-        return usdxAmount;
+        return _oracleUsdxToUsd(usdxAmount);
     }
 
     /* ========== Actions ========== */
@@ -72,13 +73,7 @@ contract USDPlusAsset is Stabilizer {
      */
     function invest(
         uint256 usdxAmount
-    )
-        external
-        onlyBorrower
-        whenNotPaused
-        nonReentrant
-        validAmount(usdxAmount)
-    {
+    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
         _invest(usdxAmount, 0, 0);
     }
 
@@ -89,8 +84,14 @@ contract USDPlusAsset is Stabilizer {
      */
     function divest(
         uint256 usdxAmount
-    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
-        _divest(usdxAmount, 0);
+    )
+        external
+        onlyBorrower
+        nonReentrant
+        validAmount(usdxAmount)
+        returns (uint256)
+    {
+        return _divest(usdxAmount, 0);
     }
 
     /**
@@ -119,15 +120,16 @@ contract USDPlusAsset is Stabilizer {
         emit Invested(tokenAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256) internal override {
+    function _divest(
+        uint256 usdxAmount,
+        uint256
+    ) internal override returns (uint256 divestedAmount) {
         uint256 tokenAmount = (usdxAmount * 10 ** token.decimals()) /
             10 ** usdx.decimals();
-
         uint256 tokenBalance = token.balanceOf(address(this));
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
+        divestedAmount = exchanger.redeem(address(usdx), tokenAmount);
 
-        uint256 divested = exchanger.redeem(address(usdx), tokenAmount);
-
-        emit Divested(divested);
+        emit Divested(divestedAmount);
     }
 }

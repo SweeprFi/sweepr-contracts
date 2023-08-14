@@ -34,9 +34,9 @@ contract('DSR Asset', async () => {
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(
             sweep.address,
+            addresses.usdc,
             addresses.sequencer_feed,
             Const.FEE,
-            addresses.usdc,
             addresses.oracle_dai_usd,
             86400
         );

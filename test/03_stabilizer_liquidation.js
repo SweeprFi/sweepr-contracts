@@ -57,6 +57,7 @@ contract("Stabilizer - Liquidation", async function () {
       addresses.usdc,
       addresses.aave_usdc,
       addresses.aaveV3_pool,
+      addresses.oracle_usdc_usd,
       borrower.address
     );
 
@@ -65,6 +66,7 @@ contract("Stabilizer - Liquidation", async function () {
       sweep.address,
       addresses.usdc,
       addresses.comp_cusdc,
+      addresses.oracle_usdc_usd,
       borrower.address
     );
 
@@ -73,6 +75,8 @@ contract("Stabilizer - Liquidation", async function () {
       sweep.address,
       addresses.usdc,
       addresses.gDai,
+      addresses.oracle_usdc_usd,
+      addresses.oracle_dai_usd,
       borrower.address
     );
 
@@ -81,6 +85,7 @@ contract("Stabilizer - Liquidation", async function () {
       sweep.address,
       addresses.usdc,
       addresses.weth,
+      addresses.oracle_usdc_usd,
       wethOracle.address,
       borrower.address
     );

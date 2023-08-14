@@ -38,16 +38,17 @@ contract OffChainAsset is Stabilizer {
     }
 
     constructor(
-        string memory name,
-        address sweepAddress,
-        address usdxAddress,
-        address wallet_,
-        address collateralAgent_,
-        address borrower
-    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
-        if (wallet_ == address(0)) revert ZeroAddressDetected();
-        wallet = wallet_;
-        collateralAgent = collateralAgent_;
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _wallet,
+        address _collateralAgent,
+        address _oracleUsdx,
+        address _borrower
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        if (_wallet == address(0)) revert ZeroAddressDetected();
+        wallet = _wallet;
+        collateralAgent = _collateralAgent;
         redeemMode = false;
     }
 
@@ -66,7 +67,7 @@ contract OffChainAsset is Stabilizer {
      * @notice Asset Value of investment.
      */
     function assetValue() public view returns (uint256) {
-        return actualValue;
+        return _oracleUsdxToUsd(actualValue);
     }
 
     /**
@@ -81,26 +82,26 @@ contract OffChainAsset is Stabilizer {
 
     /**
      * @notice Update wallet to send the investment to.
-     * @param wallet_ New wallet address.
+     * @param _wallet New wallet address.
      */
     function setWallet(
-        address wallet_
+        address _wallet
     ) external onlyBorrower onlySettingsEnabled {
-        if (wallet_ == address(0)) revert ZeroAddressDetected();
-        wallet = wallet_;
+        if (_wallet == address(0)) revert ZeroAddressDetected();
+        wallet = _wallet;
     }
 
     /**
      * @notice Set Collateral Agent
-     * @param agentAddress.
+     * @param _agentAddress.
      */
     function setCollateralAgent(
-        address agentAddress
+        address _agentAddress
     ) external onlyBorrower onlySettingsEnabled {
-        if (agentAddress == address(0)) revert ZeroAddressDetected();
-        collateralAgent = agentAddress;
+        if (_agentAddress == address(0)) revert ZeroAddressDetected();
+        collateralAgent = _agentAddress;
 
-        emit CollateralAgentSet(agentAddress);
+        emit CollateralAgentSet(_agentAddress);
     }
 
     /**
@@ -128,8 +129,14 @@ contract OffChainAsset is Stabilizer {
      */
     function divest(
         uint256 usdxAmount
-    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
-        _divest(usdxAmount, 0);
+    )
+        external
+        onlyBorrower
+        nonReentrant
+        validAmount(usdxAmount)
+        returns (uint256)
+    {
+        return _divest(usdxAmount, 0);
     }
 
     /**
@@ -189,11 +196,15 @@ contract OffChainAsset is Stabilizer {
         emit Invested(usdxAmount, sweepAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256) internal override {
+    function _divest(
+        uint256 usdxAmount,
+        uint256
+    ) internal override returns (uint256 divestedAmount) {
         redeemMode = true;
         redeemAmount = usdxAmount;
         redeemTime = block.timestamp;
+        divestedAmount = usdxAmount;
 
-        emit Divested(usdxAmount);
+        emit Divested(divestedAmount);
     }
 }

@@ -217,8 +217,8 @@ const chainlink_oracle = {
   },
   dai_usd: {
     1: '0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9',
-    5: '',
-    42161: ''
+    5: '0x0d79df66BE487753B02D015Fb622DED7f0E9798d',
+    42161: '0xc5c8e77b397e531b8ec06bfb0048328b30e9ecfb'
   },
   backed_usd: {
     1: '0x788D911ae7c95121A89A0f0306db65D87422E1de',

@@ -11,32 +11,27 @@ pragma solidity 0.8.19;
  */
 
 import "../Stabilizer/Stabilizer.sol";
-import "../Oracle/ChainlinkPricer.sol";
 
 contract TokenAsset is Stabilizer {
     // Variables
     IERC20Metadata private immutable token;
-
-    // Oracle to fetch price token / base
-    address private immutable tokenOracle;
-
-    // WETH and WBTC has the same frequency - check others
-    uint256 private constant TOKEN_FREQUENCY = 1 days;
+    IPriceFeed private immutable oracleToken;
 
     // Events
     event Invested(uint256 indexed tokenAmount);
     event Divested(uint256 indexed usdxAmount);
 
     constructor(
-        string memory name,
-        address sweepAddress,
-        address usdxAddress,
-        address tokenAddress,
-        address tokenOracleAddress,
-        address borrower
-    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
-        token = IERC20Metadata(tokenAddress);
-        tokenOracle = tokenOracleAddress;
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _token,
+        address _oracleUsdx,
+        address _oracleToken,
+        address _borrower
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        token = IERC20Metadata(_token);
+        oracleToken = IPriceFeed(_oracleToken);
     }
 
     /* ========== Views ========== */
@@ -57,17 +52,8 @@ contract TokenAsset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         uint256 tokenBalance = token.balanceOf(address(this));
-        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            tokenOracle,
-            amm().sequencer(),
-            TOKEN_FREQUENCY
-        );
-
-        uint256 usdxAmount = (tokenBalance *
-            uint256(price) *
-            10 ** usdx.decimals()) / (10 ** (token.decimals() + decimals));
-
-        return usdxAmount;
+        // All numbers given are in USDX unless otherwise stated
+        return _oracleTokenToUsd(tokenBalance);
     }
 
     /* ========== Actions ========== */
@@ -81,13 +67,7 @@ contract TokenAsset is Stabilizer {
     function invest(
         uint256 usdxAmount,
         uint256 slippage
-    )
-        external
-        onlyBorrower
-        whenNotPaused
-        nonReentrant
-        validAmount(usdxAmount)
-    {
+    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
         _invest(usdxAmount, 0, slippage);
     }
 
@@ -100,8 +80,14 @@ contract TokenAsset is Stabilizer {
     function divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
-        _divest(usdxAmount, slippage);
+    )
+        external
+        onlyBorrower
+        nonReentrant
+        validAmount(usdxAmount)
+        returns (uint256)
+    {
+        return _divest(usdxAmount, slippage);
     }
 
     /**
@@ -113,46 +99,83 @@ contract TokenAsset is Stabilizer {
 
     /* ========== Internals ========== */
 
-    function _invest(uint256 usdxAmount, uint256, uint256 slippage) internal override {
+    function _invest(
+        uint256 usdxAmount,
+        uint256,
+        uint256 slippage
+    ) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
-        uint256 minAmountOut = _calculateMinAmountOut(usdxAmount, slippage);
 
-        TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
-        uint256 tokenAmount = amm().swapExactInput(
+        IAMM _amm = amm();
+        uint256 usdxInToken = _oracleUsdxToToken(usdxAmount);
+        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
+        uint256 tokenAmount = _amm.swapExactInput(
             address(usdx),
             address(token),
             usdxAmount,
-            minAmountOut
+            OvnMath.subBasisPoints(usdxInToken, slippage)
         );
 
         emit Invested(tokenAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256 slippage) internal override {
-        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            tokenOracle,
-            amm().sequencer(),
-            TOKEN_FREQUENCY
-        );
-
-        uint256 tokenAmount = (usdxAmount *
-            (10 ** (token.decimals() + decimals))) /
-            (uint256(price) * 10 ** usdx.decimals());
-
+    function _divest(
+        uint256 usdxAmount,
+        uint256 slippage
+    ) internal override returns (uint256 divestedAmount) {
+        uint256 tokenAmount = _oracleUsdxToToken(usdxAmount);
         uint256 tokenBalance = token.balanceOf(address(this));
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
-        uint256 minAmountOut = _calculateMinAmountOut(tokenAmount, slippage);
 
-        TransferHelper.safeApprove(address(token), sweep.amm(), tokenAmount);
-        uint256 divested = amm().swapExactInput(
+        IAMM _amm = amm();
+        uint256 tokenInUsdx = _oracleTokenToUsdx(tokenAmount);
+        TransferHelper.safeApprove(address(token), address(_amm), tokenAmount);
+        divestedAmount = _amm.swapExactInput(
             address(token),
             address(usdx),
             tokenAmount,
-            minAmountOut
+            OvnMath.subBasisPoints(tokenInUsdx, slippage)
         );
 
-        emit Divested(divested);
+        emit Divested(divestedAmount);
+    }
+
+    function _oracleTokenToUsd(
+        uint256 tokenAmount
+    ) internal view returns (uint256) {
+        return
+            ChainlinkLibrary.convertTokenToUsd(
+                tokenAmount,
+                token.decimals(),
+                oracleToken
+            );
+    }
+
+    function _oracleTokenToUsdx(
+        uint256 tokenAmount
+    ) internal view returns (uint256) {
+        return
+            ChainlinkLibrary.convertTokenToToken(
+                tokenAmount,
+                token.decimals(),
+                usdx.decimals(),
+                oracleToken,
+                oracleUsdx
+            );
+    }
+
+    function _oracleUsdxToToken(
+        uint256 usdxAmount
+    ) internal view returns (uint256) {
+        return
+            ChainlinkLibrary.convertTokenToToken(
+                usdxAmount,
+                usdx.decimals(),
+                token.decimals(),
+                oracleUsdx,
+                oracleToken
+            );
     }
 }

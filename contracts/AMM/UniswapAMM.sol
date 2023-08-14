@@ -10,58 +10,56 @@ pragma solidity 0.8.19;
  * @dev Interactions with UniswapV3
  */
 
-import "../Oracle/ChainlinkPricer.sol";
-
+import "../Libraries/Chainlink.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract UniswapAMM {
     using Math for uint256;
 
-    uint8 private constant USD_DECIMALS = 6;
-
-    // Uniswap V3
-    uint32 private constant LOOKBACK = 1 days;
-    uint16 private constant DEADLINE_GAP = 15 minutes;
-
     ISwapRouter private constant ROUTER =
         ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
     IUniswapV3Factory private constant FACTORY =
         IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
 
-    address public immutable sequencer;
+    IERC20Metadata public immutable base;
+    IERC20Metadata public immutable sweep;
+    IPriceFeed public immutable oracleBase;
+    IPriceFeed public immutable sequencer;
     uint24 public immutable poolFee;
-    IERC20Metadata public immutable baseToken;
-    address public immutable baseUSDOracle;
-    uint256 public immutable baseUSDOracleUpdateFrequency;
+    uint256 public immutable oracleBaseUpdateFrequency;
 
-    address public immutable sweepAddress;
+    uint8 private constant USD_DECIMALS = 6;
+    // Uniswap V3
+    uint32 private constant LOOKBACK = 1 days;
+    uint16 private constant DEADLINE_GAP = 15 minutes;
 
     constructor(
-        address sweepAddress_,
-        address sequencerAddress_,
-        uint24 poolFee_,
-        IERC20Metadata baseToken_,
-        address baseOracle,
-        uint256 baseOracleUpdateFrequency
+        address _sweep,
+        address _base,
+        address _sequencer,
+        uint24 _fee,
+        address _oracleBase,
+        uint256 _oracleBaseUpdateFrequency
     ) {
-        sweepAddress = sweepAddress_;
-        sequencer = sequencerAddress_;
-        poolFee = poolFee_;
-        baseToken = baseToken_;
-        baseUSDOracle = baseOracle;
-        baseUSDOracleUpdateFrequency = baseOracleUpdateFrequency;
+        sweep = IERC20Metadata(_sweep);
+        base = IERC20Metadata(_base);
+        oracleBase = IPriceFeed(_oracleBase);
+        sequencer = IPriceFeed(_sequencer);
+        poolFee = _fee;
+        oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
     }
 
+    // Events
     event Bought(uint256 usdxAmount);
     event Sold(uint256 sweepAmount);
     event PoolFeeChanged(uint24 poolFee);
 
+    // Errors
     error OverZero();
 
     /**
@@ -70,54 +68,50 @@ contract UniswapAMM {
      */
     function getPrice() external view returns (uint256 amountOut) {
         (, int24 tick, , , , , ) = IUniswapV3Pool(
-            FACTORY.getPool(address(baseToken), sweepAddress, poolFee)
+            FACTORY.getPool(address(base), address(sweep), poolFee)
         ).slot0();
 
         uint256 quote = OracleLibrary.getQuoteAtTick(
             tick,
-            uint128(10 ** IERC20Metadata(sweepAddress).decimals()),
-            sweepAddress,
-            address(baseToken)
+            uint128(10 ** sweep.decimals()),
+            address(sweep),
+            address(base)
         );
-
-        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            baseUSDOracle,
+        uint256 price = ChainlinkLibrary.getPrice(
+            oracleBase,
             sequencer,
-            baseUSDOracleUpdateFrequency
+            oracleBaseUpdateFrequency
         );
+        uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
-        amountOut = quote.mulDiv(uint256(price), 10 ** decimals);
+        amountOut = quote.mulDiv(price, 10 ** decimals);
     }
 
     /**
      * @notice Get TWA Price
      * @dev Get the quote for selling 1 unit of a token.
      */
-
     function getTWAPrice() external view returns (uint256 amountOut) {
-        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            baseUSDOracle,
+        uint256 price = ChainlinkLibrary.getPrice(
+            oracleBase,
             sequencer,
-            baseUSDOracleUpdateFrequency
+            oracleBaseUpdateFrequency
         );
+        uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
-        address pool = FACTORY.getPool(
-            address(baseToken),
-            sweepAddress,
-            poolFee
-        );
+        address pool = FACTORY.getPool(address(base), address(sweep), poolFee);
         // Get the average price tick first
         (int24 arithmeticMeanTick, ) = OracleLibrary.consult(pool, LOOKBACK);
 
         // Get the quote for selling 1 unit of a token.
         uint256 quote = OracleLibrary.getQuoteAtTick(
             arithmeticMeanTick,
-            uint128(10 ** IERC20Metadata(sweepAddress).decimals()),
-            sweepAddress,
-            address(baseToken)
+            uint128(10 ** sweep.decimals()),
+            address(sweep),
+            address(base)
         );
 
-        amountOut = quote.mulDiv(uint256(price), 10 ** decimals);
+        amountOut = quote.mulDiv(price, 10 ** decimals);
     }
 
     /* ========== Actions ========== */
@@ -137,7 +131,7 @@ contract UniswapAMM {
         emit Bought(tokenAmount);
         sweepAmount = swapExactInput(
             tokenAddress,
-            sweepAddress,
+            address(sweep),
             tokenAmount,
             amountOutMin
         );
@@ -157,7 +151,7 @@ contract UniswapAMM {
     ) external returns (uint256 tokenAmount) {
         emit Sold(sweepAmount);
         tokenAmount = swapExactInput(
-            sweepAddress,
+            address(sweep),
             tokenAddress,
             sweepAmount,
             amountOutMin
@@ -200,41 +194,5 @@ contract UniswapAMM {
             });
 
         amountOut = ROUTER.exactInputSingle(swapParams);
-    }
-
-    /**
-     * @notice Calculate the amount USD that are equivalent to the USDX input.
-     **/
-    function tokenToUSD(
-        uint256 tokenAmount
-    ) external view returns (uint256 usdAmount) {
-        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            baseUSDOracle,
-            sequencer,
-            baseUSDOracleUpdateFrequency
-        );
-
-        usdAmount = tokenAmount.mulDiv(
-            (10 ** USD_DECIMALS) * uint256(price),
-            10 ** (decimals + baseToken.decimals())
-        );
-    }
-
-    /**
-     * @notice Calculate the amount USDX that are equivalent to the USD input.
-     **/
-    function usdToToken(
-        uint256 usdAmount
-    ) external view returns (uint256 tokenAmount) {
-        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            baseUSDOracle,
-            sequencer,
-            baseUSDOracleUpdateFrequency
-        );
-
-        tokenAmount = usdAmount.mulDiv(
-            10 ** (decimals + baseToken.decimals()),
-            (10 ** USD_DECIMALS) * uint256(price)
-        );
     }
 }

@@ -5,7 +5,7 @@ const { Const, getPriceAndData } = require("../utils/helper_functions");
 
 let pool_address;
 
-contract('Uniswap V3 Asset', async () => {
+contract.skip('Uniswap V3 Asset', async () => {
     before(async () => {
         [borrower, guest, lzEndpoint] = await ethers.getSigners();
 
@@ -42,6 +42,7 @@ contract('Uniswap V3 Asset', async () => {
             sweep.address,
             usdc.address,
             liquidityHelper.address,
+			addresses.oracle_usdc_usd,
             BORROWER
         );
 

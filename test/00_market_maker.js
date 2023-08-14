@@ -44,6 +44,7 @@ contract('Market Maker', async () => {
             sweep.address,
             usdc.address,
             liquidityHelper.address,
+			addresses.oracle_usdc_usd,
             BORROWER,
             TOP_SPREAD,
             BOTTOM_SPREAD,
@@ -73,9 +74,9 @@ contract('Market Maker', async () => {
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(
             sweep.address,
+            usdc.address,
             addresses.sequencer_feed,
             Const.FEE,
-            usdc.address,
             usdcOracle.address,
             86400
         );

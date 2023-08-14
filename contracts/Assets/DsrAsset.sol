@@ -13,17 +13,13 @@ pragma solidity 0.8.19;
 import "./DAI/IDsrManager.sol";
 import "./DAI/IPot.sol";
 import "../Libraries/RMath.sol";
-import "../Libraries/OvnMath.sol";
-import "../Libraries/Chainlink.sol";
 import "../Stabilizer/Stabilizer.sol";
 
 contract DsrAsset is Stabilizer {
     IERC20Metadata private immutable dai;
     IDsrManager private immutable dsrManager;
     IPot private immutable pot;
-
-    IPriceFeed public oracleUsdx;
-    IPriceFeed public oracleDai;
+    IPriceFeed private immutable oracleDai;
 
     uint256 private immutable usdxDm;
     uint256 private immutable daiDm;
@@ -41,11 +37,10 @@ contract DsrAsset is Stabilizer {
         address _oracleUsdx,
         address _oracleDai,
         address _borrower
-    ) Stabilizer(_name, _sweep, _usdx, _borrower) {
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         dai = IERC20Metadata(_dai);
         dsrManager = IDsrManager(_dsrManager);
         pot = IPot(dsrManager.pot());
-        oracleUsdx = IPriceFeed(_oracleUsdx);
         oracleDai = IPriceFeed(_oracleDai);
         usdxDm = 10 ** IERC20Metadata(_usdx).decimals();
         daiDm = 10 ** IERC20Metadata(_dai).decimals();
@@ -108,8 +103,14 @@ contract DsrAsset is Stabilizer {
     function divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
-        _divest(usdxAmount, slippage);
+    )
+        external
+        onlyBorrower
+        nonReentrant
+        validAmount(usdxAmount)
+        returns (uint256)
+    {
+        return _divest(usdxAmount, slippage);
     }
 
     /**
@@ -136,10 +137,10 @@ contract DsrAsset is Stabilizer {
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        IAMM swapAMM = amm();
-        TransferHelper.safeApprove(address(usdx), address(swapAMM), usdxAmount);
+        IAMM _amm = amm();
+        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
         uint256 usdxInDai = _oracleUsdxToDai(usdxAmount);
-        uint256 daiAmount = swapAMM.swapExactInput(
+        uint256 daiAmount = _amm.swapExactInput(
             address(usdx),
             address(dai),
             usdxAmount,
@@ -160,7 +161,10 @@ contract DsrAsset is Stabilizer {
      * @notice Divest
      * @dev Withdraws the amount from the DSR.
      */
-    function _divest(uint256 usdxAmount, uint256 slippage) internal override {
+    function _divest(
+        uint256 usdxAmount,
+        uint256 slippage
+    ) internal override returns (uint256 divestedAmount) {
         uint256 daiAmount = _oracleUsdxToDai(usdxAmount);
         uint256 investedAmount = assetValue();
 
@@ -173,10 +177,10 @@ contract DsrAsset is Stabilizer {
         uint256 daiBalance = dai.balanceOf(address(this));
         if (daiBalance == 0) revert NotEnoughBalance();
 
-        IAMM swapAMM = amm();
+        IAMM _amm = amm();
         uint256 daiInUsdx = _oracleDaiToUsdx(daiBalance);
-        TransferHelper.safeApprove(address(dai), address(swapAMM), daiBalance);
-        uint256 divestedAmount = swapAMM.swapExactInput(
+        TransferHelper.safeApprove(address(dai), address(_amm), daiBalance);
+        divestedAmount = _amm.swapExactInput(
             address(dai),
             address(usdx),
             daiBalance,
@@ -189,40 +193,37 @@ contract DsrAsset is Stabilizer {
     function _oracleDaiToUsd(
         uint256 daiAmount
     ) internal view returns (uint256) {
-        uint256 priceDai = ChainlinkLibrary.getPrice(oracleDai);
-
-        return ChainlinkLibrary.convertTokenToUsd(daiAmount, daiDm, priceDai);
+        return
+            ChainlinkLibrary.convertTokenToUsd(
+                daiAmount,
+                dai.decimals(),
+                oracleDai
+            );
     }
 
     function _oracleDaiToUsdx(
         uint256 daiAmount
     ) internal view returns (uint256) {
-        uint256 priceDai = ChainlinkLibrary.getPrice(oracleDai);
-        uint256 priceUsdx = ChainlinkLibrary.getPrice(oracleUsdx);
-
         return
             ChainlinkLibrary.convertTokenToToken(
                 daiAmount,
-                daiDm,
-                usdxDm,
-                priceDai,
-                priceUsdx
+                dai.decimals(),
+                usdx.decimals(),
+                oracleDai,
+                oracleUsdx
             );
     }
 
     function _oracleUsdxToDai(
         uint256 usdxAmount
     ) internal view returns (uint256) {
-        uint256 priceDai = ChainlinkLibrary.getPrice(oracleDai);
-        uint256 priceUsdx = ChainlinkLibrary.getPrice(oracleUsdx);
-
         return
             ChainlinkLibrary.convertTokenToToken(
                 usdxAmount,
-                usdxDm,
-                daiDm,
-                priceUsdx,
-                priceDai
+                usdx.decimals(),
+                dai.decimals(),
+                oracleUsdx,
+                oracleDai
             );
     }
 }

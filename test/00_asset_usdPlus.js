@@ -48,6 +48,7 @@ contract("USDPlus Asset", async function () {
             addresses.usdc,
             addresses.usdPlus,
             addresses.usdPlus_exchanger,
+			addresses.oracle_usdc_usd,
             borrower.address
         );
 

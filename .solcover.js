@@ -1,5 +1,5 @@
 module.exports = {
-  skipFiles: ["Common/", "Utils/", "Mocks/", "Oracle/ChainlinkPricer.sol", "Governance/omnichain/"],
+  skipFiles: ["Common/", "Utils/", "Mocks/", "Governance/omnichain/"],
   istanbulReporter: ['text', 'html'],
   measureFunctionCoverage: false,
   configureYulOptimizer: true

@@ -21,8 +21,9 @@ contract("ETS Asset", async function () {
         await resetNetwork(Const.BLOCK_NUMBER);
         await sendEth(Const.EXCHANGER_ADMIN);
         await sendEth(addresses.usdc);
-        // ------------- Deployment of contracts -------------
 
+        // ------------- Deployment of contracts -------------
+        
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [
             lzEndpoint.address,
@@ -47,6 +48,7 @@ contract("ETS Asset", async function () {
             addresses.usdc,
             addresses.ets,
             addresses.ets_exchanger,
+            addresses.oracle_usdc_usd,
             borrower.address
         );
 

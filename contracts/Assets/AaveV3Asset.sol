@@ -15,7 +15,7 @@ import "../Stabilizer/Stabilizer.sol";
 import "./Aave/IAaveV3Pool.sol";
 
 contract AaveV3Asset is Stabilizer {
-    IERC20 private immutable aaveUSDXToken;
+    IERC20 private immutable aaveUsdx;
     IPool private immutable aaveV3Pool;
 
     // Events
@@ -23,15 +23,16 @@ contract AaveV3Asset is Stabilizer {
     event Divested(uint256 indexed usdxAmount);
 
     constructor(
-        string memory name,
-        address sweepAddress,
-        address usdxAddress,
-        address aaveUsdxAddress,
-        address aaveV3PoolAddress,
-        address borrower
-    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
-        aaveUSDXToken = IERC20(aaveUsdxAddress); //aaveUSDC
-        aaveV3Pool = IPool(aaveV3PoolAddress);
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _aaveUsdx,
+        address _aaveV3Pool,
+        address _oracleUsdx,
+        address _borrower
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        aaveUsdx = IERC20(_aaveUsdx); //aaveUSDC
+        aaveV3Pool = IPool(_aaveV3Pool);
     }
 
     /* ========== Views ========== */
@@ -52,8 +53,9 @@ contract AaveV3Asset is Stabilizer {
      * @dev the invested amount in USDX on the Aave V3 pool.
      */
     function assetValue() public view returns (uint256) {
+        uint256 aaveUsdxBalance = aaveUsdx.balanceOf(address(this));
         // All numbers given are in USDX unless otherwise stated
-        return amm().tokenToUSD(aaveUSDXToken.balanceOf(address(this)));
+        return _oracleUsdxToUsd(aaveUsdxBalance);
     }
 
     /* ========== Actions ========== */
@@ -65,13 +67,7 @@ contract AaveV3Asset is Stabilizer {
      */
     function invest(
         uint256 usdxAmount
-    ) 
-        external
-        onlyBorrower
-        whenNotPaused
-        nonReentrant
-        validAmount(usdxAmount)
-    {
+    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
         _invest(usdxAmount, 0, 0);
     }
 
@@ -82,8 +78,14 @@ contract AaveV3Asset is Stabilizer {
      */
     function divest(
         uint256 usdxAmount
-    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
-        _divest(usdxAmount, 0);
+    )
+        external
+        onlyBorrower
+        nonReentrant
+        validAmount(usdxAmount)
+        returns (uint256)
+    {
+        return _divest(usdxAmount, 0);
     }
 
     /**
@@ -92,7 +94,7 @@ contract AaveV3Asset is Stabilizer {
      * repaying the debt and getting the same value at a discount.
      */
     function liquidate() external nonReentrant {
-        _liquidate(address(aaveUSDXToken));
+        _liquidate(address(aaveUsdx));
     }
 
     /* ========== Internals ========== */
@@ -120,11 +122,14 @@ contract AaveV3Asset is Stabilizer {
      * @notice Divest
      * @dev Withdraws the amount from the Aave V3 pool.
      */
-    function _divest(uint256 usdxAmount, uint256) internal override {
-        if (aaveUSDXToken.balanceOf(address(this)) < usdxAmount)
+    function _divest(
+        uint256 usdxAmount,
+        uint256
+    ) internal override returns (uint256 divestedAmount) {
+        if (aaveUsdx.balanceOf(address(this)) < usdxAmount)
             usdxAmount = type(uint256).max;
 
-        uint256 divestedAmount = aaveV3Pool.withdraw(
+        divestedAmount = aaveV3Pool.withdraw(
             address(usdx),
             usdxAmount,
             address(this)

@@ -14,7 +14,6 @@ import "./GMX/IGlpManager.sol";
 import "./GMX/IRewardRouter.sol";
 import "./GMX/IRewardTracker.sol";
 import "../Stabilizer/Stabilizer.sol";
-import "../Oracle/ChainlinkPricer.sol";
 
 contract GlpAsset is Stabilizer {
     // Variables
@@ -22,8 +21,8 @@ contract GlpAsset is Stabilizer {
     IGlpManager private immutable glpManager;
     IRewardTracker private immutable stakedGlpTracker;
     IRewardTracker private immutable feeGlpTracker;
-    address private immutable rewardOracle;
     IERC20Metadata public immutable rewardToken;
+    IPriceFeed private immutable oracleReward;
 
     uint256 private constant REWARDS_FREQUENCY = 1 days;
 
@@ -33,15 +32,16 @@ contract GlpAsset is Stabilizer {
     event Collected(address reward, uint256 amount);
 
     constructor(
-        string memory name,
-        address sweepAddress,
-        address usdxAddress,
-        address rewardRouterAddress,
-        address rewardOracleAddress,
-        address borrower
-    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
-        rewardOracle = rewardOracleAddress;
-        rewardRouter = IRewardRouter(rewardRouterAddress);
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _rewardRouter,
+        address _oracleUsdx,
+        address _oracleReward,
+        address _borrower
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        oracleReward = IPriceFeed(_oracleReward);
+        rewardRouter = IRewardRouter(_rewardRouter);
         glpManager = IGlpManager(rewardRouter.glpManager());
         stakedGlpTracker = IRewardTracker(rewardRouter.stakedGlpTracker());
         feeGlpTracker = IRewardTracker(rewardRouter.feeGlpTracker());
@@ -70,16 +70,7 @@ contract GlpAsset is Stabilizer {
 
         // Get reward in USD
         uint256 reward = feeGlpTracker.claimable(address(this));
-        (int256 price, uint8 decimals) = ChainlinkPricer.getLatestPrice(
-            rewardOracle,
-            amm().sequencer(),
-            REWARDS_FREQUENCY
-        );
-
-        uint256 rewardInUsd = (reward *
-            uint256(price) *
-            10 ** usdx.decimals()) /
-            (10 ** (rewardToken.decimals() + decimals));
+        uint256 rewardInUsd = _oracleReardToUsd(reward);
 
         return stakedInUsd + rewardInUsd;
     }
@@ -93,13 +84,7 @@ contract GlpAsset is Stabilizer {
     function invest(
         uint256 usdxAmount,
         uint256 slippage
-    )
-        external
-        onlyBorrower
-        whenNotPaused
-        nonReentrant
-        validAmount(usdxAmount)
-    {
+    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
         _invest(usdxAmount, 0, slippage);
     }
 
@@ -111,8 +96,14 @@ contract GlpAsset is Stabilizer {
     function divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
-        _divest(usdxAmount, slippage);
+    )
+        external
+        onlyBorrower
+        nonReentrant
+        validAmount(usdxAmount)
+        returns (uint256)
+    {
+        return _divest(usdxAmount, slippage);
     }
 
     /**
@@ -136,7 +127,11 @@ contract GlpAsset is Stabilizer {
         _liquidate(address(stakedGlpTracker));
     }
 
-    function _invest(uint256 usdxAmount, uint256, uint256 slippage) internal override {
+    function _invest(
+        uint256 usdxAmount,
+        uint256,
+        uint256 slippage
+    ) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
@@ -147,15 +142,23 @@ contract GlpAsset is Stabilizer {
             usdxAmount
         );
 
-        uint256 minOutUsdx = _calculateMinAmountOut(usdxAmount, slippage);
+        uint256 minOutUsdx = OvnMath.subBasisPoints(usdxAmount, slippage);
         uint256 minGlp = getGlpAmount(minOutUsdx);
 
-        uint256 glpAmount = rewardRouter.mintAndStakeGlp(address(usdx), usdxAmount, minOutUsdx, minGlp);
+        uint256 glpAmount = rewardRouter.mintAndStakeGlp(
+            address(usdx),
+            usdxAmount,
+            minOutUsdx,
+            minGlp
+        );
 
         emit Invested(glpAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256 slippage) internal override {
+    function _divest(
+        uint256 usdxAmount,
+        uint256 slippage
+    ) internal override returns (uint256 divestedAmount) {
         collect();
         uint256 glpBalance = stakedGlpTracker.balanceOf(address(this));
         uint256 glpAmount = getGlpAmount(usdxAmount);
@@ -165,16 +168,14 @@ contract GlpAsset is Stabilizer {
             usdxAmount = getUsdAmount(glpAmount);
         }
 
-        uint256 minOutUsdx = _calculateMinAmountOut(usdxAmount, slippage);
-
-        uint256 divested = rewardRouter.unstakeAndRedeemGlp(
+        divestedAmount = rewardRouter.unstakeAndRedeemGlp(
             address(usdx),
             glpAmount,
-            minOutUsdx,
+            OvnMath.subBasisPoints(usdxAmount, slippage),
             address(this)
         );
 
-        emit Divested(divested);
+        emit Divested(divestedAmount);
     }
 
     // Get GLP price in usdx
@@ -193,6 +194,17 @@ contract GlpAsset is Stabilizer {
     function getUsdAmount(uint256 glpAmount) internal view returns (uint256) {
         uint256 glpPrice = getGlpPrice(false);
 
-        return (glpAmount * glpPrice ) / (10 ** stakedGlpTracker.decimals());
+        return (glpAmount * glpPrice) / (10 ** stakedGlpTracker.decimals());
+    }
+
+    function _oracleReardToUsd(
+        uint256 rewardAmount
+    ) internal view returns (uint256) {
+        return
+            ChainlinkLibrary.convertTokenToUsd(
+                rewardAmount,
+                rewardToken.decimals(),
+                oracleReward
+            );
     }
 }

@@ -83,21 +83,4 @@ contract UniswapMock {
         }
         ERC20(_tokenB).transfer(msg.sender, result);
     }
-
-
-    /**
-     * @notice Calculate the amount USD that are equivalent to the USDX input.
-     **/
-    function tokenToUSD(uint256 tokenAmount) external view returns (uint256 usdAmount) {
-        price;
-        usdAmount = tokenAmount;
-    }
-
-    /**
-     * @notice Calculate the amount USDX that are equivalent to the USD input.
-     **/
-    function usdToToken(uint256 usdAmount) external view returns (uint256 tokenAmount) {
-        price;
-        tokenAmount = usdAmount;
-    }
 }
