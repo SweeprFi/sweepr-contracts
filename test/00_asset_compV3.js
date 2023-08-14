@@ -168,7 +168,6 @@ contract('Compound V3 Asset', async () => {
             await compAsset.invest(investAmount.mul(2));
 
             expect(await compAsset.sweepBorrowed()).to.equal(borrowAmount);
-            expect(await compAsset.getDebt()).to.greaterThan(borrowAmount);
             expect(await compAsset.isDefaulted()).to.equal(Const.FALSE);
         });
 

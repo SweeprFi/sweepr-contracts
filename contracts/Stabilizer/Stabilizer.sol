@@ -57,7 +57,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     // Constants for various precisions
     uint256 private constant DAY_SECONDS = 60 * 60 * 24; // seconds of Day
-    uint256 private constant TIME_ONE_YEAR = 365 * DAY_SECONDS; // seconds of Year
+    uint256 private constant DAYS_ONE_YEAR = 365 * 24; // days of Year
     uint256 private constant PRECISION = 1e6;
     uint256 private constant ORACLE_FREQUENCY = 1 days;
 
@@ -173,10 +173,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function accruedFee() public view returns (uint256) {
         if (sweepBorrowed > 0) {
-            uint256 period = block.timestamp - spreadDate;
+            uint256 period = (block.timestamp - spreadDate) / DAY_SECONDS;
             return
                 (sweepBorrowed * spreadFee * period) /
-                (TIME_ONE_YEAR * PRECISION);
+                (DAYS_ONE_YEAR * PRECISION);
         }
 
         return 0;

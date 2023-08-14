@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { Const, toBN, impersonate } = require("../utils/helper_functions");
+const { Const, toBN, impersonate, increaseTime } = require("../utils/helper_functions");
 
 contract("Stabilizer - Isolated Functions", async function () {
   before(async () => {
@@ -129,6 +129,7 @@ contract("Stabilizer - Isolated Functions", async function () {
     });
 
     it("tries pay fee without balance", async function () {
+      await increaseTime(2 * 24 * 3600); // delay 2 days
       expect(await sweep.balanceOf(offChainAsset.address)).to.eq(Const.ZERO);
       expect(await offChainAsset.getDebt()).to.above(Const.ZERO);
       await expect(offChainAsset.connect(borrower).payFee())
