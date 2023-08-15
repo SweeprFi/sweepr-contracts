@@ -57,7 +57,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     // Constants for various precisions
     uint256 private constant DAY_SECONDS = 60 * 60 * 24; // seconds of Day
-    uint256 private constant DAYS_ONE_YEAR = 365 * 24; // days of Year
+    uint256 private constant DAYS_ONE_YEAR = 365; // days of Year
     uint256 private constant PRECISION = 1e6;
     uint256 private constant ORACLE_FREQUENCY = 1 days;
 

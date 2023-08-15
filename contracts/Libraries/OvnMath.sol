@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 library OvnMath {
-    uint256 constant BASIS_DENOMINATOR = 10 ** 4;
+    uint256 constant BASIS_DENOMINATOR = 1e6;
 
     function abs(uint256 x, uint256 y) internal pure returns (uint256) {
         return (x > y) ? (x - y) : (y - x);

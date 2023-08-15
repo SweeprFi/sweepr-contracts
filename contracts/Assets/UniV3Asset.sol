@@ -31,7 +31,6 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     uint128 public liquidity;
     bool private immutable flag; // The sort status of tokens
     int24 public constant TICK_SPACE = 10; // TICK_SPACE are 10, 60, 200
-    uint256 private constant PRECISION = 1e6;
 
     // Events
     event Invested(uint256 indexed usdxAmount, uint256 indexed sweepAmount);
@@ -120,12 +119,14 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      * @dev Pool must be initialized already to add liquidity
      * @param usdxAmount USDX Amount of asset to be deposited
      * @param sweepAmount Sweep Amount of asset to be deposited
-     * @param slippage.
+     * @param usdxMinIn Min USDX amount to be used for liquidity.
+     * @param sweepMinIn Min Sweep amount to be used for liquidity.
      */
     function invest(
         uint256 usdxAmount,
         uint256 sweepAmount,
-        uint256 slippage
+        uint256 usdxMinIn,
+        uint256 sweepMinIn
     )
         external
         onlyBorrower
@@ -133,8 +134,9 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         nonReentrant
         validAmount(usdxAmount)
         validAmount(sweepAmount)
+        returns (uint256, uint256)
     {
-        _invest(usdxAmount, sweepAmount, slippage);
+        return _invest(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
     }
 
     /**
@@ -143,16 +145,17 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
      */
     function divest(
         uint256 liquidityAmount,
-        uint256 slippage
+        uint256 amountOut0,
+        uint256 amountOut1
     )
         external
         onlyBorrower
         isMinted
         nonReentrant
         validAmount(liquidityAmount)
-        returns (uint256)
+        returns (uint256, uint256)
     {
-        return _divest(liquidityAmount, slippage);
+        return _divest(liquidityAmount, amountOut0, amountOut1);
     }
 
     /**
@@ -246,7 +249,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     function _mint(
         uint256 amount0ToMint,
         uint256 amount1ToMint,
-        uint256 slippage
+        uint256 minAmount0,
+        uint256 minAmount1
     )
         internal
         returns (
@@ -258,9 +262,6 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     {
         (int24 minTick, int24 maxTick) = showTicks();
         IAMM _amm = amm();
-        uint256 amountOut0 = OvnMath.subBasisPoints(amount0ToMint, slippage);
-        uint256 amountOut1 = OvnMath.subBasisPoints(amount1ToMint, slippage);
-
         (_tokenId, _liquidity, _amount0, _amount1) = nonfungiblePositionManager
             .mint(
                 INonfungiblePositionManager.MintParams({
@@ -271,8 +272,8 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
                     tickUpper: maxTick,
                     amount0Desired: amount0ToMint,
                     amount1Desired: amount1ToMint,
-                    amount0Min: amountOut0,
-                    amount1Min: amountOut1,
+                    amount0Min: minAmount0,
+                    amount1Min: minAmount1,
                     recipient: address(this),
                     deadline: block.timestamp
                 })
@@ -285,8 +286,9 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     function _invest(
         uint256 usdxAmount,
         uint256 sweepAmount,
-        uint256 slippage
-    ) internal override {
+        uint256 usdxMinIn,
+        uint256 sweepMinIn
+    ) internal returns (uint256, uint256) {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
         if (usdxBalance == 0 || sweepBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
@@ -310,57 +312,50 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         (uint256 amountAdd0, uint256 amountAdd1) = flag
             ? (usdxAmount, sweepAmount)
             : (sweepAmount, usdxAmount);
+        (uint256 minAmount0, uint256 minAmount1) = flag
+            ? (usdxMinIn, sweepMinIn)
+            : (sweepMinIn, usdxMinIn);
 
         if (tokenId == 0) {
             (, _liquidity, _amount0, _amount1) = _mint(
                 amountAdd0,
                 amountAdd1,
-                slippage
+                minAmount0,
+                minAmount1
             );
         } else {
-            uint256 amountOut0 = OvnMath.subBasisPoints(amountAdd0, slippage);
-            uint256 amountOut1 = OvnMath.subBasisPoints(amountAdd1, slippage);
             (_liquidity, _amount0, _amount1) = nonfungiblePositionManager
                 .increaseLiquidity(
                     INonfungiblePositionManager.IncreaseLiquidityParams({
                         tokenId: tokenId,
                         amount0Desired: amountAdd0,
                         amount1Desired: amountAdd1,
-                        amount0Min: amountOut0,
-                        amount1Min: amountOut1,
+                        amount0Min: minAmount0,
+                        amount1Min: minAmount1,
                         deadline: block.timestamp + 60 // Expiration: 1 hour from now
                     })
                 );
             liquidity += _liquidity;
         }
 
-        if (flag) emit Invested(_amount0, _amount1);
-        else emit Invested(_amount1, _amount0);
+        if (flag) {
+            emit Invested(_amount0, _amount1);
+            return (_amount0, _amount1);
+        } else {
+            emit Invested(_amount1, _amount0);
+            return (_amount1, _amount0);
+        }
     }
 
     function _divest(
         uint256 liquidityAmount,
-        uint256 slippage
-    ) internal override returns (uint256 divestedAmount) {
-        uint256 ratioLiquidity;
+        uint256 amountOut0,
+        uint256 amountOut1
+    ) internal returns (uint256, uint256) {
         uint128 decreaseLP = uint128(liquidityAmount);
-        if (decreaseLP > liquidity) {
-            decreaseLP = liquidity;
-            ratioLiquidity = PRECISION; // 100%
-        } else {
-            ratioLiquidity = (decreaseLP * PRECISION) / liquidity;
-        }
+        if (decreaseLP > liquidity) decreaseLP = liquidity;
         liquidity -= decreaseLP;
 
-        (uint256 totalAmount0, uint256 totalAmount1) = liquidityHelper
-            .getTokenAmountsFromLP(tokenId, token0, token1, amm().poolFee());
-
-        uint256 ratioAmount0 = (totalAmount0 * ratioLiquidity) / PRECISION;
-        uint256 ratioAmount1 = (totalAmount1 * ratioLiquidity) / PRECISION;
-        uint256 amountOut0 = OvnMath.subBasisPoints(ratioAmount0, slippage);
-        uint256 amountOut1 = OvnMath.subBasisPoints(ratioAmount1, slippage);
-
-        // amount0Min and amount1Min are price slippage checks
         // if the amount received after burning is not greater than these minimums, transaction will fail
         nonfungiblePositionManager.decreaseLiquidity(
             INonfungiblePositionManager.DecreaseLiquidityParams({
@@ -373,10 +368,14 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
         );
 
         (uint256 amount0, uint256 amount1) = _collect();
-        divestedAmount = decreaseLP;
 
-        if (flag) emit Divested(amount0, amount1);
-        else emit Divested(amount1, amount0);
+        if (flag) {
+            emit Divested(amount0, amount1);
+            return (amount0, amount1);
+        } else {
+            emit Divested(amount1, amount0);
+            return (amount1, amount0);
+        }
     }
 
     function _collect() internal returns (uint256 amount0, uint256 amount1) {
