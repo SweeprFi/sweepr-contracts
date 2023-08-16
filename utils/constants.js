@@ -18,19 +18,19 @@ const chainIDs = {
 
 const wallets = {
   owner: {
-    1: '', // Ethereum Mainnet
+    1: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A', // Ethereum Mainnet
     5: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A', // Ethereum Goerli
     421613: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A', // Arbitrum Goerli
     42161: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A', // Arbitrum One
     // 42161: '0xdC7b17553FE28E195462A74f2BF74AFa5531a555', // Arbitrum One
   },
   borrower: {
-    1: '',
+    1: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
     5: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
     42161: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
   },
   wallet: {
-    1: '',
+    1: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
     5: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
     42161: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
   },
@@ -40,12 +40,12 @@ const wallets = {
     42161: '0x0000000000000000000000000000000000000000',
   },
   treasury: {
-    1: '',
+    1: '0x44a0414409D83D34F0B2c65720bE79E769D00423',
     5: '0x44a0414409D83D34F0B2c65720bE79E769D00423',
     42161: '0x5265fD4F9210bD015D644b254930db8D6e0bF791',
   },
   usdc_holder: {
-    1: '0xF977814e90dA44bFA03b6295A0616a897441aceC',
+    1: '0xDa9CE944a37d218c3302F6B82a094844C6ECEb17',
     5: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
     42161: '0xAEafDd0ce0c4ab0AC57913916E5c386D847609c3',
   },
@@ -190,6 +190,12 @@ const libraries = {
     5: '',
     42161: '0xc2c84ca763572c6aF596B703Df9232b4313AD4e3',
     421613: ''
+  },
+  dsr_manager: {
+    1: '0x373238337Bfe1146fb49989fc222523f83081dDb',
+    5: '',
+    42161: '',
+    421613: ''
   }
 }
 
@@ -208,6 +214,11 @@ const chainlink_oracle = {
     1: '0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6',
     5: '0xAb5c49580294Aff77670F839ea425f5b78ab3Ae7',
     42161: '0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3'
+  },
+  dai_usd: {
+    1: '0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9',
+    5: '0x0d79df66BE487753B02D015Fb622DED7f0E9798d',
+    42161: '0xc5c8e77b397e531b8ec06bfb0048328b30e9ecfb'
   },
   backed_usd: {
     1: '0x788D911ae7c95121A89A0f0306db65D87422E1de',

@@ -38,6 +38,7 @@ contract("Off-Chain Asset", async function (accounts) {
             addresses.usdc,
             WALLET,
             amm.address,
+			addresses.oracle_usdc_usd,
             BORROWER
         );
     });

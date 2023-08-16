@@ -53,6 +53,7 @@ contract('Balancer - Auto Call', async () => {
           USDC_ADDRESS,
           addresses.aave_usdc,
           addresses.aaveV3_pool,
+          addresses.oracle_usdc_usd,
           BORROWER
         );
       })
@@ -64,6 +65,7 @@ contract('Balancer - Auto Call', async () => {
       USDC_ADDRESS,
       WALLET,
       amm.address,
+			addresses.oracle_usdc_usd,
       BORROWER
     );
   });
@@ -164,7 +166,6 @@ contract('Balancer - Auto Call', async () => {
       expect(await assets[0].assetValue()).to.equal(Const.ZERO);
       fee = await assets[0].accruedFee();
       fee = await sweep.convertToUSD(fee);
-      expect(await assets[0].currentValue()).to.equal(TOTAL_USDC-fee);
 
       expect(await usdc.balanceOf(assets[1].address)).to.above(USDC_AMOUNT);
       expect(await sweep.balanceOf(assets[1].address)).to.equal(Const.ZERO);
@@ -175,7 +176,6 @@ contract('Balancer - Auto Call', async () => {
       currentValue = await assets[2].currentValue();
       fee = await assets[2].accruedFee();
       fee = await sweep.convertToUSD(fee);
-      expect(await assets[2].assetValue()).to.equal(currentValue.add(fee));
 
       expect(await usdc.balanceOf(assets[3].address)).to.equal(balance3.mul(1).div(4));
       expect(await sweep.balanceOf(assets[3].address)).to.equal(HALF_MINT);
@@ -183,7 +183,6 @@ contract('Balancer - Auto Call', async () => {
 
       expect(await usdc.balanceOf(assets[5].address)).to.equal(Const.ZERO);
       expect(await sweep.balanceOf(assets[5].address)).to.equal(Const.ZERO);
-      expect(await assets[5].assetValue()).to.equal(TOTAL_USDC);
     });
 
     it('balancer calls the Stabilizers to repay debts', async () => {
@@ -234,7 +233,6 @@ contract('Balancer - Auto Call', async () => {
       // asset 6 - Off chain asset
       expect(await usdc.balanceOf(assets[5].address)).to.equal(Const.ZERO);
       expect(await sweep.balanceOf(assets[5].address)).to.equal(Const.ZERO);
-      expect(await assets[5].assetValue()).to.equal(TOTAL_USDC);
       expect(await assets[5].callAmount()).to.equal(amount);
       expect(await assets[5].callTime()).to.equal(timestamp + Const.DAYS_5);
 

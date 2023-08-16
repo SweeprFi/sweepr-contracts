@@ -19,6 +19,8 @@ pragma solidity 0.8.19;
 
 import "../AMM/IAMM.sol";
 import "../Common/Owned.sol";
+import "../Libraries/Chainlink.sol";
+import "../Libraries/OvnMath.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -27,6 +29,9 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     using Math for uint256;
+
+    IERC20Metadata public usdx;
+    IPriceFeed public oracleUsdx;
 
     // Variables
     string public name;
@@ -50,12 +55,9 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     bool public settingsEnabled;
 
-    // Tokens
-    IERC20Metadata public usdx;
-
     // Constants for various precisions
     uint256 private constant DAY_SECONDS = 60 * 60 * 24; // seconds of Day
-    uint256 private constant TIME_ONE_YEAR = 365 * DAY_SECONDS; // seconds of Year
+    uint256 private constant DAYS_ONE_YEAR = 365; // days of Year
     uint256 private constant PRECISION = 1e6;
     uint256 private constant ORACLE_FREQUENCY = 1 days;
 
@@ -93,6 +95,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     );
 
     /* ========== Errors ========== */
+
     error NotBorrower();
     error NotBalancer();
     error NotSweep();
@@ -111,6 +114,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     error NotAutoInvestMinRatio();
 
     /* ========== Modifies ========== */
+
     modifier onlyBorrower() {
         _onlyBorrower();
         _;
@@ -127,15 +131,17 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     }
 
     constructor(
-        string memory assetName,
-        address sweepAddress,
-        address usdxAddress,
-        address borrowerAddress
-    ) Owned(sweepAddress) {
-        if (borrowerAddress == address(0)) revert ZeroAddressDetected();
-        name = assetName;
-        usdx = IERC20Metadata(usdxAddress);
-        borrower = borrowerAddress;
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _oracleUsdx,
+        address _borrower
+    ) Owned(_sweep) {
+        if (_borrower == address(0)) revert ZeroAddressDetected();
+        name = _name;
+        usdx = IERC20Metadata(_usdx);
+        oracleUsdx = IPriceFeed(_oracleUsdx);
+        borrower = _borrower;
         settingsEnabled = true;
     }
 
@@ -167,10 +173,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function accruedFee() public view returns (uint256) {
         if (sweepBorrowed > 0) {
-            uint256 period = block.timestamp - spreadDate;
+            uint256 period = (block.timestamp - spreadDate) / DAY_SECONDS;
             return
                 (sweepBorrowed * spreadFee * period) /
-                (TIME_ONE_YEAR * PRECISION);
+                (DAYS_ONE_YEAR * PRECISION);
         }
 
         return 0;
@@ -192,9 +198,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function currentValue() public view virtual returns (uint256) {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-        uint256 sweepBalanceInUSD = sweep.convertToUSD(sweepBalance);
+        uint256 sweepInUsd = sweep.convertToUSD(sweepBalance);
+        uint256 usdxInUsd = _oracleUsdxToUsd(usdxBalance);
 
-        return (amm().tokenToUSD(usdxBalance) + sweepBalanceInUSD);
+        return usdxInUsd + sweepInUsd;
     }
 
     /**
@@ -229,6 +236,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     }
 
     /* ========== Settings ========== */
+
     /**
      * @notice Pause
      * @dev Stops investment actions.
@@ -237,6 +245,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         _pause();
     }
 
+    /**
+     * @notice Unpause
+     * @dev Start investment actions.
+     */
     function unpause() external onlyMultisigOrGov {
         _unpause();
     }
@@ -251,7 +263,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @param _autoInvestMinRatio Minimum equity ratio that should be kept to allow the execution of an auto invest
      * @param _autoInvestMinAmount Minimum amount to be invested to allow the execution of an auto invest
      * @param _autoInvestEnabled Represents if an auto invest execution is allowed or not
-     * @param url A URL link to a Web page that describes the borrower and the asset
+     * @param _url A URL link to a Web page that describes the borrower and the asset
      * @dev Sets the initial configuration of the Stabilizer.
      * This configuration will be analyzed by the protocol and if accepted,
      * used to include the Stabilizer in the minter's whitelist of Sweep.
@@ -266,7 +278,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         int256 _autoInvestMinRatio,
         uint256 _autoInvestMinAmount,
         bool _autoInvestEnabled,
-        string calldata url
+        string calldata _url
     ) external onlyBorrower onlySettingsEnabled {
         minEquityRatio = _minEquityRatio;
         spreadFee = _spreadFee;
@@ -276,7 +288,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         autoInvestMinRatio = _autoInvestMinRatio;
         autoInvestMinAmount = _autoInvestMinAmount;
         autoInvestEnabled = _autoInvestEnabled;
-        link = url;
+        link = _url;
 
         emit ConfigurationChanged(
             _minEquityRatio,
@@ -287,7 +299,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
             _autoInvestMinRatio,
             _autoInvestMinAmount,
             _autoInvestEnabled,
-            url
+            _url
         );
     }
 
@@ -323,7 +335,13 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function borrow(
         uint256 sweepAmount
-    ) external onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant {
+    )
+        external
+        onlyBorrower
+        whenNotPaused
+        validAmount(sweepAmount)
+        nonReentrant
+    {
         if (!sweep.isValidMinter(address(this))) revert InvalidMinter();
 
         uint256 sweepAvailable = loanLimit - sweepBorrowed;
@@ -414,22 +432,21 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
         if (sweepBalance < repayAmount) {
             uint256 missingSweep = repayAmount - sweepBalance;
-            uint256 missingUsdx = amm().usdToToken(
-                sweep.convertToUSD(missingSweep)
-            );
+            uint256 sweepInUsd = sweep.convertToUSD(missingSweep);
+            uint256 missingUsdx = _oracleUsdToUsdx(sweepInUsd);
 
             if (missingUsdx > usdxBalance) {
                 _divest(missingUsdx - usdxBalance, slippage);
             }
 
             if (usdx.balanceOf(address(this)) > 0) {
-                uint256 missingUsd = amm().tokenToUSD(missingUsdx);
-                uint256 _sweepAmount = missingUsd.mulDiv(
+                uint256 missingUsd = _oracleUsdxToUsd(missingUsdx);
+                uint256 sweepInUsdx = missingUsd.mulDiv(
                     10 ** sweep.decimals(),
                     price
                 );
-                uint256 minAmountOut = _calculateMinAmountOut(
-                    _sweepAmount,
+                uint256 minAmountOut = OvnMath.subBasisPoints(
+                    sweepInUsdx,
                     slippage
                 );
                 _buy(missingUsdx, minAmountOut);
@@ -480,10 +497,8 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         _borrow(sweepAmount);
 
         uint256 usdAmount = sweepAmount.mulDiv(price, 10 ** sweep.decimals());
-        uint256 minAmountOut = _calculateMinAmountOut(
-            amm().usdToToken(usdAmount),
-            slippage
-        );
+        uint256 usdInUsdx = _oracleUsdToUsdx(usdAmount);
+        uint256 minAmountOut = OvnMath.subBasisPoints(usdInUsdx, slippage);
         uint256 usdxAmount = _sell(sweepAmount, minAmountOut);
 
         _invest(usdxAmount, 0, slippage);
@@ -501,7 +516,13 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     function buySweepOnAMM(
         uint256 usdxAmount,
         uint256 amountOutMin
-    ) external onlyBorrower whenNotPaused nonReentrant returns (uint256 sweepAmount) {
+    )
+        external
+        onlyBorrower
+        whenNotPaused
+        nonReentrant
+        returns (uint256 sweepAmount)
+    {
         sweepAmount = _buy(usdxAmount, amountOutMin);
 
         emit Bought(sweepAmount);
@@ -517,7 +538,13 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     function sellSweepOnAMM(
         uint256 sweepAmount,
         uint256 amountOutMin
-    ) external onlyBorrower whenNotPaused nonReentrant returns (uint256 usdxAmount) {
+    )
+        external
+        onlyBorrower
+        whenNotPaused
+        nonReentrant
+        returns (uint256 usdxAmount)
+    {
         usdxAmount = _sell(sweepAmount, amountOutMin);
 
         emit Sold(sweepAmount);
@@ -532,9 +559,8 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     function swapUsdxToSweep(
         uint256 usdxAmount
     ) external onlyBorrower whenNotPaused validAmount(usdxAmount) nonReentrant {
-        uint256 sweepAmount = sweep.convertToSWEEP(
-            amm().tokenToUSD(usdxAmount)
-        );
+        uint256 usdxInUsd = _oracleUsdxToUsd(usdxAmount);
+        uint256 sweepAmount = sweep.convertToSWEEP(usdxInUsd);
         uint256 sweepBalance = sweep.balanceOf(address(this));
         if (sweepAmount > sweepBalance) revert NotEnoughBalance();
 
@@ -557,8 +583,15 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function swapSweepToUsdx(
         uint256 sweepAmount
-    ) external onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant {
-        uint256 usdxAmount = amm().usdToToken(sweep.convertToUSD(sweepAmount));
+    )
+        external
+        onlyBorrower
+        whenNotPaused
+        validAmount(sweepAmount)
+        nonReentrant
+    {
+        uint256 sweepInUsd = sweep.convertToUSD(sweepAmount);
+        uint256 usdxAmount = _oracleUsdToUsdx(sweepInUsd);
         uint256 usdxBalance = usdx.balanceOf(address(this));
 
         if (usdxAmount > usdxBalance) revert NotEnoughBalance();
@@ -594,7 +627,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         if (sweepBorrowed > 0) {
             uint256 usdAmount = token == address(sweep)
                 ? sweep.convertToUSD(amount)
-                : amm().tokenToUSD(amount);
+                : _oracleUsdxToUsd(amount);
             int256 currentEquityRatio = _calculateEquityRatio(0, usdAmount);
             if (currentEquityRatio < minEquityRatio)
                 revert EquityRatioExcessed();
@@ -615,7 +648,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     /**
      * @notice Divest From Asset.
      */
-    function _divest(uint256, uint256) internal virtual {}
+    function _divest(uint256, uint256) internal virtual returns (uint256) {}
 
     /**
      * @notice Liquidates
@@ -651,11 +684,11 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     ) internal returns (uint256) {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         usdxAmount = usdxAmount.min(usdxBalance);
-
         if (usdxAmount == 0) revert NotEnoughBalance();
 
-        TransferHelper.safeApprove(address(usdx), sweep.amm(), usdxAmount);
-        uint256 sweepAmount = amm().buySweep(
+        IAMM _amm = amm();
+        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
+        uint256 sweepAmount = _amm.buySweep(
             address(usdx),
             usdxAmount,
             amountOutMin
@@ -670,11 +703,11 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     ) internal returns (uint256) {
         uint256 sweepBalance = sweep.balanceOf(address(this));
         sweepAmount = sweepAmount.min(sweepBalance);
-
         if (sweepAmount == 0) revert NotEnoughBalance();
 
-        TransferHelper.safeApprove(address(sweep), sweep.amm(), sweepAmount);
-        uint256 usdxAmount = amm().sellSweep(
+        IAMM _amm = amm();
+        TransferHelper.safeApprove(address(sweep), address(_amm), sweepAmount);
+        uint256 usdxAmount = _amm.sellSweep(
             address(usdx),
             sweepAmount,
             amountOutMin
@@ -782,13 +815,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         sweepBalance = sweep.balanceOf(address(this));
     }
 
-    function _calculateMinAmountOut(
-        uint256 amount,
-        uint256 slippage
-    ) internal pure returns (uint256) {
-        return (amount * (PRECISION - slippage)) / PRECISION;
-    }
-
     function _onlyBorrower() internal view {
         if (msg.sender != borrower) revert NotBorrower();
     }
@@ -799,5 +825,27 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     function _validAmount(uint256 amount) internal pure {
         if (amount == 0) revert OverZero();
+    }
+
+    function _oracleUsdxToUsd(
+        uint256 usdxAmount
+    ) internal view returns (uint256) {
+        return
+            ChainlinkLibrary.convertTokenToUsd(
+                usdxAmount,
+                usdx.decimals(),
+                oracleUsdx
+            );
+    }
+
+    function _oracleUsdToUsdx(
+        uint256 usdAmount
+    ) internal view returns (uint256) {
+        return
+            ChainlinkLibrary.convertUsdToToken(
+                usdAmount,
+                usdx.decimals(),
+                oracleUsdx
+            );
     }
 }

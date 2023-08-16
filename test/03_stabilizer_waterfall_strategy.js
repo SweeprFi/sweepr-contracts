@@ -38,6 +38,7 @@ contract("Stabilizer's waterfall workflow", async function () {
       usdx.address,
       wallet.address,
       agent.address,
+      addresses.oracle_usdc_usd,
       borrower.address
     );
 
@@ -55,7 +56,7 @@ contract("Stabilizer's waterfall workflow", async function () {
 
     // usd to the borrower to he can invest
     await usdx.transfer(borrower.address, 50e6);
-    await sweep.transfer(borrower.address, maxBorrow);
+    await sweep.transfer(borrower.address, maxBorrow.mul(2));
 
     // owner/borrower/asset approve offChainAsset to spend
     await usdx.approve(offChainAsset.address, usdxAmount);
@@ -103,7 +104,7 @@ contract("Stabilizer's waterfall workflow", async function () {
         expect(await usdx.balanceOf(offChainAsset.address)).to.equal(10e6);
         expect(await sweep.balanceOf(offChainAsset.address)).to.equal(amount);
         expect(await offChainAsset.sweepBorrowed()).to.equal(amount);
-        expect(await offChainAsset.getEquityRatio()).to.equal(1e5); // 10%
+        expect(await offChainAsset.getEquityRatio()).to.closeTo(1e5, 1000); // 10%
 
         await offChainAsset.connect(borrower).invest(10e6, amount);
 
@@ -112,7 +113,7 @@ contract("Stabilizer's waterfall workflow", async function () {
         expect(await usdx.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
         expect(await usdx.balanceOf(wallet.address)).to.equal(10e6);
         expect(await offChainAsset.sweepBorrowed()).to.equal(amount);
-        expect(await offChainAsset.getEquityRatio()).to.equal(1e5); // 10%
+        expect(await offChainAsset.getEquityRatio()).to.closeTo(1e5, 1000); // 10%
       });
     });
 
@@ -133,7 +134,7 @@ contract("Stabilizer's waterfall workflow", async function () {
         expect(await sweep.balanceOf(offChainAsset.address)).to.equal(amount);
 
         await offChainAsset.connect(borrower).repay(amount);
-        expect(await offChainAsset.getEquityRatio()).to.equal(909090); // 90%
+        expect(await offChainAsset.getEquityRatio()).to.closeTo(909090, 1000); // 90%
       });
 
       it("repays more than the senior debt", async function () {

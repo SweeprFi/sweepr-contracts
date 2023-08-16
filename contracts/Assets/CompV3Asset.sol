@@ -7,7 +7,6 @@ pragma solidity 0.8.19;
 
 import "./Compound/IcUSDC.sol";
 import "../Stabilizer/Stabilizer.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title Compound V3 Asset
@@ -16,20 +15,21 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract CompV3Asset is Stabilizer {
     // Variables
-    IcUSDC private immutable cUSDC;
+    IcUSDC private immutable cUsdc;
 
     // Events
     event Invested(uint256 indexed usdxAmount);
     event Divested(uint256 indexed usdxAmount);
 
     constructor(
-        string memory name,
-        address sweepAddress,
-        address usdxAddress,
-        address cusdcAddress,
-        address borrower
-    ) Stabilizer(name, sweepAddress, usdxAddress, borrower) {
-        cUSDC = IcUSDC(cusdcAddress);
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _cUsdc,
+        address _oracleUsdx,
+        address _borrower
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        cUsdc = IcUSDC(_cUsdc);
     }
 
     /* ========== Views ========== */
@@ -46,47 +46,49 @@ contract CompV3Asset is Stabilizer {
     /**
      * @notice Current Value of investment.
      * @return the asset value
-     * @dev the value of investment is calculated from cUSDC balance.
+     * @dev the value of investment is calculated from cUsdc balance.
      */
     function assetValue() public view returns (uint256) {
-        return amm().tokenToUSD(cUSDC.balanceOf(address(this)));
+        uint256 cUsdcBalance = cUsdc.balanceOf(address(this));
+        // All numbers given are in USDX unless otherwise stated
+        return _oracleUsdxToUsd(cUsdcBalance);
     }
 
     /* ========== Actions ========== */
 
     /**
-     * @notice Invest stable coins into Compound to get back cUSDC.
-     * @param usdxAmount Amount of usdx to be deposited and minted in cUSDC.
+     * @notice Invest stable coins into Compound to get back cUsdc.
+     * @param usdxAmount Amount of usdx to be deposited and minted in cUsdc.
      * @dev the amount deposited will generate rewards in Compound token.
      */
     function invest(
         uint256 usdxAmount
-    )
-        external
-        onlyBorrower
-        whenNotPaused
-        nonReentrant
-        validAmount(usdxAmount)
-    {
+    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
         _invest(usdxAmount, 0, 0);
     }
 
     /**
      * @notice Divests From Compound.
      * @param usdxAmount Amount to be divested.
-     * @dev first redeem from cUSDC and then transfer obtained to message sender.
+     * @dev first redeem from cUsdc and then transfer obtained to message sender.
      */
     function divest(
         uint256 usdxAmount
-    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
-        _divest(usdxAmount, 0);
+    )
+        external
+        onlyBorrower
+        nonReentrant
+        validAmount(usdxAmount)
+        returns (uint256)
+    {
+        return _divest(usdxAmount, 0);
     }
 
     /**
      * @notice Liquidate
      */
     function liquidate() external nonReentrant {
-        _liquidate(address(cUSDC));
+        _liquidate(address(cUsdc));
     }
 
     /* ========== Internals ========== */
@@ -96,18 +98,22 @@ contract CompV3Asset is Stabilizer {
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        TransferHelper.safeApprove(address(usdx), address(cUSDC), usdxAmount);
-        cUSDC.supply(address(usdx), usdxAmount);
+        TransferHelper.safeApprove(address(usdx), address(cUsdc), usdxAmount);
+        cUsdc.supply(address(usdx), usdxAmount);
 
         emit Invested(usdxAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256) internal override {
-        uint256 stakedAmount = cUSDC.balanceOf(address(this));
-        if (stakedAmount < usdxAmount) usdxAmount = type(uint256).max;
+    function _divest(
+        uint256 usdxAmount,
+        uint256
+    ) internal override returns (uint256 divestedAmount) {
+        uint256 usdxBalance = usdx.balanceOf(address(this));
+        uint256 cUsdcBalance = cUsdc.balanceOf(address(this));
+        if (cUsdcBalance < usdxAmount) usdxAmount = type(uint256).max;
+        cUsdc.withdraw(address(usdx), usdxAmount);
+        divestedAmount = usdx.balanceOf(address(this)) - usdxBalance;
 
-        cUSDC.withdraw(address(usdx), usdxAmount);
-
-        emit Divested(usdxAmount);
+        emit Divested(divestedAmount);
     }
 }

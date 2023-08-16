@@ -54,24 +54,23 @@ contract MarketMaker is Stabilizer {
     event Burned(uint256 tokenId);
 
     constructor(
-        string memory name,
-        address sweepAddress_,
-        address usdxAddress,
-        address liquidityHelper_,
-        address borrower,
-        uint256 topSpread_,
-        uint256 bottomSpread_,
-        uint256 tickSpread_
-    ) Stabilizer(name, sweepAddress_, usdxAddress, borrower) {
-        flag = usdxAddress < sweepAddress_;
-        (token0, token1) = flag
-            ? (usdxAddress, sweepAddress_)
-            : (sweepAddress_, usdxAddress);
-        liquidityHelper = LiquidityHelper(liquidityHelper_);
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _liquidityHelper,
+        address _oracleUsdx,
+        address _borrower,
+        uint256 _topSpread,
+        uint256 _bottomSpread,
+        uint256 _tickSpread
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        flag = _usdx < _sweep;
+        (token0, token1) = flag ? (_usdx, _sweep) : (_sweep, _usdx);
+        liquidityHelper = LiquidityHelper(_liquidityHelper);
         minEquityRatio = 0;
-        topSpread = topSpread_;
-        bottomSpread = bottomSpread_;
-        tickSpread = tickSpread_;
+        topSpread = _topSpread;
+        bottomSpread = _bottomSpread;
+        tickSpread = _tickSpread;
     }
 
     /* ========== Simple Marketmaker Actions ========== */
@@ -115,9 +114,9 @@ contract MarketMaker is Stabilizer {
 
         // calculate usdx minimum amount for swap
         uint256 minAmountUSD = sweep.convertToUSD(sweepAmount);
-        uint256 minAmountUSDx = amm().usdToToken(minAmountUSD);
+        uint256 minAmountUSDx = _oracleUsdToUsdx(minAmountUSD);
         _borrow(sweepAmount);
-        
+
         usdxAmount = _sell(sweepAmount, minAmountUSDx);
     }
 

@@ -51,11 +51,13 @@ const addresses = {
   gDai_open_trades: libraries.gDai_open_trades[chainId],
   usdPlus_exchanger: libraries.usdPlus_exchanger[chainId],
   ets_exchanger: libraries.ets_exchanger[chainId],
+  dsr_manager: libraries.dsr_manager[chainId],
 
   // Oracles - ChainLink
   oracle_weth_usd: chainlink_oracle.weth_usd[chainId],
   oracle_wbtc_usd: chainlink_oracle.wbtc_usd[chainId],
   oracle_usdc_usd: chainlink_oracle.usdc_usd[chainId],
+  oracle_dai_usd: chainlink_oracle.dai_usd[chainId],
   oracle_backed_usd: chainlink_oracle.backed_usd[chainId],
 
   // Sequencer Feed

@@ -43,6 +43,7 @@ contract("Stabilizer and spread", async function () {
       usdx.address,
       wallet.address,
       agent.address,
+      addresses.oracle_usdc_usd,
       borrower.address
     );
 

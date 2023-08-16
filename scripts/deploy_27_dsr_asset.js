@@ -3,12 +3,13 @@ const { addresses, network } = require("../utils/address");
 
 async function main() {
     let deployer = '';
-    const assetName = 'WBTC Asset';
+    const name = 'DSR Asset';
     const sweep = addresses.sweep;
     const usdc = addresses.usdc;
-    const wbtc = addresses.wbtc;
+    const dai = addresses.dai;
+    const dsrManager = addresses.dsr_manager;
     const oracleUsdc = addresses.oracle_usdc_usd;
-    const oracleWbtc = addresses.oracle_wbtc_usd;
+    const oracleDai = addresses.oracle_dai_usd;
     const borrower = addresses.borrower;
 
     if (network.type === "0") { // local
@@ -20,19 +21,20 @@ async function main() {
 
     console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
-    const WBTCAsset = await ethers.getContractFactory("TokenAsset");
-    const wbtcAsset = await WBTCAsset.deploy(
-        assetName, 
-        sweep, 
-        usdc, 
-        wbtc, 
+    const Asset = await ethers.getContractFactory("DsrAsset");
+    const asset = await Asset.deploy(
+        name,
+        sweep,
+        usdc,
+        dai,
+        dsrManager,
         oracleUsdc,
-        oracleWbtc, 
+        oracleDai,
         borrower
     );
 
-    console.log("WBTC Asset deployed to:", wbtcAsset.address);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${wbtcAsset.address} "${assetName}" ${sweep} ${usdc} ${wbtc} ${oracleUsdc} ${oracleWbtc} ${borrower}`)
+    console.log("Backed Asset deployed to:", asset.address);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${name}" ${sweep} ${usdc} ${dai} ${dsrManager} ${oracleUsdc} ${oracleDai} ${borrower}`)
 }
 
 main();

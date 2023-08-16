@@ -46,6 +46,7 @@ contract("WBTC Asset", async function () {
             sweep.address,
             addresses.usdc,
             addresses.wbtc,
+			addresses.oracle_usdc_usd,
             wbtcOracle.address,
             BORROWER
         );

@@ -46,6 +46,7 @@ contract("WETH Asset", async function () {
             sweep.address,
             addresses.usdc,
             addresses.weth,
+			addresses.oracle_usdc_usd,
             wethOracle.address,
             BORROWER
         );

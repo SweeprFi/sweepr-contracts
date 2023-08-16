@@ -28,12 +28,4 @@ interface IAMM {
     function getTWAPrice() external view returns (uint256 amountOut);
 
     function getPrice() external view returns (uint256 amountOut);
-
-    function tokenToUSD(
-        uint256 tokenAmount
-    ) external view returns (uint256 usdAmount);
-
-    function usdToToken(
-        uint256 usdAmount
-    ) external view returns (uint256 tokenAmount);
 }

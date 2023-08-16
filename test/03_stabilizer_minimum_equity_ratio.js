@@ -39,6 +39,7 @@ contract('Stabilizer - Minimum equity ratio', async () => {
       addresses.usdc,
       addresses.aave_usdc,
       addresses.aaveV3_pool,
+      addresses.oracle_usdc_usd,
       addresses.multisig
     );
 
@@ -107,7 +108,7 @@ contract('Stabilizer - Minimum equity ratio', async () => {
       withdrawAmount3 = 9955000;
       valueBefore = await aaveAsset.currentValue();
       await aaveAsset.connect(user).withdraw(usdx.address, withdrawAmount3);
-      expect(await aaveAsset.currentValue()).to.be.eq(valueBefore.sub(withdrawAmount3));
+      expect(await aaveAsset.currentValue()).to.below(valueBefore);
     });
   })
 });

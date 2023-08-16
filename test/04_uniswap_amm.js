@@ -40,6 +40,7 @@ contract("Uniswap AMM", async function () {
       sweep.address,
       usdc.address,
       liquidityHelper.address,
+      addresses.oracle_usdc_usd,
       OWNER
     );
 
@@ -49,9 +50,9 @@ contract("Uniswap AMM", async function () {
     UniswapAMM = await ethers.getContractFactory("UniswapAMM");
     amm = await UniswapAMM.deploy(
       sweep.address,
+      usdc.address,
       addresses.sequencer_feed,
       Const.FEE,
-      usdc.address,
       usdcOracle.address,
       86400 // oracle update frequency ~ 1 day
     );
@@ -81,7 +82,7 @@ contract("Uniswap AMM", async function () {
 
       await usdc.transfer(asset.address, USDC_MINT);
       await asset.borrow(SWEEP_MINT);
-      await asset.invest(USDC_INVEST, SWEEP_MINT, Const.UNISWAP_SLIPPAGE);
+      await asset.invest(USDC_INVEST, SWEEP_MINT, 0, 0);
     });
 
     it("buys sweep correctly", async function () {
@@ -110,13 +111,6 @@ contract("Uniswap AMM", async function () {
 
       expect(sweepAfter.add(SWEEP_AMOUNT)).to.be.equal(sweepBefore);
       expect(usdcAfter).to.be.above(usdcBefore);
-    });
-
-    it('converts token amount to USD amount', async () => {
-      amount = 100e6;
-      usdAmount = await amm.tokenToUSD(amount);
-      tokenAmount = await amm.usdToToken(usdAmount);
-      expect(tokenAmount).to.eq(amount);
     });
 
     it('fetches the Sweep price correctly', async () => {

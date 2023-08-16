@@ -46,6 +46,7 @@ contract("Sweep - WriteOff", async function () {
 			usdx.address,
 			wallet.address,
 			amm.address,
+            addresses.oracle_usdc_usd,
 			borrower.address
 		);
 
@@ -56,6 +57,7 @@ contract("Sweep - WriteOff", async function () {
 			sweep.address,
 			usdx.address,
 			addresses.wbtc,
+            addresses.oracle_usdc_usd,
 			wbtcOracle.address,
 			borrower.address
 		);
@@ -65,6 +67,7 @@ contract("Sweep - WriteOff", async function () {
 			sweep.address,
 			usdx.address,
 			addresses.weth,
+            addresses.oracle_usdc_usd,
 			wbtcOracle.address,
 			borrower.address
 		);

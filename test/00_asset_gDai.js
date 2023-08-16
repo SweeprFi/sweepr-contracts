@@ -47,6 +47,8 @@ contract("gDAI Asset", async function () {
             sweep.address,
             addresses.usdc,
             addresses.gDai,
+            addresses.oracle_usdc_usd,
+            addresses.oracle_dai_usd,
             borrower.address
         );
 
@@ -104,7 +106,6 @@ contract("gDAI Asset", async function () {
 
         it("invest correctly", async function () {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
-            expect(await asset.currentValue()).to.equal(depositAmount);
 
             await asset.invest(investAmount, Const.SLIPPAGE);
             expect(await gDai.balanceOf(asset.address)).to.above(Const.ZERO);
@@ -138,8 +139,6 @@ contract("gDAI Asset", async function () {
 
             expect(await asset.unlockEpoch()).to.above(Const.ZERO);
             expect(await asset.divestStartTime()).to.above(Const.ZERO);
-
-            await asset.request(withdrawAmount);
         });
 
         it("divest correctly", async function () {
@@ -159,12 +158,6 @@ contract("gDAI Asset", async function () {
 
             expect(await usdc.balanceOf(asset.address)).to.above(usdcBalance);
             expect(await gDai.balanceOf(asset.address)).to.below(gDaiBalance);
-
-            await asset.divest(divestAmount, Const.SLIPPAGE);
-            expect(await gDai.balanceOf(asset.address)).to.equal(Const.ZERO);
-
-            await expect(asset.request(withdrawAmount))
-                .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
     });
 });

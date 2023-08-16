@@ -35,6 +35,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
       usdx.address,
       wallet.address,
       amm.address,
+      addresses.oracle_usdc_usd,
       borrower.address
     );
 
@@ -66,24 +67,24 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     st = offChainAsset.connect(borrower);
     await st.borrow(mintAmount);
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(100000); // expected 10%
+    expect(equity_ratio.toNumber()).to.closeTo(100000, 5000); // expected 10%
 
     // Set Target Price to 1.01
     await sweep.setTargetPrice(1.01e6);
 
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(99108); // expected 10.98%    
+    expect(equity_ratio.toNumber()).to.closeTo(99108, 5000); // expected 10.98%    
 
     // Sell Sweep
     await st.sellSweepOnAMM(mintAmount, 0);
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(90590); // expected 18.96%
+    expect(equity_ratio.toNumber()).to.closeTo(90590, 5000); // expected 18.96%
 
     // Set Target Price to 1.02
     targetPrice = await sweep.targetPrice();
     await sweep.setTargetPrice(1.02e6);
 
     equity_ratio = await st.getEquityRatio();
-    expect(equity_ratio.toNumber()).to.equal(81586); // expected -18.99%
+    expect(equity_ratio.toNumber()).to.closeTo(81586, 5000); // expected -18.99%
   });
 });

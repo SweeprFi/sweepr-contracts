@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { addresses } = require("../utils/address");
 const { Const, toBN, getBlockTimestamp } = require("../utils/helper_functions");
 
 contract("Off-Chain Asset - Settings", async function () {
@@ -34,6 +35,7 @@ contract("Off-Chain Asset - Settings", async function () {
 			usdx.address,
 			wallet.address,
 			Const.ADDRESS_ZERO,
+			addresses.oracle_usdc_usd,
 			borrower.address
 		);
 
@@ -93,7 +95,6 @@ contract("Off-Chain Asset - Settings", async function () {
 				await offChainAsset.connect(wallet).updateValue(amount);
 				timesmtamp = await getBlockTimestamp();
 
-				expect(await offChainAsset.currentValue()).to.equal(amount);
 				expect(await offChainAsset.actualValue()).to.equal(amount);
 				expect(await offChainAsset.valuationTime()).to.equal(timesmtamp);
 			});

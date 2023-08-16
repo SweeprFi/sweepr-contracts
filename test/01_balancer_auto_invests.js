@@ -49,6 +49,7 @@ contract('Balancer - Auto Invests', async () => {
                     USDC_ADDRESS,
                     addresses.aave_usdc,
                     addresses.aaveV3_pool,
+                    addresses.oracle_usdc_usd,
                     BORROWER
                 );
             })
@@ -99,7 +100,7 @@ contract('Balancer - Auto Invests', async () => {
                 Const.DAYS_5,
                 minRatio,
                 autoInvestMinAmount,
-                Const.False,
+                Const.FALSE,
                 Const.URL
             );
 

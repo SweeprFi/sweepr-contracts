@@ -22,16 +22,20 @@ contract USDPlusAsset is Stabilizer {
     event Invested(uint256 indexed tokenAmount);
     event Divested(uint256 indexed usdxAmount);
 
+    // Errors
+    error UnExpectedAmount();
+
     constructor(
-        string memory name,
-        address sweep,
-        address usdx,
-        address token_,
-        address exchanger_,
-        address borrower
-    ) Stabilizer(name, sweep, usdx, borrower) {
-        token = IERC20Metadata(token_);
-        exchanger = IExchanger(exchanger_);
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _token,
+        address _exchanger,
+        address _oracleUsdx,
+        address _borrower
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        token = IERC20Metadata(_token);
+        exchanger = IExchanger(_exchanger);
     }
 
     /* ========== Views ========== */
@@ -51,16 +55,10 @@ contract USDPlusAsset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         uint256 tokenBalance = token.balanceOf(address(this));
-        uint256 redeemFee = exchanger.redeemFee();
-        uint256 redeemFeeDenominator = exchanger.redeemFeeDenominator();
-        tokenBalance =
-            (tokenBalance * (redeemFeeDenominator - redeemFee)) /
-            redeemFeeDenominator;
-
-        uint256 usdxAmount = (tokenBalance * 10 ** usdx.decimals()) /
-            10 ** token.decimals();
-
-        return usdxAmount;
+        // Calculate estimated amount from USD+
+        uint256 usdxAmount = _estimatedTokenToUsdx(tokenBalance);
+        
+        return _oracleUsdxToUsd(usdxAmount);
     }
 
     /* ========== Actions ========== */
@@ -72,13 +70,7 @@ contract USDPlusAsset is Stabilizer {
      */
     function invest(
         uint256 usdxAmount
-    )
-        external
-        onlyBorrower
-        whenNotPaused
-        nonReentrant
-        validAmount(usdxAmount)
-    {
+    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
         _invest(usdxAmount, 0, 0);
     }
 
@@ -89,8 +81,14 @@ contract USDPlusAsset is Stabilizer {
      */
     function divest(
         uint256 usdxAmount
-    ) external onlyBorrower nonReentrant validAmount(usdxAmount) {
-        _divest(usdxAmount, 0);
+    )
+        external
+        onlyBorrower
+        nonReentrant
+        validAmount(usdxAmount)
+        returns (uint256)
+    {
+        return _divest(usdxAmount, 0);
     }
 
     /**
@@ -119,15 +117,32 @@ contract USDPlusAsset is Stabilizer {
         emit Invested(tokenAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256) internal override {
+    function _divest(
+        uint256 usdxAmount,
+        uint256
+    ) internal override returns (uint256 divestedAmount) {
         uint256 tokenAmount = (usdxAmount * 10 ** token.decimals()) /
             10 ** usdx.decimals();
-
         uint256 tokenBalance = token.balanceOf(address(this));
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
+        divestedAmount = exchanger.redeem(address(usdx), tokenAmount);
 
-        uint256 divested = exchanger.redeem(address(usdx), tokenAmount);
+        // Calculate estimated amount from divest
+        uint256 estimatedAmount = _estimatedTokenToUsdx(tokenAmount);
+        if (divestedAmount < estimatedAmount) revert UnExpectedAmount();
 
-        emit Divested(divested);
+        emit Divested(divestedAmount);
+    }
+
+    function _estimatedTokenToUsdx(
+        uint256 tokenAmount
+    ) internal view returns (uint256 estimatedAmount) {
+        uint256 redeemFee = exchanger.redeemFee();
+        uint256 redeemFeeDenominator = exchanger.redeemFeeDenominator();
+        uint256 tokenInUsdx = (tokenAmount * 10 ** usdx.decimals()) /
+            10 ** token.decimals();
+        estimatedAmount =
+            (tokenInUsdx * (redeemFeeDenominator - redeemFee)) /
+            redeemFeeDenominator;
     }
 }
