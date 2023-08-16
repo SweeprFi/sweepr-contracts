@@ -22,6 +22,9 @@ contract USDPlusAsset is Stabilizer {
     event Invested(uint256 indexed tokenAmount);
     event Divested(uint256 indexed usdxAmount);
 
+    // Errors
+    error UnExpectedAmount();
+
     constructor(
         string memory _name,
         address _sweep,
@@ -52,15 +55,9 @@ contract USDPlusAsset is Stabilizer {
      */
     function assetValue() public view returns (uint256) {
         uint256 tokenBalance = token.balanceOf(address(this));
-        uint256 redeemFee = exchanger.redeemFee();
-        uint256 redeemFeeDenominator = exchanger.redeemFeeDenominator();
-        tokenBalance =
-            (tokenBalance * (redeemFeeDenominator - redeemFee)) /
-            redeemFeeDenominator;
-
-        uint256 usdxAmount = (tokenBalance * 10 ** usdx.decimals()) /
-            10 ** token.decimals();
-
+        // Calculate estimated amount from USD+
+        uint256 usdxAmount = _estimatedTokenToUsdx(tokenBalance);
+        
         return _oracleUsdxToUsd(usdxAmount);
     }
 
@@ -130,6 +127,22 @@ contract USDPlusAsset is Stabilizer {
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
         divestedAmount = exchanger.redeem(address(usdx), tokenAmount);
 
+        // Calculate estimated amount from divest
+        uint256 estimatedAmount = _estimatedTokenToUsdx(tokenAmount);
+        if (divestedAmount < estimatedAmount) revert UnExpectedAmount();
+
         emit Divested(divestedAmount);
+    }
+
+    function _estimatedTokenToUsdx(
+        uint256 tokenAmount
+    ) internal view returns (uint256 estimatedAmount) {
+        uint256 redeemFee = exchanger.redeemFee();
+        uint256 redeemFeeDenominator = exchanger.redeemFeeDenominator();
+        uint256 tokenInUsdx = (tokenAmount * 10 ** usdx.decimals()) /
+            10 ** token.decimals();
+        estimatedAmount =
+            (tokenInUsdx * (redeemFeeDenominator - redeemFee)) /
+            redeemFeeDenominator;
     }
 }
