@@ -14,7 +14,6 @@ contract('DSR Asset', async () => {
         depositAmount = 200e6;
         investAmount = 100e6;
         divestAmount = 150e6;
-        slippage = 20;
         
         // Sweep Contract
         Sweep = await ethers.getContractFactory("SweepMock");
@@ -50,6 +49,7 @@ contract('DSR Asset', async () => {
             addresses.usdc,
             addresses.dai,
             addresses.dsr_manager,
+            addresses.dss_psm,
             addresses.oracle_usdc_usd,
             addresses.oracle_dai_usd,
             BORROWER
@@ -68,20 +68,22 @@ contract('DSR Asset', async () => {
             expect(await asset.currentValue()).to.above(Const.ZERO);
         });
 
-        it('invest and divest to the DSR', async () => {
-            await expect(asset.invest(depositAmount, slippage))
+        it('invest to the DSR', async () => {
+            await expect(asset.invest(depositAmount))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
             user = await impersonate(BORROWER);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
-            await asset.connect(user).invest(investAmount, slippage);
+            await asset.connect(user).invest(investAmount);
             expect(await asset.assetValue()).to.above(Const.ZERO);
 
-            await asset.connect(user).invest(depositAmount, slippage);
+            await asset.connect(user).invest(depositAmount);
 
-            await expect(asset.connect(user).invest(depositAmount, slippage))
+            await expect(asset.connect(user).invest(depositAmount))
                 .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
+        });
 
+        it('divest to the DSR', async () => {
             assetVal = await asset.assetValue();
             
             // Delay 5 days
@@ -91,9 +93,9 @@ contract('DSR Asset', async () => {
             expect(await asset.assetValue()).to.above(assetVal);
 
             // Divest usdx
-            await expect(asset.divest(divestAmount, slippage))
+            await expect(asset.divest(divestAmount))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
-            await asset.connect(user).divest(depositAmount, slippage);
+            await asset.connect(user).divest(depositAmount);
 
             expect(await asset.assetValue()).to.equal(Const.ZERO);
         });

@@ -47,6 +47,7 @@ contract("gDAI Asset", async function () {
             sweep.address,
             addresses.usdc,
             addresses.gDai,
+            addresses.dss_psm,
             addresses.oracle_usdc_usd,
             addresses.oracle_dai_usd,
             borrower.address
@@ -87,12 +88,12 @@ contract("gDAI Asset", async function () {
 
     describe("asset constraints", async function () {
         it("only borrower can inveset", async function () {
-            await expect(asset.connect(other).invest(depositAmount, Const.SLIPPAGE))
+            await expect(asset.connect(other).invest(depositAmount))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
         });
 
         it("only borrower can divest", async function () {
-            await expect(asset.connect(other).divest(depositAmount, Const.SLIPPAGE))
+            await expect(asset.connect(other).divest(depositAmount))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
         });
     });
@@ -107,14 +108,14 @@ contract("gDAI Asset", async function () {
         it("invest correctly", async function () {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
 
-            await asset.invest(investAmount, Const.SLIPPAGE);
+            await asset.invest(investAmount);
             expect(await gDai.balanceOf(asset.address)).to.above(Const.ZERO);
 
-            await asset.invest(investAmount, Const.SLIPPAGE);
+            await asset.invest(investAmount);
             expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
             expect(await gDai.balanceOf(asset.address)).to.above(Const.ZERO);
 
-            await expect(asset.invest(investAmount, Const.SLIPPAGE))
+            await expect(asset.invest(investAmount))
                 .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
 
@@ -154,7 +155,7 @@ contract("gDAI Asset", async function () {
             const usdcBalance = await usdc.balanceOf(asset.address);
             const gDaiBalance = await gDai.balanceOf(asset.address);
 
-            await asset.divest(divestAmount, Const.SLIPPAGE);
+            await asset.divest(divestAmount);
 
             expect(await usdc.balanceOf(asset.address)).to.above(usdcBalance);
             expect(await gDai.balanceOf(asset.address)).to.below(gDaiBalance);

@@ -8,6 +8,7 @@ async function main() {
     const usdc = addresses.usdc;
     const dai = addresses.dai;
     const dsrManager = addresses.dsr_manager;
+    const dssPsm = addresses.dss_psm;
     const oracleUsdc = addresses.oracle_usdc_usd;
     const oracleDai = addresses.oracle_dai_usd;
     const borrower = addresses.borrower;
@@ -28,13 +29,14 @@ async function main() {
         usdc,
         dai,
         dsrManager,
+        dssPsm,
         oracleUsdc,
         oracleDai,
         borrower
     );
 
     console.log("Backed Asset deployed to:", asset.address);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${name}" ${sweep} ${usdc} ${dai} ${dsrManager} ${oracleUsdc} ${oracleDai} ${borrower}`)
+    console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${name}" ${sweep} ${usdc} ${dai} ${dsrManager} ${dssPsm} ${oracleUsdc} ${oracleDai} ${borrower}`)
 }
 
 main();
