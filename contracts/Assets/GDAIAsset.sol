@@ -11,6 +11,7 @@ pragma solidity 0.8.19;
  */
 
 import "./GDAI/IGToken.sol";
+import "./DAI/IPsm.sol";
 import "./GDAI/IOpenTradesPnlFeed.sol";
 import "../Stabilizer/Stabilizer.sol";
 
@@ -19,8 +20,10 @@ contract GDAIAsset is Stabilizer {
     IERC20Metadata private immutable dai;
     IOpenTradesPnlFeed private immutable openTradesPnlFeed;
     IPriceFeed private immutable oracleDai;
+    IPsm private immutable psm;
 
     // Variables
+    address private immutable gemJoin;
     uint256 public unlockEpoch;
     uint256 public divestStartTime;
 
@@ -28,6 +31,7 @@ contract GDAIAsset is Stabilizer {
     uint256 private constant GDAI_FREQUENCY = 1 days; // gDai frequency
     uint256 private constant DIVEST_DURATION = 2 days;
     uint256 private constant EPOCH_DURATION = 3 days;
+    uint256 private constant WAD = 10 ** 18;
 
     // Events
     event Invested(uint256 indexed gDaiAmount);
@@ -43,12 +47,15 @@ contract GDAIAsset is Stabilizer {
         address _sweep,
         address _usdx,
         address _gDai,
+        address _dssPsm,
         address _oracleUsdx,
         address _oracleDai,
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         gDai = IGToken(_gDai);
         dai = IERC20Metadata(gDai.asset());
+        psm = IPsm(_dssPsm);
+        gemJoin = psm.gemJoin();
         openTradesPnlFeed = IOpenTradesPnlFeed(gDai.openTradesPnlFeed());
         oracleDai = IPriceFeed(_oracleDai);
     }
@@ -129,25 +136,21 @@ contract GDAIAsset is Stabilizer {
     /**
      * @notice Invest.
      * @param usdxAmount Amount of usdx to be invested for gDai.
-     * @param slippage .
      * @dev get gDai from the usdx.
      */
     function invest(
-        uint256 usdxAmount,
-        uint256 slippage
+        uint256 usdxAmount
     ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
-        _invest(usdxAmount, 0, slippage);
+        _invest(usdxAmount, 0, 0);
     }
 
     /**
      * @notice Divest.
      * @param usdxAmount Amount to be divested.
-     * @param slippage .
      * @dev get usdx from the gDai.
      */
     function divest(
-        uint256 usdxAmount,
-        uint256 slippage
+        uint256 usdxAmount
     )
         external
         onlyBorrower
@@ -155,7 +158,7 @@ contract GDAIAsset is Stabilizer {
         validAmount(usdxAmount)
         returns (uint256)
     {
-        return _divest(usdxAmount, slippage);
+        return _divest(usdxAmount, 0);
     }
 
     /**
@@ -197,56 +200,64 @@ contract GDAIAsset is Stabilizer {
 
     /* ========== Internals ========== */
 
-    function _invest(
-        uint256 usdxAmount,
-        uint256,
-        uint256 slippage
-    ) internal override {
+    /**
+     * @notice Invest
+     * @dev Deposits the amount into the GDai.
+     */
+    function _invest(uint256 usdxAmount, uint256, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        IAMM _amm = amm();
-        uint256 usdxInDai = _oracleUsdxToDai(usdxAmount);
-        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
-        uint256 daiAmount = _amm.swapExactInput(
-            address(usdx),
-            address(dai),
-            usdxAmount,
-            OvnMath.subBasisPoints(usdxInDai, slippage)
-        );
-        TransferHelper.safeApprove(address(dai), address(gDai), daiAmount);
-        uint256 gDaiAmount = gDai.deposit(daiAmount, address(this));
+        // Exchange Usdx to Dai by using PSM
+        TransferHelper.safeApprove(address(usdx), address(gemJoin), usdxAmount);
+        psm.sellGem(address(this), usdxAmount);
+
+        // Invest Dai to the GDai
+        uint256 daiBalance = dai.balanceOf(address(this));
+        TransferHelper.safeApprove(address(dai), address(gDai), daiBalance);
+        uint256 gDaiAmount = gDai.deposit(daiBalance, address(this));
 
         emit Invested(gDaiAmount);
     }
 
+    /**
+     * @notice Divest
+     * @dev Withdraws the amount from the GDai.
+     */
     function _divest(
         uint256 usdxAmount,
-        uint256 slippage
+        uint256
     ) internal override returns (uint256 divestedAmount) {
         (bool available, , ) = divestStatus();
         if (!available) revert DivestNotAvailable();
 
+        uint256 usdxBalance = usdx.balanceOf(address(this));
         uint256 daiAmount = _oracleUsdxToDai(usdxAmount);
         uint256 gDaiAmount = gDai.convertToShares(daiAmount);
         uint256 gDaiBalance = gDai.balanceOf(address(this));
+        if (gDaiBalance == 0) revert NotEnoughBalance();
 
-        IAMM _amm = amm();
+        // Withdraw Dai from GDai
         if (gDaiBalance < gDaiAmount) gDaiAmount = gDaiBalance;
         daiAmount = gDai.redeem(gDaiAmount, address(this), address(this));
-        uint256 daiInUsdx = _oracleDaiToUsdx(daiAmount);
-        TransferHelper.safeApprove(address(dai), address(_amm), daiAmount);
-        divestedAmount = _amm.swapExactInput(
-            address(dai),
-            address(usdx),
-            daiAmount,
-            OvnMath.subBasisPoints(daiInUsdx, slippage)
-        );
+
+        // Reduce fee from the request Usdx amount
+        TransferHelper.safeApprove(address(dai), address(psm), daiAmount);
+        uint256 psmFee = psm.tout();
+        daiAmount = (daiAmount * WAD) / (WAD + psmFee);
+        uint256 daiInUsdx = _daiToUsdx(daiAmount);
+        psm.buyGem(address(this), daiInUsdx);
+
+        // Calculate real divested Usdx amount
+        divestedAmount = usdx.balanceOf(address(this)) - usdxBalance;
 
         emit Divested(divestedAmount);
     }
 
+    /**
+     * @notice Convert Dai to Usd by using Oracle
+     */
     function _oracleDaiToUsd(
         uint256 daiAmount
     ) internal view returns (uint256) {
@@ -258,19 +269,9 @@ contract GDAIAsset is Stabilizer {
             );
     }
 
-    function _oracleDaiToUsdx(
-        uint256 daiAmount
-    ) internal view returns (uint256) {
-        return
-            ChainlinkLibrary.convertTokenToToken(
-                daiAmount,
-                dai.decimals(),
-                usdx.decimals(),
-                oracleDai,
-                oracleUsdx
-            );
-    }
-
+    /**
+     * @notice Convert Usdx to Dai by using Oracle
+     */
     function _oracleUsdxToDai(
         uint256 usdxAmount
     ) internal view returns (uint256) {
@@ -282,5 +283,12 @@ contract GDAIAsset is Stabilizer {
                 oracleUsdx,
                 oracleDai
             );
+    }
+
+    /**
+     * @notice Convert Dai to Usdx (1:1 rate)
+     */
+    function _daiToUsdx(uint256 daiAmount) internal view returns (uint256) {
+        return (daiAmount * (10 ** usdx.decimals())) / (10 ** dai.decimals());
     }
 }

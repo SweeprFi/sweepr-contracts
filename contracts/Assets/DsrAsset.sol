@@ -24,7 +24,6 @@ contract DsrAsset is Stabilizer {
     IPriceFeed private immutable oracleDai;
 
     address private immutable gemJoin;
-    address private immutable daiJoin;
     uint256 private constant WAD = 10 ** 18;
 
     // Events
@@ -46,7 +45,6 @@ contract DsrAsset is Stabilizer {
         dsrManager = IDsrManager(_dsrManager);
         pot = IPot(dsrManager.pot());
         psm = IPsm(_dssPsm);
-        daiJoin = psm.daiJoin();
         gemJoin = psm.gemJoin();
         oracleDai = IPriceFeed(_oracleDai);
     }
