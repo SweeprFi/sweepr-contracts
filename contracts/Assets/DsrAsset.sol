@@ -12,6 +12,7 @@ pragma solidity 0.8.19;
 
 import "./DAI/IDsrManager.sol";
 import "./DAI/IPot.sol";
+import "./DAI/IPsm.sol";
 import "../Libraries/RMath.sol";
 import "../Stabilizer/Stabilizer.sol";
 
@@ -19,10 +20,14 @@ contract DsrAsset is Stabilizer {
     IERC20Metadata private immutable dai;
     IDsrManager private immutable dsrManager;
     IPot private immutable pot;
+    IPsm private immutable psm;
     IPriceFeed private immutable oracleDai;
 
+    address private immutable gemJoin;
+    address private immutable daiJoin;
     uint256 private immutable usdxDm;
     uint256 private immutable daiDm;
+    uint256 private constant WAD = 10 ** 18;
 
     // Events
     event Invested(uint256 indexed usdxAmount);
@@ -34,6 +39,7 @@ contract DsrAsset is Stabilizer {
         address _usdx,
         address _dai,
         address _dsrManager,
+        address _dssPsm,
         address _oracleUsdx,
         address _oracleDai,
         address _borrower
@@ -41,6 +47,9 @@ contract DsrAsset is Stabilizer {
         dai = IERC20Metadata(_dai);
         dsrManager = IDsrManager(_dsrManager);
         pot = IPot(dsrManager.pot());
+        psm = IPsm(_dssPsm);
+        daiJoin = psm.daiJoin();
+        gemJoin = psm.gemJoin();
         oracleDai = IPriceFeed(_oracleDai);
         usdxDm = 10 ** IERC20Metadata(_usdx).decimals();
         daiDm = 10 ** IERC20Metadata(_dai).decimals();
@@ -84,25 +93,21 @@ contract DsrAsset is Stabilizer {
     /**
      * @notice Invest USDX
      * @param usdxAmount USDX Amount to be invested.
-     * @param slippage .
      * @dev Sends balance to DSR.
      */
     function invest(
-        uint256 usdxAmount,
-        uint256 slippage
+        uint256 usdxAmount
     ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
-        _invest(usdxAmount, 0, slippage);
+        _invest(usdxAmount, 0, 0);
     }
 
     /**
      * @notice Divests From DSR.
      * @param usdxAmount Amount to be divested.
-     * @param slippage .
      * @dev Sends balance from the DSR to the Asset.
      */
     function divest(
-        uint256 usdxAmount,
-        uint256 slippage
+        uint256 usdxAmount
     )
         external
         onlyBorrower
@@ -110,7 +115,7 @@ contract DsrAsset is Stabilizer {
         validAmount(usdxAmount)
         returns (uint256)
     {
-        return _divest(usdxAmount, slippage);
+        return _divest(usdxAmount, 0);
     }
 
     /**
@@ -128,33 +133,26 @@ contract DsrAsset is Stabilizer {
      * @notice Invest
      * @dev Deposits the amount into the DSR.
      */
-    function _invest(
-        uint256 usdxAmount,
-        uint256,
-        uint256 slippage
-    ) internal override {
+    function _invest(uint256 usdxAmount, uint256, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        IAMM _amm = amm();
-        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
-        uint256 usdxInDai = _oracleUsdxToDai(usdxAmount);
-        uint256 daiAmount = _amm.swapExactInput(
-            address(usdx),
-            address(dai),
-            usdxAmount,
-            OvnMath.subBasisPoints(usdxInDai, slippage)
-        );
+        // Exchange Usdx to Dai by using PSM
+        TransferHelper.safeApprove(address(usdx), address(gemJoin), usdxAmount);
+        psm.sellGem(address(this), usdxAmount);
 
+        // Invest Dai to the dsr
+        uint256 daiBalance = dai.balanceOf(address(this));
+        if (daiBalance == 0) revert NotEnoughBalance();
         TransferHelper.safeApprove(
             address(dai),
             address(dsrManager),
-            daiAmount
+            daiBalance
         );
-        dsrManager.join(address(this), daiAmount);
+        dsrManager.join(address(this), daiBalance);
 
-        emit Invested(daiAmount);
+        emit Invested(usdxAmount);
     }
 
     /**
@@ -163,33 +161,39 @@ contract DsrAsset is Stabilizer {
      */
     function _divest(
         uint256 usdxAmount,
-        uint256 slippage
+        uint256
     ) internal override returns (uint256 divestedAmount) {
+        uint256 usdxBalance = usdx.balanceOf(address(this));
         uint256 daiAmount = _oracleUsdxToDai(usdxAmount);
         uint256 investedAmount = assetValue();
 
+        // Withdraw Dai from DSR
         if (daiAmount < investedAmount) {
             dsrManager.exit(address(this), daiAmount);
         } else {
             dsrManager.exitAll(address(this));
         }
 
+        // Exchange Dai to Usdx by using PSM
         uint256 daiBalance = dai.balanceOf(address(this));
         if (daiBalance == 0) revert NotEnoughBalance();
+        TransferHelper.safeApprove(address(dai), address(psm), daiBalance);
 
-        IAMM _amm = amm();
-        uint256 daiInUsdx = _oracleDaiToUsdx(daiBalance);
-        TransferHelper.safeApprove(address(dai), address(_amm), daiBalance);
-        divestedAmount = _amm.swapExactInput(
-            address(dai),
-            address(usdx),
-            daiBalance,
-            OvnMath.subBasisPoints(daiInUsdx, slippage)
-        );
+        // Reduce fee from the request Usdx amount
+        uint256 psmFee = psm.tout();
+        daiBalance = (daiBalance * WAD) / (WAD + psmFee);
+        uint256 daiInUsdx = _daiToUsdx(daiBalance);
+        psm.buyGem(address(this), daiInUsdx);
+
+        // Calculate real divested Usdx amount
+        divestedAmount = usdx.balanceOf(address(this)) - usdxBalance;
 
         emit Divested(divestedAmount);
     }
 
+    /**
+     * @notice Convert Dai to Usd by using Oracle
+     */
     function _oracleDaiToUsd(
         uint256 daiAmount
     ) internal view returns (uint256) {
@@ -201,19 +205,9 @@ contract DsrAsset is Stabilizer {
             );
     }
 
-    function _oracleDaiToUsdx(
-        uint256 daiAmount
-    ) internal view returns (uint256) {
-        return
-            ChainlinkLibrary.convertTokenToToken(
-                daiAmount,
-                dai.decimals(),
-                usdx.decimals(),
-                oracleDai,
-                oracleUsdx
-            );
-    }
-
+    /**
+     * @notice Convert Usdx to Dai by using Oracle
+     */
     function _oracleUsdxToDai(
         uint256 usdxAmount
     ) internal view returns (uint256) {
@@ -225,5 +219,12 @@ contract DsrAsset is Stabilizer {
                 oracleUsdx,
                 oracleDai
             );
+    }
+
+    /**
+     * @notice Convert Dai to Usdx (1:1 rate)
+     */
+    function _daiToUsdx(uint256 daiAmount) internal view returns (uint256) {
+        return (daiAmount * (10 ** usdx.decimals())) / (10 ** dai.decimals());
     }
 }

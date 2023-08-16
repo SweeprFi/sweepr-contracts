@@ -52,6 +52,7 @@ const addresses = {
   usdPlus_exchanger: libraries.usdPlus_exchanger[chainId],
   ets_exchanger: libraries.ets_exchanger[chainId],
   dsr_manager: libraries.dsr_manager[chainId],
+  dss_psm: libraries.dss_psm[chainId],
 
   // Oracles - ChainLink
   oracle_weth_usd: chainlink_oracle.weth_usd[chainId],
