@@ -6,13 +6,18 @@ const {
   uniswap,
   networks,
   chainIDs,
-  chainlink_oracle,
+  rpcLinks,
+  apiKeys,
+  chainlinkOracle,
   assets,
 } = require("./constants");
 require('dotenv').config();
 
 const chainId = process.env.CHAIN_ID;
 const networkType = process.env.NETWORK_TYPE;
+
+const rpcLink = rpcLinks[chainId];
+const apiKey = apiKeys[chainId];
 
 const addresses = {
   // Wallets
@@ -55,14 +60,14 @@ const addresses = {
   dss_psm: libraries.dss_psm[chainId],
 
   // Oracles - ChainLink
-  oracle_weth_usd: chainlink_oracle.weth_usd[chainId],
-  oracle_wbtc_usd: chainlink_oracle.wbtc_usd[chainId],
-  oracle_usdc_usd: chainlink_oracle.usdc_usd[chainId],
-  oracle_dai_usd: chainlink_oracle.dai_usd[chainId],
-  oracle_backed_usd: chainlink_oracle.backed_usd[chainId],
+  oracle_weth_usd: chainlinkOracle.weth_usd[chainId],
+  oracle_wbtc_usd: chainlinkOracle.wbtc_usd[chainId],
+  oracle_usdc_usd: chainlinkOracle.usdc_usd[chainId],
+  oracle_dai_usd: chainlinkOracle.dai_usd[chainId],
+  oracle_backed_usd: chainlinkOracle.backed_usd[chainId],
 
   // Sequencer Feed
-  sequencer_feed: chainlink_oracle.sequencer_feed[chainId],
+  sequencer_feed: chainlinkOracle.sequencer_feed[chainId],
 
   // uniswap
   uniswap_factory: uniswap.factory[chainId],
@@ -71,7 +76,7 @@ const addresses = {
   uniswap_position_manager: uniswap.positions_manager[chainId],
   uniswap_pool: uniswap.pool[chainId],
   uniswap_quoter: uniswap.quoter[chainId],
-  
+
   // Periphery Contracts
   governance: protocol.governance[chainId],
   balancer: protocol.balancer[chainId],
@@ -79,7 +84,7 @@ const addresses = {
   uniswap_amm: protocol.uniswap_amm[chainId],
   timelock: protocol.timelock[chainId],
   approver: protocol.approver[chainId],
-  
+
   // Assets + Stabilizers
   asset_offChain: assets.off_chain[chainId],
   asset_aave: assets.aave[chainId],
@@ -108,7 +113,7 @@ function getDeployedAddress(networkName, contractType) {
   const chainID = chainIDs[networkName];
 
   if (chainID === undefined) {
-      throw new Error("Invalid network name!")
+    throw new Error("Invalid network name!")
   }
 
   let contractAddress;
@@ -136,5 +141,7 @@ module.exports = {
   network,
   roles,
   getDeployedAddress,
-  cardinality
+  cardinality,
+  rpcLink,
+  apiKey
 }

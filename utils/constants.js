@@ -12,6 +12,20 @@ const chainIDs = {
   'arbitrum': 42161,
 }
 
+const rpcLinks = {
+  1: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
+  5: `https://eth-goerli.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
+  42161: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
+  421613: `https://arb-goerli.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
+}
+
+const apiKeys = {
+  1: process.env.ETHERSCAN_API_KEY,
+  5: process.env.ETHERSCAN_API_KEY,
+  42161: process.env.ARBISCAN_API_KEY,
+  421613: process.env.ARBISCAN_API_KEY
+}
+
 // Andy:0x87212Bc566b54C60CAca777565F0340F458B1C1b
 // Sudb: 0x614Bdbe46B394ad2f1Db06E9236568C046007f67
 // New Owner: 0xdC7b17553FE28E195462A74f2BF74AFa5531a555
@@ -205,7 +219,7 @@ const libraries = {
   }
 }
 
-const chainlink_oracle = {
+const chainlinkOracle = {
   weth_usd: {
     1: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', // ETH - USD
     5: '0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e', // ETH - USD
@@ -379,6 +393,8 @@ module.exports = {
   uniswap,
   networks,
   chainIDs,
-  chainlink_oracle,
+  rpcLinks,
+  apiKeys,
+  chainlinkOracle,
   assets,
 }
