@@ -14,8 +14,9 @@ pragma solidity 0.8.19;
 
 import "./Sweepr.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract TokenDistributor {
+contract TokenDistributor is ReentrancyGuard {
     SweeprCoin public sweepr;
     address public treasury;
 
@@ -56,7 +57,7 @@ contract TokenDistributor {
      * @notice A function to buy sweepr.
      * @param _tokenAmount sweep Amount to buy sweepr
      */
-    function buy(uint256 _tokenAmount) external {
+    function buy(uint256 _tokenAmount) external nonReentrant {
         uint256 sweeprBalance = sweepr.balanceOf(address(this));
         uint256 sweeprAmount = (_tokenAmount * 10 ** sweepr.decimals()) / salePrice;
 
@@ -64,12 +65,12 @@ contract TokenDistributor {
         if (sweeprAmount > saleAmount) revert OverSaleAmount();
         if (sweeprAmount > sweeprBalance) revert NotEnoughBalance();
 
-        TransferHelper.safeTransferFrom(payToken, msg.sender, treasury, _tokenAmount);
-        TransferHelper.safeTransfer(address(sweepr), msg.sender, sweeprAmount);
-
         unchecked {
             saleAmount -= sweeprAmount;
         }
+
+        TransferHelper.safeTransferFrom(payToken, msg.sender, treasury, _tokenAmount);
+        TransferHelper.safeTransfer(address(sweepr), msg.sender, sweeprAmount);
 
         emit SweeprBought(msg.sender, sweeprAmount);
     }
