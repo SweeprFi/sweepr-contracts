@@ -111,9 +111,15 @@ contract("Balancer - Crosschain message", async function () {
         await sendEth(balancerSrc.address);
         await balancerSrc.refreshInterestRate();
 
+        balanceBefore = await ethers.provider.getBalance(balancerSrc.address);
+        await balancerSrc.recoverEther();
+        balanceAfter = await ethers.provider.getBalance(balancerSrc.address);
+
         nextInterestRate = await sweepSrc.nextInterestRate();
         nextPeriodStart = await sweepSrc.nextPeriodStart();
 
+        expect(balanceBefore).to.above(Const.ZERO);
+        expect(balanceAfter).to.equal(Const.ZERO);
         expect(await sweepDst.nextInterestRate()).to.equal(nextInterestRate);
         expect(await sweepDst.nextPeriodStart()).to.equal(nextPeriodStart);
     })

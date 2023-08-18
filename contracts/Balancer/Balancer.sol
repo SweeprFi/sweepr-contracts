@@ -108,6 +108,15 @@ contract Balancer is NonblockingLzApp, Owned {
         period = newPeriod;
     }
 
+    /**
+     * @notice Recover the Ether from the contract
+     */
+    function recoverEther() external onlyMultisigOrGov {
+        uint256 ethBalance = address(this).balance;
+        (bool success, ) = (msg.sender).call{value: ethBalance}(new bytes(0));
+        require(success, 'STE');
+    }
+
     function _sendInterestRate(int256 rate, uint256 periodStart) internal {
         uint chainCount = sweepr.chainCount();
         for (uint i = 0; i < chainCount; ) {
