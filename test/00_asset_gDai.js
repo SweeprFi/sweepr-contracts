@@ -4,11 +4,13 @@ const { addresses, chainId } = require("../utils/address");
 const { impersonate, sendEth, increaseTime, Const, toBN, resetNetwork } = require("../utils/helper_functions");
 
 contract("gDAI Asset", async function () {
+    if (Number(chainId) !== 1) return;
+
     before(async () => {
-        if (Number(chainId) !== 42161) return;
         blockNumber = await ethers.provider.getBlockNumber();
         
         [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
+        OWNER = addresses.owner;
         // Variables
         usdxAmount = 5000e6;
         depositAmount = 1000e6;
@@ -20,15 +22,15 @@ contract("gDAI Asset", async function () {
         sweepAmount = toBN("1000", 18);
 
         // ------------- Deployment of contracts -------------
-        
+        await sendEth(OWNER);
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [
             lzEndpoint.address,
-            addresses.owner,
+            OWNER,
             2500 // 0.25%
         ]);
         sweep = await Proxy.deployed();
-        user = await impersonate(addresses.owner);
+        user = await impersonate(OWNER);
         await sweep.connect(user).setTreasury(addresses.treasury);
 
         Token = await ethers.getContractFactory("ERC20");

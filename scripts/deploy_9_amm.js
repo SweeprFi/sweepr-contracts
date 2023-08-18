@@ -31,7 +31,7 @@ async function main() {
     );
 
     console.log(`UniswapAMM Deployed to:${amm.address}`);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${sequencer} ${fee} ${usdc} ${oracle} ${frequency}`);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${usdc} ${sequencer} ${fee} ${oracle} ${frequency}`);
 
     const SweepCoin = await ethers.getContractAt("SweepCoin", sweep);
     await SweepCoin.setAMM(amm.address);
