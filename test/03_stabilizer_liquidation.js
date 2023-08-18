@@ -70,16 +70,6 @@ contract("Stabilizer - Liquidation", async function () {
       borrower.address
     );
 
-    gdai_asset = await GDAI.deploy(
-      'GDAI Asset',
-      sweep.address,
-      addresses.usdc,
-      addresses.gDai,
-      addresses.oracle_usdc_usd,
-      addresses.oracle_dai_usd,
-      borrower.address
-    );
-
     weth_asset = await WETH.deploy(
       'WETH Asset',
       sweep.address,
@@ -90,7 +80,7 @@ contract("Stabilizer - Liquidation", async function () {
       borrower.address
     );
 
-    assets = [aave_asset, comp_asset, gdai_asset, weth_asset];
+    assets = [aave_asset, comp_asset, weth_asset];
   });
 
   describe("liquidates assets", async function () {
@@ -155,7 +145,6 @@ contract("Stabilizer - Liquidation", async function () {
 
       await aave_asset.connect(borrower).invest(INVEST_AMOUNT);
       await comp_asset.connect(borrower).invest(INVEST_AMOUNT);
-      await gdai_asset.connect(borrower).invest(INVEST_AMOUNT, Const.SLIPPAGE);
 
       await amm.setPrice(Const.WETH_AMM);
       await weth_asset.connect(borrower).invest(INVEST_AMOUNT, Const.SLIPPAGE);
@@ -172,15 +161,13 @@ contract("Stabilizer - Liquidation", async function () {
       sweep_balance = await sweep.balanceOf(liquidator.address);
       aave_balance = await aave_usdx.balanceOf(liquidator.address);
       cusdc_balance = await cusdc.balanceOf(liquidator.address);
-      gdai_balance = await gdai.balanceOf(liquidator.address);
       weth_balance = await weth.balanceOf(liquidator.address);
 
-      total = aave_balance.add(cusdc_balance).add(gdai_balance).add(weth_balance);
+      total = aave_balance.add(cusdc_balance).add(weth_balance);
       expect(total).to.be.equal(Const.ZERO);
 
       await sweep.connect(liquidator).approve(aave_asset.address, MAX_SWEEP);
       await sweep.connect(liquidator).approve(comp_asset.address, MAX_SWEEP);
-      await sweep.connect(liquidator).approve(gdai_asset.address, MAX_SWEEP);
       await sweep.connect(liquidator).approve(weth_asset.address, MAX_SWEEP);
 
       await Promise.all(
@@ -200,7 +187,6 @@ contract("Stabilizer - Liquidation", async function () {
       expect(await sweep.balanceOf(liquidator.address)).to.be.lessThan(sweep_balance);
       expect(await aave_usdx.balanceOf(liquidator.address)).to.be.greaterThan(Const.ZERO);
       expect(await cusdc.balanceOf(liquidator.address)).to.be.greaterThan(Const.ZERO);
-      expect(await gdai.balanceOf(liquidator.address)).to.be.greaterThan(Const.ZERO);
       expect(await weth.balanceOf(liquidator.address)).to.be.greaterThan(Const.ZERO);
     });
 

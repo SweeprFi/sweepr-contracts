@@ -11,8 +11,8 @@ async function main() {
   votingDelay = 2 days = 172800 seconds = 11520 blocks
   votingPeriod = 3 days = 259200 seconds = 17280 blocks
   */
-  const votingDelay = 11520; // 1 week
-  const votingPeriod = 17280; // 1 week
+  const votingDelay = 11520; // 2 days
+  const votingPeriod = 17280; // 3 week
 
   const proposalThreshold = toBN("10000", 18) // 10000 SWEEPR
   const votesQuorum = 40 // 40%

@@ -87,7 +87,7 @@ contract('DSR Asset', async () => {
             assetVal = await asset.assetValue();
             
             // Delay 5 days
-            await increaseTime(60 * 60 * 24 * 5);
+            await increaseTime(Const.DAY * 5);
             
             await asset.dsrDaiBalance();
             expect(await asset.assetValue()).to.above(assetVal);
