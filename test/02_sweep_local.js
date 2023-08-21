@@ -16,7 +16,7 @@ contract("Sweep - settings", async function () {
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
 			addresses.owner,
-			27 // 0.000027 daily rate = 0.01% yearly rate
+			2740 // 0.00274% daily rate = 1% yearly rate
 		]);
 		sweep = await Proxy.deployed(Sweep);
 
@@ -61,7 +61,7 @@ contract("Sweep - settings", async function () {
 	});
 
 	it('sets a new step value correctly', async () => {
-		expect(await sweep.stepValue()).to.equal(27);
+		expect(await sweep.stepValue()).to.equal(2740);
 		await sweep.connect(multisig).setStepValue(30);
 		expect(await sweep.stepValue()).to.equal(30);
 	});

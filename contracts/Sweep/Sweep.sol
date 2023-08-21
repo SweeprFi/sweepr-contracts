@@ -22,7 +22,7 @@ contract SweepCoin is BaseSweep {
     // Variables
     int256 public currentInterestRate; // Current daily interest rate(6 decimals of precision, e.g. 10000 daily rate = 3.65% yearly rate)
     int256 public nextInterestRate; // Next daily interest rate
-    int256 public stepValue; // Amount to change SWEEP interest rate. 6 decimals of precision and default value is 27 ( about 0.01% yearly rate)
+    int256 public stepValue; // Amount to change SWEEP interest rate. 6 decimals of precision and default value is 2740 ( about 1% yearly rate)
 
     uint256 public currentPeriodStart; // Start time for new period
     uint256 public nextPeriodStart; // Start time for new period

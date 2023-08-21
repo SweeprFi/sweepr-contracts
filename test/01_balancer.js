@@ -17,7 +17,7 @@ contract("Balancer", async function () {
 		SweepProxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
 			owner.address,
-			27 // 0.000027 daily rate = 0.01% yearly rate
+			2740 // 0.00274% daily rate = 1% yearly rate
 		]);
 		sweep = await SweepProxy.deployed();
 
@@ -204,7 +204,7 @@ contract("Balancer", async function () {
 		interestRate = await sweep.interestRate();
 		newInterestRate = interestRate - stepValue;
 
-		expect(newInterestRate).to.be.equal(-81);
+		expect(newInterestRate).to.be.equal(-8220);
 	});
 
 	it('reverts refresh interest rate when caller is not sweep owner', async () => {
