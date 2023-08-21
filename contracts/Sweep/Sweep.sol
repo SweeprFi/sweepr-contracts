@@ -20,9 +20,9 @@ contract SweepCoin is BaseSweep {
     address public treasury;
 
     // Variables
-    int256 public currentInterestRate; // 4 decimals of precision, e.g. 50000 = 5%
-    int256 public nextInterestRate;
-    int256 public stepValue; // Amount to change SWEEP interest rate. 4 decimals of precision and default value is 2500 (0.25%)
+    int256 public currentInterestRate; // Current daily interest rate(6 decimals of precision, e.g. 10000 daily rate = 3.65% yearly rate)
+    int256 public nextInterestRate; // Next daily interest rate
+    int256 public stepValue; // Amount to change SWEEP interest rate. 6 decimals of precision and default value is 2740 ( about 1% yearly rate)
 
     uint256 public currentPeriodStart; // Start time for new period
     uint256 public nextPeriodStart; // Start time for new period
@@ -32,10 +32,12 @@ contract SweepCoin is BaseSweep {
 
     // Constants
     uint256 internal constant SPREAD_PRECISION = 1e6;
+    uint256 internal constant INTEREST_PRECISION = 1e8;
 
     /* ========== Events ========== */
 
     event ArbSpreadSet(uint256 newArbSpread);
+    event StepValueSet(int256 newStepValue);
     event InterestRateSet(int256 newInterestRate, uint256 newPeriodStart);
     event AMMSet(address ammAddress);
     event BalancerSet(address balancerAddress);
@@ -127,15 +129,15 @@ contract SweepCoin is BaseSweep {
         uint256 accumulatedRate;
 
         if (interestRate() >= 0) {
-            accumulatedRate = SPREAD_PRECISION + uint256(interestRate()) * daysInterest();
+            accumulatedRate = INTEREST_PRECISION + uint256(interestRate()) * daysInterest();
         } else {
-            accumulatedRate = SPREAD_PRECISION - uint256(-interestRate()) * daysInterest();
+            accumulatedRate = INTEREST_PRECISION - uint256(-interestRate()) * daysInterest();
         }
 
         if (block.timestamp < nextPeriodStart) {
-            return (currentTargetPrice * accumulatedRate) / SPREAD_PRECISION;
+            return (currentTargetPrice * accumulatedRate) / INTEREST_PRECISION;
         } else {
-            return (nextTargetPrice * accumulatedRate) / SPREAD_PRECISION;
+            return (nextTargetPrice * accumulatedRate) / INTEREST_PRECISION;
         }
     }
 
@@ -206,6 +208,16 @@ contract SweepCoin is BaseSweep {
     }
 
     /**
+     * @notice Set step value to change SWEEP interest rate
+     * @param newStepValue.
+     */
+    function setStepValue(int256 newStepValue) external onlyGov {
+        stepValue = newStepValue;
+
+        emit StepValueSet(newStepValue);
+    }
+
+    /**
      * @notice Set AMM
      * @param ammAddress.
      */
@@ -225,7 +237,7 @@ contract SweepCoin is BaseSweep {
         // newPeriodStart should be after current block time.
         if (newPeriodStart < block.timestamp) revert OldPeriodStart();
         // dailyRate should be less than 0.1% and larger than -0.01%
-        if (dailyRate < -100 || dailyRate >= 1000) revert OutOfRateRange();
+        if (dailyRate < -10000 || dailyRate >= 100000) revert OutOfRateRange();
 
         if (block.timestamp >= nextPeriodStart) {
             currentInterestRate = nextInterestRate;
@@ -236,16 +248,16 @@ contract SweepCoin is BaseSweep {
         nextInterestRate = dailyRate;
         nextPeriodStart = newPeriodStart;
 
-        uint256 interestTime = SPREAD_PRECISION * (nextPeriodStart - currentPeriodStart);
+        uint256 interestTime = INTEREST_PRECISION * (nextPeriodStart - currentPeriodStart);
         uint256 accumulatedRate;
 
         if (currentInterestRate >= 0) {
-            accumulatedRate = SPREAD_PRECISION + (uint256(currentInterestRate) * interestTime) / (1 days * SPREAD_PRECISION);
+            accumulatedRate = INTEREST_PRECISION + (uint256(currentInterestRate) * interestTime) / (1 days * INTEREST_PRECISION);
         } else {
-            accumulatedRate = SPREAD_PRECISION - (uint256(-currentInterestRate) * interestTime) / (1 days * SPREAD_PRECISION);
+            accumulatedRate = INTEREST_PRECISION - (uint256(-currentInterestRate) * interestTime) / (1 days * INTEREST_PRECISION);
         }
 
-        nextTargetPrice = (currentTargetPrice * accumulatedRate) / SPREAD_PRECISION;
+        nextTargetPrice = (currentTargetPrice * accumulatedRate) / INTEREST_PRECISION;
 
         emit InterestRateSet(dailyRate, newPeriodStart);
     }

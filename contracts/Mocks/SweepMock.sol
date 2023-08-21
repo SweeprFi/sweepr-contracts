@@ -270,6 +270,16 @@ contract SweepMock is BaseSweep {
     }
 
     /**
+     * @notice Set step value to change SWEEP interest rate
+     * @param newStepValue.
+     */
+    function setStepValue(int256 newStepValue) external onlyGov {
+        stepValue = newStepValue;
+
+        emit StepValueSet(newStepValue);
+    }
+
+    /**
      * @notice Set Treasury Address
      * @param treasury_.
      */
