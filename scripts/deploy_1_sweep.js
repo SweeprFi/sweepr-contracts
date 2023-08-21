@@ -21,7 +21,7 @@ async function main() {
 	const sweep = await upgrades.deployProxy(sweepInstance, [
 		lzEndpointAddress,
 		addresses.multisig,
-		25 // 0.0025%
+		27 // 0.000027 daily rate = 0.01% yearly rate
 	], { initializer: 'initialize' });
 
 	console.log("Sweep deployed to:", sweep.address);

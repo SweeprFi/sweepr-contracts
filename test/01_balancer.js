@@ -7,7 +7,7 @@ contract("Balancer", async function () {
 		[owner, multisig, lzEndpoint, stab_1, stab_2, stab_3, stab_4, stab_5] = await ethers.getSigners();
 
 		ZERO = 0;
-		PRECISION = 1e6
+		PRECISION = 1e8
 		targetPrice = toBN("1", 6);
 		loanLimit = toBN("100", 6);
 		NEW_loanLimit = toBN("150", 6);
@@ -17,7 +17,7 @@ contract("Balancer", async function () {
 		SweepProxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
 			owner.address,
-			50 // 0.005%
+			27 // 0.000027 daily rate = 0.01% yearly rate
 		]);
 		sweep = await SweepProxy.deployed();
 
@@ -45,8 +45,7 @@ contract("Balancer", async function () {
 
 		interestTime = PRECISION * (nextPeriodStart - currentPeriodStart);
         accumulatedRate = PRECISION + (currentInterestRate * interestTime) / (86400 * PRECISION); // 86400s = 1 day
-		nextTargetPrice = Math.round((currentTargetPrice * accumulatedRate) / PRECISION);
-
+		nextTargetPrice = Math.floor((currentTargetPrice * accumulatedRate) / PRECISION);
 		return nextTargetPrice;
 	}
 
@@ -58,7 +57,7 @@ contract("Balancer", async function () {
 		period = 604800; // 7 days
 		stepValue = await sweep.stepValue()
 
-		// new interest rate = stepValue(0.005%), because currentInterestRate = 0
+		// new interest rate = stepValue(27), because currentInterestRate = 0
 		newInterestRate = stepValue;
 		nextTargetPrice = await sweep.nextTargetPrice();
 		nextPeriodStart = await sweep.nextPeriodStart();
@@ -111,7 +110,7 @@ contract("Balancer", async function () {
 		expect(daysInterest).to.be.equal(3);
 
 		accumulatedRate = PRECISION + interestRate * daysInterest;
-		targetPrice = Math.round((currentTargetPrice * accumulatedRate) / PRECISION);
+		targetPrice = Math.floor((currentTargetPrice * accumulatedRate) / PRECISION);
 
 		expect(await sweep.targetPrice()).to.be.equal(targetPrice);
 	});
@@ -192,24 +191,20 @@ contract("Balancer", async function () {
 		expect(daysInterest).to.be.equal(4);
 
 		accumulatedRate = PRECISION + interestRate * daysInterest;
-		targetPrice = Math.round((currentTargetPrice * accumulatedRate) / PRECISION);
+		targetPrice = Math.floor((currentTargetPrice * accumulatedRate) / PRECISION);
 
 		// check targetPrice < currentTargetPrice if interest < 0
 		expect(await sweep.currentTargetPrice()).to.greaterThan(targetPrice);
 	});
 
-	it('reverts refresh interest rate when new interest rate < 0.001% ', async () => {
+	it('set minus interest rate ', async () => {
 		// advance 4 days for new period
 		await increaseTime(Const.DAY * 3); // 3 days 
 
 		interestRate = await sweep.interestRate();
-		newInterestRate = interestRate - stepValue; // -0.0015%
+		newInterestRate = interestRate - stepValue;
 
-		expect(newInterestRate).to.be.equal(-150);
-
-		/*------- Start 7th period ------*/
-		await expect(balancer.refreshInterestRate())
-			.to.be.revertedWithCustomError(Sweep, 'OutOfRateRange');
+		expect(newInterestRate).to.be.equal(-81);
 	});
 
 	it('reverts refresh interest rate when caller is not sweep owner', async () => {
@@ -251,7 +246,7 @@ contract("Balancer", async function () {
 	});
 
 	it('sets a new Sweep interest rate', async () => {
-		interest = 500;
+		interest = 50000;
 
 		currentBlockTime = await getBlockTimestamp();
 		newPeriodStart = currentBlockTime + Const.DAY * 7 + 1;
@@ -262,7 +257,7 @@ contract("Balancer", async function () {
 		await expect(balancer.setInterestRate(interest, currentBlockTime))
 			.to.be.revertedWithCustomError(sweep, "OldPeriodStart");
 
-		await expect(balancer.setInterestRate(2e3, newPeriodStart))
+		await expect(balancer.setInterestRate(2e5, newPeriodStart))
 			.to.be.revertedWithCustomError(sweep, "OutOfRateRange");
 
 		await expect(sweep.setInterestRate(interest, newPeriodStart))
