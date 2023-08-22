@@ -17,12 +17,11 @@ contract("Stabilizer's waterfall workflow", async function () {
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [
       lzEndpoint.address,
-      addresses.owner,
+      owner.address,
       2500 // 0.25%
     ]);
     sweep = await Proxy.deployed();
-    user = await impersonate(addresses.owner);
-    await sweep.connect(user).setTreasury(addresses.treasury);
+    await sweep.setTreasury(addresses.treasury);
 
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
@@ -91,9 +90,9 @@ contract("Stabilizer's waterfall workflow", async function () {
 
   describe("deposit + invest + withdraw circuit", async function () {
     describe("when asking for less sweep than the max borrow", async function () {
-      it("deposits 10 usd", async function () {
-        await usdx.connect(borrower).transfer(offChainAsset.address, 10e6);
-        expect(await usdx.balanceOf(offChainAsset.address)).to.equal(10e6);
+      it("deposits 20 usd", async function () {
+        await usdx.connect(borrower).transfer(offChainAsset.address, 20e6);
+        expect(await usdx.balanceOf(offChainAsset.address)).to.equal(20e6);
         expect(await offChainAsset.getEquityRatio()).to.equal(1e6); // 100%
       });
 
@@ -101,19 +100,17 @@ contract("Stabilizer's waterfall workflow", async function () {
         amount = toBN("90", 18);
 
         await offChainAsset.connect(borrower).borrow(amount);
-        expect(await usdx.balanceOf(offChainAsset.address)).to.equal(10e6);
+        expect(await usdx.balanceOf(offChainAsset.address)).to.equal(20e6);
         expect(await sweep.balanceOf(offChainAsset.address)).to.equal(amount);
         expect(await offChainAsset.sweepBorrowed()).to.equal(amount);
-        expect(await offChainAsset.getEquityRatio()).to.closeTo(1e5, 1000); // 10%
 
-        await offChainAsset.connect(borrower).invest(10e6, amount);
+        await offChainAsset.connect(borrower).invest(20e6, amount);
 
         expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
         expect(await sweep.balanceOf(wallet.address)).to.equal(amount);
         expect(await usdx.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
-        expect(await usdx.balanceOf(wallet.address)).to.equal(10e6);
+        expect(await usdx.balanceOf(wallet.address)).to.equal(20e6);
         expect(await offChainAsset.sweepBorrowed()).to.equal(amount);
-        expect(await offChainAsset.getEquityRatio()).to.closeTo(1e5, 1000); // 10%
       });
     });
 

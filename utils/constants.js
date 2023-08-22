@@ -93,7 +93,7 @@ const tokens = {
   sweepr: {
     1: '',
     5: '0x8CAb65C701225a2c465B9ed98B94942d8a09b63B',
-    42161: '0x4d20a1d57435bA91614c215F843362e6E95555Bd',
+    42161: '0x89B1e7068bF8E3232dD8f16c35cAc45bDA584f4E',
     421613: '0x98d06DBb715e16dB57021eCA85b44e7916EB0c17'
   },
   usdc: {
@@ -253,8 +253,8 @@ const chainlinkOracle = {
   sequencer_feed: {
     1: '0x0000000000000000000000000000000000000000',
     5: '0x0000000000000000000000000000000000000000',
+    42161: '0xfdb631f5ee196f0ed6faa767959853a9f217697d',
     421613: '0x4da69F028a5790fCCAfe81a75C0D24f46ceCDd69',
-    42161: '0xfdb631f5ee196f0ed6faa767959853a9f217697d'
   }
 }
 
@@ -301,7 +301,7 @@ const protocol = {
   governance: {
     1: '',
     5: '0x9C5A24302562cEfbdbeEAAbdE56CF9930Db3d615',
-    42161: '0xD013237b30e5Bcd8924b85aCA7b2254DF06D5B92'
+    42161: '0xC0507cFC6A9E65894C05C1c5b193C7B58b36791f'
   },
   balancer: {
     1: '',
@@ -334,8 +334,8 @@ const protocol = {
   timelock: {
     1: '',
     5: '0x2E0D0086672A87fE9CC7Ad823466a5a52a82b23F',
+    42161: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
     421613: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
-    42161: '0xEda97F14dBCD80d20ec4a79D930c6896F92112F7',
   },
   approver: {
     1: '',

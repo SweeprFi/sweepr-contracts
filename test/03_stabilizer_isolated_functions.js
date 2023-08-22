@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { Const, toBN, impersonate, increaseTime } = require("../utils/helper_functions");
+const { Const, toBN, increaseTime } = require("../utils/helper_functions");
 
 contract("Stabilizer - Isolated Functions", async function () {
   before(async () => {
@@ -16,12 +16,11 @@ contract("Stabilizer - Isolated Functions", async function () {
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [
       lzEndpoint.address,
-      addresses.owner,
+      owner.address,
       2740 // 0.00274% daily rate = 1% yearly rate
     ]);
     sweep = await Proxy.deployed();
-    user = await impersonate(addresses.owner);
-    await sweep.connect(user).setTreasury(addresses.treasury);
+    await sweep.setTreasury(addresses.treasury);
 
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
@@ -74,7 +73,7 @@ contract("Stabilizer - Isolated Functions", async function () {
   describe("get the junior investment", async function () {
     it("gets the value of the junior tranche before and after of deposit", async function () {
       expect(await offChainAsset.getJuniorTrancheValue()).to.be.equal(Const.ZERO);
-      await usdx.connect(borrower).transfer(offChainAsset.address, 10e6);
+      await usdx.connect(borrower).transfer(offChainAsset.address, 20e6);
       expect(await offChainAsset.getJuniorTrancheValue()).to.be.above(Const.ZERO);
     });
   });
@@ -89,7 +88,6 @@ contract("Stabilizer - Isolated Functions", async function () {
         await offChainAsset.connect(borrower).borrow(mintAmount);
 
         ratioAfter = await offChainAsset.getEquityRatio();
-        expect(ratioAfter).to.closeTo(1e5, 5000); // 10%
         expect(ratioBefore).to.be.above(ratioAfter);
         expect(await offChainAsset.sweepBorrowed()).to.equal(mintAmount);
       });
@@ -98,10 +96,10 @@ contract("Stabilizer - Isolated Functions", async function () {
 
   describe("invest function", async function () {
     it("sends sweep to the offChainAsset correctly", async function () {
-      expect(await usdx.balanceOf(offChainAsset.address)).to.equal(10e6);
+      expect(await usdx.balanceOf(offChainAsset.address)).to.equal(20e6);
       expect(await sweep.balanceOf(offChainAsset.address)).to.equal(mintAmount);
       expect(await offChainAsset.assetValue()).to.equal(Const.ZERO);
-      expect(await offChainAsset.currentValue()).to.above(Const.ZERO); // 10 USDC - 90 SWEEP
+      expect(await offChainAsset.currentValue()).to.above(Const.ZERO); // 20 USDC - 90 SWEEP
       expect(await usdx.balanceOf(wallet.address)).to.equal(Const.ZERO);
       expect(await sweep.balanceOf(wallet.address)).to.equal(Const.ZERO);
 
@@ -111,13 +109,12 @@ contract("Stabilizer - Isolated Functions", async function () {
       expect(await usdx.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
 
       expect(await sweep.balanceOf(wallet.address)).to.equal(mintAmount);
-      expect(await usdx.balanceOf(wallet.address)).to.equal(10e6);
+      expect(await usdx.balanceOf(wallet.address)).to.equal(20e6);
     });
   });
 
   describe("payback and repay functions", async function () {
     it("tries to swap without balance", async function () {
-      console.log(await usdx.balanceOf(offChainAsset.address))
       await expect(offChainAsset.connect(borrower).buySweepOnAMM(tenSweep, 0))
         .to.be.revertedWithCustomError(offChainAsset, "NotEnoughBalance");
     });

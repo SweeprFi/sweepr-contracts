@@ -34,33 +34,33 @@ contract('Sweepr Governance', async (accounts) => {
 		Sweep = await ethers.getContractFactory("SweepMock");
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			LZENDPOINT,
-            addresses.owner,
-            2500 // 0.25%
+			OWNER_SWEEPR,
+			2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed(Sweep);
-		user = await impersonate(addresses.owner);
+		user = await impersonate(OWNER_SWEEPR);
 		await sweep.connect(user).setTreasury(addresses.treasury);
 
-		timelock = await ethers.getContractAt("TimelockController", addresses.timelock);
+		timelockInstance = await ethers.getContractFactory("TimelockController");
+		timelock = await timelockInstance.deploy(172800, [], [], OWNER_SWEEPR);
 
 		SWEEPR = await ethers.getContractFactory("SweeprCoin");
 		Governance = await ethers.getContractFactory("SweeprGovernor");
 		TokenDistributor = await ethers.getContractFactory("TokenDistributor");
 
 		ERC20 = await ethers.getContractFactory("USDCMock");
-        usdc = await ERC20.deploy();
+		usdc = await ERC20.deploy();
 
 		// deploys
 		sweepr = await SWEEPR.deploy(Const.TRUE, LZENDPOINT); // TRUE means governance chain
-		// await sweepr.setTransferApprover(addresses.approver);
 
 		tokenDistributor = await TokenDistributor.deploy(sweepr.address, addresses.treasury);
 		governance = await Governance.deploy(
-			sweepr.address, 
-			addresses.timelock, 
-			VOTING_DELAY, 
-			VOTING_PERIOD, 
-			PROPOSAL_THRESHOLD, 
+			sweepr.address,
+			timelock.address,
+			VOTING_DELAY,
+			VOTING_PERIOD,
+			PROPOSAL_THRESHOLD,
 			VOTES_QUORUM
 		);
 
@@ -91,9 +91,9 @@ contract('Sweepr Governance', async (accounts) => {
 		account = await impersonate(PROPOSER);
 
 		await tokenDistributor.allowSale(
-			SALE_AMOUNT, 
-			account.address, 
-			SALE_PRICE, 
+			SALE_AMOUNT,
+			account.address,
+			SALE_PRICE,
 			usdc.address
 		);
 
@@ -225,6 +225,7 @@ contract('Sweepr Governance', async (accounts) => {
 		await time.increase(300);
 		await time.advanceBlock();
 
+		account = await impersonate(OWNER_SWEEPR);
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_SUCCEEDED);
 		await governance.connect(account).queue([governance.address], [0], [calldata], descriptionHash);
 		expect(await governance.state(proposal_id)).to.equal(Const.PROPOSAL_QUEUED);

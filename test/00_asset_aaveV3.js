@@ -1,8 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses } = require("../utils/address");
-const { impersonate, toBN, Const } = require("../utils/helper_functions");
-const { increaseTime } = require('../utils/helper_functions');
+const { impersonate, toBN, Const, increaseTime } = require("../utils/helper_functions");
 
 contract('Aave V3 Asset', async () => {
     before(async () => {
