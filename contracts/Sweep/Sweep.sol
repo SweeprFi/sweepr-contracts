@@ -20,9 +20,9 @@ contract SweepCoin is BaseSweep {
     address public treasury;
 
     // Variables
-    int256 public currentInterestRate; // Current daily interest rate(6 decimals of precision, e.g. 10000 daily rate = 3.65% yearly rate)
+    int256 public currentInterestRate; // Current daily interest rate(8 decimals of precision, e.g. 10000 daily rate = 3.65% yearly rate)
     int256 public nextInterestRate; // Next daily interest rate
-    int256 public stepValue; // Amount to change SWEEP interest rate. 6 decimals of precision and default value is 2740 ( about 1% yearly rate)
+    int256 public stepValue; // Amount to change SWEEP interest rate. 8 decimals of precision and default value is 2740 ( about 1% yearly rate)
 
     uint256 public currentPeriodStart; // Start time for new period
     uint256 public nextPeriodStart; // Start time for new period
@@ -32,7 +32,7 @@ contract SweepCoin is BaseSweep {
 
     // Constants
     uint256 internal constant SPREAD_PRECISION = 1e6;
-    uint256 internal constant INTEREST_PRECISION = 1e8;
+    uint256 internal constant INTEREST_PRECISION = 1e10;
 
     /* ========== Events ========== */
 
@@ -237,7 +237,7 @@ contract SweepCoin is BaseSweep {
         // newPeriodStart should be after current block time.
         if (newPeriodStart < block.timestamp) revert OldPeriodStart();
         // dailyRate should be less than 0.1% and larger than -0.01%
-        if (dailyRate < -10000 || dailyRate >= 100000) revert OutOfRateRange();
+        if (dailyRate < -1e6 || dailyRate >= 1e7) revert OutOfRateRange();
 
         if (block.timestamp >= nextPeriodStart) {
             currentInterestRate = nextInterestRate;
