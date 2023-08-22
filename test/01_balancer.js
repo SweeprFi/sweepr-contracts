@@ -7,7 +7,7 @@ contract("Balancer", async function () {
 		[owner, multisig, lzEndpoint, stab_1, stab_2, stab_3, stab_4, stab_5] = await ethers.getSigners();
 
 		ZERO = 0;
-		PRECISION = 1e8
+		PRECISION = 1e10
 		targetPrice = toBN("1", 6);
 		loanLimit = toBN("100", 6);
 		NEW_loanLimit = toBN("150", 6);
@@ -17,7 +17,7 @@ contract("Balancer", async function () {
 		SweepProxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
 			owner.address,
-			2740 // 0.00274% daily rate = 1% yearly rate
+			750 // 0.00274% daily rate = 1% yearly rate
 		]);
 		sweep = await SweepProxy.deployed();
 
@@ -57,7 +57,7 @@ contract("Balancer", async function () {
 		period = 604800; // 7 days
 		stepValue = await sweep.stepValue()
 
-		// new interest rate = stepValue(27), because currentInterestRate = 0
+		// new interest rate = stepValue(750), because currentInterestRate = 0
 		newInterestRate = stepValue;
 		nextTargetPrice = await sweep.nextTargetPrice();
 		nextPeriodStart = await sweep.nextPeriodStart();
@@ -204,7 +204,7 @@ contract("Balancer", async function () {
 		interestRate = await sweep.interestRate();
 		newInterestRate = interestRate - stepValue;
 
-		expect(newInterestRate).to.be.equal(-8220);
+		expect(newInterestRate).to.be.equal(-2250);
 	});
 
 	it('reverts refresh interest rate when caller is not sweep owner', async () => {
@@ -246,7 +246,7 @@ contract("Balancer", async function () {
 	});
 
 	it('sets a new Sweep interest rate', async () => {
-		interest = 50000;
+		interest = 5000000;
 
 		currentBlockTime = await getBlockTimestamp();
 		newPeriodStart = currentBlockTime + Const.DAY * 7 + 1;
@@ -257,7 +257,7 @@ contract("Balancer", async function () {
 		await expect(balancer.setInterestRate(interest, currentBlockTime))
 			.to.be.revertedWithCustomError(sweep, "OldPeriodStart");
 
-		await expect(balancer.setInterestRate(2e5, newPeriodStart))
+		await expect(balancer.setInterestRate(2e7, newPeriodStart))
 			.to.be.revertedWithCustomError(sweep, "OutOfRateRange");
 
 		await expect(sweep.setInterestRate(interest, newPeriodStart))

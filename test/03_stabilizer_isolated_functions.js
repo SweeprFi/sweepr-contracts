@@ -17,7 +17,7 @@ contract("Stabilizer - Isolated Functions", async function () {
     const Proxy = await upgrades.deployProxy(Sweep, [
       lzEndpoint.address,
       owner.address,
-      2740 // 0.00274% daily rate = 1% yearly rate
+      750 // 0.00274% daily rate = 1% yearly rate
     ]);
     sweep = await Proxy.deployed();
     await sweep.setTreasury(addresses.treasury);
