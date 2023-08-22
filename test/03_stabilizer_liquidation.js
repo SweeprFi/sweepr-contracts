@@ -10,7 +10,7 @@ contract("Stabilizer - Liquidation", async function () {
     MAX_SWEEP = toBN("3000", 18);
     MAX_USDC = toBN("3000", 6);
 
-    DEPOSIT_AMOUNT = toBN("10", 6);
+    DEPOSIT_AMOUNT = toBN("11", 6);
     BORROW_AMOUNT = toBN("90", 18);
     INVEST_AMOUNT = toBN("200", 6);
 
@@ -148,6 +148,22 @@ contract("Stabilizer - Liquidation", async function () {
 
       await amm.setPrice(Const.WETH_AMM);
       await weth_asset.connect(borrower).invest(INVEST_AMOUNT, Const.SLIPPAGE);
+
+      await Promise.all(
+        assets.map(async (asset) => {
+          await asset.connect(borrower).configure(
+            2e5, // 10%
+            Const.spreadFee,
+            MAX_BORROW,
+            Const.DISCOUNT,
+            Const.DAYS_5,
+            Const.RATIO,
+            MAX_BORROW,
+            Const.TRUE,
+            Const.URL
+          );
+        })
+      );
 
       await Promise.all(
         assets.map(async (asset) => {

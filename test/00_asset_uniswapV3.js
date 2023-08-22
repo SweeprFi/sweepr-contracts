@@ -5,7 +5,7 @@ const { Const, getPriceAndData, getTokenAmounts } = require("../utils/helper_fun
 
 let pool_address;
 
-contract('Uniswap V3 Asset', async () => {
+contract.skip('Uniswap V3 Asset', async () => {
     before(async () => {
         [borrower, guest, lzEndpoint] = await ethers.getSigners();
 

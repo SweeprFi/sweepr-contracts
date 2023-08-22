@@ -100,7 +100,7 @@ const Const = {
     ZERO: 0,
     TRUE: true,
     FALSE: false,
-    RATIO: 10e4, // 10 %
+    RATIO: 1e5, // 10 %
     spreadFee: 3e4, // 3 %
     DISCOUNT: 2e4, // 2%
     URL: "htttp://test.com",
@@ -143,4 +143,3 @@ module.exports = {
     getBlockTimestamp,
     getTokenAmounts
 }
-
