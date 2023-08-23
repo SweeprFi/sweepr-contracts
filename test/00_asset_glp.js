@@ -14,6 +14,7 @@ contract('GLP Asset', async () => {
         investAmount = 100e6;
         divestAmount = 150e6;
         slippage = 5000;
+        glpPrice = 0.958e6;
 
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [
@@ -62,30 +63,30 @@ contract('GLP Asset', async () => {
         });
 
         it('invest and divest to the GMX', async () => {
-            await expect(asset.invest(depositAmount, slippage))
+            await expect(asset.invest(depositAmount, glpPrice, slippage))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
             user = await impersonate(BORROWER);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
-            await asset.connect(user).invest(investAmount, slippage);
+            await asset.connect(user).invest(investAmount, 0, slippage);
             expect(await asset.assetValue()).to.above(Const.ZERO);
 
-            await asset.connect(user).invest(depositAmount, slippage);
+            await asset.connect(user).invest(depositAmount, glpPrice, slippage);
 
-            await expect(asset.connect(user).invest(depositAmount, slippage))
+            await expect(asset.connect(user).invest(depositAmount, glpPrice, slippage))
                 .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
 
             // Collect Reward
             await asset.connect(user).collect();
 
             // Divest usdx
-            await expect(asset.divest(divestAmount, slippage))
+            await expect(asset.divest(divestAmount, glpPrice, slippage))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
             assetValue = await asset.assetValue();
-            await asset.connect(user).divest(divestAmount, slippage);
+            await asset.connect(user).divest(divestAmount, 0, slippage);
 
             expect(await asset.assetValue()).to.not.greaterThan(assetValue);
-            await asset.connect(user).divest(divestAmount, slippage);
+            await asset.connect(user).divest(divestAmount, glpPrice, slippage);
         });
     });
 });
