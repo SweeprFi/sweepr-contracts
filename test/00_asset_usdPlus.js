@@ -62,12 +62,12 @@ contract("USDPlus Asset", async function () {
 
     describe("asset constraints", async function () {
         it("only borrower can inveset", async function () {
-            await expect(asset.connect(other).invest(depositAmount))
+            await expect(asset.connect(other).invest(depositAmount, 0))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
         });
 
         it("only borrower can divest", async function () {
-            await expect(asset.connect(other).divest(depositAmount))
+            await expect(asset.connect(other).divest(depositAmount, 0))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
         });
     });
@@ -83,13 +83,13 @@ contract("USDPlus Asset", async function () {
             expect(await asset.assetValue()).to.equal(Const.ZERO);
             expect(await asset.currentValue()).to.equal(depositAmount);
 
-            await asset.invest(investAmount);
+            await asset.invest(investAmount, Const.SLIPPAGE);
             expect(await usdPlus.balanceOf(asset.address)).to.above(Const.ZERO);
 
-            await asset.invest(investAmount);
+            await asset.invest(investAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(asset.address)).to.equal(Const.ZERO);
 
-            await expect(asset.invest(investAmount))
+            await expect(asset.invest(investAmount, 0))
                 .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
 
@@ -97,11 +97,11 @@ contract("USDPlus Asset", async function () {
             usdcBalance = await usdc.balanceOf(asset.address);
             usdPlusBalance = await usdPlus.balanceOf(asset.address);
 
-            await asset.divest(divestAmount);
+            await asset.divest(divestAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(asset.address)).to.above(usdcBalance);
             expect(await usdPlus.balanceOf(asset.address)).to.below(usdPlusBalance);
 
-            await asset.divest(divestAmount);
+            await asset.divest(divestAmount, Const.SLIPPAGE);
             expect(await usdPlus.balanceOf(asset.address)).to.eq(Const.ZERO);
         });
     });
