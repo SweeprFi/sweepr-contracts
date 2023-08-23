@@ -23,7 +23,7 @@ contract GlpAsset is Stabilizer {
     IRewardTracker private immutable feeGlpTracker;
     IERC20Metadata public immutable rewardToken;
     IPriceFeed private immutable oracleReward;
-
+    uint256 internal _glpPrice;
     uint256 private constant REWARDS_FREQUENCY = 1 days;
 
     // Events
@@ -83,8 +83,10 @@ contract GlpAsset is Stabilizer {
      */
     function invest(
         uint256 usdxAmount,
+        uint256 price,
         uint256 slippage
     ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
+        _glpPrice = price;
         _invest(usdxAmount, 0, slippage);
     }
 
@@ -95,6 +97,7 @@ contract GlpAsset is Stabilizer {
      */
     function divest(
         uint256 usdxAmount,
+        uint256 price,
         uint256 slippage
     )
         external
@@ -103,6 +106,7 @@ contract GlpAsset is Stabilizer {
         validAmount(usdxAmount)
         returns (uint256)
     {
+        _glpPrice = price;
         return _divest(usdxAmount, slippage);
     }
 
@@ -180,9 +184,13 @@ contract GlpAsset is Stabilizer {
 
     // Get GLP price in usdx
     function getGlpPrice(bool maximise) internal view returns (uint256) {
-        uint256 price = glpManager.getPrice(maximise); // True: maximum, False: minimum
-
-        return (price * 10 ** usdx.decimals()) / glpManager.PRICE_PRECISION();
+        if (_glpPrice > 0) {
+            return _glpPrice;
+        } else {
+            uint256 price = glpManager.getPrice(maximise); // True: maximum, False: minimum
+            return
+                (price * 10 ** usdx.decimals()) / glpManager.PRICE_PRECISION();
+        }
     }
 
     function getGlpAmount(uint256 usdxAmount) internal view returns (uint256) {

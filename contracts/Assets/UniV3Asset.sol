@@ -176,7 +176,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     /**
      * @notice Burn NFT
      */
-    function burnNFT() external onlyBorrower isMinted {
+    function burnNFT() external onlyBorrower nonReentrant isMinted {
         nonfungiblePositionManager.burn(tokenId);
         tokenId = 0;
     }
