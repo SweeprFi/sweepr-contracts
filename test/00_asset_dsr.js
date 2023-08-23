@@ -69,17 +69,17 @@ contract('DSR Asset', async () => {
         });
 
         it('invest to the DSR', async () => {
-            await expect(asset.invest(depositAmount))
+            await expect(asset.invest(depositAmount, 0))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
             user = await impersonate(BORROWER);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
-            await asset.connect(user).invest(investAmount);
+            await asset.connect(user).invest(investAmount, Const.SLIPPAGE);
             expect(await asset.assetValue()).to.above(Const.ZERO);
 
-            await asset.connect(user).invest(depositAmount);
+            await asset.connect(user).invest(depositAmount, Const.SLIPPAGE);
 
-            await expect(asset.connect(user).invest(depositAmount))
+            await expect(asset.connect(user).invest(depositAmount, 0))
                 .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
 
@@ -93,9 +93,9 @@ contract('DSR Asset', async () => {
             expect(await asset.assetValue()).to.above(assetVal);
 
             // Divest usdx
-            await expect(asset.divest(divestAmount))
+            await expect(asset.divest(divestAmount, 0))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
-            await asset.connect(user).divest(depositAmount);
+            await asset.connect(user).divest(depositAmount, Const.SLIPPAGE);
 
             expect(await asset.assetValue()).to.equal(Const.ZERO);
         });

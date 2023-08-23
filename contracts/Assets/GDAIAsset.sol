@@ -34,13 +34,14 @@ contract GDAIAsset is Stabilizer {
     uint256 private constant WAD = 10 ** 18;
 
     // Events
-    event Invested(uint256 indexed gDaiAmount);
+    event Invested(uint256 indexed usdxAmount);
     event Divested(uint256 indexed usdxAmount);
     event Request(uint256 gDaiAmount, uint256 epoch, uint256 startTime);
 
     // Errors
     error RequestNotAvailable();
     error DivestNotAvailable();
+    error UnExpectedAmount();
 
     constructor(
         string memory _name,
@@ -136,21 +137,25 @@ contract GDAIAsset is Stabilizer {
     /**
      * @notice Invest.
      * @param usdxAmount Amount of usdx to be invested for gDai.
+     * @param slippage .
      * @dev get gDai from the usdx.
      */
     function invest(
-        uint256 usdxAmount
+        uint256 usdxAmount,
+        uint256 slippage
     ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
-        _invest(usdxAmount, 0, 0);
+        _invest(usdxAmount, 0, slippage);
     }
 
     /**
      * @notice Divest.
      * @param usdxAmount Amount to be divested.
+     * @param slippage .
      * @dev get usdx from the gDai.
      */
     function divest(
-        uint256 usdxAmount
+        uint256 usdxAmount,
+        uint256 slippage
     )
         external
         onlyBorrower
@@ -158,7 +163,7 @@ contract GDAIAsset is Stabilizer {
         validAmount(usdxAmount)
         returns (uint256)
     {
-        return _divest(usdxAmount, 0);
+        return _divest(usdxAmount, slippage);
     }
 
     /**
@@ -204,21 +209,36 @@ contract GDAIAsset is Stabilizer {
      * @notice Invest
      * @dev Deposits the amount into the GDai.
      */
-    function _invest(uint256 usdxAmount, uint256, uint256) internal override {
+    function _invest(
+        uint256 usdxAmount,
+        uint256,
+        uint256 slippage
+    ) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
+        uint256 daiBalance = dai.balanceOf(address(this));
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         // Exchange Usdx to Dai by using PSM
+        uint256 estimatedAmount = _usdxToDai(
+            OvnMath.subBasisPoints(usdxAmount, slippage)
+        );
         TransferHelper.safeApprove(address(usdx), address(gemJoin), usdxAmount);
         psm.sellGem(address(this), usdxAmount);
+        uint256 investDaiAmount = dai.balanceOf(address(this)) - daiBalance;
+        // Check return amount validation
+        if (investDaiAmount == 0 || investDaiAmount < estimatedAmount)
+            revert UnExpectedAmount();
 
         // Invest Dai to the GDai
-        uint256 daiBalance = dai.balanceOf(address(this));
-        TransferHelper.safeApprove(address(dai), address(gDai), daiBalance);
-        uint256 gDaiAmount = gDai.deposit(daiBalance, address(this));
+        TransferHelper.safeApprove(
+            address(dai),
+            address(gDai),
+            investDaiAmount
+        );
+        gDai.deposit(investDaiAmount, address(this));
 
-        emit Invested(gDaiAmount);
+        emit Invested(_daiToUsdx(investDaiAmount));
     }
 
     /**
@@ -227,7 +247,7 @@ contract GDAIAsset is Stabilizer {
      */
     function _divest(
         uint256 usdxAmount,
-        uint256
+        uint256 slippage
     ) internal override returns (uint256 divestedAmount) {
         (bool available, , ) = divestStatus();
         if (!available) revert DivestNotAvailable();
@@ -242,15 +262,26 @@ contract GDAIAsset is Stabilizer {
         if (gDaiBalance < gDaiAmount) gDaiAmount = gDaiBalance;
         daiAmount = gDai.redeem(gDaiAmount, address(this), address(this));
 
-        // Reduce fee from the request Usdx amount
+        // Check return amount
+        if (daiAmount < gDai.convertToAssets(gDaiAmount))
+            revert UnExpectedAmount();
+
+        // Exchange Dai to Usdx by using PSM
+        uint256 estimatedAmount = _daiToUsdx(
+            OvnMath.subBasisPoints(daiAmount, slippage)
+        );
         TransferHelper.safeApprove(address(dai), address(psm), daiAmount);
+        // Reduce fee from the request Usdx amount
         uint256 psmFee = psm.tout();
         daiAmount = (daiAmount * WAD) / (WAD + psmFee);
         uint256 daiInUsdx = _daiToUsdx(daiAmount);
         psm.buyGem(address(this), daiInUsdx);
 
-        // Calculate real divested Usdx amount
-        divestedAmount = usdx.balanceOf(address(this)) - usdxBalance;
+        // Sanity check && Calculate real divested Usdx amount
+        if (
+            estimatedAmount >
+            (divestedAmount = usdx.balanceOf(address(this)) - usdxBalance)
+        ) revert UnExpectedAmount();
 
         emit Divested(divestedAmount);
     }
@@ -290,5 +321,12 @@ contract GDAIAsset is Stabilizer {
      */
     function _daiToUsdx(uint256 daiAmount) internal view returns (uint256) {
         return (daiAmount * (10 ** usdx.decimals())) / (10 ** dai.decimals());
+    }
+
+    /**
+     * @notice Convert Usdx to Dai (1:1 rate)
+     */
+    function _usdxToDai(uint256 usdxAmount) internal view returns (uint256) {
+        return (usdxAmount * (10 ** dai.decimals())) / (10 ** usdx.decimals());
     }
 }

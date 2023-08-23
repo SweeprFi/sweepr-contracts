@@ -30,6 +30,9 @@ contract DsrAsset is Stabilizer {
     event Invested(uint256 indexed usdxAmount);
     event Divested(uint256 indexed usdxAmount);
 
+    // Errors
+    error UnExpectedAmount();
+
     constructor(
         string memory _name,
         address _sweep,
@@ -87,21 +90,25 @@ contract DsrAsset is Stabilizer {
     /**
      * @notice Invest USDX
      * @param usdxAmount USDX Amount to be invested.
+     * @param slippage .
      * @dev Sends balance to DSR.
      */
     function invest(
-        uint256 usdxAmount
+        uint256 usdxAmount,
+        uint256 slippage
     ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
-        _invest(usdxAmount, 0, 0);
+        _invest(usdxAmount, 0, slippage);
     }
 
     /**
      * @notice Divests From DSR.
      * @param usdxAmount Amount to be divested.
+     * @param slippage .
      * @dev Sends balance from the DSR to the Asset.
      */
     function divest(
-        uint256 usdxAmount
+        uint256 usdxAmount,
+        uint256 slippage
     )
         external
         onlyBorrower
@@ -109,7 +116,7 @@ contract DsrAsset is Stabilizer {
         validAmount(usdxAmount)
         returns (uint256)
     {
-        return _divest(usdxAmount, 0);
+        return _divest(usdxAmount, slippage);
     }
 
     /**
@@ -127,26 +134,36 @@ contract DsrAsset is Stabilizer {
      * @notice Invest
      * @dev Deposits the amount into the DSR.
      */
-    function _invest(uint256 usdxAmount, uint256, uint256) internal override {
+    function _invest(
+        uint256 usdxAmount,
+        uint256,
+        uint256 slippage
+    ) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
+        uint256 daiBalance = dai.balanceOf(address(this));
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         // Exchange Usdx to Dai by using PSM
+        uint256 estimatedAmount = _usdxToDai(
+            OvnMath.subBasisPoints(usdxAmount, slippage)
+        );
         TransferHelper.safeApprove(address(usdx), address(gemJoin), usdxAmount);
         psm.sellGem(address(this), usdxAmount);
+        uint256 investDaiAmount = dai.balanceOf(address(this)) - daiBalance;
+        // Check return amount validation
+        if (investDaiAmount == 0 || investDaiAmount < estimatedAmount)
+            revert UnExpectedAmount();
 
         // Invest Dai to the dsr
-        uint256 daiBalance = dai.balanceOf(address(this));
-        if (daiBalance == 0) revert NotEnoughBalance();
         TransferHelper.safeApprove(
             address(dai),
             address(dsrManager),
-            daiBalance
+            investDaiAmount
         );
-        dsrManager.join(address(this), daiBalance);
+        dsrManager.join(address(this), investDaiAmount);
 
-        emit Invested(usdxAmount);
+        emit Invested(_daiToUsdx(investDaiAmount));
     }
 
     /**
@@ -155,9 +172,10 @@ contract DsrAsset is Stabilizer {
      */
     function _divest(
         uint256 usdxAmount,
-        uint256
+        uint256 slippage
     ) internal override returns (uint256 divestedAmount) {
         uint256 usdxBalance = usdx.balanceOf(address(this));
+        uint256 daiBalance = dai.balanceOf(address(this));
         uint256 daiAmount = _oracleUsdxToDai(usdxAmount);
         uint256 investedAmount = assetValue();
 
@@ -167,20 +185,31 @@ contract DsrAsset is Stabilizer {
         } else {
             dsrManager.exitAll(address(this));
         }
+        uint256 redeemDaiAmount = dai.balanceOf(address(this)) - daiBalance;
+
+        // Check return amount from dsrManager
+        if (
+            redeemDaiAmount == 0 ||
+            (investedAmount > redeemDaiAmount &&
+                (investedAmount - redeemDaiAmount) > daiAmount)
+        ) revert UnExpectedAmount();
 
         // Exchange Dai to Usdx by using PSM
-        uint256 daiBalance = dai.balanceOf(address(this));
-        if (daiBalance == 0) revert NotEnoughBalance();
-        TransferHelper.safeApprove(address(dai), address(psm), daiBalance);
-
+        uint256 estimatedAmount = _daiToUsdx(
+            OvnMath.subBasisPoints(redeemDaiAmount, slippage)
+        );
+        TransferHelper.safeApprove(address(dai), address(psm), redeemDaiAmount);
         // Reduce fee from the request Usdx amount
         uint256 psmFee = psm.tout();
-        daiBalance = (daiBalance * WAD) / (WAD + psmFee);
-        uint256 daiInUsdx = _daiToUsdx(daiBalance);
+        redeemDaiAmount = (redeemDaiAmount * WAD) / (WAD + psmFee);
+        uint256 daiInUsdx = _daiToUsdx(redeemDaiAmount);
         psm.buyGem(address(this), daiInUsdx);
 
-        // Calculate real divested Usdx amount
-        divestedAmount = usdx.balanceOf(address(this)) - usdxBalance;
+        // Sanity check && Calculate real divested Usdx amount
+        if (
+            estimatedAmount >
+            (divestedAmount = usdx.balanceOf(address(this)) - usdxBalance)
+        ) revert UnExpectedAmount();
 
         emit Divested(divestedAmount);
     }
@@ -220,5 +249,12 @@ contract DsrAsset is Stabilizer {
      */
     function _daiToUsdx(uint256 daiAmount) internal view returns (uint256) {
         return (daiAmount * (10 ** usdx.decimals())) / (10 ** dai.decimals());
+    }
+
+    /**
+     * @notice Convert Usdx to Dai (1:1 rate)
+     */
+    function _usdxToDai(uint256 usdxAmount) internal view returns (uint256) {
+        return (usdxAmount * (10 ** dai.decimals())) / (10 ** usdx.decimals());
     }
 }
