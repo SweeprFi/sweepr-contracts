@@ -6,12 +6,8 @@ async function main() {
   const sweeprAddress = addresses.sweepr;
   const treasuryAddress = addresses.treasury;
 
-  if (network.type === "0") { // local
-    [deployer] = await ethers.getSigners();
-    deployer = deployer.address;
-  } else {
-    deployer = addresses.owner;
-  }
+  [deployer] = await ethers.getSigners();
+  deployer = deployer.address;
 
   console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
