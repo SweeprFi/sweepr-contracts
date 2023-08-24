@@ -12,7 +12,6 @@ pragma solidity 0.8.19;
 
 import "../Stabilizer/Stabilizer.sol";
 import "../Assets/Overnight/IExchanger.sol";
-import "hardhat/console.sol";
 
 contract USDPlusAssetMock is Stabilizer {
     // Variables
@@ -121,7 +120,6 @@ contract USDPlusAssetMock is Stabilizer {
         IAMM _amm = amm();
         TransferHelper.safeApprove(address(usdx), address(_amm), amount);
 
-        console.log("debug", address(_amm), slippage);
         return _amm.swapExactInput(
             token1,
             token2,

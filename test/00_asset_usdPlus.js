@@ -81,45 +81,45 @@ contract("USDPlus Asset", async function () {
         });
     });
 
-    // describe("invest and divest functions", async function () {
-    //     it('deposit usdc.e to the asset', async () => {
-    //         user = await impersonate(addresses.usdc_e);
-    //         await sendEth(user.address);
-    //         await usdcE.connect(user).transfer(asset.address, depositAmount);
-    //         expect(await usdcE.balanceOf(asset.address)).to.equal(depositAmount);
-    //     });
+    describe("invest and divest functions", async function () {
+        it('deposit usdc.e to the asset', async () => {
+            user = await impersonate(addresses.usdc_e);
+            await sendEth(user.address);
+            await usdcE.connect(user).transfer(asset.address, depositAmount);
+            expect(await usdcE.balanceOf(asset.address)).to.equal(depositAmount);
+        });
 
-    //     it("invest correctly", async function () {
-    //         usdPlusBalance = await usdPlus.balanceOf(asset.address);
-    //         expect(usdPlusBalance).to.equal(Const.ZERO);
+        it("invest correctly", async function () {
+            usdPlusBalance = await usdPlus.balanceOf(asset.address);
+            expect(usdPlusBalance).to.equal(Const.ZERO);
 
-    //         // first invest
-    //         await asset.invest(investAmount, Const.SLIPPAGE);
-    //         usdPlusBalance = await usdPlus.balanceOf(asset.address);
-    //         expect(usdPlusBalance).to.above(Const.ZERO);
+            // first invest
+            await asset.invest(investAmount, Const.SLIPPAGE);
+            usdPlusBalance = await usdPlus.balanceOf(asset.address);
+            expect(usdPlusBalance).to.above(Const.ZERO);
 
-    //         // second invest
-    //         await asset.invest(investAmount, Const.SLIPPAGE);
-    //         expect(await usdPlus.balanceOf(asset.address)).to.above(usdPlusBalance);
-    //         expect(await usdcE.balanceOf(asset.address)).to.equal(Const.ZERO);
-    //         await expect(asset.invest(investAmount, 0))
-    //             .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
-    //     });
+            // second invest
+            await asset.invest(investAmount, Const.SLIPPAGE);
+            expect(await usdPlus.balanceOf(asset.address)).to.above(usdPlusBalance);
+            expect(await usdcE.balanceOf(asset.address)).to.equal(Const.ZERO);
+            await expect(asset.invest(investAmount, 0))
+                .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
+        });
 
-    //     it("divest correctly", async function () {
-    //         usdcEBalance = await usdcE.balanceOf(asset.address);
-    //         usdPlusBalance = await usdPlus.balanceOf(asset.address);
+        it("divest correctly", async function () {
+            usdcEBalance = await usdcE.balanceOf(asset.address);
+            usdPlusBalance = await usdPlus.balanceOf(asset.address);
 
-    //         // first divest
-    //         await asset.divest(divestAmount, Const.SLIPPAGE);
-    //         expect(await usdcE.balanceOf(asset.address)).to.above(usdcEBalance);
-    //         expect(await usdPlus.balanceOf(asset.address)).to.below(usdPlusBalance);
+            // first divest
+            await asset.divest(divestAmount, Const.SLIPPAGE);
+            expect(await usdcE.balanceOf(asset.address)).to.above(usdcEBalance);
+            expect(await usdPlus.balanceOf(asset.address)).to.below(usdPlusBalance);
 
-    //         // second divest
-    //         await asset.divest(divestAmount, Const.SLIPPAGE);
-    //         expect(await usdPlus.balanceOf(asset.address)).to.eq(Const.ZERO);
-    //     });
-    // });
+            // second divest
+            await asset.divest(divestAmount, Const.SLIPPAGE);
+            expect(await usdPlus.balanceOf(asset.address)).to.eq(Const.ZERO);
+        });
+    });
 
     describe("Test Swap functions", async function () {
         it('move block from old to latest', async () => {
