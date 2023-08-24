@@ -64,7 +64,7 @@ const wallets = {
   usdc_holder: {
     1: '0xDa9CE944a37d218c3302F6B82a094844C6ECEb17',
     5: '0x93aE1efd2E78028351C080FA0fbBBeF97Ec42EAD',
-    42161: '0xAEafDd0ce0c4ab0AC57913916E5c386D847609c3',
+    42161: '0x70d95587d40a2caf56bd97485ab3eec10bee6336',
   },
   comp_holder: {
     1: '',
@@ -99,6 +99,11 @@ const tokens = {
   usdc: {
     1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     5: '0x65aFADD39029741B3b8f0756952C74678c9cEC93', // Faucet: 0xA70D8aD6d26931d0188c642A66de3B6202cDc5FA
+    42161: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+  },
+  usdc_e: {
+    1: '',
+    5: '',
     42161: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
   },
   usdt: {

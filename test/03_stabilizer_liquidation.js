@@ -77,7 +77,8 @@ contract("Stabilizer - Liquidation", async function () {
       addresses.weth,
       addresses.oracle_usdc_usd,
       wethOracle.address,
-      borrower.address
+      borrower.address,
+			Const.FEE
     );
 
     assets = [aave_asset, comp_asset, weth_asset];

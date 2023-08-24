@@ -48,7 +48,8 @@ contract("WBTC Asset", async function () {
             addresses.wbtc,
 			addresses.oracle_usdc_usd,
             wbtcOracle.address,
-            BORROWER
+            BORROWER,
+            Const.FEE
         );
 
         // simulates a pool in uniswap with 10000 SWEEP/USDX

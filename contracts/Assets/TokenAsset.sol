@@ -16,6 +16,7 @@ contract TokenAsset is Stabilizer {
     // Variables
     IERC20Metadata private immutable token;
     IPriceFeed private immutable oracleToken;
+    uint24 private immutable poolFee;
 
     // Events
     event Invested(uint256 indexed tokenAmount);
@@ -28,10 +29,13 @@ contract TokenAsset is Stabilizer {
         address _token,
         address _oracleUsdx,
         address _oracleToken,
-        address _borrower
+        address _borrower,
+        uint24 _poolFee
+
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         token = IERC20Metadata(_token);
         oracleToken = IPriceFeed(_oracleToken);
+        poolFee = _poolFee;
     }
 
     /* ========== Views ========== */
@@ -114,6 +118,7 @@ contract TokenAsset is Stabilizer {
         uint256 tokenAmount = _amm.swapExactInput(
             address(usdx),
             address(token),
+            poolFee,
             usdxAmount,
             OvnMath.subBasisPoints(usdxInToken, slippage)
         );
@@ -135,6 +140,7 @@ contract TokenAsset is Stabilizer {
         divestedAmount = _amm.swapExactInput(
             address(token),
             address(usdx),
+            poolFee,
             tokenAmount,
             OvnMath.subBasisPoints(tokenInUsdx, slippage)
         );

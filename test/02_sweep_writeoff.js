@@ -59,7 +59,8 @@ contract("Sweep - WriteOff", async function () {
 			addresses.wbtc,
             addresses.oracle_usdc_usd,
 			wbtcOracle.address,
-			borrower.address
+			borrower.address,
+			Const.FEE
 		);
 
 		wethAsset = await WBTCAsset.deploy(
@@ -69,7 +70,8 @@ contract("Sweep - WriteOff", async function () {
 			addresses.weth,
             addresses.oracle_usdc_usd,
 			wbtcOracle.address,
-			borrower.address
+			borrower.address,
+			Const.FEE
 		);
 	});
 

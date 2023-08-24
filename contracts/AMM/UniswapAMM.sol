@@ -132,6 +132,7 @@ contract UniswapAMM {
         sweepAmount = swapExactInput(
             tokenAddress,
             address(sweep),
+            poolFee,
             tokenAmount,
             amountOutMin
         );
@@ -153,6 +154,7 @@ contract UniswapAMM {
         tokenAmount = swapExactInput(
             address(sweep),
             tokenAddress,
+            poolFee,
             sweepAmount,
             amountOutMin
         );
@@ -168,6 +170,7 @@ contract UniswapAMM {
     function swapExactInput(
         address tokenA,
         address tokenB,
+        uint24 fee,
         uint256 amountIn,
         uint256 amountOutMin
     ) public returns (uint256 amountOut) {
@@ -184,7 +187,7 @@ contract UniswapAMM {
             .ExactInputSingleParams({
                 tokenIn: tokenA,
                 tokenOut: tokenB,
-                fee: poolFee,
+                fee: fee,
                 recipient: msg.sender,
                 // TODO: will this hardcoded 200 work for every network?
                 deadline: block.timestamp + DEADLINE_GAP,

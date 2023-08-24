@@ -48,7 +48,8 @@ contract("WETH Asset", async function () {
             addresses.weth,
 			addresses.oracle_usdc_usd,
             wethOracle.address,
-            BORROWER
+            BORROWER,
+            Const.FEE
         );
 
         // simulates a pool in uniswap with 10000 SWEEP/USDX

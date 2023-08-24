@@ -5,6 +5,7 @@ interface IAMM {
     function swapExactInput(
         address tokenA,
         address tokenB,
+        uint24 fee,
         uint256 amountIn,
         uint256 amountOutMin
     ) external returns (uint256);
