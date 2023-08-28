@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { impersonate, Const, toBN, getBlockTimestamp } = require("../utils/helper_functions");
+const { impersonate, Const, toBN, sendEth, getBlockTimestamp } = require("../utils/helper_functions");
 let user;
 
 contract('Balancer - Auto Call', async () => {
@@ -9,7 +9,7 @@ contract('Balancer - Auto Call', async () => {
     [owner, lzEndpoint, wallet] = await ethers.getSigners();
     // constants
     BORROWER = addresses.borrower;
-    USDC_ADDRESS = addresses.usdc;
+    USDC_ADDRESS = addresses.usdc_e;
     TREASURY = addresses.treasury;
     WALLET = wallet.address;
 
@@ -115,7 +115,8 @@ contract('Balancer - Auto Call', async () => {
       await sweep.setTreasury(TREASURY);
       
       // sends funds to Borrower
-      user = await impersonate(USDC_ADDRESS);
+      user = await impersonate(addresses.usdc_e);
+      await sendEth(user.address);
       await usdc.connect(user).transfer(BORROWER, USDC_AMOUNT * 6);
       await usdc.connect(user).transfer(amm.address, USDC_AMOUNT * 100);
       await sweep.transfer(amm.address, MAX_MINT);

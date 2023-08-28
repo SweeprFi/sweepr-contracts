@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses } = require("../utils/address");
-const { impersonate, toBN, Const, increaseTime } = require("../utils/helper_functions");
+const { impersonate, toBN, Const, sendEth, increaseTime } = require("../utils/helper_functions");
 
 contract('Aave V3 Asset', async () => {
     before(async () => {
@@ -25,7 +25,7 @@ contract('Aave V3 Asset', async () => {
         await sweep.connect(user).setTreasury(addresses.treasury);
 
         ERC20 = await ethers.getContractFactory("ERC20");
-        usdx = await ERC20.attach(addresses.usdc);
+        usdx = await ERC20.attach(addresses.usdc_e);
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
         uniswap_amm = await Uniswap.deploy(sweep.address, Const.FEE);
@@ -35,7 +35,7 @@ contract('Aave V3 Asset', async () => {
         aaveAsset = await AaveAsset.deploy(
             'Aave Asset',
             sweep.address,
-            addresses.usdc,
+            addresses.usdc_e,
             addresses.aave_usdc,
             addresses.aaveV3_pool,
             addresses.oracle_usdc_usd,
@@ -53,7 +53,8 @@ contract('Aave V3 Asset', async () => {
         await sweep.connect(admin).transfer(uniswap_amm.address, sweepAmount);
         await sweep.connect(admin).transfer(addresses.multisig, sweepAmount);
 
-        user = await impersonate(addresses.usdc)
+        user = await impersonate(addresses.usdc_e);
+        await sendEth(user.address);
         await usdx.connect(user).transfer(uniswap_amm.address, usdxAmount);
 
         user = await impersonate(addresses.multisig);

@@ -5,7 +5,7 @@ async function main() {
     let deployer = '';
     const assetName = 'Aave V3 Asset';
     const sweep = addresses.sweep;
-    const usdc = addresses.usdc;
+    const usdc = addresses.usdc_e;
     const aaveUsdc = addresses.aave_usdc;
     const aaveV3Pool = addresses.aaveV3_pool;
     const oracleUsdc = addresses.oracle_usdc_usd;

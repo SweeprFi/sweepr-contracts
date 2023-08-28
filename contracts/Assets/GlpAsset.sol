@@ -165,6 +165,7 @@ contract GlpAsset is Stabilizer {
     ) internal override returns (uint256 divestedAmount) {
         collect();
         uint256 glpBalance = stakedGlpTracker.balanceOf(address(this));
+        if (glpBalance == 0) revert NotEnoughBalance();
         uint256 glpAmount = getGlpAmount(usdxAmount);
 
         if (glpBalance < glpAmount) {

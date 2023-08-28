@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses, chainId } = require("../utils/address");
-const { impersonate, Const } = require("../utils/helper_functions")
+const { impersonate, sendEth, Const } = require("../utils/helper_functions")
 
 contract('GLP Asset', async () => {
     // GLP Asset only work on the Arbitrum.
@@ -14,8 +14,8 @@ contract('GLP Asset', async () => {
         investAmount = 100e6;
         divestAmount = 150e6;
         slippage = 5000;
-        glpPrice = 0.958e6;
-
+        glpPrice = 0.95e6;
+        
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [
             lzEndpoint.address,
@@ -57,7 +57,8 @@ contract('GLP Asset', async () => {
     describe("Initial Test", async function () {
         it('deposit usdc to the asset', async () => {
             expect(await asset.currentValue()).to.equal(Const.ZERO);
-            user = await impersonate(addresses.usdc);
+            user = await impersonate(addresses.usdc_holder);
+            await sendEth(user.address);
             await usdx.connect(user).transfer(asset.address, depositAmount);
             expect(await usdx.balanceOf(asset.address)).to.above(Const.ZERO)
         });

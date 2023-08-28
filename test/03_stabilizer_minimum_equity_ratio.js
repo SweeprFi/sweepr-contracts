@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses } = require("../utils/address");
-const { impersonate, toBN, Const } = require("../utils/helper_functions");
+const { impersonate, toBN, sendEth, Const } = require("../utils/helper_functions");
 
 contract('Stabilizer - Minimum equity ratio', async () => {
   before(async () => {
@@ -24,7 +24,7 @@ contract('Stabilizer - Minimum equity ratio', async () => {
     await sweep.setTreasury(addresses.treasury);
 
     ERC20 = await ethers.getContractFactory("ERC20");
-    usdx = await ERC20.attach(addresses.usdc);
+    usdx = await ERC20.attach(addresses.usdc_e);
     aave_usdx = await ERC20.attach(addresses.aave_usdc);
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
@@ -35,7 +35,7 @@ contract('Stabilizer - Minimum equity ratio', async () => {
     aaveAsset = await AaveAsset.deploy(
       'Aave Asset',
       sweep.address,
-      addresses.usdc,
+      addresses.usdc_e,
       addresses.aave_usdc,
       addresses.aaveV3_pool,
       addresses.oracle_usdc_usd,
@@ -53,7 +53,8 @@ contract('Stabilizer - Minimum equity ratio', async () => {
     await sweep.transfer(uniswap_amm.address, sweepAmount);
     await sweep.transfer(addresses.multisig, sweepAmount);
 
-    user = await impersonate(addresses.usdc)
+    user = await impersonate(addresses.usdc_e);
+    await sendEth(user.address);
     await usdx.connect(user).transfer(uniswap_amm.address, usdxAmount);
     await usdx.connect(user).transfer(owner.address, usdxAmount);
 

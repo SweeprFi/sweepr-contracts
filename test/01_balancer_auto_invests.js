@@ -1,14 +1,14 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { impersonate, Const, toBN } = require("../utils/helper_functions");
+const { impersonate, Const, sendEth, toBN } = require("../utils/helper_functions");
 
 contract('Balancer - Auto Invests', async () => {
     before(async () => {
         [owner, lzEndpoint] = await ethers.getSigners();
         // Variables
         BORROWER = addresses.borrower;
-        USDC_ADDRESS = addresses.usdc;
+        USDC_ADDRESS = addresses.usdc_e;
         TREASURY = addresses.treasury;
         OWNER = addresses.owner;
         usdxAmount = 1000e6;
@@ -143,7 +143,8 @@ contract('Balancer - Auto Invests', async () => {
             );
 
             // Send USDC to Borrower
-            user = await impersonate(USDC_ADDRESS);
+            user = await impersonate(addresses.usdc_e);
+            await sendEth(user.address);
             await usdc.connect(user).transfer(BORROWER, usdxAmount);
 
             await usdc.connect(user).transfer(amm.address, usdxAmount*10);
