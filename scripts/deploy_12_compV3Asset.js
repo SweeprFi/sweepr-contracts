@@ -5,7 +5,7 @@ async function main() {
 	let deployer;
 	const assetName = 'Compound V3 Asset';
 	const sweep = addresses.sweep;
-	const usdc = addresses.usdc;
+	const usdc = addresses.usdc_e;
 	const cusdc = addresses.comp_cusdc;
 	const oracleUsdc = addresses.oracle_usdc_usd;
 	const borrower = addresses.borrower;

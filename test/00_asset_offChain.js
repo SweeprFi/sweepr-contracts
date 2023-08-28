@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
-const { impersonate, Const, toBN, getBlockTimestamp } = require("../utils/helper_functions");
+const { impersonate, Const, toBN, sendEth, getBlockTimestamp } = require("../utils/helper_functions");
 
 contract("Off-Chain Asset", async function (accounts) {
     before(async () => {
@@ -45,7 +45,8 @@ contract("Off-Chain Asset", async function (accounts) {
 
     describe("main functions", async function () {
         it('deposit usdc and sweep to the asset', async () => {
-            user = await impersonate(addresses.usdc);
+            user = await impersonate(addresses.usdc_holder);
+            await sendEth(user.address);
             await usdx.connect(user).transfer(asset.address, usdxAmount);
             await sweep.transfer(asset.address, sweepAmount);
             expect(await usdx.balanceOf(asset.address)).to.equal(usdxAmount);

@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses } = require("../utils/address");
-const { impersonate, increaseTime, Const, toBN } = require("../utils/helper_functions");
+const { impersonate, increaseTime, Const, sendEth, toBN } = require("../utils/helper_functions");
 
 contract('Compound V3 Asset', async () => {
     before(async () => {
@@ -23,14 +23,14 @@ contract('Compound V3 Asset', async () => {
         await sweep.setTreasury(addresses.treasury);
 
         ERC20 = await ethers.getContractFactory("ERC20");
-        usdx = await ERC20.attach(addresses.usdc);
+        usdx = await ERC20.attach(addresses.usdc_e);
         cusdc = await ERC20.attach(addresses.comp_cusdc);
 
         CompoundAsset = await ethers.getContractFactory("CompV3Asset");
         compAsset = await CompoundAsset.deploy(
             'Compound V3 Asset',
             sweep.address,
-            addresses.usdc,
+            addresses.usdc_e,
             addresses.comp_cusdc,
             addresses.oracle_usdc_usd,
             borrower.address
@@ -55,7 +55,8 @@ contract('Compound V3 Asset', async () => {
         await sweep.connect(borrower).transfer(amm.address, maxMint);
         await sweep.connect(borrower).transfer(guest.address, maxMint);
 
-        user = await impersonate(addresses.usdc)
+        user = await impersonate(addresses.usdc_e)
+        await sendEth(user.address);
         await usdx.connect(user).transfer(amm.address, 10000e6);
         await sweep.transfer(amm.address, borrowAmount.mul(2));
 
@@ -64,7 +65,7 @@ contract('Compound V3 Asset', async () => {
 
     describe("Main test", async function () {
         it('deposit usdc to the asset', async () => {
-            user = await impersonate(addresses.usdc);
+            user = await impersonate(addresses.usdc_e);
             await usdx.connect(user).transfer(compAsset.address, depositAmount);
             expect(await usdx.balanceOf(compAsset.address)).to.equal(depositAmount);
         });
@@ -160,7 +161,7 @@ contract('Compound V3 Asset', async () => {
 
     describe("Liquidation test", async function () {
         it('setup', async () => {
-            user = await impersonate(addresses.usdc);
+            user = await impersonate(addresses.usdc_e);
             await usdx.connect(user).transfer(compAsset.address, depositAmount);
             await compAsset.borrow(borrowAmount);
             await compAsset.sellSweepOnAMM(borrowAmount, 0);

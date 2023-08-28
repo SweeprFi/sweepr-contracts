@@ -14,8 +14,9 @@ import "../Common/Owned.sol";
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Treasury is Owned {
+contract Treasury is Owned, ReentrancyGuard {
     // Events
     event SendEther(address to, uint256 amount);
     event SendToken(address token, address to, uint256 amount);
@@ -34,7 +35,10 @@ contract Treasury is Owned {
      * @param receiver address
      * @param amount Eth amount
      */
-    function sendEther(address receiver, uint256 amount) external onlyGov {
+    function sendEther(
+        address receiver,
+        uint256 amount
+    ) external onlyGov nonReentrant {
         uint256 ethBalance = address(this).balance;
         if (amount > ethBalance) amount = ethBalance;
 
@@ -49,7 +53,11 @@ contract Treasury is Owned {
      * @param receiver address
      * @param amount SWEEP amount
      */
-    function sendToken(address token, address receiver, uint256 amount) external onlyGov {
+    function sendToken(
+        address token,
+        address receiver,
+        uint256 amount
+    ) external onlyGov nonReentrant {
         uint256 tokenBalance = IERC20(token).balanceOf(address(this));
         if (amount > tokenBalance) amount = tokenBalance;
 

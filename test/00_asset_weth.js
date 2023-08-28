@@ -48,7 +48,8 @@ contract("WETH Asset", async function () {
             addresses.weth,
 			addresses.oracle_usdc_usd,
             wethOracle.address,
-            BORROWER
+            BORROWER,
+            Const.FEE
         );
 
         // simulates a pool in uniswap with 10000 SWEEP/USDX
@@ -57,7 +58,8 @@ contract("WETH Asset", async function () {
         await sweep.connect(user).mint(maxBorrow);
         await sweep.connect(user).transfer(amm.address, maxBorrow);
 
-        user = await impersonate(addresses.usdc)
+        user = await impersonate(addresses.usdc_holder);
+        await sendEth(user.address);
         await usdc.connect(user).transfer(amm.address, 100e6);
 
         user = await impersonate(Const.WETH_HOLDER);
@@ -78,7 +80,7 @@ contract("WETH Asset", async function () {
 
     describe("invest and divest functions", async function () {
         it('deposit usdc to the asset', async () => {
-            user = await impersonate(addresses.usdc);
+            user = await impersonate(addresses.usdc_holder);
             await usdc.connect(user).transfer(weth_asset.address, depositAmount);
             expect(await usdc.balanceOf(weth_asset.address)).to.equal(depositAmount)
         });

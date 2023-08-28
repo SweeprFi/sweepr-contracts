@@ -11,9 +11,9 @@ pragma solidity 0.8.19;
  */
 
 import "../Stabilizer/Stabilizer.sol";
-import "./Overnight/IExchanger.sol";
+import "../Assets/Overnight/IExchanger.sol";
 
-contract USDPlusAsset is Stabilizer {
+contract USDPlusAssetMock is Stabilizer {
     // Variables
     IERC20Metadata private immutable token;
     IERC20Metadata private immutable usdcE; // Arbitrum USDC.e
@@ -74,15 +74,15 @@ contract USDPlusAsset is Stabilizer {
 
     /**
      * @notice Invest.
-     * @param usdxAmount Amount of usdx to be swapped for token.
+     * @param usdcEAmount Amount of usdc.e to be swapped for token.
      * @param slippage .
      * @dev Swap from usdx to token.
      */
     function invest(
-        uint256 usdxAmount,
+        uint256 usdcEAmount,
         uint256 slippage
-    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
-        _invest(usdxAmount, 0, slippage);
+    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdcEAmount) {
+        _invest(usdcEAmount, 0, slippage);
     }
 
     /**
@@ -111,27 +111,34 @@ contract USDPlusAsset is Stabilizer {
         _liquidate(address(token));
     }
 
+    function swap(
+        address token1,
+        address token2,
+        uint256 amount,
+        uint256 slippage
+    ) external returns (uint256) {
+        IAMM _amm = amm();
+        TransferHelper.safeApprove(address(usdx), address(_amm), amount);
+
+        return _amm.swapExactInput(
+            token1,
+            token2,
+            poolFee,
+            amount,
+            OvnMath.subBasisPoints(amount, slippage)
+        );
+    }
+
     /* ========== Internals ========== */
 
     function _invest(
-        uint256 usdxAmount,
+        uint256 usdcEAmount,
         uint256,
         uint256 slippage
     ) internal override {
-        uint256 usdxBalance = usdx.balanceOf(address(this));
-        if (usdxBalance == 0) revert NotEnoughBalance();
-        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
-
-        // Swap native USDx to USDC.e
-        IAMM _amm = amm();
-        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
-        uint256 usdcEAmount = _amm.swapExactInput(
-            address(usdx),
-            address(usdcE),
-            poolFee,
-            usdxAmount,
-            OvnMath.subBasisPoints(usdxAmount, slippage)
-        );
+        uint256 usdcEBalance = usdcE.balanceOf(address(this));
+        if (usdcEBalance == 0) revert NotEnoughBalance();
+        if (usdcEBalance < usdcEAmount) usdcEAmount = usdcEBalance;
 
         // Invest to USD+
         uint256 estimatedAmount = _usdxToToken(
@@ -145,6 +152,7 @@ contract USDPlusAsset is Stabilizer {
         uint256 tokenAmount = exchanger.mint(
             IExchanger.MintParams(address(usdcE), usdcEAmount, "")
         );
+
         if (tokenAmount == 0 || tokenAmount < estimatedAmount)
             revert UnExpectedAmount();
 
@@ -161,24 +169,13 @@ contract USDPlusAsset is Stabilizer {
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
 
         // Redeem
-        uint256 usdcEAmount = exchanger.redeem(address(usdcE), tokenAmount);
+        divestedAmount = exchanger.redeem(address(usdcE), tokenAmount);
 
         // Check return amount
         uint256 estimatedAmount = _tokenToUsdx(
             OvnMath.subBasisPoints(tokenAmount, slippage)
         );
-        if (usdcEAmount < estimatedAmount) revert UnExpectedAmount();
-
-        // Swap native USDC.e to USDx
-        IAMM _amm = amm();
-        TransferHelper.safeApprove(address(usdcE), address(_amm), usdcEAmount);
-        divestedAmount = _amm.swapExactInput(
-            address(usdcE),
-            address(usdx),
-            poolFee,
-            usdcEAmount,
-            OvnMath.subBasisPoints(usdcEAmount, slippage)
-        );
+        if (divestedAmount < estimatedAmount) revert UnExpectedAmount();
 
         emit Divested(divestedAmount);
     }

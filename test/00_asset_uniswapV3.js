@@ -5,7 +5,7 @@ const { Const, getPriceAndData, getTokenAmounts } = require("../utils/helper_fun
 
 let pool_address;
 
-contract.skip('Uniswap V3 Asset', async () => {
+contract('Uniswap V3 Asset', async () => {
     before(async () => {
         [borrower, guest, lzEndpoint] = await ethers.getSigners();
 
@@ -135,7 +135,7 @@ contract.skip('Uniswap V3 Asset', async () => {
                 usdxMinOut = (100 * slippage / ratio).toFixed(3) * 1e6; // 2% slippage
                 sweepMinOut = ethers.utils.parseUnits((100 * slippage).toString(), 18);  // 2% slippage
             } else {
-                usdxMinOut = 100 * slippage * 1e6;  // 1% slippage
+                usdxMinOut = 100 * slippage * 1e6;  // 2% slippage
                 sweepMinOut = ethers.utils.parseUnits((100 * slippage / ratio).toFixed(3), 18);  // 2% slippage
             }
             

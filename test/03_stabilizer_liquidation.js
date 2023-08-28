@@ -41,7 +41,7 @@ contract("Stabilizer - Liquidation", async function () {
     WETH = await ethers.getContractFactory("TokenAsset");
 
     sweep = await Proxy.deployed();
-    usdc = await TOKEN.attach(addresses.usdc);
+    usdc = await TOKEN.attach(addresses.usdc_e);
     weth = await TOKEN.attach(addresses.weth);
     dai = await TOKEN.attach(addresses.dai);
     gdai = await TOKEN.attach(addresses.gDai);
@@ -54,7 +54,7 @@ contract("Stabilizer - Liquidation", async function () {
     aave_asset = await Aave.deploy(
       'Aave Asset',
       sweep.address,
-      addresses.usdc,
+      addresses.usdc_e,
       addresses.aave_usdc,
       addresses.aaveV3_pool,
       addresses.oracle_usdc_usd,
@@ -64,7 +64,7 @@ contract("Stabilizer - Liquidation", async function () {
     comp_asset = await Compound.deploy(
       'Compound V3 Asset',
       sweep.address,
-      addresses.usdc,
+      addresses.usdc_e,
       addresses.comp_cusdc,
       addresses.oracle_usdc_usd,
       borrower.address
@@ -73,11 +73,12 @@ contract("Stabilizer - Liquidation", async function () {
     weth_asset = await WETH.deploy(
       'WETH Asset',
       sweep.address,
-      addresses.usdc,
+      addresses.usdc_e,
       addresses.weth,
       addresses.oracle_usdc_usd,
       wethOracle.address,
-      borrower.address
+      borrower.address,
+			Const.FEE
     );
 
     assets = [aave_asset, comp_asset, weth_asset];
@@ -91,7 +92,8 @@ contract("Stabilizer - Liquidation", async function () {
       await sweep.transfer(amm.address, MAX_SWEEP);
       await sweep.transfer(liquidator.address, MAX_SWEEP);
 
-      user = await impersonate(addresses.usdc)
+      user = await impersonate(addresses.usdc_e);
+      await sendEth(user.address);
       await usdc.connect(user).transfer(amm.address, MAX_USDC);
 
       user = await impersonate(Const.WETH_HOLDER);
@@ -124,7 +126,7 @@ contract("Stabilizer - Liquidation", async function () {
     });
 
     it("deposits, borrow and invest", async function () {
-      user = await impersonate(addresses.usdc);
+      user = await impersonate(addresses.usdc_e);
       await Promise.all(
         assets.map(async (asset) => {
           await usdc.connect(user).transfer(asset.address, DEPOSIT_AMOUNT);

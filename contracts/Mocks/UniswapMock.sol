@@ -44,6 +44,7 @@ contract UniswapMock {
         sweep_amount = swapExactInput(
             _collateral_address,
             sweepAddress,
+            poolFee,
             _collateral_amount,
             _amountOutMin
         );
@@ -57,6 +58,7 @@ contract UniswapMock {
         collateral_amount = swapExactInput(
             sweepAddress,
             _collateral_address,
+            poolFee,
             _sweep_amount,
             _amountOutMin
         );
@@ -65,6 +67,7 @@ contract UniswapMock {
     function swapExactInput(
         address _tokenA,
         address _tokenB,
+        uint24 _poolFee,
         uint256 _amount,
         uint256 _amount_out_min
     ) public returns (uint256 result) {
@@ -77,9 +80,9 @@ contract UniswapMock {
         // TODO: minus poolFee, not 3000
 
         if (decimalsA > 6) {
-            result = ((_amount * price) * (1e6 - poolFee)) / ((10 ** decimalsA) * 1e6);
+            result = ((_amount * price) * (1e6 - _poolFee)) / ((10 ** decimalsA) * 1e6);
         } else {
-            result = ((_amount * (10 ** decimalsB) * (1e6 - poolFee)) / (price * 1e6));
+            result = ((_amount * (10 ** decimalsB) * (1e6 - _poolFee)) / (price * 1e6));
         }
         ERC20(_tokenB).transfer(msg.sender, result);
     }

@@ -20,7 +20,7 @@ contract("ETS Asset", async function () {
         blockNumber = await ethers.provider.getBlockNumber();
         await resetNetwork(Const.BLOCK_NUMBER);
         await sendEth(Const.EXCHANGER_ADMIN);
-        await sendEth(addresses.usdc);
+        await sendEth(addresses.usdc_e);
 
         // ------------- Deployment of contracts -------------
         
@@ -34,7 +34,7 @@ contract("ETS Asset", async function () {
         await sweep.setTreasury(addresses.treasury);
 
         Token = await ethers.getContractFactory("ERC20");
-        usdc = await Token.attach(addresses.usdc);
+        usdc = await Token.attach(addresses.usdc_e);
         ets = await Token.attach(addresses.ets);
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
@@ -45,7 +45,7 @@ contract("ETS Asset", async function () {
         asset = await Asset.deploy(
             'ETS Asset',
             sweep.address,
-            addresses.usdc,
+            addresses.usdc_e,
             addresses.ets,
             addresses.ets_exchanger,
             addresses.oracle_usdc_usd,
@@ -80,7 +80,7 @@ contract("ETS Asset", async function () {
 
     describe("invest and divest functions", async function () {
         it('deposit usdc to the asset', async () => {
-            user = await impersonate(addresses.usdc);
+            user = await impersonate(addresses.usdc_e);
             await usdc.connect(user).transfer(asset.address, depositAmount);
             expect(await usdc.balanceOf(asset.address)).to.equal(depositAmount);
             expect(await asset.currentValue()).to.equal(depositAmount);

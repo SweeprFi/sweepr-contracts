@@ -5,7 +5,7 @@ async function main() {
     let deployer = '';
     const name = 'ETS Asset';
     const sweep = addresses.sweep;
-    const usdc = addresses.usdc;
+    const usdc = addresses.usdc_e;
     const ets = addresses.ets;
     const exchanger = addresses.ets_exchanger;
     const oracleUsdc = addresses.oracle_usdc_usd;
