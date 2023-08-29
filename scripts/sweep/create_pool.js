@@ -2,7 +2,6 @@ const { ethers } = require('hardhat');
 const { addresses, network, cardinality } = require("../../utils/address");
 const { Const, getPriceAndData } = require('../../utils/helper_functions');
 
-
 async function main() {
 	const { token0, token1, sqrtPriceX96 } =  getPriceAndData(addresses.sweep, addresses.usdc, 0, 0);
 

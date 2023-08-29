@@ -2,7 +2,9 @@ const { ethers } = require("hardhat");
 const { addresses } = require("../utils/address");
 
 async function main() {
-    let deployer = '';
+    [deployer] = await ethers.getSigners();
+    deployer = deployer.address;
+
     const assetName = 'Market Maker';
     const sweep = addresses.sweep;
     const usdc = addresses.usdc;
@@ -11,14 +13,7 @@ async function main() {
     const bottomSpread = 0; // 0
     const tickSpread = 1000; // 0.1%
     const oracleUsdc = addresses.oracle_usdc_usd;
-    const borrower = addresses.borrower;
-
-    if (network.type === "0") { // local
-        [deployer] = await ethers.getSigners();
-        deployer = deployer.address;
-    } else {
-        deployer = addresses.owner;
-    }
+    const borrower = addresses.multisig;
 
     console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 

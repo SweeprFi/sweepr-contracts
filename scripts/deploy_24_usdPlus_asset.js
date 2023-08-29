@@ -3,7 +3,9 @@ const { addresses, network } = require("../utils/address");
 const { Const} = require("../utils/helper_functions");
 
 async function main() {
-    let deployer = '';
+    [deployer] = await ethers.getSigners();
+    deployer = deployer.address;
+
     const name = 'USDPlus Asset';
     const sweep = addresses.sweep;
     const usdc = addresses.usdc;
@@ -11,15 +13,8 @@ async function main() {
     const usdcE = addresses.usdc_e;
     const exchanger = addresses.usdPlus_exchanger;
     const oracleUsdc = addresses.oracle_usdc_usd;
-    const borrower = addresses.borrower;
+    const borrower = addresses.multisig;
     const poolFee = Const.FEE;
-
-    if (network.type === "0") { // local
-        [deployer] = await ethers.getSigners();
-        deployer = deployer.address;
-    } else {
-        deployer = addresses.owner;
-    }
 
     console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
@@ -36,7 +31,7 @@ async function main() {
         poolFee
     );
 
-    console.log("Backed Asset deployed to:", asset.address);
+    console.log("USD+ Asset deployed to:", asset.address);
     console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${name}" ${sweep} ${usdc} ${usdPlus} ${usdcE} ${exchanger} ${oracleUsdc} ${borrower} ${poolFee}`)
 }
 

@@ -2,20 +2,15 @@ const { ethers } = require("hardhat");
 const { addresses, network } = require("../utils/address");
 
 async function main() {
-    let deployer = '';
+    [deployer] = await ethers.getSigners();
+	deployer = deployer.address;
+
 	const assetName = 'Uniswap Asset';
 	const sweep = addresses.sweep;
 	const usdc = addresses.usdc;
 	const helper = addresses.liquidity_helper;
 	const oracleUsdc = addresses.oracle_usdc_usd;
 	const borrower = addresses.multisig;
-
-    if (network.type === "0") { // local
-        [deployer] = await ethers.getSigners();
-        deployer = deployer.address;
-    } else {
-        deployer = addresses.owner;
-    }
 
 	console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
