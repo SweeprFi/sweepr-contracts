@@ -85,6 +85,7 @@ const addresses = {
   uniswap_amm: protocol.uniswap_amm[chainId],
   timelock: protocol.timelock[chainId],
   approver: protocol.approver[chainId],
+  vesting_approver: protocol.vesting_approver[chainId],
 
   // Assets + Stabilizers
   asset_offChain: assets.off_chain[chainId],
@@ -95,6 +96,8 @@ const addresses = {
   asset_compound: assets.compound[chainId],
   asset_backed: assets.backed[chainId],
   asset_marketmaker: assets.market_maker[chainId],
+  asset_usdPlus: assets.usd_plus[chainId],
+  asset_daiDsr: assets.dai_dsr[chainId],
 }
 
 const cardinality = uniswap.observationCardinality[chainId];

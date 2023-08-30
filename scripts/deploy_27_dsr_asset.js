@@ -2,7 +2,9 @@ const { ethers } = require("hardhat");
 const { addresses, network } = require("../utils/address");
 
 async function main() {
-    let deployer = '';
+    [deployer] = await ethers.getSigners();
+    deployer = deployer.address;
+
     const name = 'DSR Asset';
     const sweep = addresses.sweep;
     const usdc = addresses.usdc;
@@ -11,14 +13,7 @@ async function main() {
     const dssPsm = addresses.dss_psm;
     const oracleUsdc = addresses.oracle_usdc_usd;
     const oracleDai = addresses.oracle_dai_usd;
-    const borrower = addresses.borrower;
-
-    if (network.type === "0") { // local
-        [deployer] = await ethers.getSigners();
-        deployer = deployer.address;
-    } else {
-        deployer = addresses.owner;
-    }
+    const borrower = addresses.multisig;
 
     console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
@@ -35,7 +30,7 @@ async function main() {
         borrower
     );
 
-    console.log("Backed Asset deployed to:", asset.address);
+    console.log("DAI DSR Asset deployed to:", asset.address);
     console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${name}" ${sweep} ${usdc} ${dai} ${dsrManager} ${dssPsm} ${oracleUsdc} ${oracleDai} ${borrower}`)
 }
 
