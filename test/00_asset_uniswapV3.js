@@ -10,7 +10,7 @@ contract('Uniswap V3 Asset', async () => {
         [borrower, guest, lzEndpoint] = await ethers.getSigners();
 
         ratio = 1.084 // ratio of assets that should be used for LP
-        slippage = (Const.BASIS_DENOMINATOR - Const.SLIPPAGE) / Const.BASIS_DENOMINATOR;
+        slippage = (Const.BASIS_DENOMINATOR - 50000) / Const.BASIS_DENOMINATOR;
         usdxAmount = 1000e6;
         mintLPUsdxAmount = 100e6;
         sweepAmount = ethers.utils.parseUnits("1000", 18);
