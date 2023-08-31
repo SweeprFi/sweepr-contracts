@@ -27,13 +27,8 @@ contract VestingApprover is ITransferApprover, Ownable {
 
     // Vesting Schedules
     mapping(address => VestingSchedule) public vestingSchedules;
-    // Whitelists
-    mapping(address => bool) public whitelists;
     // Beneficiary Addresses
     address[] public beneficiaries;
-
-    // approver state
-    bool public isClosed;
 
     /* ========== EVENTS ========== */
     event ScheduleAdded(
@@ -61,37 +56,6 @@ contract VestingApprover is ITransferApprover, Ownable {
     /* ========== CONSTRUCTOR ========== */
     constructor(address sweeprAddress) {
         sweepr = IERC20Metadata(sweeprAddress);
-        isClosed = false;
-    }
-
-    /**
-     * @dev Adds account to whitelist
-     * @param account The address to whitelist
-     */
-    function whitelist(address account) external onlyOwner {
-        whitelists[account] = true;
-
-        emit Whitelisted(account);
-    }
-
-    /**
-     * @dev Removes account from whitelist
-     * @param account The address to remove from the blacklist
-     */
-    function unWhitelist(address account) external onlyOwner {
-        whitelists[account] = false;
-
-        emit UnWhitelisted(account);
-    }
-
-    /**
-     * @dev Set approver state
-     * @param state State of approver (true: Closed, false: Open)
-     */
-    function setState(bool state) external onlyOwner {
-        isClosed = state;
-
-        emit StateSet(state);
     }
 
     /**
@@ -154,12 +118,8 @@ contract VestingApprover is ITransferApprover, Ownable {
         address to,
         uint256 amount
     ) external onlySweepr returns (bool) {
-        // Check whitelist if approver state is 'Closed'
-        if (
-            isClosed &&
-            (from == address(0) || to == address(0) || whitelists[to])
-        ) return true;
-
+        // allow minting & burning
+        if (from == address(0) || to == address(0)) return true;
         // Check if sender has enough balancer
         if (sweepr.balanceOf(from) < amount) return false;
         // Check if sender is not be beneficiary
@@ -245,14 +205,6 @@ contract VestingApprover is ITransferApprover, Ownable {
     {
         if (beneficiary == address(0)) revert ZeroAddressDetected();
         return vestingSchedules[beneficiary];
-    }
-
-    /**
-     * @dev Checks if account is whitelisted
-     * @param account The address to check
-     */
-    function isWhitelisted(address account) external view returns (bool) {
-        return whitelists[account];
     }
 
     /**
