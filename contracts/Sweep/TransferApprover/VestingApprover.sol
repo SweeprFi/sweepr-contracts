@@ -21,8 +21,6 @@ contract VestingApprover is ITransferApprover, Ownable {
         uint256 vestingTime;
         // The number of tokens that are controlled by the vesting schedule
         uint256 vestingAmount;
-        // amount of tokens transferred
-        uint256 transferredAmount;
     }
 
     // Vesting Schedules
@@ -79,8 +77,7 @@ contract VestingApprover is ITransferApprover, Ownable {
             _beneficiary,
             _startTime,
             _vestingTime,
-            _vestingAmount,
-            0
+            _vestingAmount
         );
 
         beneficiaries.push(_beneficiary);
@@ -117,24 +114,22 @@ contract VestingApprover is ITransferApprover, Ownable {
         address from,
         address to,
         uint256 amount
-    ) external onlySweepr returns (bool) {
-        // allow minting & burning
-        if (from == address(0) || to == address(0)) return true;
+    ) external view onlySweepr returns (bool) {
+        // allow minting & burning & tansfers from sender not in vesting list
+        if (
+            from == address(0) ||
+            to == address(0) ||
+            from != vestingSchedules[from].beneficiary
+        ) return true;
+
         // Check if sender has enough balancer
-        if (sweepr.balanceOf(from) < amount) return false;
-        // Check if sender is not be beneficiary
-        if (vestingSchedules[from].beneficiary != address(0)) return false;
-        // Check if receiver is valid beneficiary
-        if (vestingSchedules[to].beneficiary == address(0)) return false;
+        uint256 senderBalance = sweepr.balanceOf(from);
+        if (senderBalance < amount) return false;
 
-        VestingSchedule storage vestingSchedule = vestingSchedules[to];
-        uint256 vestedAmount = _computeTransferableAmount(vestingSchedule);
+        VestingSchedule storage vestingSchedule = vestingSchedules[from];
+        uint256 lockedAmount = _computeLockedAmount(vestingSchedule);
 
-        if (vestedAmount < amount) return false;
-
-        vestingSchedule.transferredAmount =
-            vestingSchedule.transferredAmount +
-            amount;
+        if (senderBalance - amount < lockedAmount) return false;
 
         return true;
     }
@@ -143,33 +138,30 @@ contract VestingApprover is ITransferApprover, Ownable {
      * @dev Computes the transferable amount of tokens for a vesting schedule.
      * @return the amount of transferable tokens
      */
-    function _computeTransferableAmount(VestingSchedule memory vestingSchedule)
+    function _computeLockedAmount(VestingSchedule memory vestingSchedule)
         internal
         view
         returns (uint256)
     {
         uint256 currentTime = getCurrentTime();
 
-        // If the current time is before the cliff, no tokens are transferable.
+        // If the current time is before the cliff, locked amount = vesting amount.
         if (currentTime < vestingSchedule.startTime) {
-            return 0;
+            return vestingSchedule.vestingAmount;
         } else if (
             currentTime >=
             vestingSchedule.startTime + vestingSchedule.vestingTime
         ) {
             // If the current time is after the vesting period, all tokens are transferaable,
-            // minus the amount already transferred.
-            return
-                vestingSchedule.vestingAmount -
-                vestingSchedule.transferredAmount;
+            return 0;
         } else {
             // Compute the amount of tokens that are vested.
             uint256 vestedAmount = (vestingSchedule.vestingAmount *
                 (currentTime - vestingSchedule.startTime)) /
                 vestingSchedule.vestingTime;
 
-            // Subtract the amount already transferred and return.
-            return vestedAmount - vestingSchedule.transferredAmount;
+            // Compute locked amount
+            return vestingSchedule.vestingAmount - vestedAmount;
         }
     }
 
@@ -191,7 +183,7 @@ contract VestingApprover is ITransferApprover, Ownable {
         returns (uint256)
     {
         VestingSchedule storage vestingSchedule = vestingSchedules[beneficiary];
-        return _computeTransferableAmount(vestingSchedule);
+        return _computeLockedAmount(vestingSchedule);
     }
 
     /**
