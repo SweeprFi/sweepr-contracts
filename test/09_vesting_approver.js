@@ -90,15 +90,12 @@ contract("VestingApprover", async function () {
 	})
 
 	it("check vesting schedules", async function () {
-		await expect(vestingApprover.getVestingSchedule(Const.ADDRESS_ZERO))
-			.to.be.revertedWithCustomError(vestingApprover, "ZeroAddressDetected");
-
-		schedule = await vestingApprover.getVestingSchedule(owner.address);
+		schedule = await vestingApprover.vestingSchedules(owner.address);
 		expect(schedule.startTime).to.equal(Const.ZERO)
 		expect(schedule.vestingTime).to.equal(Const.ZERO)
 		expect(schedule.vestingAmount).to.equal(Const.ZERO)
 			
-		schedule = await vestingApprover.getVestingSchedule(distributor.address);
+		schedule = await vestingApprover.vestingSchedules(distributor.address);
 		expect(schedule.startTime).to.equal(START_TIME)
 		expect(schedule.vestingTime).to.equal(VESTING_TIME)
 		expect(schedule.vestingAmount).to.equal(VESTING_AMOUNT)

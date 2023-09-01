@@ -28,6 +28,8 @@ contract VestingApprover is ITransferApprover, Ownable {
     // Beneficiary Addresses
     address[] public beneficiaries;
 
+    uint256 internal constant PRECISION = 1e10;
+
     /* ========== EVENTS ========== */
     event ScheduleAdded(
         address indexed beneficiary,
@@ -122,13 +124,10 @@ contract VestingApprover is ITransferApprover, Ownable {
             from != vestingSchedules[from].beneficiary
         ) return true;
 
-        // Check if sender has enough balancer
         uint256 senderBalance = sweepr.balanceOf(from);
         if (senderBalance < amount) return false;
 
-        VestingSchedule storage vestingSchedule = vestingSchedules[from];
-        uint256 lockedAmount = _computeLockedAmount(vestingSchedule);
-
+        uint256 lockedAmount = getLockedAmount(from);
         if (senderBalance - amount < lockedAmount) return false;
 
         return true;
@@ -143,7 +142,7 @@ contract VestingApprover is ITransferApprover, Ownable {
         view
         returns (uint256)
     {
-        uint256 currentTime = getCurrentTime();
+        uint256 currentTime = block.timestamp;
 
         // If the current time is before the cliff, locked amount = vesting amount.
         if (currentTime < vestingSchedule.startTime) {
@@ -155,13 +154,12 @@ contract VestingApprover is ITransferApprover, Ownable {
             // If the current time is after the vesting period, all tokens are transferaable,
             return 0;
         } else {
-            // Compute the amount of tokens that are vested.
-            uint256 vestedAmount = (vestingSchedule.vestingAmount *
-                (currentTime - vestingSchedule.startTime)) /
-                vestingSchedule.vestingTime;
-
-            // Compute locked amount
-            return vestingSchedule.vestingAmount - vestedAmount;
+            // Compute the amount of tokens that are locked.
+            uint256 lockedAmount = vestingSchedule.vestingAmount *
+                (PRECISION -
+                    ((currentTime - vestingSchedule.startTime) * PRECISION) /
+                    vestingSchedule.vestingTime);
+            return lockedAmount / PRECISION;
         }
     }
 
@@ -178,32 +176,11 @@ contract VestingApprover is ITransferApprover, Ownable {
      * @return the locked amount
      */
     function getLockedAmount(address beneficiary)
-        external
+        public
         view
         returns (uint256)
     {
-        VestingSchedule storage vestingSchedule = vestingSchedules[beneficiary];
+        VestingSchedule memory vestingSchedule = vestingSchedules[beneficiary];
         return _computeLockedAmount(vestingSchedule);
-    }
-
-    /**
-     * @notice Returns the vesting schedule information for a given address.
-     * @return the vesting schedule structure information
-     */
-    function getVestingSchedule(address beneficiary)
-        external
-        view
-        returns (VestingSchedule memory)
-    {
-        if (beneficiary == address(0)) revert ZeroAddressDetected();
-        return vestingSchedules[beneficiary];
-    }
-
-    /**
-     * @dev Returns the current time.
-     * @return the current timestamp in seconds.
-     */
-    function getCurrentTime() internal view virtual returns (uint256) {
-        return block.timestamp;
     }
 }
