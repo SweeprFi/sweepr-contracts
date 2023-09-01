@@ -71,7 +71,7 @@ contract("VestingApprover", async function () {
 		START_TIME = await getBlockTimestamp() + VESTING_TIME;
 
 		await vestingApprover.createVestingSchedule(
-			sender.address,
+			distributor.address,
 			START_TIME,
 			VESTING_TIME,
 			VESTING_AMOUNT
@@ -80,25 +80,22 @@ contract("VestingApprover", async function () {
 		expect(await vestingApprover.getVestingSchedulesCount()).to.be.equal(1);
 
 		beneficiary = await vestingApprover.beneficiaries(0);
-		expect(beneficiary).to.equal(sender.address);
+		expect(beneficiary).to.equal(distributor.address);
 
-		schedule = await vestingApprover.vestingSchedules(sender.address);
+		schedule = await vestingApprover.vestingSchedules(distributor.address);
 		expect(schedule.startTime).to.equal(START_TIME);
 		expect(schedule.vestingTime).to.equal(VESTING_TIME);
 
-		expect(await vestingApprover.getLockedAmount(sender.address)).to.be.equal(0);
+		expect(await vestingApprover.getLockedAmount(distributor.address)).to.be.equal(VESTING_AMOUNT);
 	})
 
 	it("check vesting schedules", async function () {
-		await expect(vestingApprover.getVestingSchedule(Const.ADDRESS_ZERO))
-			.to.be.revertedWithCustomError(vestingApprover, "ZeroAddressDetected");
-
-		schedule = await vestingApprover.getVestingSchedule(owner.address);
+		schedule = await vestingApprover.vestingSchedules(owner.address);
 		expect(schedule.startTime).to.equal(Const.ZERO)
 		expect(schedule.vestingTime).to.equal(Const.ZERO)
 		expect(schedule.vestingAmount).to.equal(Const.ZERO)
 			
-		schedule = await vestingApprover.getVestingSchedule(sender.address);
+		schedule = await vestingApprover.vestingSchedules(distributor.address);
 		expect(schedule.startTime).to.equal(START_TIME)
 		expect(schedule.vestingTime).to.equal(VESTING_TIME)
 		expect(schedule.vestingAmount).to.equal(VESTING_AMOUNT)
@@ -112,152 +109,81 @@ contract("VestingApprover", async function () {
 		)).to.be.revertedWithCustomError(VestingApprover, 'NotSweepr');
 	})
 
-	it("revert transfer when receiver is not beneficiary list", async function () {
-		schedule = await vestingApprover.vestingSchedules(other.address);
+	it("revert transfer when balance - send_amount < locked_amount before start time", async function () {
+		lockedAmount = await vestingApprover.getLockedAmount(distributor.address);
+		expect(lockedAmount).to.equal(VESTING_AMOUNT);
+
+		senderBalance = await sweepr.balanceOf(distributor.address);
+		expect(senderBalance.sub(VESTING_AMOUNT)).to.lessThan(lockedAmount);
+
+		await expect(sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT))
+			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
+
+		expect(senderBalance.sub(VESTING_AMOUNT.div(2))).to.equal(lockedAmount);
+		await sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT.div(2))
+
+		expect(await sweepr.balanceOf(sender.address)).to.equal(VESTING_AMOUNT.div(2));
+	})
+
+	it("allow transfer when receiver is not beneficiary list", async function () {
+		schedule = await vestingApprover.vestingSchedules(sender.address);
 		expect(schedule.beneficiary).to.equal(Const.ADDRESS_ZERO);
 
-		await expect(sweepr.connect(distributor).transfer(other.address, VESTING_AMOUNT))
-			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
+		await sweepr.connect(sender).transfer(other.address, VESTING_AMOUNT.div(2));
+
+		expect(await sweepr.balanceOf(other.address)).to.equal(VESTING_AMOUNT.div(2));
 	})
 
 	it("transfer token", async function () {
 		// set time to half the vesting period
-		HALF_TIME = (VESTING_TIME + VESTING_TIME/2) - 3;
+		HALF_TIME = VESTING_TIME + VESTING_TIME / 2;
 		await increaseTime(HALF_TIME);
 
-		expect(
-			await vestingApprover.getLockedAmount(sender.address)
-		).to.equal(VESTING_AMOUNT.div(2));
+		lockedAmount = await vestingApprover.getLockedAmount(distributor.address);
 
-		// transfer should be reverted if transfer amount is larger than vested amount
+		senderBalance = await sweepr.balanceOf(distributor.address);
+		expect(senderBalance.sub(VESTING_AMOUNT)).to.lessThan(lockedAmount);
+
+		// transfer should be reverted if balance - send_amount < locked_amount
 		await expect(sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT))
 			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
 
+		await sweepr.connect(owner).mint(distributor.address, VESTING_AMOUNT);
+
+		senderBalance = await sweepr.balanceOf(distributor.address);
+		expect(senderBalance.sub(VESTING_AMOUNT.div(2))).to.above(lockedAmount);
+
 		await sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT.div(2));
-
 		expect(await sweepr.balanceOf(sender.address)).to.equal(VESTING_AMOUNT.div(2));
-
-		schedule = await vestingApprover.vestingSchedules(sender.address);
-		expect(schedule.transferredAmount).to.equal(VESTING_AMOUNT.div(2));
 
 		// set time to full vesting period
 		await increaseTime(HALF_TIME);
 
-		expect(await vestingApprover.getLockedAmount(sender.address)).to.equal(VESTING_AMOUNT.div(2));
+		expect(await vestingApprover.getLockedAmount(distributor.address)).to.equal(Const.ZERO);
 
-		// transfer should be reverted if transfer amount is larger than vested amount
-		await expect(sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT))
-			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
-
-		await sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT.div(2));
-
-		expect(await sweepr.balanceOf(sender.address)).to.equal(VESTING_AMOUNT);
-
-		schedule = await vestingApprover.vestingSchedules(sender.address);
-		expect(schedule.transferredAmount).to.equal(VESTING_AMOUNT);
-
-		// set time to over vesting period
-		await increaseTime(HALF_TIME);
-
-		expect(await vestingApprover.getLockedAmount(sender.address)).to.equal(Const.ZERO);
-
-		// transfer should be reverted if vested amount is zero
-		await expect(sweepr.connect(distributor).transfer(sender.address, VESTING_AMOUNT.div(2)))
-			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
-	})
-
-	it("revert transfer when sender is in beneficiary list", async function () {
-		// create schedule for other user
-		await vestingApprover.createVestingSchedule(
-			other.address,
-			START_TIME,
-			VESTING_TIME,
-			VESTING_AMOUNT
-		);
-
-		expect(await vestingApprover.getVestingSchedulesCount()).to.be.equal(2);
-
-		schedule = await vestingApprover.vestingSchedules(other.address);
-		expect(schedule.beneficiary).to.equal(other.address);
-
-		expect(await vestingApprover.getLockedAmount(other.address)).to.equal(VESTING_AMOUNT);
-		await expect(sweepr.connect(sender).transfer(other.address, VESTING_AMOUNT))
-			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
-	})
-
-	it("revert transfer when sender has not enough balance", async function () {
+		// sender can transfer full balance
 		senderBalance = await sweepr.balanceOf(distributor.address);
-		vestedAmount = await vestingApprover.getLockedAmount(other.address);
+		await sweepr.connect(distributor).transfer(sender.address, senderBalance);
+		expect(await sweepr.balanceOf(distributor.address)).to.equal(Const.ZERO);
+	})
 
-		expect(senderBalance).to.lessThan(vestedAmount);
+	it("revert transfer when transfer amount exceeds locked amount", async function () {
+		expect(await sweepr.balanceOf(distributor.address)).to.equal(Const.ZERO);
 
 		await expect(sweepr.connect(distributor).transfer(other.address, VESTING_AMOUNT))
 			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
 	})
 
 	it("remove vesting schedule", async function () {
-		expect(await vestingApprover.getVestingSchedulesCount()).to.be.equal(2);
-
-		// Confirm itemIndex = 1 is other user
-		expect(await vestingApprover.beneficiaries(1)).to.be.equal(other.address);
-
-		await vestingApprover.removeSchedule(1); // remove schedule for other
 		expect(await vestingApprover.getVestingSchedulesCount()).to.be.equal(1);
 
-		schedule = await vestingApprover.vestingSchedules(other.address);
+		// Confirm itemIndex = 0 is distributor
+		expect(await vestingApprover.beneficiaries(0)).to.be.equal(distributor.address);
+
+		await vestingApprover.removeSchedule(0); // remove schedule for distributor
+		expect(await vestingApprover.getVestingSchedulesCount()).to.be.equal(Const.ZERO);
+
+		schedule = await vestingApprover.vestingSchedules(distributor.address);
 		expect(schedule.beneficiary).to.equal(Const.ADDRESS_ZERO);
 	})
-
-	it('Add whitelist correctly', async () => {
-		await expect(vestingApprover.connect(multisig).whitelist(multisig.address))
-			.to.be.revertedWith("Ownable: caller is not the owner");
-
-		expect(await vestingApprover.isWhitelisted(multisig.address)).to.equal(Const.FALSE);
-		await vestingApprover.connect(owner).whitelist(multisig.address);
-		expect(await vestingApprover.isWhitelisted(multisig.address)).to.equal(Const.TRUE);
-
-	});
-
-	it('revert transfer when receiver is not whitelisted in closed state', async () => {
-		expect(await vestingApprover.isClosed()).to.equal(Const.FALSE);
-		await vestingApprover.connect(owner).setState(Const.TRUE);
-		expect(await vestingApprover.isClosed()).to.equal(Const.TRUE);
-
-		expect(await sweepr.balanceOf(sender.address)).to.equal(VESTING_AMOUNT);
-		expect(await vestingApprover.isWhitelisted(receiver.address)).to.equal(Const.FALSE);
-
-		await expect(sweepr.connect(sender).transfer(receiver.address, VESTING_AMOUNT))
-			.to.be.revertedWithCustomError(Sweepr, 'TransferNotAllowed');
-
-	});
-
-	it('transfer successfully when receiver is whitested in closed state', async () => {
-		expect(await sweepr.balanceOf(multisig.address)).to.equal(Const.ZERO);
-		expect(await vestingApprover.isWhitelisted(multisig.address)).to.equal(Const.TRUE);
-
-		await sweepr.connect(sender).transfer(multisig.address, VESTING_AMOUNT);
-		expect(await sweepr.balanceOf(multisig.address)).to.equal(VESTING_AMOUNT);
-	});
-
-	it('transfer successfully when vesting schedule is applied in closed state', async () => {
-		expect(await vestingApprover.getVestingSchedulesCount()).to.be.equal(1);
-		START_TIME = await getBlockTimestamp();
-
-		await vestingApprover.createVestingSchedule(
-			receiver.address,
-			START_TIME,
-			VESTING_TIME,
-			VESTING_AMOUNT
-		);
-
-		expect(await vestingApprover.getVestingSchedulesCount()).to.be.equal(2);
-
-		HALF_TIME = VESTING_TIME / 2;
-		await increaseTime(HALF_TIME);
-
-		expect(await sweepr.balanceOf(receiver.address)).to.equal(Const.ZERO);
-
-		await sweepr.connect(distributor).transfer(receiver.address, VESTING_AMOUNT.div(2));
-		expect(await sweepr.balanceOf(receiver.address)).to.equal(VESTING_AMOUNT.div(2));
-	});
 });

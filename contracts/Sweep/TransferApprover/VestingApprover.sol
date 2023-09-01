@@ -21,19 +21,14 @@ contract VestingApprover is ITransferApprover, Ownable {
         uint256 vestingTime;
         // The number of tokens that are controlled by the vesting schedule
         uint256 vestingAmount;
-        // amount of tokens transferred
-        uint256 transferredAmount;
     }
 
     // Vesting Schedules
     mapping(address => VestingSchedule) public vestingSchedules;
-    // Whitelists
-    mapping(address => bool) public whitelists;
     // Beneficiary Addresses
     address[] public beneficiaries;
 
-    // approver state
-    bool public isClosed;
+    uint256 internal constant PRECISION = 1e10;
 
     /* ========== EVENTS ========== */
     event ScheduleAdded(
@@ -61,37 +56,6 @@ contract VestingApprover is ITransferApprover, Ownable {
     /* ========== CONSTRUCTOR ========== */
     constructor(address sweeprAddress) {
         sweepr = IERC20Metadata(sweeprAddress);
-        isClosed = false;
-    }
-
-    /**
-     * @dev Adds account to whitelist
-     * @param account The address to whitelist
-     */
-    function whitelist(address account) external onlyOwner {
-        whitelists[account] = true;
-
-        emit Whitelisted(account);
-    }
-
-    /**
-     * @dev Removes account from whitelist
-     * @param account The address to remove from the blacklist
-     */
-    function unWhitelist(address account) external onlyOwner {
-        whitelists[account] = false;
-
-        emit UnWhitelisted(account);
-    }
-
-    /**
-     * @dev Set approver state
-     * @param state State of approver (true: Closed, false: Open)
-     */
-    function setState(bool state) external onlyOwner {
-        isClosed = state;
-
-        emit StateSet(state);
     }
 
     /**
@@ -115,8 +79,7 @@ contract VestingApprover is ITransferApprover, Ownable {
             _beneficiary,
             _startTime,
             _vestingTime,
-            _vestingAmount,
-            0
+            _vestingAmount
         );
 
         beneficiaries.push(_beneficiary);
@@ -153,63 +116,50 @@ contract VestingApprover is ITransferApprover, Ownable {
         address from,
         address to,
         uint256 amount
-    ) external onlySweepr returns (bool) {
-        // Check whitelist if approver state is 'Closed'
+    ) external view onlySweepr returns (bool) {
+        // allow minting & burning & tansfers from sender not in vesting list
         if (
-            isClosed &&
-            (from == address(0) || to == address(0) || whitelists[to])
+            from == address(0) ||
+            to == address(0) ||
+            from != vestingSchedules[from].beneficiary
         ) return true;
 
-        // Check if sender has enough balancer
-        if (sweepr.balanceOf(from) < amount) return false;
-        // Check if sender is not be beneficiary
-        if (vestingSchedules[from].beneficiary != address(0)) return false;
-        // Check if receiver is valid beneficiary
-        if (vestingSchedules[to].beneficiary == address(0)) return false;
+        uint256 senderBalance = sweepr.balanceOf(from);
+        if (senderBalance < amount) return false;
 
-        VestingSchedule storage vestingSchedule = vestingSchedules[to];
-        uint256 vestedAmount = _computeTransferableAmount(vestingSchedule);
-
-        if (vestedAmount < amount) return false;
-
-        vestingSchedule.transferredAmount =
-            vestingSchedule.transferredAmount +
-            amount;
+        uint256 lockedAmount = getLockedAmount(from);
+        if (senderBalance - amount < lockedAmount) return false;
 
         return true;
     }
 
     /**
-     * @dev Computes the transferable amount of tokens for a vesting schedule.
-     * @return the amount of transferable tokens
+     * @dev Computes the locked amount of tokens for a vesting schedule.
+     * @return the locked amount of tokens
      */
-    function _computeTransferableAmount(VestingSchedule memory vestingSchedule)
+    function _computeLockedAmount(VestingSchedule memory vestingSchedule)
         internal
         view
         returns (uint256)
     {
-        uint256 currentTime = getCurrentTime();
+        uint256 currentTime = block.timestamp;
 
-        // If the current time is before the cliff, no tokens are transferable.
+        // If the current time is before the cliff, locked amount = vesting amount.
         if (currentTime < vestingSchedule.startTime) {
-            return 0;
+            return vestingSchedule.vestingAmount;
         } else if (
             currentTime >=
             vestingSchedule.startTime + vestingSchedule.vestingTime
         ) {
             // If the current time is after the vesting period, all tokens are transferaable,
-            // minus the amount already transferred.
-            return
-                vestingSchedule.vestingAmount -
-                vestingSchedule.transferredAmount;
+            return 0;
         } else {
-            // Compute the amount of tokens that are vested.
-            uint256 vestedAmount = (vestingSchedule.vestingAmount *
-                (currentTime - vestingSchedule.startTime)) /
-                vestingSchedule.vestingTime;
-
-            // Subtract the amount already transferred and return.
-            return vestedAmount - vestingSchedule.transferredAmount;
+            // Compute the amount of tokens that are locked.
+            uint256 lockedAmount = vestingSchedule.vestingAmount *
+                (PRECISION -
+                    ((currentTime - vestingSchedule.startTime) * PRECISION) /
+                    vestingSchedule.vestingTime);
+            return lockedAmount / PRECISION;
         }
     }
 
@@ -222,44 +172,15 @@ contract VestingApprover is ITransferApprover, Ownable {
     }
 
     /**
-     * @notice Get the vested amount of tokens for beneficiary
-     * @return the vested amount
+     * @notice Get the locked amount of tokens for beneficiary
+     * @return the locked amount
      */
     function getLockedAmount(address beneficiary)
-        external
+        public
         view
         returns (uint256)
     {
-        VestingSchedule storage vestingSchedule = vestingSchedules[beneficiary];
-        return _computeTransferableAmount(vestingSchedule);
-    }
-
-    /**
-     * @notice Returns the vesting schedule information for a given address.
-     * @return the vesting schedule structure information
-     */
-    function getVestingSchedule(address beneficiary)
-        external
-        view
-        returns (VestingSchedule memory)
-    {
-        if (beneficiary == address(0)) revert ZeroAddressDetected();
-        return vestingSchedules[beneficiary];
-    }
-
-    /**
-     * @dev Checks if account is whitelisted
-     * @param account The address to check
-     */
-    function isWhitelisted(address account) external view returns (bool) {
-        return whitelists[account];
-    }
-
-    /**
-     * @dev Returns the current time.
-     * @return the current timestamp in seconds.
-     */
-    function getCurrentTime() internal view virtual returns (uint256) {
-        return block.timestamp;
+        VestingSchedule memory vestingSchedule = vestingSchedules[beneficiary];
+        return _computeLockedAmount(vestingSchedule);
     }
 }
