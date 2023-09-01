@@ -135,8 +135,8 @@ contract VestingApprover is ITransferApprover, Ownable {
     }
 
     /**
-     * @dev Computes the transferable amount of tokens for a vesting schedule.
-     * @return the amount of transferable tokens
+     * @dev Computes the locked amount of tokens for a vesting schedule.
+     * @return the locked amount of tokens
      */
     function _computeLockedAmount(VestingSchedule memory vestingSchedule)
         internal
@@ -174,8 +174,8 @@ contract VestingApprover is ITransferApprover, Ownable {
     }
 
     /**
-     * @notice Get the vested amount of tokens for beneficiary
-     * @return the vested amount
+     * @notice Get the locked amount of tokens for beneficiary
+     * @return the locked amount
      */
     function getLockedAmount(address beneficiary)
         external
