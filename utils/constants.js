@@ -353,7 +353,7 @@ const protocol = {
   vesting_approver: {
     1: '',
     5: '0xa912ac69710e90bc9b97ac70E56b8453193E1e44',
-    42161: '0xf200F1C9A07D9cE8E1b464583Ef218d84b588dbA',
+    42161: '0x483761F16A7c978df09d1e7E22532e9DbD2Ee8D0',
   },
 }
 
