@@ -114,15 +114,16 @@ contract("Sweep - Mint", async function () {
 	it('allow and disallow minting', async () => {
 		// Set new arbSpread
 		NEW_arbSpread = 0;
-		NEW_targetPrice = 1010000;
+		NEW_currentTargetPrice = 1010000;
+		NEW_nextTargetPrice = 1020000;
 		await sweep.connect(owner).setBalancer(owner.address);
 		await sweep.connect(owner).setArbSpread(NEW_arbSpread);
-		await sweep.connect(owner).setTargetPrice(NEW_targetPrice);
+		await sweep.connect(owner).setTargetPrice(NEW_currentTargetPrice, NEW_nextTargetPrice);
 		// TODO: change to _amm after new deployment
 		await sweep.connect(owner).setAMM(addresses.uniswap_oracle);
 		ammPrice = await sweep.ammPrice();
 
-		if (ammPrice >= NEW_targetPrice) { // allow mint
+		if (ammPrice >= NEW_currentTargetPrice) { // allow mint
 			newMinterBalance = await sweep.balanceOf(newMinter.address);
 			await sweep.connect(newMinter).mint(TRANSFER_AMOUNT)
 			expect(await sweep.balanceOf(newMinter.address)).to.equal(newMinterBalance.add(TRANSFER_AMOUNT));

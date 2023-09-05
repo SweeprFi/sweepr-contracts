@@ -251,19 +251,47 @@ contract("Balancer", async function () {
 		currentBlockTime = await getBlockTimestamp();
 		newPeriodStart = currentBlockTime + Const.DAY * 7 + 1;
 
-		await expect(balancer.connect(lzEndpoint).setInterestRate(interest, newPeriodStart))
+		await expect(balancer.connect(lzEndpoint).updateInterestRate(interest, newPeriodStart))
 			.to.be.revertedWithCustomError(balancer, "NotMultisigOrGov");
 
-		await expect(balancer.setInterestRate(interest, currentBlockTime))
+		await expect(balancer.updateInterestRate(interest, currentBlockTime))
 			.to.be.revertedWithCustomError(sweep, "OldPeriodStart");
 
-		await expect(balancer.setInterestRate(2e7, newPeriodStart))
+		await expect(balancer.updateInterestRate(2e7, newPeriodStart))
 			.to.be.revertedWithCustomError(sweep, "OutOfRateRange");
 
-		await expect(sweep.setInterestRate(interest, newPeriodStart))
+		await expect(sweep.refreshInterestRate(interest, newPeriodStart))
 			.to.be.revertedWithCustomError(sweep, "NotBalancer");
 
-		await balancer.setInterestRate(interest, newPeriodStart);
+		await balancer.updateInterestRate(interest, newPeriodStart);
 		expect(await sweep.nextInterestRate()).to.equal(interest);
+
+		newCurrentInterestRate = 5100000;
+		newNextInterestRate = 5200000;
+
+		await expect(balancer.connect(lzEndpoint).setInterestRate(newCurrentInterestRate, newNextInterestRate))
+			.to.be.revertedWithCustomError(balancer, "NotMultisigOrGov");
+
+		await balancer.setInterestRate(newCurrentInterestRate, newNextInterestRate);
+		expect(await sweep.currentInterestRate()).to.equal(newCurrentInterestRate);
+		expect(await sweep.nextInterestRate()).to.equal(newNextInterestRate);
+	});
+
+	it('sets a new Sweep period start', async () => {
+		currentBlockTime = await getBlockTimestamp();
+
+		newCurrentPeriodStart = currentBlockTime;
+		newNextPeriodStart = currentBlockTime + Const.DAY * 7;
+
+		await expect(balancer.connect(lzEndpoint).setPeriodStart(newCurrentPeriodStart, newNextPeriodStart))
+			.to.be.revertedWithCustomError(balancer, "NotMultisigOrGov");
+
+		await expect(balancer.setPeriodStart(newNextPeriodStart, newCurrentPeriodStart))
+			.to.be.revertedWithCustomError(Sweep, "InvalidPeriodStart");
+
+		await balancer.setPeriodStart(newCurrentPeriodStart, newNextPeriodStart);
+
+		expect(await sweep.currentPeriodStart()).to.equal(newCurrentPeriodStart);
+		expect(await sweep.nextPeriodStart()).to.equal(newNextPeriodStart);
 	});
 });

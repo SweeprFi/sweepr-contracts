@@ -38,12 +38,14 @@ contract SweepMock is BaseSweep {
     // Events
     event ArbSpreadSet(uint256 newArbSpread);
     event StepValueSet(int256 newStepValue);
-    event InterestRateSet(int256 newInterestRate, uint256 newPeriodStart);
+    event InterestRateRefreshed(int256 newInterestRate, uint256 newPeriodStart);
     event BalancerSet(address balancerAddress);
     event TreasurySet(address treasuryAddress);
     event CollateralAgentSet(address agentAddress);
     event AMMPriceSet(uint256 ammPrice);
-    event TargetPriceSet(uint256 currentTargetPrice);
+    event TargetPriceSet(uint256 newCurrentTargetPrice, uint256 newNextTargetPrice);
+    event InterestRateSet(int256 newCurrentInterestRate, int256 newNextInterestrate);
+    event PeriodStartSet(uint256 newCurrentPeriodStart, uint256 newNextPeriodStart);
     event WriteOff(uint256 newPrice);
 
     // Errors
@@ -56,6 +58,7 @@ contract SweepMock is BaseSweep {
     error OutOfRateRange();
     error LessTargetPrice();
     error OutOfTargetPriceChange();
+    error InvalidPeriodStart();
 
     // Modifiers
 
@@ -192,7 +195,7 @@ contract SweepMock is BaseSweep {
      * @param dailyRate.
      * @param newPeriodStart.
      */
-    function setInterestRate(int256 dailyRate, uint256 newPeriodStart) external onlyBalancer {
+    function refreshInterestRate(int256 dailyRate, uint256 newPeriodStart) external onlyBalancer {
         // newPeriodStart should be after current block time.
         if (newPeriodStart < block.timestamp) revert OldPeriodStart();
         // dailyRate should be less than 0.1% and larger than -0.01%
@@ -218,24 +221,56 @@ contract SweepMock is BaseSweep {
 
         nextTargetPrice = (currentTargetPrice * accumulatedRate) / SPREAD_PRECISION;
 
-        emit InterestRateSet(dailyRate, newPeriodStart);
+        emit InterestRateRefreshed(dailyRate, newPeriodStart);
     }
 
 
     /**
      * @notice Set Target Price
      * @param newCurrentTargetPrice.
+     * @param newNextTargetPrice.
      */
-    function setTargetPrice(uint256 newCurrentTargetPrice) external onlyBalancer {
-        // newCurrentTargetPrice should be bigger than currentTargetPrice
-        if (newCurrentTargetPrice < currentTargetPrice) revert LessTargetPrice();
-        // Up to 2% price change is allowed
-        if (((newCurrentTargetPrice - currentTargetPrice) * SPREAD_PRECISION) / currentTargetPrice > 20000)
-            revert OutOfTargetPriceChange();
-
+    function setTargetPrice(
+        uint256 newCurrentTargetPrice, 
+        uint256 newNextTargetPrice
+    ) external onlyBalancer {
         currentTargetPrice = newCurrentTargetPrice;
+        nextTargetPrice = newNextTargetPrice;
 
-        emit TargetPriceSet(newCurrentTargetPrice);
+        emit TargetPriceSet(newCurrentTargetPrice, newNextTargetPrice);
+    }
+
+    /**
+     * @notice Set Interest Rate
+     * @param newCurrentInterestRate.
+     * @param newNextInterestRate.
+     */
+    function setInterestRate(
+        int256 newCurrentInterestRate, 
+        int256 newNextInterestRate
+    ) external onlyBalancer {
+        currentInterestRate = newCurrentInterestRate;
+        nextInterestRate = newNextInterestRate;
+
+        emit InterestRateSet(newCurrentInterestRate, newNextInterestRate);
+    }
+
+    /**
+     * @notice Set Period Start
+     * @param newCurrentPeriodStart.
+     * @param newNextPeriodStart.
+     */
+    function setPeriodStart(
+        uint256 newCurrentPeriodStart, 
+        uint256 newNextPeriodStart
+    ) external onlyBalancer {
+        if (newCurrentPeriodStart > newNextPeriodStart) 
+            revert InvalidPeriodStart();
+
+        currentPeriodStart = newCurrentPeriodStart;
+        nextPeriodStart = newNextPeriodStart;
+
+        emit PeriodStartSet(newCurrentPeriodStart, newNextPeriodStart);
     }
 
     /**

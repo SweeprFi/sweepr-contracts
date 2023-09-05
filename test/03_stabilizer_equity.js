@@ -69,8 +69,8 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     equity_ratio = await st.getEquityRatio();
     expect(equity_ratio.toNumber()).to.closeTo(18e4, 5000); // expected ~18.1%
 
-    // Set Target Price to 1.01
-    await sweep.setTargetPrice(1.01e6);
+    // Set Target Price to 1.01, 1.02
+    await sweep.setTargetPrice(1.01e6, 1.02e6);
 
     equity_ratio = await st.getEquityRatio();
     expect(equity_ratio.toNumber()).to.closeTo(180300, 5000); // expected ~18.03%
@@ -82,7 +82,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
 
     // Set Target Price to 1.02
     targetPrice = await sweep.targetPrice();
-    await sweep.setTargetPrice(1.02e6);
+    await sweep.setTargetPrice(1.02e6, 1.03e6);
 
     equity_ratio = await st.getEquityRatio();
     expect(equity_ratio.toNumber()).to.closeTo(165e3, 5000); // expected ~16.50%
