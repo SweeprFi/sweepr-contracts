@@ -64,7 +64,7 @@ contract Balancer is NonblockingLzApp, Owned {
         if (mode == Mode.INVEST) interestRate -= stepValue;
 
         uint256 periodStart = sweep.periodStart() + period;
-        sweep.setInterestRate(interestRate, periodStart);
+        sweep.refreshInterestRate(interestRate, periodStart);
 
         if (address(sweepr) != address(0) && sweepr.isGovernanceChain()) {
             _sendInterestRate(interestRate, periodStart);
@@ -91,12 +91,21 @@ contract Balancer is NonblockingLzApp, Owned {
     }
 
     /**
-     * @notice Set Interest Rate
+     * @notice Update Interest Rate
      * @param interestRate new interest rate.
      * @param periodStart new period start.
      */
-    function setInterestRate(int256 interestRate, uint256 periodStart) external onlyMultisigOrGov {
-        sweep.setInterestRate(interestRate, periodStart);
+    function updateInterestRate(int256 interestRate, uint256 periodStart) external onlyMultisigOrGov {
+        sweep.refreshInterestRate(interestRate, periodStart);
+    }
+
+    /**
+     * @notice Set Interest Rate
+     * @param newCurrentInterestRate new current interest rate.
+     * @param newNextInterestRate new next interest rate.
+     */
+    function setInterestRate(int256 newCurrentInterestRate, int256 newNextInterestRate) external onlyMultisigOrGov {
+        sweep.setInterestRate(newCurrentInterestRate, newNextInterestRate);
     }
 
     /**
@@ -106,6 +115,30 @@ contract Balancer is NonblockingLzApp, Owned {
     function setPeriod(uint256 newPeriod) external onlyMultisigOrGov {
         if (newPeriod == 0) revert ZeroAmount();
         period = newPeriod;
+    }
+
+    /**
+     * @notice Set Target Price
+     * @param newCurrentTargetPrice.
+     * @param newNextTargetPrice.
+     */
+    function setTargetPrice(
+        uint256 newCurrentTargetPrice, 
+        uint256 newNextTargetPrice
+    ) external onlyMultisigOrGov {
+       sweep.setTargetPrice(newCurrentTargetPrice, newNextTargetPrice);
+    }
+
+    /**
+     * @notice Set Period Start
+     * @param newCurrentPeriodStart.
+     * @param newNextPeriodStart.
+     */
+    function setPeriodStart(
+        uint256 newCurrentPeriodStart, 
+        uint256 newNextPeriodStart
+    ) external onlyMultisigOrGov {
+        sweep.setPeriodStart(newCurrentPeriodStart, newNextPeriodStart);
     }
 
     /**
@@ -168,7 +201,7 @@ contract Balancer is NonblockingLzApp, Owned {
         if (packetType == PT_INTEREST_RATE) {
             (, int256 newInterestRate, uint256 newPeriodStart) = abi.decode(_payload, (uint16, int256, uint256));
 
-            sweep.setInterestRate(newInterestRate, newPeriodStart);
+            sweep.refreshInterestRate(newInterestRate, newPeriodStart);
         } else {
             revert("Balancer: unknown packet type");
         }

@@ -70,11 +70,21 @@ interface ISweep {
 
     function arbSpread() external view returns (uint256);
 
-    function setInterestRate(int256 newInterestRate, uint256 newPeriodStart) external;
+    function refreshInterestRate(int256 newInterestRate, uint256 newPeriodStart) external;
 
     function setTargetPrice(
         uint256 currentTargetPrice,
         uint256 nextTargetPrice
+    ) external;
+
+    function setInterestRate(
+        int256 currentInterestRate,
+        int256 nextInterestRate
+    ) external;
+
+    function setPeriodStart(
+        uint256 currentPeriodStart,
+        uint256 nextPeriodStart
     ) external;
 
     function startNewPeriod() external;

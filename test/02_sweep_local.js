@@ -75,10 +75,12 @@ contract("Sweep - settings", async function () {
 	});
 
 	it('sets a new current target price correctly', async () => {
-		newTargetPrice = 1010000;
+		newCurrentTargetPrice = 1010000;
+		newNextTargetPrice = 1020000;
 		expect(await sweep.currentTargetPrice()).to.equal(await sweep.nextTargetPrice());
-		await sweep.connect(newAddress).setTargetPrice(newTargetPrice);
-		expect(await sweep.currentTargetPrice()).to.equal(newTargetPrice);
+		await sweep.connect(newAddress).setTargetPrice(newCurrentTargetPrice, newNextTargetPrice);
+		expect(await sweep.currentTargetPrice()).to.equal(newCurrentTargetPrice);
+		expect(await sweep.nextTargetPrice()).to.equal(newNextTargetPrice);
 	});
 
 	it('upgrades Sweep', async () => {
