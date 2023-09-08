@@ -177,22 +177,20 @@ contract DsrAsset is Stabilizer {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         uint256 daiBalance = dai.balanceOf(address(this));
         uint256 daiAmount = _oracleUsdxToDai(usdxAmount);
-        uint256 investedAmount = assetValue();
+        uint256 investedAmount = dsrManager.daiBalance(address(this));
 
         // Withdraw Dai from DSR
         if (daiAmount < investedAmount) {
             dsrManager.exit(address(this), daiAmount);
         } else {
             dsrManager.exitAll(address(this));
+            daiAmount = investedAmount;
         }
         uint256 redeemDaiAmount = dai.balanceOf(address(this)) - daiBalance;
 
         // Check return amount from dsrManager
-        if (
-            redeemDaiAmount == 0 ||
-            (investedAmount > redeemDaiAmount &&
-                (investedAmount - redeemDaiAmount) > daiAmount)
-        ) revert UnExpectedAmount();
+        if (redeemDaiAmount == 0 || redeemDaiAmount < daiAmount)
+            revert UnExpectedAmount();
 
         // Exchange Dai to Usdx by using PSM
         uint256 estimatedAmount = _daiToUsdx(
