@@ -13,7 +13,7 @@ contract('DSR Asset', async () => {
         BORROWER = addresses.multisig;
         depositAmount = 200e6;
         investAmount = 100e6;
-        divestAmount = 150e6;
+        divestAmount = 50e6;
         
         // Sweep Contract
         Sweep = await ethers.getContractFactory("SweepMock");
@@ -95,8 +95,11 @@ contract('DSR Asset', async () => {
             // Divest usdx
             await expect(asset.divest(divestAmount, 0))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
-            await asset.connect(user).divest(depositAmount, Const.SLIPPAGE);
-
+            await asset.connect(user).divest(divestAmount, Const.SLIPPAGE);
+            expect(await asset.assetValue()).to.above(Const.ZERO);
+            
+            divestAmount = 250e6;
+            await asset.connect(user).divest(divestAmount, Const.SLIPPAGE);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
         });
     });
