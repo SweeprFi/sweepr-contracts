@@ -45,8 +45,8 @@ contract Balancer is NonblockingLzApp, Owned {
     error WrongDataLength();
     error NotTrustedRemote();
     error ZeroAmount();
-    error ZeroETH();
     error NotEnoughETH();
+    error NotEnoughTWAP();
 
     constructor(address sweepAddress, address lzEndpoint) NonblockingLzApp(lzEndpoint) Owned(sweepAddress) {}
 
@@ -217,12 +217,32 @@ contract Balancer is NonblockingLzApp, Owned {
         IStabilizer(stabilizer).setLoanLimit(loanLimit);
     }
 
+
+    /**
+     * @notice Reset calls
+     * @dev Cancels a Call in all assets
+     */
+    function resetCalls() external {
+        if(sweep.twaPrice() <= sweep.targetPrice()) revert NotEnoughTWAP();
+        address[] memory minterAddresses = sweep.getMinters();
+        uint256 len = minterAddresses.length;
+
+        for (uint256 i = 0; i < len; ) {
+            IStabilizer stabilizer = IStabilizer(minterAddresses[i]);
+            if(stabilizer.callAmount() > 0)
+                stabilizer.cancelCall();
+            unchecked { ++i; }
+        }
+    }
+
     /**
      * @notice Cancel Call
      * @dev Cancels a call in an off chain stabilizer that is in the line to defaulted if it doesn't repay on time
      * @param stabilizer (offchain) to cancel the call
      */
-    function cancelCall(address stabilizer) external onlyMultisigOrGov {
+    function cancelCall(address stabilizer) public {
+        if(sweep.twaPrice() <= sweep.targetPrice()) revert NotEnoughTWAP();
+
         IStabilizer(stabilizer).cancelCall();
     }
 
@@ -299,12 +319,10 @@ contract Balancer is NonblockingLzApp, Owned {
 
             if (amount > 0) {
                 if (intention == Mode.INVEST) {
-                    stabilizer.setLoanLimit(stabilizer.loanLimit() + amount);
                     stabilizer.autoInvest(amount, price, slippage);
                 } else {
                     // intention is CALL
                     stabilizer.autoCall(amount, price, slippage);
-                    stabilizer.setLoanLimit(stabilizer.loanLimit() - amount);
                 }
             }
 

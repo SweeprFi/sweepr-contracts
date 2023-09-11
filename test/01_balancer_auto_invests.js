@@ -240,7 +240,6 @@ contract('Balancer - Auto Invests', async () => {
             amounts = [investAmount, investAmount, investAmount]; // 45 Sweep to each stabilizer
 
             expectedAmount = toBN("545", 18); // mintAmount(500) + amount(45) = 545
-            expectedLimit = toBN("845", 18); // oldLimit(800) + amount(45) = 845
 
             await balancer.addActions(targets, amounts);
             await balancer.execute(1, true, 1e6, 2000); // 1 => invests, force: true, 1 => price, 2000 => slippage
@@ -248,10 +247,6 @@ contract('Balancer - Auto Invests', async () => {
             expect(await assets[0].sweepBorrowed()).to.eq(expectedAmount);
             expect(await assets[1].sweepBorrowed()).to.eq(expectedAmount);
             expect(await assets[2].sweepBorrowed()).to.eq(expectedAmount);
-
-            expect(await assets[0].loanLimit()).to.eq(expectedLimit);
-            expect(await assets[1].loanLimit()).to.eq(expectedLimit);
-            expect(await assets[2].loanLimit()).to.eq(expectedLimit);
         });
     });
 });

@@ -236,24 +236,18 @@ contract('Balancer - Auto Call', async () => {
       expect(await sweep.balanceOf(assets[5].address)).to.equal(Const.ZERO);
       expect(await assets[5].callAmount()).to.equal(amount);
       expect(await assets[5].callTime()).to.equal(timestamp + Const.DAYS_5);
-
-      // new loan limits
-      expect(await assets[0].loanLimit()).to.eq(NEW_loanLimit);
-      expect(await assets[1].loanLimit()).to.eq(NEW_loanLimit);
-      expect(await assets[2].loanLimit()).to.eq(NEW_loanLimit);
-      expect(await assets[3].loanLimit()).to.eq(NEW_loanLimit);
-      expect(await assets[4].loanLimit()).to.eq(loanLimit);
-      expect(await assets[5].loanLimit()).to.eq(NEW_loanLimit);
     });
 
     it('cancels call correctly', async () => {
       await expect(balancer.connect(wallet).cancelCall(assets[4].address))
-        .to.be.revertedWithCustomError(balancer, "NotMultisigOrGov");
+        .to.be.revertedWithCustomError(balancer, "NotEnoughTWAP");
 
       await expect(assets[0].cancelCall())
         .to.be.revertedWithCustomError(StabilizerAave, "NotBalancer");
 
-      await balancer.cancelCall(assets[4].address);
+      await sweep.setTWAPrice(2e6);
+
+      await balancer.resetCalls();
       expect(await assets[4].callTime()).to.equal(Const.ZERO);
       expect(await assets[4].callAmount()).to.equal(Const.ZERO);
     });
