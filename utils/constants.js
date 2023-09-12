@@ -405,7 +405,7 @@ const assets = {
     42161: '0x52D0a9E74fC159F47cEE668801082a975c10bBba',
   },
   dai_dsr: {
-    1: '0x8978e830aB2933936b8282f9561AdCd9a3393BD7',
+    1: '0x7537035fE6fFb0ed72Ee65B5569a5c090729f0Fa',
     5: '',
     42161: '',
   },
