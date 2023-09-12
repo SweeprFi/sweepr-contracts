@@ -397,7 +397,7 @@ const assets = {
   market_maker: {
     1: '0x709d075147a10495e5c3bBF3dfc0c138F34C6E72',
     5: '',
-    42161: '0x99e5Ce59c5Df51D66C9933a7bbdC108746Fc7c3E',
+    42161: '0x33A48e4aA79A66fc4f7061f5D9E274528C213029',
   },
   usd_plus: {
     1: '',
