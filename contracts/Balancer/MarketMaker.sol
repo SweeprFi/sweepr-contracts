@@ -130,9 +130,9 @@ contract MarketMaker is Stabilizer {
         if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
         // calculate amount to pay
         uint24 poolFee = amm().poolFee();
-        uint256 targetPrice = sweep.targetPrice();
-        uint256 spread = (sweep.arbSpread() * targetPrice) / PRECISION;
-        uint256 price = targetPrice + spread;
+        uint256 price = sweep.ammPrice();
+        uint256 maxPrice = price - tickSpread;
+        uint256 minPrice = price - tickSpread * 2;
         uint256 usdxAmount = (sweepAmount * price) / (10 ** sweep.decimals());
 
         TransferHelper.safeTransferFrom(
@@ -141,7 +141,7 @@ contract MarketMaker is Stabilizer {
             address(this),
             usdxAmount
         );
-        addSingleLiquidity(targetPrice, price, usdxAmount, poolFee);
+        addSingleLiquidity(minPrice, maxPrice, usdxAmount, poolFee);
         _borrow(sweepAmount);
 
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
