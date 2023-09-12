@@ -133,7 +133,11 @@ contract MarketMaker is Stabilizer {
         uint256 price = sweep.ammPrice();
         uint256 maxPrice = price - tickSpread;
         uint256 minPrice = price - tickSpread * 2;
-        uint256 usdxAmount = (sweepAmount * price) / (10 ** sweep.decimals());
+
+        uint256 targetPrice = sweep.targetPrice();
+        uint256 spread = (sweep.arbSpread() * targetPrice) / PRECISION;
+        uint256 buyPrice = targetPrice + spread;
+        uint256 usdxAmount = (sweepAmount * buyPrice) / (10 ** sweep.decimals());
 
         TransferHelper.safeTransferFrom(
             address(usdx),
