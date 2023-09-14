@@ -6,6 +6,8 @@ interface IStabilizer {
 
     function loanLimit() external view returns (uint256);
 
+    function callAmount() external view returns (uint256);
+
     function cancelCall() external;
 
     function updateSweepBorrowed(uint256 amount) external;
