@@ -88,10 +88,14 @@ contract CompV3Asset is Stabilizer {
      * @notice Liquidate
      */
     function liquidate() external nonReentrant {
-        _liquidate(address(cUsdc));
+        _liquidate(address(cUsdc), getDebt());
     }
 
     /* ========== Internals ========== */
+
+    function _getToken() internal view override returns (address) {
+        return address(cUsdc);
+    }
 
     function _invest(uint256 usdxAmount, uint256, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));

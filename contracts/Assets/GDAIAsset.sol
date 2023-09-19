@@ -200,10 +200,14 @@ contract GDAIAsset is Stabilizer {
      * @notice Liquidate
      */
     function liquidate() external nonReentrant {
-        _liquidate(address(gDai));
+        _liquidate(address(gDai), getDebt());
     }
 
     /* ========== Internals ========== */
+
+    function _getToken() internal view override returns (address) {
+        return address(gDai);
+    }
 
     /**
      * @notice Invest

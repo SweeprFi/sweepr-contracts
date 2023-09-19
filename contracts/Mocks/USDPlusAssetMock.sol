@@ -107,8 +107,12 @@ contract USDPlusAssetMock is Stabilizer {
     /**
      * @notice Liquidate
      */
-    function liquidate() external nonReentrant {
-        _liquidate(address(token));
+    function liquidate() external nonReentrant { 
+        _liquidate(address(token), getDebt());
+    }
+
+    function _getToken() internal view override returns (address) {
+        return address(token);
     }
 
     function swap(

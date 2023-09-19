@@ -94,10 +94,14 @@ contract AaveV3Asset is Stabilizer {
      * repaying the debt and getting the same value at a discount.
      */
     function liquidate() external nonReentrant {
-        _liquidate(address(aaveUsdx));
+        _liquidate(address(aaveUsdx), getDebt());
     }
 
     /* ========== Internals ========== */
+
+    function _getToken() internal view override returns (address) {
+        return address(aaveUsdx);
+    }
 
     /**
      * @notice Invest

@@ -46,7 +46,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     uint256 public spreadFee; // 10000 is 1%
     uint256 public spreadDate;
-    uint256 public liquidatorDiscount; // 10000 is 1%
     string public link;
 
     int256 public autoInvestMinRatio; // 10000 is 1%
@@ -54,6 +53,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     bool public autoInvestEnabled;
 
     bool public settingsEnabled;
+
+    uint256 public startingTime;
+    uint256 public startingPrice;
+    uint256 public decreaseFactor; // 1000 is 0,1%
 
     // Constants for various precisions
     uint256 private constant DAY_SECONDS = 60 * 60 * 24; // seconds of Day
@@ -86,7 +89,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         int256 indexed minEquityRatio,
         uint256 indexed spreadFee,
         uint256 loanLimit,
-        uint256 liquidatorDiscount,
+        uint256 decreaseFactor,
         uint256 callDelay,
         int256 autoInvestMinRatio,
         uint256 autoInvestMinAmount,
@@ -101,14 +104,14 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     error NotSweep();
     error SettingsDisabled();
     error OverZero();
-    error WrongMinimumRatio();
+    error AssetDefaulted();
+    error AuctionNotActive();
     error InvalidMinter();
     error NotEnoughBalance();
     error EquityRatioExcessed();
     error InvalidToken();
     error SpreadNotEnough();
     error NotDefaulted();
-    error ZeroPrice();
     error NotAutoInvest();
     error NotAutoInvestMinAmount();
     error NotAutoInvestMinRatio();
@@ -224,15 +227,13 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     }
 
     /**
-     * @notice Returns the SWEEP required to liquidate the stabilizer
-     * @return uint256
+     * @notice Returns the SWEEP required to liquidate the stabilizer in the auction.
+     * @return auctionPrice
      */
-    function getLiquidationValue() public view returns (uint256) {
-        return
-            accruedFee() +
-            sweep.convertToSWEEP(
-                (currentValue() * (1e6 - liquidatorDiscount)) / PRECISION
-            );
+    function getAuctionAmount() public view returns (uint256 auctionPrice) {
+        uint256 timeElapsed = (block.timestamp - startingTime) / DAY_SECONDS;
+        uint256 decreaseRatio = PRECISION - (timeElapsed * decreaseFactor);
+        auctionPrice = (startingPrice * decreaseRatio) / PRECISION;
     }
 
     /* ========== Settings ========== */
@@ -258,7 +259,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @param _minEquityRatio The minimum equity ratio can be negative.
      * @param _spreadFee The fee that the protocol will get for providing the loan when the stabilizer takes debt
      * @param _loanLimit How much debt a Stabilizer can take in SWEEP.
-     * @param _liquidatorDiscount A percentage that will be discounted in favor to the liquidator when the stabilizer is liquidated
+     * @param _decreaseFactor A percentage that will be discounted from the price as time passes from the auction start.
      * @param _callDelay Time in seconds after AutoCall until the Stabilizer gets defaulted if the debt is not paid in that period
      * @param _autoInvestMinRatio Minimum equity ratio that should be kept to allow the execution of an auto invest
      * @param _autoInvestMinAmount Minimum amount to be invested to allow the execution of an auto invest
@@ -273,7 +274,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         int256 _minEquityRatio,
         uint256 _spreadFee,
         uint256 _loanLimit,
-        uint256 _liquidatorDiscount,
+        uint256 _decreaseFactor,
         uint256 _callDelay,
         int256 _autoInvestMinRatio,
         uint256 _autoInvestMinAmount,
@@ -283,7 +284,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         minEquityRatio = _minEquityRatio;
         spreadFee = _spreadFee;
         loanLimit = _loanLimit;
-        liquidatorDiscount = _liquidatorDiscount;
+        decreaseFactor = _decreaseFactor;
         callDelay = _callDelay;
         autoInvestMinRatio = _autoInvestMinRatio;
         autoInvestMinAmount = _autoInvestMinAmount;
@@ -294,7 +295,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
             _minEquityRatio,
             _spreadFee,
             _loanLimit,
-            _liquidatorDiscount,
+            decreaseFactor,
             _callDelay,
             _autoInvestMinRatio,
             _autoInvestMinAmount,
@@ -638,6 +639,29 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         emit Withdrawn(token, amount);
     }
 
+    /**
+     * @notice Start auction
+     * Initiates a dutch auction for liquidation.
+     */
+    function startAuction() external {
+        if (!isDefaulted()) revert NotDefaulted();
+
+        startingTime = block.timestamp;
+        uint256 minEquity = (PRECISION - uint256(minEquityRatio));
+        startingPrice = getDebt() * PRECISION / minEquity;
+    }
+
+    /**
+     * @notice Buy auction
+     * Allows a user to participate in the auction by buying assets
+     */
+    function buyAuction() external {
+        if(startingTime == 0) revert AuctionNotActive();
+        uint256 debt = getAuctionAmount();
+        address token = _getToken();
+        _liquidate(token, debt);
+    }
+
     /* ========== Internals ========== */
 
     /**
@@ -651,29 +675,47 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     function _divest(uint256, uint256) internal virtual returns (uint256) {}
 
     /**
+     * @notice Get asset address to liquidate.
+     */
+    function _getToken() internal virtual returns (address) {}
+
+    /**
+     * @notice Stop the auction.
+     */
+    function _stopAuction() internal {
+        startingTime = 0;
+        startingPrice = 0;
+    }
+
+    /**
      * @notice Liquidates
      * A liquidator repays the debt in sweep and gets the same value
      * of the assets that the stabilizer holds at a discount
      */
-    function _liquidate(address token) internal {
+    function _liquidate(
+        address token,
+        uint256 debt
+    ) internal {
         if (!isDefaulted()) revert NotDefaulted();
         address self = address(this);
-        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
+        uint256 usdxBalance = usdx.balanceOf(self);
         uint256 tokenBalance = IERC20Metadata(token).balanceOf(self);
-        uint256 debt = getDebt();
-        uint256 sweepToLiquidate = debt - sweepBalance;
-        // Takes SWEEP from the liquidator and repays debt
-        TransferHelper.safeTransferFrom(
-            address(sweep),
-            msg.sender,
-            self,
-            sweepToLiquidate
-        );
-        _repay(debt);
+        uint256 sweepBalance = sweep.balanceOf(self);
+        if(debt > sweepBalance) {
+            // Takes SWEEP from the liquidator and repays debt
+            TransferHelper.safeTransferFrom(
+                address(sweep),
+                msg.sender,
+                self,
+                debt - sweepBalance
+            );
+        }
 
         // Gives all the assets to the liquidator
         TransferHelper.safeTransfer(address(usdx), msg.sender, usdxBalance);
         TransferHelper.safeTransfer(token, msg.sender, tokenBalance);
+
+        _repay(debt);
 
         emit Liquidated(msg.sender);
     }
@@ -767,6 +809,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         sweep.burn(sweepAmount);
 
         emit Repaid(sweepAmount);
+        if(!isDefaulted()) _stopAuction();
     }
 
     /**

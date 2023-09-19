@@ -96,10 +96,14 @@ contract BackedAsset is Stabilizer {
      * @notice Liquidate
      */
     function liquidate() external nonReentrant {
-        _liquidate(address(token));
+        _liquidate(address(token), getDebt());
     }
 
     /* ========== Internals ========== */
+
+    function _getToken() internal view override returns (address) {
+        return address(token);
+    }
 
     function _invest(uint256 usdxAmount, uint256, uint256) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
