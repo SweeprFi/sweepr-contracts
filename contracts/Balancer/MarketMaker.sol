@@ -73,6 +73,38 @@ contract MarketMaker is Stabilizer {
         tickSpread = _tickSpread;
     }
 
+    /* ========== Views ========== */
+
+    /**
+     * @notice Get Current Value
+     * @return uint256 Current Value.
+     */
+    function currentValue() public view override returns (uint256) {
+        uint256 accruedFeeInUsd = sweep.convertToUSD(accruedFee());
+        return assetValue() + super.currentValue() - accruedFeeInUsd;
+    }
+
+    /**
+     * @notice Get Asset Value
+     * @return uint256 Asset Amount.
+     * @dev the LPs amount in USDX.
+     */
+    function assetValue() public view returns (uint256) {
+        uint256 len = positionIds.length;
+        uint256 usdxAmount;
+        for (uint256 i = 0; i < len; ) {
+            uint256 tokenId = positionIds[i];
+            Position memory position = positions[tokenId];
+            usdxAmount += position.token0Amount + position.token1Amount;
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        return _oracleUsdxToUsd(usdxAmount);
+    }
+
     /* ========== Simple Marketmaker Actions ========== */
 
     /**
@@ -137,7 +169,8 @@ contract MarketMaker is Stabilizer {
         uint256 targetPrice = sweep.targetPrice();
         uint256 spread = (sweep.arbSpread() * targetPrice) / PRECISION;
         uint256 buyPrice = targetPrice + spread;
-        uint256 usdxAmount = (sweepAmount * buyPrice) / (10 ** sweep.decimals());
+        uint256 usdxAmount = (sweepAmount * buyPrice) /
+            (10 ** sweep.decimals());
 
         TransferHelper.safeTransferFrom(
             address(usdx),
