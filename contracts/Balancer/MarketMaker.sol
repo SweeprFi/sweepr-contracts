@@ -21,21 +21,8 @@ contract MarketMaker is Stabilizer {
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     LiquidityHelper private immutable liquidityHelper;
 
-    // Details about position
-    struct Position {
-        uint128 liquidity;
-        int24 tickLower;
-        int24 tickUpper;
-        uint24 fee;
-        uint256 token0Amount;
-        uint256 token1Amount;
-    }
-
     uint256[] public positionIds;
     uint256[] private removeIds;
-
-    // Map tokenId to Position
-    mapping(uint256 => Position) public positions;
 
     address public token0;
     address public token1;
@@ -67,7 +54,6 @@ contract MarketMaker is Stabilizer {
         flag = _usdx < _sweep;
         (token0, token1) = flag ? (_usdx, _sweep) : (_sweep, _usdx);
         liquidityHelper = LiquidityHelper(_liquidityHelper);
-        minEquityRatio = 0;
         topSpread = _topSpread;
         bottomSpread = _bottomSpread;
         tickSpread = _tickSpread;
@@ -92,17 +78,28 @@ contract MarketMaker is Stabilizer {
     function assetValue() public view returns (uint256) {
         uint256 len = positionIds.length;
         uint256 usdxAmount;
+        uint256 sweepAmount;
         for (uint256 i = 0; i < len; ) {
             uint256 tokenId = positionIds[i];
-            Position memory position = positions[tokenId];
-            usdxAmount += position.token0Amount + position.token1Amount;
+            (, , , , uint24 fee, , , , , , , ) = nonfungiblePositionManager
+                .positions(tokenId);
+            (uint256 amount0, uint256 amount1) = liquidityHelper
+                .getTokenAmountsFromLP(tokenId, token0, token1, fee);
+
+            if (flag) {
+                usdxAmount += amount0;
+                sweepAmount += amount1;
+            } else {
+                usdxAmount += amount1;
+                sweepAmount += amount0;
+            }
 
             unchecked {
                 ++i;
             }
         }
 
-        return _oracleUsdxToUsd(usdxAmount);
+        return _oracleUsdxToUsd(usdxAmount) + sweep.convertToUSD(sweepAmount);
     }
 
     /* ========== Simple Marketmaker Actions ========== */
@@ -129,7 +126,7 @@ contract MarketMaker is Stabilizer {
         }
 
         if (sweep.ammPrice() < arbPriceLower && sweepAmount == 0) {
-            removeOutOfPositions(poolFee);
+            removeOutOfPositions();
         }
     }
 
@@ -251,8 +248,8 @@ contract MarketMaker is Stabilizer {
         (
             uint256 tokenId,
             uint128 amountLiquidity,
-            uint256 amount0,
-            uint256 amount1
+            ,
+
         ) = nonfungiblePositionManager.mint(
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
@@ -269,17 +266,7 @@ contract MarketMaker is Stabilizer {
                 })
             );
 
-        Position memory pos = Position(
-            amountLiquidity,
-            minTick,
-            maxTick,
-            poolFee,
-            amount0,
-            amount1
-        );
-
         positionIds.push(tokenId);
-        positions[tokenId] = pos;
 
         emit Minted(tokenId, amountLiquidity);
     }
@@ -287,26 +274,40 @@ contract MarketMaker is Stabilizer {
     /**
      * @notice Remove out-of-range poisitions
      */
-    function removeOutOfPositions(uint24 poolFee) internal {
+    function removeOutOfPositions() internal {
         uint256 len = positionIds.length;
-        int24 tickCurrent = liquidityHelper.getCurrentTick(
-            token0,
-            token1,
-            poolFee
-        );
 
         for (uint256 i = 0; i < len; ) {
             uint256 tokenId = positionIds[i];
-            Position memory position = positions[tokenId];
+            (
+                ,
+                ,
+                ,
+                ,
+                uint24 fee,
+                int24 tickLower,
+                int24 tickUpper,
+                uint128 liquidity,
+                ,
+                ,
+                ,
+
+            ) = nonfungiblePositionManager.positions(tokenId);
+
+            int24 tickCurrent = liquidityHelper.getCurrentTick(
+                token0,
+                token1,
+                fee
+            );
 
             // check to see if current tick is out of i-th position's range.
             // it means all usdc were sold out and only sweep are left.
             // At this time, we need to check tick direction.
             if (
-                (!flag && tickCurrent < position.tickLower) ||
-                (flag && tickCurrent > position.tickUpper)
+                (!flag && tickCurrent < tickLower) ||
+                (flag && tickCurrent > tickUpper)
             ) {
-                removeLiquidity(tokenId, position.liquidity);
+                removeLiquidity(tokenId, liquidity);
                 removeIds.push(i);
             }
             unchecked {
@@ -333,18 +334,17 @@ contract MarketMaker is Stabilizer {
      * @param liquidity.
      */
     function removeLiquidity(uint256 tokenId, uint128 liquidity) internal {
-        (uint256 dAmount0, uint256 dAmount1) = nonfungiblePositionManager
-            .decreaseLiquidity(
-                INonfungiblePositionManager.DecreaseLiquidityParams({
-                    tokenId: tokenId,
-                    liquidity: liquidity,
-                    amount0Min: 0,
-                    amount1Min: 0,
-                    deadline: block.timestamp
-                })
-            );
+        nonfungiblePositionManager.decreaseLiquidity(
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: tokenId,
+                liquidity: liquidity,
+                amount0Min: 0,
+                amount1Min: 0,
+                deadline: block.timestamp
+            })
+        );
 
-        (uint256 cAmount0, uint256 cAmount1) = nonfungiblePositionManager
+        (uint256 amount0, uint256 amount1) = nonfungiblePositionManager
             .collect(
                 INonfungiblePositionManager.CollectParams({
                     tokenId: tokenId,
@@ -355,19 +355,9 @@ contract MarketMaker is Stabilizer {
             );
 
         // repay amount
-        uint256 sweepAmount;
-
-        if (token0 == address(sweep)) {
-            sweepAmount = cAmount0 + dAmount0;
-        } else {
-            sweepAmount = cAmount1 + dAmount1;
-        }
-
+        uint256 sweepAmount = flag ? amount1 : amount0;
         _repay(sweepAmount);
-
         nonfungiblePositionManager.burn(tokenId);
-
-        delete positions[tokenId];
 
         emit Burned(tokenId);
     }

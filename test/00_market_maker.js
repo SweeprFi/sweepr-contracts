@@ -155,9 +155,12 @@ contract('Market Maker', async () => {
             await sweep.approve(amm.address, sweepAmount.mul(5));
             await usdc.approve(amm.address, usdxAmount.mul(5));
 
+            expect(await marketmaker.assetValue()).to.equal(Const.ZERO);
+
             executeAmount = toBN("500000", 18);
             await marketmaker.connect(borrower).execute(executeAmount);
 
+            expect(await marketmaker.assetValue()).to.above(Const.ZERO);
             expect(await marketmaker.sweepBorrowed()).to.equal(executeAmount);
             expect(await sweep.ammPrice()).to.not.greaterThan(sweepPrice);
             expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
@@ -168,9 +171,11 @@ contract('Market Maker', async () => {
             execute2Amount = toBN("300000", 18);
             sweepPrice = await sweep.ammPrice();
             sweepPoolBalance = await sweep.balanceOf(poolAddress);
+            assetValue = await marketmaker.assetValue()
 
             await marketmaker.connect(borrower).execute(execute2Amount);
 
+            expect(await marketmaker.assetValue()).to.above(assetValue);
             expect(await marketmaker.sweepBorrowed()).to.equal(executeAmount.add(execute2Amount));
             expect(await sweep.ammPrice()).to.not.greaterThan(sweepPrice);
             expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
@@ -254,11 +259,11 @@ contract('Market Maker', async () => {
             expect(await marketmaker.numPositions()).to.equal(2);
 
             const tokenId1 = (await positionManager.tokenOfOwnerByIndex(marketmaker.address, 1)).toNumber();
-            positionMapping1 = await marketmaker.positions(tokenId1);
+            positionMapping1 = await positionManager.positions(tokenId1);
             expect(positionMapping1.liquidity).to.above(Const.ZERO);
 
             const tokenId2 = (await positionManager.tokenOfOwnerByIndex(marketmaker.address, 2)).toNumber();
-            positionMapping2 = await marketmaker.positions(tokenId2);
+            positionMapping2 = await positionManager.positions(tokenId2);
             expect(positionMapping2.liquidity).to.above(Const.ZERO);
 
             usdcPoolBalance = await usdc.balanceOf(poolAddress);
@@ -272,13 +277,7 @@ contract('Market Maker', async () => {
             // because current tick is below than tick_upper of 1nd position.
             await marketmaker.execute(0);
 
-            // confirm 1st position was removed
-            positionMapping1 = await marketmaker.positions(tokenId1);
-            expect(positionMapping1.liquidity).to.equal(Const.ZERO);
-
-            // confirm 2nd position was removed
-            positionMapping2 = await marketmaker.positions(tokenId2);
-            expect(positionMapping2.liquidity).to.equal(Const.ZERO);
+            expect(await marketmaker.numPositions()).to.equal(0);
 
             expect(await usdc.balanceOf(poolAddress)).to.equal(usdcPoolBalance);
             expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
