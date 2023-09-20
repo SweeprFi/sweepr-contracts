@@ -113,6 +113,7 @@ contract("Stabilizer - Liquidation", async function () {
             Const.RATIO,
             MAX_BORROW,
             Const.TRUE,
+            Const.FALSE,
             Const.URL
           );
         })
@@ -162,6 +163,7 @@ contract("Stabilizer - Liquidation", async function () {
             Const.RATIO,
             MAX_BORROW,
             Const.TRUE,
+            Const.FALSE,
             Const.URL
           );
         })

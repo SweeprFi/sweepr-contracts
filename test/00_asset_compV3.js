@@ -46,7 +46,7 @@ contract('Compound V3 Asset', async () => {
         // config stabilizer
         await compAsset.configure(
             Const.RATIO, Const.spreadFee, maxMint, Const.DISCOUNT,
-            Const.DAYS_5, Const.RATIO, maxMint, Const.TRUE, Const.URL
+            Const.DAYS_5, Const.RATIO, maxMint, Const.TRUE, Const.FALSE, Const.URL
         );
 
         // simulates a pool in uniswap with 10000 SWEEP/USDX
@@ -176,7 +176,7 @@ contract('Compound V3 Asset', async () => {
             newRatio = Const.RATIO * 10;
             await compAsset.configure(
                 newRatio, Const.FEE, maxMint, Const.DISCOUNT, Const.DAYS_5,
-                Const.RATIO, maxMint, Const.TRUE, Const.URL
+                Const.RATIO, maxMint, Const.TRUE, Const.FALSE, Const.URL
             );
             expect(await compAsset.isDefaulted()).to.equal(Const.TRUE);
         });

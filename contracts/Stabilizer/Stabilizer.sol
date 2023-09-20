@@ -56,7 +56,8 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     uint256 public startingTime;
     uint256 public startingPrice;
-    uint256 public decreaseFactor; // 1000 is 0,1%
+    uint256 public decreaseFactor; // 10000 is 1%
+    bool public auctionAllowed;
 
     // Constants for various precisions
     uint256 private constant DAY_SECONDS = 60 * 60 * 24; // seconds of Day
@@ -94,6 +95,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         int256 autoInvestMinRatio,
         uint256 autoInvestMinAmount,
         bool autoInvestEnabled,
+        bool _auctionAllowed,
         string url
     );
 
@@ -106,6 +108,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     error OverZero();
     error AssetDefaulted();
     error AuctionNotActive();
+    error NotAllowedAction();
     error InvalidMinter();
     error NotEnoughBalance();
     error EquityRatioExcessed();
@@ -231,7 +234,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @return auctionPrice
      */
     function getAuctionAmount() public view returns (uint256 auctionPrice) {
-        uint256 timeElapsed = (block.timestamp - startingTime) / DAY_SECONDS;
+        uint256 timeElapsed = (block.timestamp - startingTime) / 5 minutes;
         uint256 decreaseRatio = PRECISION - (timeElapsed * decreaseFactor);
         auctionPrice = (startingPrice * decreaseRatio) / PRECISION;
     }
@@ -264,6 +267,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @param _autoInvestMinRatio Minimum equity ratio that should be kept to allow the execution of an auto invest
      * @param _autoInvestMinAmount Minimum amount to be invested to allow the execution of an auto invest
      * @param _autoInvestEnabled Represents if an auto invest execution is allowed or not
+     * @param _auctionAllowed Represents if an auction is allowed or not
      * @param _url A URL link to a Web page that describes the borrower and the asset
      * @dev Sets the initial configuration of the Stabilizer.
      * This configuration will be analyzed by the protocol and if accepted,
@@ -279,6 +283,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         int256 _autoInvestMinRatio,
         uint256 _autoInvestMinAmount,
         bool _autoInvestEnabled,
+        bool _auctionAllowed,
         string calldata _url
     ) external onlyBorrower onlySettingsEnabled {
         minEquityRatio = _minEquityRatio;
@@ -289,6 +294,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         autoInvestMinRatio = _autoInvestMinRatio;
         autoInvestMinAmount = _autoInvestMinAmount;
         autoInvestEnabled = _autoInvestEnabled;
+        auctionAllowed = _auctionAllowed;
         link = _url;
 
         emit ConfigurationChanged(
@@ -300,6 +306,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
             _autoInvestMinRatio,
             _autoInvestMinAmount,
             _autoInvestEnabled,
+            _auctionAllowed,
             _url
         );
     }
@@ -645,6 +652,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function startAuction() external {
         if (!isDefaulted()) revert NotDefaulted();
+        if(!auctionAllowed || startingPrice > 0) revert NotAllowedAction();
 
         startingTime = block.timestamp;
         uint256 minEquity = (PRECISION - uint256(minEquityRatio));
@@ -655,7 +663,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @notice Buy auction
      * Allows a user to participate in the auction by buying assets
      */
-    function buyAuction() external {
+    function buyAuction() external nonReentrant {
         if(startingTime == 0) revert AuctionNotActive();
         uint256 debt = getAuctionAmount();
         address token = _getToken();

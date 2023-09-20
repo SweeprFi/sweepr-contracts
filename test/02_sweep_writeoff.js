@@ -99,6 +99,7 @@ contract("Sweep - WriteOff", async function () {
 			Const.RATIO,
 			maxBorrow,
 			Const.FALSE,
+			Const.FALSE,
 			Const.URL
 		);
 
@@ -110,6 +111,7 @@ contract("Sweep - WriteOff", async function () {
 			Const.DAYS_5,
 			Const.RATIO,
 			maxBorrow,
+			Const.FALSE,
 			Const.FALSE,
 			Const.URL
 		);

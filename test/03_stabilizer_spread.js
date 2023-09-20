@@ -63,6 +63,7 @@ contract("Stabilizer and spread", async function () {
       Const.RATIO,
       maxBorrow,
       Const.FALSE,
+      Const.FALSE,
       Const.URL
     );
 

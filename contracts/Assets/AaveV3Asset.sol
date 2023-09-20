@@ -88,12 +88,8 @@ contract AaveV3Asset is Stabilizer {
         return _divest(usdxAmount, 0);
     }
 
-    /**
-     * @notice Liquidate
-     * @dev When the asset is defaulted anyone can liquidate it by
-     * repaying the debt and getting the same value at a discount.
-     */
     function liquidate() external nonReentrant {
+        if(auctionAllowed) revert NotAllowedAction();
         _liquidate(address(aaveUsdx), getDebt());
     }
 

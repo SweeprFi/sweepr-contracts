@@ -54,6 +54,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
       Const.RATIO,
       maxBorrow,
       Const.FALSE,
+      Const.FALSE,
       Const.URL
     );
     await usdx.connect(borrower).approve(offChainAsset.address, usdxAmount);

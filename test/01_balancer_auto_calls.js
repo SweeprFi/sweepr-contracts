@@ -85,6 +85,7 @@ contract('Balancer - Auto Call', async () => {
               AUTO_MIN_RATIO,
               AUTO_MIN_AMOUNT,
               Const.TRUE,
+              Const.FALSE,
               Const.URL
             )
           };
@@ -100,6 +101,7 @@ contract('Balancer - Auto Call', async () => {
         AUTO_MIN_RATIO,
         AUTO_MIN_AMOUNT,
         Const.TRUE,
+        Const.FALSE,
         Const.URL
       );
 

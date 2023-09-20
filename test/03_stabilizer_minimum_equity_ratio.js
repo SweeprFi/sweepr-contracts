@@ -68,6 +68,7 @@ contract('Stabilizer - Minimum equity ratio', async () => {
       Const.RATIO,
       mintAmount,
       Const.TRUE,
+      Const.FALSE,
       Const.URL
     );
 

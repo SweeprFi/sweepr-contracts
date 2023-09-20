@@ -68,6 +68,7 @@ contract("Uniswap AMM", async function () {
       Const.RATIO,
       SWEEP_INVEST,
       Const.FALSE,
+      Const.FALSE,
       Const.URL
     );
   });

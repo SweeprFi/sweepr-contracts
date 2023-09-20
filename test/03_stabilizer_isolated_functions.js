@@ -51,6 +51,7 @@ contract("Stabilizer - Isolated Functions", async function () {
       Const.RATIO,
       maxBorrow,
       Const.FALSE,
+      Const.FALSE,
       Const.URL
     );
 

@@ -98,6 +98,7 @@ contract TokenAsset is Stabilizer {
      * @notice Liquidate
      */
     function liquidate() external nonReentrant {
+        if(auctionAllowed) revert NotAllowedAction();
         _liquidate(address(token), getDebt());
     }
 

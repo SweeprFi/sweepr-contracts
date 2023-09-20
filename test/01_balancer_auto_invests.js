@@ -72,6 +72,7 @@ contract('Balancer - Auto Invests', async () => {
                             minRatio,
                             autoInvestMinAmount,
                             Const.TRUE,
+                            Const.FALSE,
                             Const.URL
                         );
                     }
@@ -88,6 +89,7 @@ contract('Balancer - Auto Invests', async () => {
                 minRatio,
                 autoInvestMinAmount,
                 Const.TRUE,
+                Const.FALSE,
                 Const.URL
             );
 
@@ -100,6 +102,7 @@ contract('Balancer - Auto Invests', async () => {
                 Const.DAYS_5,
                 minRatio,
                 autoInvestMinAmount,
+                Const.FALSE,
                 Const.FALSE,
                 Const.URL
             );
@@ -114,6 +117,7 @@ contract('Balancer - Auto Invests', async () => {
                 minRatio,
                 10e6,
                 Const.TRUE,
+                Const.FALSE,
                 Const.URL
             );
 
@@ -127,6 +131,7 @@ contract('Balancer - Auto Invests', async () => {
                 higherRatio,
                 autoInvestMinAmount,
                 Const.TRUE,
+                Const.FALSE,
                 Const.URL
             );
 

@@ -50,6 +50,7 @@ contract("Stabilizer's waterfall workflow", async function () {
       Const.RATIO,
       maxBorrow,
       Const.FALSE,
+      Const.FALSE,
       Const.URL
     );
 

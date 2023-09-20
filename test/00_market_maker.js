@@ -68,6 +68,7 @@ contract('Market Maker', async () => {
             Const.RATIO,
             minAutoSweepAmount,
             Const.TRUE,
+            Const.FALSE,
             Const.URL
         );
 

@@ -107,7 +107,8 @@ contract USDPlusAsset is Stabilizer {
     /**
      * @notice Liquidate
      */
-    function liquidate() external nonReentrant { 
+    function liquidate() external nonReentrant {
+        if(auctionAllowed) revert NotAllowedAction();
         _liquidate(address(token), getDebt());
     }
 

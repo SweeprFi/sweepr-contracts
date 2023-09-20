@@ -6,7 +6,7 @@ const {
   Const, increaseTime, getBlockTimestamp
 } = require("../utils/helper_functions");
 
-contract.only('Stabilizer - Auction', async () => {
+contract('Stabilizer - Auction', async () => {
   before(async () => {
     [owner, guest, lzEndpoint, liquidator] = await ethers.getSigners();
     // Variables
@@ -75,6 +75,7 @@ contract.only('Stabilizer - Auction', async () => {
         Const.RATIO,
         borrowAmount,
         Const.TRUE,
+        Const.TRUE,
         Const.URL
       );
 
@@ -103,6 +104,7 @@ contract.only('Stabilizer - Auction', async () => {
         Const.RATIO,
         borrowAmount,
         Const.TRUE,
+        Const.TRUE,
         Const.URL
       );
 
@@ -117,22 +119,31 @@ contract.only('Stabilizer - Auction', async () => {
     });
 
     it('decreases the price over the time', async () => {
-      await aaveAsset.startAuction();
       startingPrice = await aaveAsset.getAuctionAmount();
 
-      await increaseTime(Const.DAY * 30);
-      after30Days = await aaveAsset.getAuctionAmount();
-      expect(startingPrice).to.above(after30Days);
+      await increaseTime(300);
+      after5minutes = await aaveAsset.getAuctionAmount();
+      expect(startingPrice).to.above(after5minutes);
 
-      await increaseTime(Const.DAY * 30);
-      after60Days = await aaveAsset.getAuctionAmount();
-      expect(after30Days).to.above(after60Days);
+      await increaseTime(300);
+      after10minutes = await aaveAsset.getAuctionAmount();
+      expect(after5minutes).to.above(after10minutes);
+    });
+
+    it('can not start the auction twice', async () => {
+      await expect(aaveAsset.startAuction())
+        .to.be.revertedWithCustomError(aaveAsset, "NotAllowedAction");
+    });
+
+    it('can not liquidate if the auction is configured', async () => {
+      await expect(aaveAsset.startAuction())
+        .to.be.revertedWithCustomError(aaveAsset, "NotAllowedAction");
     });
 
     it('liquidate the asset by buying the auction correctly', async () => {
       aaveBalance = await aave_usdx.balanceOf(aaveAsset.address);
       sweepBalance = await sweep.balanceOf(aaveAsset.address);
-      
+
       expect(await aave_usdx.balanceOf(liquidator.address)).to.equal(0);
       expect(await await sweep.balanceOf(liquidator.address)).to.equal(sweepAmount);
       expect(aaveBalance).to.above(0);
@@ -161,6 +172,6 @@ contract.only('Stabilizer - Auction', async () => {
       expect(await aaveAsset.startingTime()).to.equal(0);
       expect(await aaveAsset.startingPrice()).to.equal(0);
     });
-  })
+  });
 });
 

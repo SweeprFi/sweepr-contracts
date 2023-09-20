@@ -67,6 +67,7 @@ contract('Aave V3 Asset', async () => {
             Const.RATIO,
             mintAmount,
             Const.TRUE,
+            Const.FALSE,
             Const.URL
         );
 
@@ -198,6 +199,7 @@ contract('Aave V3 Asset', async () => {
                 Const.RATIO,
                 mintAmount,
                 Const.TRUE,
+                Const.FALSE,
                 Const.URL
             );
             expect(await aaveAsset.isDefaulted()).to.equal(Const.TRUE);

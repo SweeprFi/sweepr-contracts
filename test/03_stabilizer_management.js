@@ -66,7 +66,7 @@ contract("Stabilizer - Management Functions", async function () {
       expect(await offChainAsset.minEquityRatio()).to.equal(Const.ZERO);
       expect(await offChainAsset.spreadFee()).to.equal(Const.ZERO);
       expect(await offChainAsset.loanLimit()).to.equal(Const.ZERO);
-      expect(await offChainAsset.liquidatorDiscount()).to.equal(Const.ZERO);
+      expect(await offChainAsset.decreaseFactor()).to.equal(Const.ZERO);
       expect(await offChainAsset.callDelay()).to.equal(Const.ZERO);
       expect(await offChainAsset.link()).to.equal("");
 
@@ -80,6 +80,7 @@ contract("Stabilizer - Management Functions", async function () {
           Const.RATIO,
           autoInvestAmount,
           Const.TRUE,
+          Const.FALSE,
           Const.URL
         )
       ).to.be.revertedWithCustomError(offChainAsset, 'NotBorrower');
@@ -94,13 +95,14 @@ contract("Stabilizer - Management Functions", async function () {
           Const.RATIO,
           autoInvestAmount,
           Const.TRUE,
+          Const.FALSE,
           Const.URL
         );
 
       expect(await offChainAsset.minEquityRatio()).to.equal(Const.RATIO);
       expect(await offChainAsset.spreadFee()).to.equal(Const.RATIO);
       expect(await offChainAsset.loanLimit()).to.equal(maxBorrow);
-      expect(await offChainAsset.liquidatorDiscount()).to.equal(Const.RATIO);
+      expect(await offChainAsset.decreaseFactor()).to.equal(Const.RATIO);
       expect(await offChainAsset.callDelay()).to.equal(Const.FEE);
 
       expect(await offChainAsset.link()).to.equal(Const.URL);
@@ -126,6 +128,7 @@ contract("Stabilizer - Management Functions", async function () {
           Const.RATIO,
           autoInvestAmount,
           Const.TRUE,
+          Const.FALSE,
           Const.URL
         )
       ).to.be.revertedWithCustomError(offChainAsset, 'SettingsDisabled');

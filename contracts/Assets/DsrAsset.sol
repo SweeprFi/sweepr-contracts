@@ -125,6 +125,7 @@ contract DsrAsset is Stabilizer {
      * repaying the debt and getting the same value at a discount.
      */
     function liquidate() external nonReentrant {
+        if(auctionAllowed) revert NotAllowedAction();
         _liquidate(address(dai), getDebt());
     }
 
