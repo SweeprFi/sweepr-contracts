@@ -395,7 +395,7 @@ const assets = {
     42161: '',
   },
   market_maker: {
-    1: '0x709d075147a10495e5c3bBF3dfc0c138F34C6E72',
+    1: '0xff368E106EA8782FaB6B2D4AD69739a60C66400E',
     5: '',
     42161: '0x78326Ce3be64977658726EEdAd9A35de460E310A',
   },
