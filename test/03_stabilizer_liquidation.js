@@ -108,10 +108,11 @@ contract("Stabilizer - Liquidation", async function () {
             Const.RATIO, // 10%
             Const.spreadFee,
             MAX_BORROW,
-            Const.DISCOUNT,
+            Const.ZERO,
             Const.DAYS_5,
             Const.RATIO,
             MAX_BORROW,
+            Const.ZERO,
             Const.TRUE,
             Const.FALSE,
             Const.URL
@@ -158,10 +159,11 @@ contract("Stabilizer - Liquidation", async function () {
             2e5, // 10%
             Const.spreadFee,
             MAX_BORROW,
-            Const.DISCOUNT,
+            Const.ZERO,
             Const.DAYS_5,
             Const.RATIO,
             MAX_BORROW,
+            Const.ZERO,
             Const.TRUE,
             Const.FALSE,
             Const.URL

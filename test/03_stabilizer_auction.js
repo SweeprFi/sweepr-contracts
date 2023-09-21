@@ -14,7 +14,7 @@ contract('Stabilizer - Auction', async () => {
     depositAmount = 10e6;
     investAmount = 200e6;
     outAmount = 29e6;
-    sellAmount = toBN("30", 18);
+    sellAmount = toBN("60", 18);
     borrowAmount = toBN("90", 18);
     maxBorrow = toBN("100", 18);
     sweepAmount = toBN("1000", 18);
@@ -67,13 +67,14 @@ contract('Stabilizer - Auction', async () => {
 
       // config stabilizer
       await aaveAsset.configure(
-        Const.DISCOUNT,
+        Const.DECREASE_FACTOR,
         Const.spreadFee,
         maxBorrow,
-        Const.DISCOUNT,
+        Const.DECREASE_FACTOR,
         Const.DAYS_5,
         Const.RATIO,
         borrowAmount,
+        Const.MIN_LIUQIDATION,
         Const.TRUE,
         Const.TRUE,
         Const.URL
@@ -99,10 +100,11 @@ contract('Stabilizer - Auction', async () => {
         Const.RATIO,
         Const.spreadFee,
         maxBorrow,
-        Const.DISCOUNT,
+        Const.DECREASE_FACTOR,
         Const.DAYS_5,
         Const.RATIO,
         borrowAmount,
+        Const.MIN_LIUQIDATION,
         Const.TRUE,
         Const.TRUE,
         Const.URL
@@ -128,6 +130,18 @@ contract('Stabilizer - Auction', async () => {
       await increaseTime(300);
       after10minutes = await aaveAsset.getAuctionAmount();
       expect(after5minutes).to.above(after10minutes);
+    });
+
+    it('the price do not decreases more that the minimum', async () => {
+      await increaseTime(Const.DAY);
+      after1day = await aaveAsset.getAuctionAmount();
+      expect(after10minutes).to.above(after1day);
+
+      await increaseTime(Const.DAY);
+      after2day = await aaveAsset.getAuctionAmount();
+
+      expect(after1day).to.equal(after2day);
+      expect(borrowAmount.div(2)).to.equal(after2day);
     });
 
     it('can not start the auction twice', async () => {
@@ -174,4 +188,3 @@ contract('Stabilizer - Auction', async () => {
     });
   });
 });
-

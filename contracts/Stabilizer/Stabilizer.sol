@@ -57,6 +57,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     uint256 public startingTime;
     uint256 public startingPrice;
     uint256 public decreaseFactor; // 10000 is 1%
+    uint256 public minLiquidationRatio; // 100000 is 10%
     bool public auctionAllowed;
 
     // Constants for various precisions
@@ -94,6 +95,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         uint256 callDelay,
         int256 autoInvestMinRatio,
         uint256 autoInvestMinAmount,
+        uint256 minLiquidationRatio,
         bool autoInvestEnabled,
         bool _auctionAllowed,
         string url
@@ -233,10 +235,17 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @notice Returns the SWEEP required to liquidate the stabilizer in the auction.
      * @return auctionPrice
      */
-    function getAuctionAmount() public view returns (uint256 auctionPrice) {
+    function getAuctionAmount() public view returns (uint256) {
+        uint256 minPrice = sweepBorrowed * (PRECISION - minLiquidationRatio) / PRECISION;
         uint256 timeElapsed = (block.timestamp - startingTime) / 5 minutes;
-        uint256 decreaseRatio = PRECISION - (timeElapsed * decreaseFactor);
-        auctionPrice = (startingPrice * decreaseRatio) / PRECISION;
+        uint256 ratio = timeElapsed * decreaseFactor;
+
+        if(ratio > PRECISION) return minPrice;
+
+        uint256 decreaseRatio = PRECISION - ratio;
+        uint256 auctionPrice = (startingPrice * decreaseRatio) / PRECISION;
+
+        return minPrice > auctionPrice ? minPrice : auctionPrice;
     }
 
     /* ========== Settings ========== */
@@ -282,6 +291,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         uint256 _callDelay,
         int256 _autoInvestMinRatio,
         uint256 _autoInvestMinAmount,
+        uint256 _minLiquidationRatio,
         bool _autoInvestEnabled,
         bool _auctionAllowed,
         string calldata _url
@@ -293,6 +303,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         callDelay = _callDelay;
         autoInvestMinRatio = _autoInvestMinRatio;
         autoInvestMinAmount = _autoInvestMinAmount;
+        minLiquidationRatio = _minLiquidationRatio;
         autoInvestEnabled = _autoInvestEnabled;
         auctionAllowed = _auctionAllowed;
         link = _url;
@@ -305,6 +316,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
             _callDelay,
             _autoInvestMinRatio,
             _autoInvestMinAmount,
+            _minLiquidationRatio,
             _autoInvestEnabled,
             _auctionAllowed,
             _url

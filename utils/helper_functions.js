@@ -102,7 +102,8 @@ const Const = {
     FALSE: false,
     RATIO: 1e5, // 10 %
     spreadFee: 3e4, // 3 %
-    DISCOUNT: 8e4, // 0,05%
+    DECREASE_FACTOR: 8e4, // 0,8%
+    MIN_LIUQIDATION: 5e5, // 50%
     URL: "htttp://test.com",
     DAY: 86400, // seconds
     DAYS_5: 432000, // 5 days

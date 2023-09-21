@@ -45,7 +45,7 @@ contract('Compound V3 Asset', async () => {
 
         // config stabilizer
         await compAsset.configure(
-            Const.RATIO, Const.spreadFee, maxMint, Const.DISCOUNT,
+            Const.RATIO, Const.spreadFee, maxMint, Const.ZERO, Const.ZERO,
             Const.DAYS_5, Const.RATIO, maxMint, Const.TRUE, Const.FALSE, Const.URL
         );
 
@@ -175,7 +175,7 @@ contract('Compound V3 Asset', async () => {
         it('set as defaulted', async () => {
             newRatio = Const.RATIO * 10;
             await compAsset.configure(
-                newRatio, Const.FEE, maxMint, Const.DISCOUNT, Const.DAYS_5,
+                newRatio, Const.FEE, maxMint, Const.ZERO, Const.ZERO, Const.DAYS_5,
                 Const.RATIO, maxMint, Const.TRUE, Const.FALSE, Const.URL
             );
             expect(await compAsset.isDefaulted()).to.equal(Const.TRUE);

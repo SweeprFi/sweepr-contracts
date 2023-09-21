@@ -63,10 +63,11 @@ contract('Stabilizer - Minimum equity ratio', async () => {
       0,
       Const.spreadFee,
       maxBorrow,
-      Const.DISCOUNT,
+      Const.ZERO,
       Const.DAYS_5,
       Const.RATIO,
       mintAmount,
+      Const.ZERO,
       Const.TRUE,
       Const.FALSE,
       Const.URL

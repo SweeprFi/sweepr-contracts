@@ -79,6 +79,7 @@ contract("Stabilizer - Management Functions", async function () {
           Const.FEE,
           Const.RATIO,
           autoInvestAmount,
+          Const.ZERO,
           Const.TRUE,
           Const.FALSE,
           Const.URL
@@ -94,6 +95,7 @@ contract("Stabilizer - Management Functions", async function () {
           Const.FEE,
           Const.RATIO,
           autoInvestAmount,
+          Const.ZERO,
           Const.TRUE,
           Const.FALSE,
           Const.URL
@@ -127,6 +129,7 @@ contract("Stabilizer - Management Functions", async function () {
           Const.FEE,
           Const.RATIO,
           autoInvestAmount,
+          Const.ZERO,
           Const.TRUE,
           Const.FALSE,
           Const.URL

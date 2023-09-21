@@ -63,10 +63,11 @@ contract('Market Maker', async () => {
             0,
             Const.spreadFee,
             sweepAmount,
-            Const.DISCOUNT,
+            Const.ZERO,
             Const.DAY,
             Const.RATIO,
             minAutoSweepAmount,
+            Const.ZERO,
             Const.TRUE,
             Const.FALSE,
             Const.URL
