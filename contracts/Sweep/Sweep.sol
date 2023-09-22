@@ -329,22 +329,23 @@ contract SweepCoin is BaseSweep {
      * @notice Write Off
      * @param newPrice.
      */
-    function writeOff(uint256 newPrice) external onlyGov whenPaused {
+    function writeOff(uint256 newPrice, address insolventDebtor) external onlyGov whenPaused {
         if (targetPrice() < ammPrice()) revert WriteOffNotAllowed();
         uint256 multiplier = SPREAD_PRECISION.mulDiv(targetPrice(), newPrice);
         uint256 len = minterAddresses.length;
 
         for (uint256 i = 0; i < len; ) {
-            IStabilizer stabilizer = IStabilizer(minterAddresses[i]);
-            uint256 sweepAmount = stabilizer.sweepBorrowed();
-            if (sweepAmount > 0) {
-                sweepAmount = sweepAmount.mulDiv(multiplier, SPREAD_PRECISION);
-                stabilizer.updateSweepBorrowed(sweepAmount);
+            address minterAddress = minterAddresses[i];
+            if(insolventDebtor != minterAddress) {
+                IStabilizer stabilizer = IStabilizer(minterAddress);
+                uint256 sweepAmount = stabilizer.sweepBorrowed();
+                if (sweepAmount > 0) {
+                    sweepAmount = sweepAmount.mulDiv(multiplier, SPREAD_PRECISION);
+                    stabilizer.updateSweepBorrowed(sweepAmount);
+                }
             }
 
-            unchecked {
-                ++i;
-            }
+            unchecked { ++i; }
         }
         
         currentTargetPrice = newPrice;

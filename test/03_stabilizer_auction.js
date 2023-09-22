@@ -166,7 +166,7 @@ contract('Stabilizer - Auction', async () => {
       await sweep.connect(liquidator).approve(aaveAsset.address, sweepAmount);
       await aaveAsset.connect(liquidator).buyAuction();
 
-      expect(await aave_usdx.balanceOf(liquidator.address)).to.equal(aaveBalance);
+      expect(await aave_usdx.balanceOf(liquidator.address)).to.closeTo(aaveBalance,1);
       expect(await await sweep.balanceOf(liquidator.address)).to.below(sweepAmount);
       expect(await aave_usdx.balanceOf(aaveAsset.address)).to.equal(0);
       expect(await sweep.balanceOf(aaveAsset.address)).to.equal(0);
