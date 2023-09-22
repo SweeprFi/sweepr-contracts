@@ -25,6 +25,7 @@ async function main() {
 	], { initializer: 'initialize' });
 
 	console.log("Sweep deployed to:", sweep.address);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${sweep.address}`)
 }
 
 main();
