@@ -67,11 +67,13 @@ contract('Balancer - Auto Invests', async () => {
                             Const.RATIO,
                             Const.spreadFee,
                             loanLimit,
-                            Const.DISCOUNT,
+                            Const.ZERO,
                             Const.DAYS_5,
                             minRatio,
                             autoInvestMinAmount,
+                            Const.ZERO,
                             Const.TRUE,
+                            Const.FALSE,
                             Const.URL
                         );
                     }
@@ -83,11 +85,13 @@ contract('Balancer - Auto Invests', async () => {
                 Const.RATIO,
                 Const.spreadFee,
                 Const.ZERO,
-                Const.DISCOUNT,
+                Const.ZERO,
                 Const.DAYS_5,
                 minRatio,
                 autoInvestMinAmount,
+                Const.ZERO,
                 Const.TRUE,
+                Const.FALSE,
                 Const.URL
             );
 
@@ -96,10 +100,12 @@ contract('Balancer - Auto Invests', async () => {
                 Const.RATIO,
                 Const.spreadFee,
                 loanLimit,
-                Const.DISCOUNT,
+                Const.ZERO,
                 Const.DAYS_5,
                 minRatio,
                 autoInvestMinAmount,
+                Const.ZERO,
+                Const.FALSE,
                 Const.FALSE,
                 Const.URL
             );
@@ -109,11 +115,13 @@ contract('Balancer - Auto Invests', async () => {
                 Const.RATIO,
                 Const.spreadFee,
                 loanLimit,
-                Const.DISCOUNT,
+                Const.ZERO,
                 Const.DAYS_5,
                 minRatio,
                 10e6,
+                Const.ZERO,
                 Const.TRUE,
+                Const.FALSE,
                 Const.URL
             );
 
@@ -122,11 +130,13 @@ contract('Balancer - Auto Invests', async () => {
                 Const.RATIO,
                 Const.spreadFee,
                 loanLimit,
-                Const.DISCOUNT,
+                Const.ZERO,
                 Const.DAYS_5,
                 higherRatio,
                 autoInvestMinAmount,
+                Const.ZERO,
                 Const.TRUE,
+                Const.FALSE,
                 Const.URL
             );
 

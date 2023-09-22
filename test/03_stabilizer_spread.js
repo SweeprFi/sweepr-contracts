@@ -58,10 +58,12 @@ contract("Stabilizer and spread", async function () {
       Const.RATIO,
       Const.spreadFee,
       maxBorrow,
-      Const.DISCOUNT,
+      Const.ZERO,
       Const.DAYS_5,
       Const.RATIO,
       maxBorrow,
+      Const.ZERO,
+      Const.FALSE,
       Const.FALSE,
       Const.URL
     );

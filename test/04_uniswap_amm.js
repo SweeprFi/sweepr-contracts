@@ -63,10 +63,12 @@ contract("Uniswap AMM", async function () {
       Const.RATIO,
       Const.spreadFee,
       SWEEP_INVEST,
-      Const.DISCOUNT,
+      Const.ZERO,
       Const.DAY,
       Const.RATIO,
       SWEEP_INVEST,
+      Const.ZERO,
+      Const.FALSE,
       Const.FALSE,
       Const.URL
     );

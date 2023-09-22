@@ -54,10 +54,12 @@ contract('Uniswap V3 Asset', async () => {
             Const.RATIO,
             Const.spreadFee,
             sweepAmount,
-            Const.DISCOUNT,
+            Const.ZERO,
             Const.DAY,
             Const.RATIO,
             sweepAmount,
+            Const.ZERO,
+            Const.FALSE,
             Const.FALSE,
             Const.URL
         );

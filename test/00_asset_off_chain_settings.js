@@ -43,11 +43,13 @@ contract("Off-Chain Asset - Settings", async function () {
 			Const.RATIO,
 			Const.spreadFee,
 			maxBorrow,
-			Const.DISCOUNT,
+			Const.ZERO,
 			Const.DAY,
 			Const.RATIO,
 			maxBorrow,
+			Const.ZERO,
 			Const.TRUE,
+			Const.FALSE,
 			Const.URL
 		);
 

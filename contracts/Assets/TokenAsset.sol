@@ -98,10 +98,15 @@ contract TokenAsset is Stabilizer {
      * @notice Liquidate
      */
     function liquidate() external nonReentrant {
-        _liquidate(address(token));
+        if(auctionAllowed) revert ActionNotAllowed();
+        _liquidate(address(token), getDebt());
     }
 
     /* ========== Internals ========== */
+
+    function _getToken() internal view override returns (address) {
+        return address(token);
+    }
 
     function _invest(
         uint256 usdxAmount,

@@ -62,11 +62,13 @@ contract('Aave V3 Asset', async () => {
             Const.RATIO,
             Const.spreadFee,
             maxBorrow,
-            Const.DISCOUNT,
+            Const.ZERO,
             Const.DAYS_5,
             Const.RATIO,
             mintAmount,
+            Const.ZERO,
             Const.TRUE,
+            Const.FALSE,
             Const.URL
         );
 
@@ -193,18 +195,19 @@ contract('Aave V3 Asset', async () => {
                 newRatio,
                 Const.FEE,
                 maxBorrow,
-                Const.DISCOUNT,
+                Const.ZERO,
                 Const.DAYS_5,
                 Const.RATIO,
                 mintAmount,
+                Const.ZERO,
                 Const.TRUE,
+                Const.FALSE,
                 Const.URL
             );
             expect(await aaveAsset.isDefaulted()).to.equal(Const.TRUE);
         });
 
         it('liquidate asset', async () => {
-            // expect(await aaveAsset.sweepBorrowed()).to.equal(mintAmount);
             await aaveAsset.connect(liquidator).liquidate();
 
             expect(await aaveAsset.sweepBorrowed()).to.equal(Const.ZERO);

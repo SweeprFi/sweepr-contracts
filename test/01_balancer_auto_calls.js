@@ -80,11 +80,13 @@ contract('Balancer - Auto Call', async () => {
               MIN_RATIO,
               Const.spreadFee,
               loanLimit,
-              Const.DISCOUNT,
+              Const.ZERO,
               Const.ZERO,
               AUTO_MIN_RATIO,
               AUTO_MIN_AMOUNT,
+              Const.ZERO,
               Const.TRUE,
+              Const.FALSE,
               Const.URL
             )
           };
@@ -95,11 +97,13 @@ contract('Balancer - Auto Call', async () => {
         MIN_RATIO,
         Const.spreadFee,
         loanLimit,
-        Const.DISCOUNT,
+        Const.ZERO,
         Const.DAYS_5,
         AUTO_MIN_RATIO,
         AUTO_MIN_AMOUNT,
+        Const.ZERO,
         Const.TRUE,
+        Const.FALSE,
         Const.URL
       );
 
