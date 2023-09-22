@@ -74,7 +74,7 @@ contract('Stabilizer - Auction', async () => {
         Const.DAYS_5,
         Const.RATIO,
         borrowAmount,
-        Const.MIN_LIUQIDATION,
+        Const.MIN_LIQUIDATION,
         Const.TRUE,
         Const.TRUE,
         Const.URL
@@ -104,7 +104,7 @@ contract('Stabilizer - Auction', async () => {
         Const.DAYS_5,
         Const.RATIO,
         borrowAmount,
-        Const.MIN_LIUQIDATION,
+        Const.MIN_LIQUIDATION,
         Const.TRUE,
         Const.TRUE,
         Const.URL
@@ -146,12 +146,12 @@ contract('Stabilizer - Auction', async () => {
 
     it('can not start the auction twice', async () => {
       await expect(aaveAsset.startAuction())
-        .to.be.revertedWithCustomError(aaveAsset, "NotAllowedAction");
+        .to.be.revertedWithCustomError(aaveAsset, "ActionNotAllowed");
     });
 
     it('can not liquidate if the auction is configured', async () => {
       await expect(aaveAsset.startAuction())
-        .to.be.revertedWithCustomError(aaveAsset, "NotAllowedAction");
+        .to.be.revertedWithCustomError(aaveAsset, "ActionNotAllowed");
     });
 
     it('liquidate the asset by buying the auction correctly', async () => {

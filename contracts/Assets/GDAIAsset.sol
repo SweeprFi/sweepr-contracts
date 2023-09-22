@@ -200,7 +200,7 @@ contract GDAIAsset is Stabilizer {
      * @notice Liquidate
      */
     function liquidate() external nonReentrant {
-        if(auctionAllowed) revert NotAllowedAction();
+        if(auctionAllowed) revert ActionNotAllowed();
         _liquidate(address(gDai), getDebt());
     }
 

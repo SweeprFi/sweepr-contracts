@@ -89,7 +89,7 @@ contract AaveV3Asset is Stabilizer {
     }
 
     function liquidate() external nonReentrant {
-        if(auctionAllowed) revert NotAllowedAction();
+        if(auctionAllowed) revert ActionNotAllowed();
         _liquidate(address(aaveUsdx), getDebt());
     }
 

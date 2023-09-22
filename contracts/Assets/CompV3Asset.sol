@@ -88,7 +88,7 @@ contract CompV3Asset is Stabilizer {
      * @notice Liquidate
      */
     function liquidate() external nonReentrant {
-        if(auctionAllowed) revert NotAllowedAction();
+        if(auctionAllowed) revert ActionNotAllowed();
         _liquidate(address(cUsdc), getDebt());
     }
 

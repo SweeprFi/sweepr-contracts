@@ -110,7 +110,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     error OverZero();
     error AssetDefaulted();
     error AuctionNotActive();
-    error NotAllowedAction();
+    error ActionNotAllowed();
     error InvalidMinter();
     error NotEnoughBalance();
     error EquityRatioExcessed();
@@ -664,7 +664,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function startAuction() external {
         if (!isDefaulted()) revert NotDefaulted();
-        if(!auctionAllowed || startingPrice > 0) revert NotAllowedAction();
+        if(!auctionAllowed || startingPrice > 0) revert ActionNotAllowed();
 
         startingTime = block.timestamp;
         uint256 minEquity = (PRECISION - uint256(minEquityRatio));
