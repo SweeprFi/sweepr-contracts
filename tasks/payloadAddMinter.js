@@ -35,13 +35,13 @@ module.exports = async function (taskArgs, hre) {
 	);
 
 	// quote fee with default adapterParams
-	let adapterParams = ethers.utils.solidityPack(
+	const adapterParams = ethers.utils.solidityPack(
 		["uint16", "uint256"],
 		[1, 200000]
 	);
 	console.log("\nAdapter params:", adapterParams);
 
-	let nativeFee = (
+	const nativeFee = (
 		await localSenderInstance.estimateFees(
 			remoteChainId,
 			payload,
