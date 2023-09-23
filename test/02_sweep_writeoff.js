@@ -7,16 +7,14 @@ contract("Sweep - WriteOff", async function () {
 	before(async () => {
 		[wallet, lzEndpoint, borrower] = await ethers.getSigners();
 
-		newTargetPrice = 0.95e6;
+		newTargetPrice = 0.75e6;
 		usdxAmount = 1000e6;
 		sweepAmount = toBN("1000", 18);
-		maxBorrow = toBN("1000", 18);
-		mintAmount = toBN("100", 18);
-		investAmount = 100e6;
+		maxBorrow = toBN("100000", 18);
+		borrowAmount = toBN("8500", 18);
+		investAmount = 1000e6;
 
 		// ------------- Deployment of contracts -------------
-
-		// SWEEP
 		Sweep = await ethers.getContractFactory("SweepCoin");
 		const Proxy = await upgrades.deployProxy(Sweep, [
 			lzEndpoint.address,
@@ -35,9 +33,9 @@ contract("Sweep - WriteOff", async function () {
 		await sweep.setAMM(amm.address);
 
 		// Oracle
-        Oracle = await ethers.getContractFactory("AggregatorMock");
-        wbtcOracle = await Oracle.deploy();
-		
+		Oracle = await ethers.getContractFactory("AggregatorMock");
+		wbtcOracle = await Oracle.deploy();
+
 		// OffChain Asset
 		OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 		offChainAsset = await OffChainAsset.deploy(
@@ -46,7 +44,7 @@ contract("Sweep - WriteOff", async function () {
 			usdx.address,
 			wallet.address,
 			amm.address,
-            addresses.oracle_usdc_usd,
+			addresses.oracle_usdc_usd,
 			borrower.address
 		);
 
@@ -57,7 +55,7 @@ contract("Sweep - WriteOff", async function () {
 			sweep.address,
 			usdx.address,
 			addresses.wbtc,
-            addresses.oracle_usdc_usd,
+			addresses.oracle_usdc_usd,
 			wbtcOracle.address,
 			borrower.address,
 			Const.FEE
@@ -68,18 +66,32 @@ contract("Sweep - WriteOff", async function () {
 			sweep.address,
 			usdx.address,
 			addresses.weth,
-            addresses.oracle_usdc_usd,
+			addresses.oracle_usdc_usd,
 			wbtcOracle.address,
 			borrower.address,
 			Const.FEE
 		);
+
+		AaveAsset = await ethers.getContractFactory("AaveV3Asset");
+		aaveAsset = await AaveAsset.deploy(
+			'Aave Asset',
+			sweep.address,
+			usdx.address,
+			addresses.aave_usdc,
+			addresses.aaveV3_pool,
+			addresses.oracle_usdc_usd,
+			borrower.address,
+		);
 	});
+
+	function pp(v, d) { return ethers.utils.formatUnits(v.toString(), d) }
 
 	it('Initial Setting', async () => {
 		// Add minter
 		await sweep.addMinter(offChainAsset.address, maxBorrow);
 		await sweep.addMinter(wbtcAsset.address, maxBorrow);
 		await sweep.addMinter(wethAsset.address, maxBorrow);
+		await sweep.addMinter(aaveAsset.address, maxBorrow);
 		await sweep.addMinter(wallet.address, maxBorrow);
 		await sweep.mint(maxBorrow);
 
@@ -91,56 +103,49 @@ contract("Sweep - WriteOff", async function () {
 
 		// Config asset
 		await offChainAsset.connect(borrower).configure(
-			Const.RATIO,
-			Const.spreadFee,
-			maxBorrow,
-			Const.ZERO,
-			Const.DAYS_5,
-			Const.RATIO,
-			maxBorrow,
-			Const.ZERO,
-			Const.FALSE,
-			Const.FALSE,
-			Const.URL
+			Const.RATIO, Const.spreadFee, maxBorrow, Const.ZERO, Const.DAYS_5,
+			Const.RATIO, maxBorrow, Const.ZERO, Const.FALSE, Const.FALSE, Const.URL
 		);
 
 		await wbtcAsset.connect(borrower).configure(
-			Const.RATIO,
-			Const.spreadFee,
-			maxBorrow,
-			Const.ZERO,
-			Const.DAYS_5,
-			Const.RATIO,
-			maxBorrow,
-			Const.ZERO,
-			Const.FALSE,
-			Const.FALSE,
-			Const.URL
+			Const.RATIO, Const.spreadFee, maxBorrow, Const.ZERO, Const.DAYS_5,
+			Const.RATIO, maxBorrow, Const.ZERO, Const.FALSE, Const.FALSE, Const.URL
+		);
+
+		await wethAsset.connect(borrower).configure(
+			Const.RATIO, Const.spreadFee, maxBorrow, Const.ZERO, Const.DAYS_5,
+			Const.RATIO, maxBorrow, Const.ZERO, Const.FALSE, Const.FALSE, Const.URL
 		);
 	});
 
 	it('Borrow Sweep on the asset', async () => {
+		expect(await offChainAsset.sweepBorrowed()).to.equal(Const.ZERO);
+		expect(await wbtcAsset.sweepBorrowed()).to.equal(Const.ZERO);
+		expect(await wethAsset.sweepBorrowed()).to.equal(Const.ZERO);
 		// Deposit USDC 
 		expect(await usdx.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
 		expect(await usdx.balanceOf(wbtcAsset.address)).to.equal(Const.ZERO);
+		expect(await usdx.balanceOf(wethAsset.address)).to.equal(Const.ZERO);
+
 		await usdx.transfer(offChainAsset.address, investAmount);
 		await usdx.transfer(wbtcAsset.address, investAmount);
-		expect(await usdx.balanceOf(offChainAsset.address)).to.above(Const.ZERO);
-		expect(await usdx.balanceOf(wbtcAsset.address)).to.above(Const.ZERO);
+		await usdx.transfer(wethAsset.address, investAmount);
 
 		// Mint Sweep
-		expect(await offChainAsset.sweepBorrowed()).to.equal(Const.ZERO);
-		expect(await wbtcAsset.sweepBorrowed()).to.equal(Const.ZERO);
-		await offChainAsset.connect(borrower).borrow(mintAmount);
-		await wbtcAsset.connect(borrower).borrow(mintAmount);
-		expect(await offChainAsset.sweepBorrowed()).to.above(Const.ZERO);
-		expect(await wbtcAsset.sweepBorrowed()).to.above(Const.ZERO);
+		await offChainAsset.connect(borrower).borrow(borrowAmount);
+		await wbtcAsset.connect(borrower).borrow(borrowAmount);
+		await wethAsset.connect(borrower).borrow(borrowAmount);
+
+		expect(await offChainAsset.sweepBorrowed()).to.equal(borrowAmount);
+		expect(await wbtcAsset.sweepBorrowed()).to.equal(borrowAmount);
+		expect(await wethAsset.sweepBorrowed()).to.equal(borrowAmount);
 	});
 
 	it('Run WriteOff', async () => {
 		// Check pause of sweep
 		expect(await sweep.paused()).to.equal(false);
-		await expect(sweep.writeOff(newTargetPrice)).to.be.revertedWith('Pausable: not paused');
+		await expect(sweep.writeOff(newTargetPrice, offChainAsset.address))
+			.to.be.revertedWith('Pausable: not paused');
 		// Pause sweep
 		await sweep.pause();
 		expect(await sweep.paused()).to.equal(true);
@@ -151,13 +156,15 @@ contract("Sweep - WriteOff", async function () {
 
 		price = await sweep.targetPrice();
 		await amm.setPrice(price.mul(2));
-		await expect(sweep.writeOff(newTargetPrice))
+		await expect(sweep.writeOff(newTargetPrice, offChainAsset.address))
 			.to.be.revertedWithCustomError(sweep, "WriteOffNotAllowed")
-		
-		await amm.setPrice(price);
-		await sweep.writeOff(newTargetPrice);
 
-		expect(await offChainAsset.sweepBorrowed()).to.above(mintAmount);
-		expect(await wbtcAsset.sweepBorrowed()).to.above(mintAmount);
+		await amm.setPrice(price);
+		await sweep.writeOff(newTargetPrice, offChainAsset.address);
+
+		expect(await offChainAsset.sweepBorrowed()).to.equal(borrowAmount);
+		expect(await aaveAsset.sweepBorrowed()).to.equal(Const.ZERO);
+		expect(await wbtcAsset.sweepBorrowed()).to.above(borrowAmount);
+		expect(await wethAsset.sweepBorrowed()).to.above(borrowAmount);
 	});
 });
