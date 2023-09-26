@@ -42,19 +42,19 @@ module.exports = {
 			url: rpcLinks[1],
 			gas: 10000000,
 			chainId: 1,
-			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
+			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
 		},
 		goerli: {
 			url: rpcLinks[5],
 			gas: 10000000,
 			chainId: 5,
-			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
+			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
 		},
 		arbitrum: {
 			url: rpcLinks[42161],
 			gas: 10000000,
 			chainId: 42161,
-			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
+			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
 		},
 		arbitrum_goerli: {
 			url: rpcLinks[421613],

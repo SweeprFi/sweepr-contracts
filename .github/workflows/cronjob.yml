@@ -1,0 +1,32 @@
+name: Cronjob Refresh Interest Rate
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # to executes every Sunday 00:00 UTC
+
+env:
+  CHAIN_ID: 42161
+  ARBITRUM_MAIN_KEY: ${{ vars.ARBITRUM_MAIN_KEY }}
+  ARBISCAN_API_KEY: ${{ vars.ARBISCAN_API_KEY }}
+  ALCHEMY_KEY: ${{ vars.ALCHEMY_KEY }}
+  OWNER_PKEY: ${{ vars.OWNER_PKEY }}
+  BORROWER_PKEY: ${{ vars.BORROWER_PKEY }}
+  EXECUTOR_PKEY: ${{ vars.EXECUTOR_PKEY }}
+
+jobs:
+  refresh-interest-rate:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - run: npm install hardhat
+    - run: npx hardhat run --network arbitrum scripts/balancer/refresh_interest_rate.js
