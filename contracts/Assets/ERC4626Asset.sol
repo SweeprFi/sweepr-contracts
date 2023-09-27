@@ -9,12 +9,12 @@ pragma solidity 0.8.19;
  * @title ERC4626 Asset
  * @dev Representation of an on-chain investment
  */
-import "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import "../Stabilizer/Stabilizer.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {Stabilizer, TransferHelper} from "../Stabilizer/Stabilizer.sol";
 
 contract ERC4626Asset is Stabilizer {
     // Variables
-    IERC4626 private immutable asset;
+    IERC4626 public immutable asset;
 
     // Events
     event Invested(uint256 indexed tokenAmount);
