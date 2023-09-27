@@ -91,7 +91,7 @@ contract Balancer is NonblockingLzApp, Owned {
      * @param interestRate new interest rate.
      * @param periodStart new period start.
      */
-    function updateInterestRate(int256 interestRate, uint256 periodStart) external onlyMultisigOrGov {
+    function updateInterestRate(int256 interestRate, uint256 periodStart) external payable onlyMultisigOrGov {
         _sendNewInterestRate(interestRate, periodStart);
     }
 

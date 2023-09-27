@@ -16,6 +16,7 @@ env:
   ALCHEMY_KEY: ${{ vars.ALCHEMY_KEY }}
   OWNER_PKEY: ${{ vars.OWNER_PKEY }}
   BORROWER_PKEY: ${{ vars.BORROWER_PKEY }}
+  EXECUTOR_PKEY: ${{ vars.EXECUTOR_PKEY }}
 
 jobs:
   build:

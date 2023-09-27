@@ -60,7 +60,7 @@ module.exports = {
 			url: rpcLinks[421613],
 			gas: 10000000,
 			chainId: 421613,
-			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY]
+			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
 		},
 	},
 	etherscan: {
