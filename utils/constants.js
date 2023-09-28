@@ -303,6 +303,24 @@ const uniswap = {
   }
 }
 
+const maple = {
+  usdc_pool: {
+    1: '0xfe119e9C24ab79F1bDd5dd884B86Ceea2eE75D92',
+    5: '0x50c375fb7dd7336d8928c98708f80b4efca549e4',
+    42161: ''
+  },
+  pool_manager: {
+    1: '0x219654a61a0bc394055652986be403fa14405bb8',
+    5: '0xe813686a4c3a9fe7716e2863f37aab1a42ae8488',
+    42161: ''
+  },
+  withdrawal_manager: {
+    1: '0x1146691782c089bCF0B19aCb8620943a35eebD12',
+    5: '0x9ee714ebf5a3d4b45d0cdaa4bc6b7356682a153c',
+    42161: ''
+  }
+}
+
 const protocol = {
   governance: {
     1: '',
@@ -417,6 +435,7 @@ module.exports = {
   libraries,
   protocol,
   uniswap,
+  maple,
   networks,
   chainIDs,
   rpcLinks,

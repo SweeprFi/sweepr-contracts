@@ -13,8 +13,11 @@ contract.only('Maple Asset', async () => {
         BORROWER = owner.address;
         USDC_ADDRESS = addresses.usdc;
         USDC_HOLER = addresses.usdc_holder;
-        ORACLE_MAPLE = "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6";
-        POOL_DELEGATE = "0x8c8C2431658608F5649B8432764a930c952d8A98"
+        ORACLE_MAPLE = addresses.oracle_usdc_usd;
+        POOL_DELEGATE = "0x8c8C2431658608F5649B8432764a930c952d8A98";
+        POOL_MANAGER = addresses.maple_pool_manager;
+        MAPLE_POOL = addresses.maple_usdc_pool;
+        WITHDRAWAL_MANAGER = addresses.maple_withdrawal_manager;
 
         depositAmount = 100000e6;
         investAmount = 60000e6;
@@ -24,9 +27,9 @@ contract.only('Maple Asset', async () => {
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 2500]);
         sweep = await Proxy.deployed();
         usdx = await ethers.getContractAt("ERC20", USDC_ADDRESS);
-        maplePool = await ethers.getContractAt("IMaplePool", "0xfe119e9C24ab79F1bDd5dd884B86Ceea2eE75D92");
-        mapleManager = await ethers.getContractAt("IMapplePoolManager", "0x219654a61a0bc394055652986be403fa14405bb8");
-        mapleWithdrawal = await ethers.getContractAt("IWithdrawalManager", "0x1146691782c089bCF0B19aCb8620943a35eebD12");
+        maplePool = await ethers.getContractAt("IMaplePool", MAPLE_POOL);
+        mapleManager = await ethers.getContractAt("IMapplePoolManager", POOL_MANAGER);
+        mapleWithdrawal = await ethers.getContractAt("IWithdrawalManager", WITHDRAWAL_MANAGER);
 
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(
@@ -43,9 +46,9 @@ contract.only('Maple Asset', async () => {
             "Maple Asset",
             sweep.address, // SWEEP
             USDC_ADDRESS, // USDC
-            "0xfe119e9C24ab79F1bDd5dd884B86Ceea2eE75D92", // MAPLE'S ERC4626 POOL
-            "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6", // USDC-USD ORACLE
-            "0x1146691782c089bCF0B19aCb8620943a35eebD12", // MAPLE WITHDRAWAL MANAGER
+            MAPLE_POOL, // MAPLE'S ERC4626 POOL
+            ORACLE,
+            WITHDRAWAL_MANAGER, // MAPLE WITHDRAWAL MANAGER
             BORROWER
         );
 
