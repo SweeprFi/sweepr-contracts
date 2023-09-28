@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses, chainId } = require("../utils/address");
-const { impersonate, Const, sendEth, increaseTime } = require("../utils/helper_functions")
+const { impersonate, Const, sendEth, increaseTime, getBlockTimestamp } = require("../utils/helper_functions")
 
 contract.only('Maple Asset', async () => {
     // Maple Asset only work on the Ethereum mainnet.
@@ -13,7 +13,7 @@ contract.only('Maple Asset', async () => {
         BORROWER = owner.address;
         USDC_ADDRESS = addresses.usdc;
         USDC_HOLER = addresses.usdc_holder;
-        ORACLE_MAPLE = addresses.oracle_usdc_usd;
+        ORACLE = addresses.oracle_usdc_usd;
         POOL_DELEGATE = "0x8c8C2431658608F5649B8432764a930c952d8A98";
         POOL_MANAGER = addresses.maple_pool_manager;
         MAPLE_POOL = addresses.maple_usdc_pool;
@@ -21,7 +21,7 @@ contract.only('Maple Asset', async () => {
 
         depositAmount = 100000e6;
         investAmount = 60000e6;
-        
+
         // Sweep Contract
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 2500]);
@@ -37,7 +37,7 @@ contract.only('Maple Asset', async () => {
             USDC_ADDRESS,
             addresses.sequencer_feed,
             Const.FEE,
-            addresses.oracle_usdc_usd,
+            ORACLE,
             86400
         );
 
@@ -91,20 +91,20 @@ contract.only('Maple Asset', async () => {
 
             await asset.requestRedeem(newValue);
 
-            await increaseTime(Const.DAY*30);
-            await asset.divest(investAmount);
+            expect(await mapleWithdrawal.lockedShares(asset.address)).to.above(0);
+            expect(await usdx.balanceOf(asset.address)).to.equal(0);
 
-            // expect(await asset.assetValue()).to.above(assetVal);
+            // moves between the Maple window time
+            id = await mapleWithdrawal.exitCycleId(asset.address);
+            info = await mapleWithdrawal.getWindowAtId(id);
+            now = await getBlockTimestamp();
 
-            // // Divest usdx
-            // await expect(asset.divest(divestAmount))
-            //     .to.be.revertedWithCustomError(asset, 'NotBorrower');
-            // await asset.divest(divestAmount);
-            // expect(await asset.assetValue()).to.above(Const.ZERO);
-            
-            // divestAmount = 250e6;
-            // await asset.divest(divestAmount);
-            // expect(await asset.assetValue()).to.equal(Const.ZERO);
+            time = info.windowStart_.sub(now)
+            await increaseTime(time.toNumber());
+            await asset.divest(1);
+
+            expect(await mapleWithdrawal.lockedShares(asset.address)).to.equal(0);
+            expect(await usdx.balanceOf(asset.address)).to.above(depositAmount);
         });
     });
 });

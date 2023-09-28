@@ -50,7 +50,7 @@ contract MapleAsset is ERC4626Asset {
      * @dev requests Maple for usdxAmount to be redeemed
      */
     function requestRedeem(uint256 usdxAmount) public onlyBorrower {
-        uint256 withdrawAmount = _getShareAmount(usdxAmount);
+        uint256 withdrawAmount = _getSharesAmount(usdxAmount);
 
         IMaplePool(address(asset)).requestRedeem(withdrawAmount, address(this));
     }
@@ -64,7 +64,7 @@ contract MapleAsset is ERC4626Asset {
         uint256 usdxAmount
     ) external onlyMultisigOrGov {
         if (!isDefaulted()) revert NotDefaulted();
-        uint256 sharesAmount = _getShareAmount(usdxAmount);
+        uint256 sharesAmount = _getSharesAmount(usdxAmount);
 
         IMaplePool(address(asset)).requestRedeem(sharesAmount, address(this));
     }
@@ -93,22 +93,17 @@ contract MapleAsset is ERC4626Asset {
     }
 
     function _divest(
-        uint256 usdxAmount,
+        uint256,
         uint256
     ) internal override returns (uint256 divestedAmount) {
-        divestedAmount = _getShareAmount(usdxAmount);
+        address self = address(this);
+        divestedAmount = withdrawalManager.lockedShares(self);
+        asset.redeem(divestedAmount, self, self);
 
-        TransferHelper.safeApprove(
-            address(asset),
-            address(asset),
-            divestedAmount
-        );
-        asset.redeem(divestedAmount, address(this), address(this));
-
-        emit Divested(divestedAmount);
+        emit Divested(asset.convertToAssets(divestedAmount));
     }
 
-    function _getShareAmount(uint256 usdxAmount) internal view returns (uint256) {
+    function _getSharesAmount(uint256 usdxAmount) internal view returns (uint256) {
         uint256 sharesBalance = asset.balanceOf(address(this));
         uint256 sharesAmount = asset.convertToShares(usdxAmount);
         if (sharesBalance > sharesAmount) sharesAmount = sharesBalance;

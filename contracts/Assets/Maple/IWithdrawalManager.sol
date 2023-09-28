@@ -15,6 +15,8 @@ interface IWithdrawalManager {
     /**************************************************************************************************************************************/
     function lockedShares(address owner) external view returns (uint256);
 
+    function exitCycleId(address owner) external view returns (uint256);
+
     /**
      *  @dev   Add shares to the withdrawal manager.
      *  @param shares_ Amount of shares to add.
