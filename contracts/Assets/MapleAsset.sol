@@ -2,62 +2,117 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ========================== MapleAsset.sol ========================
+// ========================== MapleAsset.sol ==========================
 // ====================================================================
 
 /**
  * @title Maple Asset
  * @dev Representation of an on-chain investment
  */
-import {IMaplePool} from "./Maple/IMaplePool.sol";
-import {ERC4626Asset} from "./ERC4626Asset.sol";
+import "./Maple/IWithdrawalManager.sol";
+import "./Maple/IMaplePool.sol";
+import "./ERC4626Asset.sol";
 
 contract MapleAsset is ERC4626Asset {
 
+    IWithdrawalManager public immutable withdrawalManager;
+
     constructor(
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _asset,
+        address _oracleUsdx,
+        address _withdrawalManager,
         address borrower
-    ) ERC4626Asset(
-        "MapleAsset",
-        0xB88a5Ac00917a02d82c7cd6CEBd73E2852d43574, // SWEEP
-        0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, // USDC
-        0xfe119e9C24ab79F1bDd5dd884B86Ceea2eE75D92, // MAPLE'S ERC4626 POOL
-        0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6, // USDC-USD ORACLE
-        borrower
-    ) {
-        
+    ) ERC4626Asset(_name, _sweep, _usdx, _asset, _oracleUsdx, borrower) {
+        withdrawalManager = IWithdrawalManager(_withdrawalManager);
     }
 
-     /* ========== Actions ========== */
+    /**
+     * @notice Asset Value of investment.
+     * @return the Returns the value of the investment in the USD coin
+     * @dev the price is obtained from the target asset
+     */
+    function assetValue() public view override returns (uint256) {
+        address self = address(this);
+        uint256 sharesBalance = asset.balanceOf(self);
+        uint256 lockedShares = withdrawalManager.lockedShares(self);
+        // All numbers given are in USDX unless otherwise stated
+        return asset.convertToAssets(sharesBalance + lockedShares);
+    }
+
+    /* ========== Actions ========== */
 
     /**
-     * @notice requestWithdraw.
+     * @notice request Redeem.
      * @param usdxAmount Amount to be requested
-     * @dev requests Maple for usdxAmount to be withdrawn
+     * @dev requests Maple for usdxAmount to be redeemed
      */
-    function requestWithdraw(uint256 usdxAmount) public onlyBorrower {
-        IMaplePool(address(asset)).requestWithdraw(usdxAmount, address(this));
+    function requestRedeem(uint256 usdxAmount) public onlyBorrower {
+        uint256 withdrawAmount = _getShareAmount(usdxAmount);
+
+        IMaplePool(address(asset)).requestRedeem(withdrawAmount, address(this));
     }
 
     /**
      * @notice forceRequestWithdraw.
      * @param usdxAmount Amount to be requested
-     * @dev requests Maple for usdxAmount to be withdrawn
+     * @dev requests Maple for usdxAmount to be redeemed
      */
-    function forceRequestWithdraw(uint256 usdxAmount) external {
-        if(msg.sender != sweep.fastMultisig()) revert ActionNotAllowed();
-        if(!isDefaulted()) revert NotDefaulted();
-        IMaplePool(address(asset)).requestWithdraw(usdxAmount, address(this));
+    function forceRequestRedeem(
+        uint256 usdxAmount
+    ) external onlyMultisigOrGov {
+        if (!isDefaulted()) revert NotDefaulted();
+        uint256 sharesAmount = _getShareAmount(usdxAmount);
+
+        IMaplePool(address(asset)).requestRedeem(sharesAmount, address(this));
     }
 
     /**
      * @notice requestWithdraw.
      * @param usdxAmount Amount to be requested
-     * @dev requests Maple for usdxAmount to be withdrawn
+     * @dev requests Maple for usdxAmount to be divested
      */
-    function forceDivest(uint256 usdxAmount) external nonReentrant {
-        if(msg.sender != sweep.fastMultisig()) revert ActionNotAllowed();
-        if(!isDefaulted()) revert NotDefaulted();
-        super._divest(usdxAmount, 0);
+    function forceDivest(
+        uint256 usdxAmount
+    ) external nonReentrant onlyMultisigOrGov {
+        if (!isDefaulted()) revert NotDefaulted();
+        _divest(usdxAmount, 0);
     }
 
+    function _invest(uint256 usdxAmount, uint256, uint256) internal override {
+        uint256 usdxBalance = usdx.balanceOf(address(this));
+        if (usdxBalance == 0) revert NotEnoughBalance();
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+
+        TransferHelper.safeApprove(address(usdx), address(asset), usdxAmount);
+        asset.deposit(usdxAmount, address(this));
+
+        emit Invested(usdxAmount);
+    }
+
+    function _divest(
+        uint256 usdxAmount,
+        uint256
+    ) internal override returns (uint256 divestedAmount) {
+        divestedAmount = _getShareAmount(usdxAmount);
+
+        TransferHelper.safeApprove(
+            address(asset),
+            address(asset),
+            divestedAmount
+        );
+        asset.redeem(divestedAmount, address(this), address(this));
+
+        emit Divested(divestedAmount);
+    }
+
+    function _getShareAmount(uint256 usdxAmount) internal view returns (uint256) {
+        uint256 sharesBalance = asset.balanceOf(address(this));
+        uint256 sharesAmount = asset.convertToShares(usdxAmount);
+        if (sharesBalance > sharesAmount) sharesAmount = sharesBalance;
+
+        return sharesAmount;
+    }
 }

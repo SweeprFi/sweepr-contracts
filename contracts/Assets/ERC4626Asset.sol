@@ -9,8 +9,8 @@ pragma solidity 0.8.19;
  * @title ERC4626 Asset
  * @dev Representation of an on-chain investment
  */
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {Stabilizer, TransferHelper} from "../Stabilizer/Stabilizer.sol";
+import "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import "../Stabilizer/Stabilizer.sol";
 
 contract ERC4626Asset is Stabilizer {
     // Variables
@@ -43,16 +43,7 @@ contract ERC4626Asset is Stabilizer {
         return assetValueInUSD + super.currentValue() - accruedFeeInUSD;
     }
 
-    /**
-     * @notice Asset Value of investment.
-     * @return the Returns the value of the investment in the USD coin
-     * @dev the price is obtained from the target asset
-     */
-    function assetValue() public view returns (uint256) {
-        uint256 sharesAmount = asset.balanceOf(address(this));
-        // All numbers given are in USDX unless otherwise stated
-        return asset.convertToAssets(sharesAmount);
-    }
+    function assetValue() public view virtual returns (uint256) {}
 
     /* ========== Actions ========== */
 
@@ -61,10 +52,13 @@ contract ERC4626Asset is Stabilizer {
      * @param usdxAmount Amount to be invested
      * @dev Sends usdx to the target asset to get shares.
      */
-    function invest(
-        uint256 usdxAmount,
-        uint256
-    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
+    function invest(uint256 usdxAmount)
+        external
+        onlyBorrower
+        whenNotPaused
+        nonReentrant
+        validAmount(usdxAmount)
+    {
         _invest(usdxAmount, 0, 0);
     }
 
@@ -73,10 +67,7 @@ contract ERC4626Asset is Stabilizer {
      * @param usdxAmount Amount to be divested.
      * @dev Gets usdx back by redeeming shares.
      */
-    function divest(
-        uint256 usdxAmount,
-        uint256
-    )
+    function divest(uint256 usdxAmount)
         external
         onlyBorrower
         nonReentrant
@@ -98,34 +89,5 @@ contract ERC4626Asset is Stabilizer {
 
     function _getToken() internal view override returns (address) {
         return address(asset);
-    }
-
-    function _invest(
-        uint256 usdxAmount,
-        uint256,
-        uint256
-    ) internal override {
-        uint256 usdxBalance = usdx.balanceOf(address(this));
-        if (usdxBalance == 0) revert NotEnoughBalance();
-        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
-
-        TransferHelper.safeApprove(address(usdx), address(asset), usdxAmount);
-        asset.deposit(usdxAmount, address(this));
-
-        emit Invested(usdxAmount);
-    }
-
-    function _divest(
-        uint256 usdxAmount,
-        uint256
-    ) internal override returns (uint256 divestedAmount) {
-        uint usdxBalance = assetValue();
-        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
-
-        TransferHelper.safeApprove(address(asset), address(asset), usdxAmount);
-        asset.withdraw(usdxAmount, address(this), address(this));
-
-        emit Divested(usdxAmount);
-        divestedAmount = usdxAmount;
     }
 }
