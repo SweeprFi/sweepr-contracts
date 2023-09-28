@@ -35,11 +35,8 @@ contract MapleAsset is ERC4626Asset {
      * @dev the price is obtained from the target asset
      */
     function assetValue() public view override returns (uint256) {
-        address self = address(this);
-        uint256 sharesBalance = asset.balanceOf(self);
-        uint256 lockedShares = withdrawalManager.lockedShares(self);
-        // All numbers given are in USDX unless otherwise stated
-        return asset.convertToAssets(sharesBalance + lockedShares);
+        uint256 lockedShares = withdrawalManager.lockedShares(address(this));
+        return super.assetValue() + asset.convertToAssets(lockedShares);
     }
 
     /* ========== Actions ========== */
@@ -57,50 +54,34 @@ contract MapleAsset is ERC4626Asset {
 
     /**
      * @notice forceRequestWithdraw.
-     * @param usdxAmount Amount to be requested
+     * @param sharesAmount Amount to be requested
      * @dev requests Maple for usdxAmount to be redeemed
      */
     function forceRequestRedeem(
-        uint256 usdxAmount
+        uint256 sharesAmount
     ) external onlyMultisigOrGov {
-        if (!isDefaulted()) revert NotDefaulted();
-        uint256 sharesAmount = _getSharesAmount(usdxAmount);
-
+        if (!isDefaulted()) revert NotDefaulted(); 
         IMaplePool(address(asset)).requestRedeem(sharesAmount, address(this));
     }
 
     /**
      * @notice requestWithdraw.
-     * @param usdxAmount Amount to be requested
      * @dev requests Maple for usdxAmount to be divested
      */
-    function forceDivest(
-        uint256 usdxAmount
-    ) external nonReentrant onlyMultisigOrGov {
+    function forceDivest() 
+        external nonReentrant onlyMultisigOrGov
+        returns (uint256 divestedAmount)
+    {
         if (!isDefaulted()) revert NotDefaulted();
-        _divest(usdxAmount, 0);
-    }
-
-    function _invest(uint256 usdxAmount, uint256, uint256) internal override {
-        uint256 usdxBalance = usdx.balanceOf(address(this));
-        if (usdxBalance == 0) revert NotEnoughBalance();
-        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
-
-        TransferHelper.safeApprove(address(usdx), address(asset), usdxAmount);
-        asset.deposit(usdxAmount, address(this));
-
-        emit Invested(usdxAmount);
+        divestedAmount = _divest(0, 0);
     }
 
     function _divest(
         uint256,
         uint256
     ) internal override returns (uint256 divestedAmount) {
-        address self = address(this);
-        divestedAmount = withdrawalManager.lockedShares(self);
-        asset.redeem(divestedAmount, self, self);
-
-        emit Divested(asset.convertToAssets(divestedAmount));
+        uint256 lockedShares = withdrawalManager.lockedShares(address(this));
+        divestedAmount = super._divestRedeem(lockedShares);
     }
 
     function _getSharesAmount(uint256 usdxAmount) internal view returns (uint256) {
