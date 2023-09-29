@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const { addresses, chainId } = require("../utils/address");
 const { impersonate, Const, sendEth, increaseTime, getBlockTimestamp } = require("../utils/helper_functions")
 
-contract.only('Maple Asset', async () => {
+contract('Maple Asset', async () => {
     // Maple Asset only work on the Ethereum mainnet.
     if (Number(chainId) !== 1) return;
 

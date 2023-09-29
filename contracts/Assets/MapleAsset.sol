@@ -80,8 +80,9 @@ contract MapleAsset is ERC4626Asset {
         uint256,
         uint256
     ) internal override returns (uint256 divestedAmount) {
-        uint256 lockedShares = withdrawalManager.lockedShares(address(this));
-        divestedAmount = super._divestRedeem(lockedShares);
+        divestedAmount = withdrawalManager.lockedShares(address(this));
+        asset.redeem(divestedAmount, address(this), address(this));
+        emit Divested(divestedAmount);
     }
 
     function _getSharesAmount(uint256 usdxAmount) internal view returns (uint256) {
