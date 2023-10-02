@@ -638,13 +638,13 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         address token,
         uint256 amount
     ) external onlyBorrower whenNotPaused validAmount(amount) nonReentrant {
-        if (token != address(sweep) && token != address(usdx))
-            revert InvalidToken();
-
         if (amount > IERC20Metadata(token).balanceOf(address(this)))
             revert NotEnoughBalance();
 
         if (sweepBorrowed > 0) {
+            if (token != address(sweep) && token != address(usdx))
+                revert InvalidToken();
+
             uint256 usdAmount = token == address(sweep)
                 ? sweep.convertToUSD(amount)
                 : _oracleUsdxToUsd(amount);

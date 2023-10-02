@@ -4,6 +4,7 @@ const {
   libraries,
   protocol,
   uniswap,
+  maple,
   networks,
   chainIDs,
   rpcLinks,
@@ -77,6 +78,11 @@ const addresses = {
   uniswap_position_manager: uniswap.positions_manager[chainId],
   uniswap_pool: uniswap.pool[chainId],
   uniswap_quoter: uniswap.quoter[chainId],
+
+  // maple
+  maple_usdc_pool: maple.usdc_pool[chainId],
+  maple_pool_manager: maple.pool_manager[chainId],
+  maple_withdrawal_manager: maple.withdrawal_manager[chainId],
 
   // Periphery Contracts
   governance: protocol.governance[chainId],

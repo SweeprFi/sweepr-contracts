@@ -156,19 +156,6 @@ contract("Stabilizer - Isolated Functions", async function () {
     });
   });
 
-  describe("withdraw function", async function () {
-    it("withdraws sweep correctly", async function () {
-      expect(await offChainAsset.getEquityRatio()).to.equal(1e6); // 100%      
-      balance = await sweep.balanceOf(offChainAsset.address);
-
-      await expect(offChainAsset.connect(borrower).withdraw(usdt.address, balance))
-        .to.be.revertedWithCustomError(offChainAsset, "InvalidToken")
-
-
-      await offChainAsset.connect(borrower).withdraw(sweep.address, balance);
-    });
-  });
-
   describe("buy & sell SWEEP from stabilizer", async function () {
     it("tries to buy without balance", async function () {
       await expect(offChainAsset.connect(borrower).swapUsdxToSweep(usdxAmount))
