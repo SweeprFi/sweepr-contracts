@@ -207,11 +207,6 @@ contract("Balancer", async function () {
 		expect(newInterestRate).to.be.equal(-2250);
 	});
 
-	it('reverts refresh interest rate when caller is not sweep owner', async () => {
-		await expect(balancer.connect(multisig).refreshInterestRate())
-			.to.be.revertedWithCustomError(sweep, 'NotMultisigOrGov');
-	});
-
 	it('adds stabilizers to the amounts map', async () => {
 		amounts = [loanLimit, loanLimit, loanLimit, loanLimit];
 

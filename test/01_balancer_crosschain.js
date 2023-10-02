@@ -109,10 +109,9 @@ contract("Balancer - Crosschain message", async function () {
             .to.be.revertedWithCustomError(balancerSrc, "NotEnoughETH");
 
         await sendEth(balancerSrc.address);
-        await balancerSrc.refreshInterestRate();
-
         balanceBefore = await ethers.provider.getBalance(balancerSrc.address);
-        await balancerSrc.recoverEther();
+
+        await balancerSrc.refreshInterestRate();
         balanceAfter = await ethers.provider.getBalance(balancerSrc.address);
 
         nextInterestRate = await sweepSrc.nextInterestRate();

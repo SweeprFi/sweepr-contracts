@@ -54,21 +54,17 @@ contract Balancer is NonblockingLzApp, Owned {
      * @notice refresh interest rate periodically.
      * returns mode: 0 => idle, 1 => invest, 2 => call
      */
-    function refreshInterestRate() public onlyMultisigOrGov returns (Mode mode) {
+    function refreshInterestRate() public payable {
         int256 interestRate = sweep.interestRate();
         int256 stepValue = sweep.stepValue();
-        
-        mode = getMode();
+
+        Mode mode = getMode();
 
         if (mode == Mode.CALL) interestRate += stepValue;
         if (mode == Mode.INVEST) interestRate -= stepValue;
 
         uint256 periodStart = sweep.periodStart() + period;
-        sweep.refreshInterestRate(interestRate, periodStart);
-
-        if (address(sweepr) != address(0) && sweepr.isGovernanceChain()) {
-            _sendInterestRate(interestRate, periodStart);
-        }
+        _sendNewInterestRate(interestRate, periodStart);
     }
 
     function getMode() public view returns (Mode) {
@@ -95,8 +91,8 @@ contract Balancer is NonblockingLzApp, Owned {
      * @param interestRate new interest rate.
      * @param periodStart new period start.
      */
-    function updateInterestRate(int256 interestRate, uint256 periodStart) external onlyMultisigOrGov {
-        sweep.refreshInterestRate(interestRate, periodStart);
+    function updateInterestRate(int256 interestRate, uint256 periodStart) external payable onlyMultisigOrGov {
+        _sendNewInterestRate(interestRate, periodStart);
     }
 
     /**
@@ -141,10 +137,13 @@ contract Balancer is NonblockingLzApp, Owned {
         sweep.setPeriodStart(newCurrentPeriodStart, newNextPeriodStart);
     }
 
-    /**
-     * @notice Recover the Ether from the contract
-     */
-    function recoverEther() external onlyMultisigOrGov {
+    function _sendNewInterestRate(int256 newInterestRate, uint256 newPeriodStart) internal {
+        sweep.refreshInterestRate(newInterestRate, newPeriodStart);
+
+        if (address(sweepr) != address(0) && sweepr.isGovernanceChain()) {
+            _sendInterestRate(newInterestRate, newPeriodStart);
+        }
+
         uint256 ethBalance = address(this).balance;
         (bool success, ) = (msg.sender).call{value: ethBalance}(new bytes(0));
         require(success, 'STE');
@@ -305,10 +304,10 @@ contract Balancer is NonblockingLzApp, Owned {
         uint256 price,
         uint256 slippage
     ) external onlyMultisigOrGov {
-        emit Execute(intention);
-
-        Mode state = refreshInterestRate();
         if (intention == Mode.IDLE) return;
+
+        emit Execute(intention);
+        Mode state = getMode();
 
         if (intention != state && !force)
             revert ModeMismatch(intention, state);

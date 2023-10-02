@@ -15,7 +15,7 @@ contract('Stabilizer - Auction', async () => {
     investAmount = 200e6;
     outAmount = 29e6;
     sellAmount = toBN("60", 18);
-    borrowAmount = toBN("90", 18);
+    borrowAmount = toBN("100", 18);
     maxBorrow = toBN("100", 18);
     sweepAmount = toBN("1000", 18);
 

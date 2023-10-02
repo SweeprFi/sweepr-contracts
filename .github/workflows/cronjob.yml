@@ -1,13 +1,8 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
-name: Node.js CI
+name: Cronjob Refresh Interest Rate
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  schedule:
+    - cron: '0 0 * * 0' # to executes every Sunday 00:00 UTC
 
 env:
   CHAIN_ID: 42161
@@ -19,8 +14,7 @@ env:
   EXECUTOR_PKEY: ${{ vars.EXECUTOR_PKEY }}
 
 jobs:
-  build:
-
+  refresh-interest-rate:
     runs-on: ubuntu-latest
 
     strategy:
@@ -35,4 +29,4 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm install hardhat
-    - run: npx hardhat test --network hardhat
+    - run: npx hardhat run --network arbitrum scripts/balancer/refresh_interest_rate.js
