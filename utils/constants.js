@@ -328,9 +328,9 @@ const protocol = {
     42161: '0xC0507cFC6A9E65894C05C1c5b193C7B58b36791f'
   },
   balancer: {
-    1: '0x8843b5Dd4A0757eE4ab639b34BA972686f9aCCD6',
+    1: '0x47a393e60DfCF12CA3892dBC2C2E66BCE083BB26',
     5: '0x1423eb219333B8CBbe17617B197Aee4CBD5BEcaa',
-    42161: '0x11C8eC8B0DFD355C9931cB47ADd0F635dAE062ad',
+    42161: '0x82f23E915985de7Db7C9463E4d898ccf2ab2fCeF',
     421613: '0xd4e0D68789694a2221b77C6823e914619310Ae18',
   },
   distributor: {
@@ -346,15 +346,15 @@ const protocol = {
   },
   omnichain_proposal_sender: {
     1: '',
-    5: '0xEAD18f9DeE6a73C7c4251F31B91b063a0c54043A',
-    421613: '',
-    42161: ''
+    5: '0x31CfECAbf5eEAF3Fd92674F271D7C6AEb5bFB5f0',
+    42161: '0xC6c730E0424A01BF6e1A2ff4Ffac8540E29Dd185',
+    421613: ''
   },
   omnichain_proposal_executor: {
     1: '',
     5: '',
-    421613: '0x004276c95961BE229393c4425E84259255564004',
-    42161: ''
+    42161: '',
+    421613: '0x628ec44b95d527C32FC39b0475be4330c7F30bf9'
   },
   timelock: {
     1: '',
@@ -427,6 +427,9 @@ const assets = {
     5: '',
     42161: '',
   },
+  maple: {
+    1: '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8'
+  }
 }
 
 module.exports = {
