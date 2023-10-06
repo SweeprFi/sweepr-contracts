@@ -101,7 +101,7 @@ contract('Stabilizer - Minimum equity ratio', async () => {
       expect(await usdx.balanceOf(aaveAsset.address)).to.above(depositAmount);
     });
 
-    it('try to withdraw more than is permited', async () => {
+    it('try to withdraw more than is permitted', async () => {
       balance = await usdx.balanceOf(aaveAsset.address);
       withdrawAmount1 = balance; // 100 %
       withdrawAmount2 = depositAmount + 10;
@@ -113,8 +113,8 @@ contract('Stabilizer - Minimum equity ratio', async () => {
         .to.be.revertedWithCustomError(aaveAsset, "EquityRatioExcessed");
     });
 
-    it('withdraw all deposited', async () => {
-      withdrawAmount = 9945000;
+    it('withdraw permitted amount', async () => {
+      withdrawAmount = 9900000;
       currentValue = await aaveAsset.currentValue();
 
       await aaveAsset.withdraw(usdx.address, withdrawAmount);

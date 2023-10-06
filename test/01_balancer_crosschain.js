@@ -35,6 +35,7 @@ contract("Balancer - Crosschain message", async function () {
         await sweepSrc.setBalancer(balancerSrc.address);
         await sweepSrc.setArbSpread(300);
 		await sweepSrc.setTWAPrice(999600);
+        await balancerSrc.setSweepr(sweeprSrc.address);
 
         const dstProxy = await upgrades.deployProxy(Sweep, [
             lzEndpointDstMock.address,

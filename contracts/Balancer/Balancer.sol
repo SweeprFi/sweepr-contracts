@@ -138,9 +138,8 @@ contract Balancer is NonblockingLzApp, Owned {
     }
 
     function _sendNewInterestRate(int256 newInterestRate, uint256 newPeriodStart) internal {
-        sweep.refreshInterestRate(newInterestRate, newPeriodStart);
-
         if (address(sweepr) != address(0) && sweepr.isGovernanceChain()) {
+            sweep.refreshInterestRate(newInterestRate, newPeriodStart);
             _sendInterestRate(newInterestRate, newPeriodStart);
         }
 
