@@ -351,7 +351,7 @@ const protocol = {
     421613: ''
   },
   omnichain_proposal_executor: {
-    1: '',
+    1: '0xCFcE64f865f84144F9e6FA7C574F580B3eB878e6',
     5: '',
     42161: '',
     421613: '0x628ec44b95d527C32FC39b0475be4330c7F30bf9'

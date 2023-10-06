@@ -3,17 +3,14 @@ const { addresses, network } = require("../utils/address");
 const LZ_ENDPOINTS = require("../utils/layerzero/layerzeroEndpoints.json")
 
 async function main() {
-	let deployer;
+	[owner] = await ethers.getSigners();
+	deployer = owner.address
 
 	if (network.type === "0") { // local
-		[owner] = await ethers.getSigners();
-		deployer = owner.address
-
 		LZEndpointMock = await ethers.getContractFactory("LZEndpointMock")
         lzEndpoint = await LZEndpointMock.deploy(1)
         lzEndpointAddress = lzEndpoint.address
 	} else {
-		deployer = addresses.owner;
 		lzEndpointAddress = LZ_ENDPOINTS[hre.network.name]
 	}
 

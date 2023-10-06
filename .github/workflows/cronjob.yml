@@ -2,8 +2,7 @@ name: Cronjob Refresh Interest Rate
 
 on:
   schedule:
-    # - cron: '0 0 * * 0' # to executes every Sunday 00:00 UTC
-    - cron: '0 13 * * 2'
+    - cron: '0 0 * * 0' # to executes every Sunday 00:00 UTC
 
 env:
   CHAIN_ID: 42161
