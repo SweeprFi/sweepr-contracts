@@ -22,9 +22,8 @@ async function main() {
 
 	console.log(`Pool address on ${network.name}: ${poolAddress}`);
 
-	await (await pool.increaseObservationCardinalityNext(cardinality)).wait();
-
-	console.log("Cardinality increased:", cardinality);
+	// await (await pool.increaseObservationCardinalityNext(cardinality)).wait();
+	// console.log("Cardinality increased:", cardinality);
 }
 
 main();
