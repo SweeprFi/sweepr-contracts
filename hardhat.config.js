@@ -62,6 +62,18 @@ module.exports = {
 			chainId: 421613,
 			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
 		},
+		optimism: {
+			url: rpcLinks[10],
+			gas: 10000000,
+			chainId: 10,
+			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
+		},
+		optimism_goerli: {
+			url: rpcLinks[420],
+			gas: 10000000,
+			chainId: 420,
+			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
+		},
 	},
 	etherscan: {
 		apiKey: apiKey
