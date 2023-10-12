@@ -54,6 +54,23 @@ task(
 .addParam("minterAddress", "minter address to add")
 .addParam("amount", "limit amount minter can mint")
 
+task(
+    "payloadTransferOwnership",
+    "payloadTransferOwnership() to create payload for transferring ownership",
+    require("./payloadTransferOwnership")
+)
+.addParam("targetNetwork", "the target network")
+.addParam("newOwnerAddress", "new owner address")
+
+task(
+    "payloadApprove",
+    "payloadApprove() to approve tokens to a spender",
+    require("./payloadApprove")
+)
+.addParam("targetNetwork", "the target network")
+.addParam("spenderAddress", "spender of the tokens")
+.addParam("amount", "amount to be approved")
+
 
 task("sweep_oftSend", "send tokens to another chain", require("./sweep_oftSend"))
     .addParam("qty", "qty of tokens to send")
