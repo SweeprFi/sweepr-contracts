@@ -47,6 +47,8 @@ const addresses = {
   gDai: tokens.gDai[chainId],
   usdPlus: tokens.usdPlus[chainId],
   ets: tokens.ets[chainId],
+  frax: tokens.frax[chainId],
+  sfrax: tokens.sfrax[chainId],
 
   // Libraries
   liquidity_helper: libraries.liquidity_helper[chainId],
@@ -67,6 +69,7 @@ const addresses = {
   oracle_usdc_usd: chainlinkOracle.usdc_usd[chainId],
   oracle_dai_usd: chainlinkOracle.dai_usd[chainId],
   oracle_backed_usd: chainlinkOracle.backed_usd[chainId],
+  oracle_frax_usd: chainlinkOracle.frax_usd[chainId],
 
   // Sequencer Feed
   sequencer_feed: chainlinkOracle.sequencer_feed[chainId],

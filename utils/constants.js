@@ -174,7 +174,13 @@ const tokens = {
     5: '',
     42161: '0x813fFCC4Af3e810E6b447235cC88A02f00454453',
     421613: ''
-  }
+  },
+  frax: {
+    1: '0x853d955acef822db058eb8505911ed77f175b99e',
+  },
+  sfrax: {
+    1: '0x03CB4438d015B9646d666316b617a694410C216d',
+  },
 }
 
 const libraries = {
@@ -222,6 +228,9 @@ const libraries = {
 }
 
 const chainlinkOracle = {
+  frax_usd: {
+    1: '0xb9e1e3a9feff48998e45fa90847ed4d467e8bcfd',
+  },
   weth_usd: {
     1: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', // ETH - USD
     5: '0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e', // ETH - USD
