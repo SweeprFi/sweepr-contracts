@@ -12,7 +12,7 @@ contract('Maple Asset', async () => {
 
         BORROWER = owner.address;
         USDC_ADDRESS = addresses.usdc;
-        USDC_HOLER = addresses.usdc_holder;
+        USDC_HOLDER = addresses.usdc_holder;
         ORACLE = addresses.oracle_usdc_usd;
         POOL_DELEGATE = "0x8c8C2431658608F5649B8432764a930c952d8A98";
         POOL_MANAGER = addresses.maple_pool_manager;
@@ -54,14 +54,14 @@ contract('Maple Asset', async () => {
 
         await sweep.setAMM(amm.address);
         await sendEth(BORROWER);
-        await sendEth(USDC_HOLER);
+        await sendEth(USDC_HOLDER);
     });
 
     describe("Initial Test", async function () {
         it('deposit usdc to the asset', async () => {
             expect(await asset.currentValue()).to.equal(Const.ZERO);
 
-            user = await impersonate(USDC_HOLER);
+            user = await impersonate(USDC_HOLDER);
             await usdx.connect(user).transfer(asset.address, depositAmount);
 
             expect(await usdx.balanceOf(asset.address)).to.equal(depositAmount)
