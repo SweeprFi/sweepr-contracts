@@ -7,7 +7,8 @@ async function main() {
 	balancer = await ethers.getContractAt("Balancer", addresses.balancer);
 	console.log("Running interest rate update ...");
 
-    await (await balancer.connect(executor).refreshInterestRate({value: ethers.utils.parseEther("0.05")})).wait();
+    let tx = await (await balancer.connect(executor).refreshInterestRate({value: ethers.utils.parseEther("0.05")})).wait();
+	console.log(`tx: ${tx.transactionHash}`)
 
     console.log("... done");
 }
