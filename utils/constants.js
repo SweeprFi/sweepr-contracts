@@ -430,8 +430,11 @@ const assets = {
     1: '0x7537035fE6fFb0ed72Ee65B5569a5c090729f0Fa',
   },
   maple: {
-    1: '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8'
-  }
+    1: '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8',
+  },
+  sfrax: {
+    1: '0x82f23E915985de7Db7C9463E4d898ccf2ab2fCeF',
+  },
 }
 
 module.exports = {
