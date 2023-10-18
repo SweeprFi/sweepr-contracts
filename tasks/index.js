@@ -79,3 +79,7 @@ task("sweep_oftSend", "send tokens to another chain", require("./sweep_oftSend")
 task("sweepr_oftSend", "send tokens to another chain", require("./sweepr_oftSend"))
     .addParam("qty", "qty of tokens to send")
     .addParam("targetNetwork", "the target network to let this instance receive messages from")
+
+
+task("decodePayload", "decodes a payload", require("./decodePayload"))
+    .addParam("payload", "payload to decode")
