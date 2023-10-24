@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { addresses, chainId } = require("../utils/address");
 const { impersonate, sendEth, increaseTime, Const, toBN, getBlockTimestamp } = require("../utils/helper_functions");
 
-contract("Backed IB01 Asset", async function () {
+contract.only("Backed IB01 Asset", async function () {
   if (Number(chainId) !== 1) return;
 
   before(async () => {
@@ -93,6 +93,7 @@ contract("Backed IB01 Asset", async function () {
     });
 
     it("liquidate the asset", async function () {
+      expect(await backed.balanceOf(liquidator.address)).to.equal(0)
       await asset.connect(liquidator).startAuction();
       timestamp = await getBlockTimestamp();
       debt = await asset.getDebt();
@@ -119,6 +120,7 @@ contract("Backed IB01 Asset", async function () {
       expect(await asset.assetValue()).to.equal(0);
       expect(await backed.balanceOf(asset.address)).to.equal(0);
       expect(await sweep.balanceOf(asset.address)).to.equal(0);
+      expect(await backed.balanceOf(liquidator.address)).to.equal(depositBacked)
 
       // bad debt
       expect(await asset.sweepBorrowed()).to.greaterThan(0);
