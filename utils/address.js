@@ -30,6 +30,7 @@ const addresses = {
   usdc_holder: wallets.usdc_holder[chainId],
   comp_holder: wallets.comp_holder[chainId],
   dai_holder: wallets.dai_holder[chainId],
+  backed_holder: wallets.backed_holder[chainId],
   multisig: wallets.multisig[chainId],
 
   // Tokens
