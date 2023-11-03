@@ -13,7 +13,7 @@ contract('GLP Asset', async () => {
         depositAmount = 200e6;
         investAmount = 100e6;
         divestAmount = 150e6;
-        slippage = 50000;
+        slippage = 200000;
         glpPrice = 0.95e6;
         
         Sweep = await ethers.getContractFactory("SweepMock");

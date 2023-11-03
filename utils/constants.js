@@ -94,6 +94,9 @@ const wallets = {
     5: '',
     42161: '0xf0428617433652c9dc6d1093a42adfbf30d29f74',
   },
+  backed_holder: {
+    1: '0x1A8c53147E7b61C015159723408762fc60A34D17',
+  },
   multisig: { // Gnosis safe wallet
     1: '0x3afd8feED6Bbd1D8254d92eAFA1F695Dce16387a',
     5: '0x23Ab3E2954Ec5577730B7674f4bA9e78Eb96C4d1',
@@ -182,6 +185,9 @@ const tokens = {
   sfrax: {
     1: '0x03CB4438d015B9646d666316b617a694410C216d',
   },
+  backedIB01: {
+    1: '0xca30c93b02514f86d5c86a6e375e3a330b435fb5',
+  }
 }
 
 const libraries = {
@@ -260,6 +266,9 @@ const chainlinkOracle = {
     5: '0x788D911ae7c95121A89A0f0306db65D87422E1de',
     42161: '',
     421613: ''
+  },
+  backedIB01_usd: {
+    1: '0x32d1463eb53b73c095625719afa544d5426354cb',
   },
   sequencer_feed: {
     1: '0x0000000000000000000000000000000000000000',

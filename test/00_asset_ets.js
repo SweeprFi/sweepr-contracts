@@ -4,9 +4,9 @@ const { addresses, chainId } = require("../utils/address");
 const { impersonate, sendEth, resetNetwork, Const, toBN } = require("../utils/helper_functions");
 
 contract("ETS Asset", async function () {
-    before(async () => {
-        if (Number(chainId) !== 42161) return;
+    if (Number(chainId) !== 42161) return;
 
+    before(async () => {
         [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
         // Variables
         usdxAmount = 5000e6;
