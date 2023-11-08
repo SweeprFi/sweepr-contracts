@@ -64,6 +64,7 @@ const addresses = {
   ets_exchanger: libraries.ets_exchanger[chainId],
   dsr_manager: libraries.dsr_manager[chainId],
   dss_psm: libraries.dss_psm[chainId],
+  balancer_pool: libraries.balancer_pool[chainId],
 
   // Oracles - ChainLink
   oracle_weth_usd: chainlinkOracle.weth_usd[chainId],
