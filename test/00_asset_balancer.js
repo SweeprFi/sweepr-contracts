@@ -1,0 +1,86 @@
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+const { addresses } = require("../utils/address");
+const { impersonate, sendEth, Const, toBN } = require("../utils/helper_functions");
+let user;
+
+contract("Balancer Asset", async function () {
+    before(async () => {
+        [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
+
+        BORROWER = borrower.address;
+        depositAmount = 10000e6;
+        withdrawAmount = 7000e6;
+        maxSweep = toBN("500000", 18);
+        maxBorrow = toBN("100", 18);
+        POOL = addresses.balancer_pool;
+
+        await sendEth(Const.WETH_HOLDER);
+        // ------------- Deployment of contracts -------------
+        Sweep = await ethers.getContractFactory("SweepMock");
+        const Proxy = await upgrades.deployProxy(Sweep, [
+            lzEndpoint.address,
+            addresses.owner,
+            2500 // 0.25%
+        ]);
+        sweep = await Proxy.deployed();
+        user = await impersonate(addresses.owner);
+        await sweep.connect(user).setTreasury(addresses.treasury);
+
+        Token = await ethers.getContractFactory("ERC20");
+        usdc = await Token.attach(addresses.usdc);
+        pool = await Token.attach(POOL);
+
+        Oracle = await ethers.getContractFactory("AggregatorMock");
+        wethOracle = await Oracle.deploy();
+
+        Uniswap = await ethers.getContractFactory("UniswapMock");
+        amm = await Uniswap.deploy(sweep.address, Const.FEE);
+        await sweep.setAMM(amm.address);
+
+        BalancerAsset = await ethers.getContractFactory("BalancerAsset");
+        balancer_asset = await BalancerAsset.deploy(
+            'Balancer Asset',
+            sweep.address,
+            addresses.usdc,
+            addresses.oracle_usdc_usd,
+            POOL,
+            BORROWER
+        );
+
+        await sendEth(addresses.usdc_holder);
+        user = await impersonate(addresses.usdc_holder);
+        await usdc.connect(user).transfer(balancer_asset.address, depositAmount);
+    });
+
+    describe("invest and divest functions", async function () {
+        it("invest correctly", async function () {
+            expect(await balancer_asset.assetValue()).to.equal(Const.ZERO);
+            expect(await usdc.balanceOf(balancer_asset.address)).to.greaterThan(Const.ZERO);
+            expect(await pool.balanceOf(balancer_asset.address)).to.equal(Const.ZERO);
+
+            await balancer_asset.invest(depositAmount, 0);
+
+            expect(await balancer_asset.assetValue()).to.greaterThan(Const.ZERO);
+            expect(await usdc.balanceOf(balancer_asset.address)).to.equal(Const.ZERO);
+            expect(await pool.balanceOf(balancer_asset.address)).to.greaterThan(Const.ZERO);
+        });
+
+        it("divest correctly", async function () {
+            assetValue = await balancer_asset.assetValue();
+            currentValue = await balancer_asset.currentValue();
+            expect(assetValue).to.equal(currentValue);
+
+            await balancer_asset.divest(withdrawAmount, 150);
+
+            assetValue = await balancer_asset.assetValue();
+            balance = await usdc.balanceOf(balancer_asset.address);
+            expect(balance).to.greaterThan(Const.ZERO);
+            expect(await balancer_asset.currentValue()).to.greaterThan(assetValue);
+
+            await balancer_asset.divest(withdrawAmount, 150);
+            expect(await usdc.balanceOf(balancer_asset.address)).to.greaterThan(balance);
+            expect(await balancer_asset.assetValue()).to.below(assetValue);
+        });
+    });
+});

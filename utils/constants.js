@@ -232,6 +232,9 @@ const libraries = {
   },
   dss_psm: {
     1: '0x89B78CfA322F6C5dE0aBcEecab66Aee45393cC5A',
+  },
+  balancer_pool: {
+    42161:"0x423A1323c871aBC9d89EB06855bF5347048Fc4A5"
   }
 }
 
