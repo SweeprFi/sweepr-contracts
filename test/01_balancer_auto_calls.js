@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
-const { impersonate, Const, toBN, sendEth, getBlockTimestamp } = require("../utils/helper_functions");
+const { impersonate, Const, toBN, sendEth, getBlockTimestamp, unpauseAave } = require("../utils/helper_functions");
 let user;
 
 contract('Balancer - Auto Call', async () => {
@@ -68,6 +68,8 @@ contract('Balancer - Auto Call', async () => {
 			addresses.oracle_usdc_usd,
       BORROWER
     );
+
+    await unpauseAave();
   });
 
   describe('Auto Calls - Balancer & Stabilizers', async () => {

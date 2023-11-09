@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses } = require("../utils/address");
-const { impersonate, toBN, Const, sendEth, increaseTime } = require("../utils/helper_functions");
+const { impersonate, toBN, Const, sendEth, increaseTime, unpauseAave } = require("../utils/helper_functions");
 
 contract('Aave V3 Asset', async () => {
     before(async () => {
@@ -74,6 +74,7 @@ contract('Aave V3 Asset', async () => {
 
         await sweep.approve(aaveAsset.address, sweepAmount);
         await sweep.connect(liquidator).approve(aaveAsset.address, sweepAmount);
+        await unpauseAave();
     });
 
     describe("Initial Test", async function () {

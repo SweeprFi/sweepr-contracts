@@ -93,7 +93,16 @@ const getTokenAmounts = async (liquidity, sqrtPriceX96, tickLow, tickHigh) => {
         amount1 = Math.floor(liquidity * (sqrtPrice - sqrtRatioA));
     }
 
-    return {amount0, amount1};
+    return { amount0, amount1 };
+}
+
+const unpauseAave = async () => {
+    const OWNER = "0xFF1137243698CaA18EE364Cc966CF0e02A4e6327"
+    configurator = await ethers.getContractAt("IAavePoolConfigurator", "0x8145edddf43f50276641b55bd3ad95944510021e");
+    user = await impersonate(OWNER);
+    await sendEth(OWNER)
+    await configurator.connect(user).setReserveFreeze("0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", false);
+    await configurator.connect(user).setReservePause("0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", false);
 }
 
 const Const = {
@@ -142,5 +151,6 @@ module.exports = {
     resetNetwork,
     getPriceAndData,
     getBlockTimestamp,
-    getTokenAmounts
+    getTokenAmounts,
+    unpauseAave
 }
