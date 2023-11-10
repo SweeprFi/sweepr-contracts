@@ -12,6 +12,8 @@ require('./tasks');
 const { rpcLink, apiKey } = require("./utils/address");
 const { rpcLinks } = require("./utils/constants");
 
+const accounts = [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY];
+
 module.exports = {
 	solidity: {
 		compilers: [
@@ -42,41 +44,75 @@ module.exports = {
 			url: rpcLinks[1],
 			gas: 10000000,
 			chainId: 1,
-			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
+			accounts: accounts
 		},
 		goerli: {
 			url: rpcLinks[5],
 			gas: 10000000,
 			chainId: 5,
-			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
+			accounts: accounts
 		},
 		arbitrum: {
 			url: rpcLinks[42161],
 			gas: 10000000,
 			chainId: 42161,
-			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
+			accounts: accounts
 		},
 		arbitrum_goerli: {
 			url: rpcLinks[421613],
 			gas: 10000000,
 			chainId: 421613,
-			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
+			accounts: accounts
 		},
 		optimism: {
 			url: rpcLinks[10],
 			gas: 10000000,
 			chainId: 10,
-			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
+			accounts: accounts
 		},
 		optimism_goerli: {
 			url: rpcLinks[420],
 			gas: 10000000,
 			chainId: 420,
-			accounts: [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY]
+			accounts: accounts
+		},
+		base: {
+			url: rpcLinks[8453],
+			gas: 10000000,
+			chainId: 8453,
+			accounts: accounts
+		},
+		base_goerli: {
+			url: rpcLinks[84531],
+			gas: 10000000,
+			chainId: 84531,
+			accounts: accounts
 		},
 	},
 	etherscan: {
-		apiKey: apiKey
+		// apiKey: apiKey,
+		apiKey: {
+			base_goerli: apiKey,
+			base: apiKey
+		},
+		customChains: [
+			{
+				network: "base_goerli",
+				chainId: 84531,
+				urls: {
+					apiURL: "https://api-goerli.basescan.org/api",
+					browserURL: "https://goerli.basescan.org"
+				}
+			},
+			{
+				network: "base",
+				chainId: 8453,
+				urls: {
+					apiURL: "https://api.basescan.org/api",
+					browserURL: "https://basescan.org"
+				}
+			}
+		]
 	},
 	gasReporter: {
 		enabled: (process.env.REPORT_GAS) ? true : false,
