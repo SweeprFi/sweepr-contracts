@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require("chai");
 const { addresses } = require("../utils/address");
 const {
-  impersonate, toBN, sendEth,
+  impersonate, toBN, sendEth, unpauseAave,
   Const, increaseTime, getBlockTimestamp
 } = require("../utils/helper_functions");
 
@@ -46,6 +46,8 @@ contract('Stabilizer - Auction', async () => {
       addresses.oracle_usdc_usd,
       owner.address
     );
+
+    await unpauseAave();
   });
 
   describe("Dutch auction", async function () {

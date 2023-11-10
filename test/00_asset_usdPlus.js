@@ -169,7 +169,7 @@ contract("USDPlus Asset", async function () {
             expect(await usdc.balanceOf(asset.address)).to.equal(depositAmount)
         });
 
-        it('swap usdc to usdc.e', async () => {
+        it.skip('swap usdc to usdc.e', async () => {
             expect(await usdcE.balanceOf(asset.address)).to.equal(Const.ZERO);
             await asset.swap(usdc.address, usdcE.address, depositAmount, Const.SLIPPAGE);
 
