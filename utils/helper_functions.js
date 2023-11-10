@@ -133,6 +133,8 @@ const Const = {
     BLOCK_NUMBER: 64774877, // before adds BlockGetter
 }
 
+const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay*1000));
+
 module.exports = {
     toBN,
     Const,
@@ -142,5 +144,6 @@ module.exports = {
     resetNetwork,
     getPriceAndData,
     getBlockTimestamp,
-    getTokenAmounts
+    getTokenAmounts,
+    sleep
 }

@@ -1,17 +1,28 @@
 {
   "mainnet":          101,
-  "bsc":              102,
-  "avalanche":        106,
-  "polygon":          109,
   "arbitrum":         110,
   "optimism":         111,
-  "fantom":           112,
+  "base":             184,
+
+  "bsc":              102,
+  "polygon":          109,
+  "avalanche":        106,
+  "linea":            183,
+  "celo":             125,
+  "canto":            159,
+  "kava":             177,
+  
 
   "goerli":           10121,
-  "bsc_testnet":      10102,
-  "fuji":             10106,
-  "mumbai":           10109,
   "arbitrum_goerli":  10143,
   "optimism_goerli":  10132,
-  "fantom_testnet":   10112
+  "base_goerli":      10160,
+
+  "bsc_testnet":      10102,
+  "mumbai":           10109,
+  "fuji":             10106,
+  "linea_testnet":    10157,
+  "celo_testnet":     10125,
+  "canto_testnet":    10159,
+  "kava_testnet":     10172
 }
