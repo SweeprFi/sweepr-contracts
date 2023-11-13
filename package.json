@@ -33,6 +33,7 @@
     "web3": "^1.8.0"
   },
   "dependencies": {
+    "@balancer-labs/sdk": "^1.1.5",
     "@chainlink/contracts": "^0.6.1",
     "@layerzerolabs/solidity-examples": "^0.0.10",
     "@openzeppelin/contracts": "^4.8.3",

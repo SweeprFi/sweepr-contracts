@@ -116,7 +116,7 @@ const Const = {
     URL: "htttp://test.com",
     DAY: 86400, // seconds
     DAYS_5: 432000, // 5 days
-    FEE: 500,
+    FEE: 100,
     NEW_FEE: 3000,
     PRICE: 1e6,
     WBTC_PRICE: 28e11,

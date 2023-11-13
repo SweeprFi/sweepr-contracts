@@ -2,12 +2,12 @@ const { ethers } = require('hardhat');
 const { addresses, network, cardinality } = require("../../../utils/address");
 const { Const, getPriceAndData, sleep } = require('../../../utils/helper_functions');
 
-async function main() {
+async function main() {	
 	const { token0, token1, sqrtPriceX96 } = getPriceAndData(addresses.sweep, addresses.usdc, 0, 0);
 
 
 	console.log("===========================================");
-	console.log("CERATING POOL");
+	console.log("CREATING UNISWAP POOL");
 	console.log("===========================================");
 	console.log("Network:", network.name);
 	console.log("===========================================");

@@ -20,8 +20,8 @@ import { IAsset, SingleSwap, FundManagement, SwapKind, IBalancerVault, IBalancer
 contract BalancerAMM {
     using Math for uint256;
 
-    IBalancerVault private immutable vault;
-    IBalancerPool private immutable pool;
+    IBalancerVault private vault;
+    IBalancerPool private pool;
 
     IERC20Metadata public immutable base;
     ISweep public immutable sweep;
@@ -39,8 +39,7 @@ contract BalancerAMM {
         address _sequencer,
         uint24 _fee,
         address _oracleBase,
-        uint256 _oracleBaseUpdateFrequency,
-        address poolAddress
+        uint256 _oracleBaseUpdateFrequency
     ) {
         sweep = ISweep(_sweep);
         base = IERC20Metadata(_base);
@@ -48,9 +47,6 @@ contract BalancerAMM {
         sequencer = IPriceFeed(_sequencer);
         poolFee = _fee;
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
-
-        pool = IBalancerPool(poolAddress);
-        vault = IBalancerVault(pool.getVault());
     }
 
     // Events
@@ -160,7 +156,7 @@ contract BalancerAMM {
         );
         TransferHelper.safeApprove(tokenIn, address(vault), amountIn);
 
-        bytes32 poolId = 0x0;
+        bytes32 poolId = pool.getPoolId();
         bytes memory userData;
         SingleSwap memory singleSwap = SingleSwap(
             poolId,
@@ -180,5 +176,12 @@ contract BalancerAMM {
         uint256 deadline = block.timestamp + DEADLINE_GAP;
 
         amountOut = pool.swap(singleSwap, funds, limit, deadline);
+    }
+
+    function setPool(address poolAddress) external {
+        require(msg.sender == sweep.owner(), "BalancerAMM: Not Governance");
+
+        pool = IBalancerPool(poolAddress);
+        vault = IBalancerVault(pool.getVault());
     }
 }
