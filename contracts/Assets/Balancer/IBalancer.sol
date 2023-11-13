@@ -31,4 +31,23 @@ interface IBalancerPool is IERC20Metadata {
     function getPoolId() external view returns (bytes32);
     function getVault() external view returns (address);
     function getRate() external view returns (uint256);
+    function swap(SingleSwap memory singleSwap, FundManagement memory funds, uint256 limit, uint256 deadline) external returns (uint256 amountOut);
+}
+
+enum SwapKind { GIVEN_IN, GIVEN_OUT }
+
+struct SingleSwap {
+   bytes32 poolId;
+   SwapKind kind;
+   IAsset assetIn;
+   IAsset assetOut;
+   uint256 amount;
+   bytes userData;
+}
+
+struct FundManagement {
+    address sender;
+    bool fromInternalBalance;
+    address payable recipient;
+    bool toInternalBalance;
 }
