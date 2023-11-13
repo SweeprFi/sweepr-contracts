@@ -1,22 +1,25 @@
-const CHAIN_ID = require("../utils/layerzero/chainIds.json");
-const { getDeployedAddress } = require('../utils/address');
 
 module.exports = async function (taskArgs, hre) {
-    // get deployed local and remote sweep address
-    const localAddress = getDeployedAddress(hre.network.name, 'executor');
-    const remoteAddress = getDeployedAddress(taskArgs.targetNetwork, 'sender');
+    const sourceNetwork = require('../utils/networks/' + hre.network.name);
+    const sourceAddress = sourceNetwork.deployments.proposalExecutor;
 
-    // get local contract
-    const localInstance = await ethers.getContractAt("OmnichainGovernanceExecutor", localAddress);
+    const targetNetwork = require('../utils/networks/' + taskArgs.targetNetwork);
+    const targetAddress = targetNetwork.deployments.proposalSender;
 
-    // get remote chain id
-    const remoteChainId = CHAIN_ID[taskArgs.targetNetwork]
+    const sourceInstance = await ethers.getContractAt("OmnichainGovernanceExecutor", sourceAddress);
+    const targetChainId = targetNetwork.layerZero.id;
+
+    console.log(sourceNetwork.network.name);
+    console.log("OmnichainGovernanceExecutor::setTrustedRemoteAddress");
+    console.log("TargetChainId:", targetChainId);
+    console.log("TargetAddress:", targetAddress);;
+    console.log("Executing...:");
 
     try {
-        let tx = await (await localInstance.setTrustedRemoteAddress(remoteChainId, remoteAddress)).wait()
-        console.log(`✅ [${hre.network.name}] setTrustedRemote(${remoteChainId}, ${remoteAddress})`)
+        let tx = await (await sourceInstance.setTrustedRemoteAddress(targetChainId, targetAddress)).wait()
+        console.log(`✅ [${sourceNetwork.network.name}] setTrustedRemoteAddress(${targetChainId}, ${targetAddress})`)
         console.log(` tx: ${tx.transactionHash}`)
     } catch (e) {
-        console.log(`❌ [${hre.network.name}] setTrustedRemote(${remoteChainId}, ${remoteAddress})`)
+        console.log(`❌ [${sourceNetwork.network.name}] setTrustedRemoteAddress(${targetChainId}, ${targetAddress})`)
     }
 }
