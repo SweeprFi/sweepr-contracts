@@ -52,6 +52,7 @@ module.exports = {
         usdPlus_exchanger: '0x73cb180bf0521828d8849bc8CF2B920918e23032',
         ets_exchanger: '0xc2c84ca763572c6aF596B703Df9232b4313AD4e3',
         balancer_pool: '0x423A1323c871aBC9d89EB06855bF5347048Fc4A5',
+        balancer_factory: '0xA8920455934Da4D853faac1f94Fe7bEf72943eF1',
     },
 
     chainlink: {

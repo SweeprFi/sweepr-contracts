@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ======================== BalancerMarketMaker.sol =========================
+// ======================== BalancerMarketMaker.sol ===================
 // ====================================================================
 
 /**
@@ -13,6 +13,8 @@ pragma solidity 0.8.19;
 
 import { Stabilizer, TransferHelper } from "../Stabilizer/Stabilizer.sol";
 import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "../Assets/Balancer/IBalancer.sol";
+
+import "hardhat/console.sol";
 
 contract BalancerMarketMaker is Stabilizer {
 
@@ -86,13 +88,34 @@ contract BalancerMarketMaker is Stabilizer {
         emit SweepPurchased(usdxAmount);
     }
 
-    function _addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 slippage) internal  {
-        uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
-        uint256 sweepAvailable = sweepLimit - sweepBorrowed;
-        if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
+    function initPool() external onlyBorrower{
+        address self = address(this);
+        uint256 sweepAmount = 1e18;
+        uint256 usdxAmount = 1e6;
+
+        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
+        // TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
+        // TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
 
         _borrow(sweepAmount);
 
+        bytes32 poolId = pool.getPoolId();
+        (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);
+
+        uint8 sweepIndex = findAssetIndex(address(sweep), assets);
+        uint8 usdxIndex = findAssetIndex(address(usdx), assets);
+
+        uint256[] memory amounts = new uint256[](3);
+        amounts[usdxIndex] = usdxAmount;
+        amounts[sweepIndex] = sweepAmount;
+
+        bytes memory userData = abi.encode(JoinKind.INIT, amounts);
+
+        IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(assets, amounts, userData, false);
+        vault.joinPool(poolId, self, self, request);
+    }
+
+    function _addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 slippage) internal {
         address self = address(this);
         bytes32 poolId = pool.getPoolId();
         (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);

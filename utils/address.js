@@ -3,6 +3,7 @@ const {
   tokens,
   libraries,
   protocol,
+  balancer,
   uniswap,
   maple,
   networks,

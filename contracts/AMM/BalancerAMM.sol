@@ -27,7 +27,6 @@ contract BalancerAMM {
     ISweep public immutable sweep;
     IPriceFeed public immutable oracleBase;
     IPriceFeed public immutable sequencer;
-    uint24 public immutable poolFee;
     uint256 public immutable oracleBaseUpdateFrequency;
 
     uint8 private constant USD_DECIMALS = 6;
@@ -37,7 +36,6 @@ contract BalancerAMM {
         address _sweep,
         address _base,
         address _sequencer,
-        uint24 _fee,
         address _oracleBase,
         uint256 _oracleBaseUpdateFrequency
     ) {
@@ -45,14 +43,12 @@ contract BalancerAMM {
         base = IERC20Metadata(_base);
         oracleBase = IPriceFeed(_oracleBase);
         sequencer = IPriceFeed(_sequencer);
-        poolFee = _fee;
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
     }
 
     // Events
     event Bought(uint256 usdxAmount);
     event Sold(uint256 sweepAmount);
-    event PoolFeeChanged(uint24 poolFee);
 
     // Errors
     error OverZero();
@@ -62,6 +58,7 @@ contract BalancerAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getPrice() public view returns (uint256 price) {
+        if(address(pool) == address(0)) return 1e6;
         uint256 rate = pool.getRate();
         uint8 rateDecimals = 18;
 
