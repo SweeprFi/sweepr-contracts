@@ -34,8 +34,6 @@ interface IBalancerPool is IERC20Metadata {
     function swap(SingleSwap memory singleSwap, FundManagement memory funds, uint256 limit, uint256 deadline) external returns (uint256 amountOut);
 }
 
-enum SwapKind { GIVEN_IN, GIVEN_OUT }
-
 struct SingleSwap {
    bytes32 poolId;
    SwapKind kind;
@@ -70,3 +68,7 @@ interface IComposableStablePoolFactory {
 interface IRateProvider {
     function getRate() external view returns (uint256);
 }
+
+enum JoinKind { INIT, EXACT_TOKENS_IN_FOR_BPT_OUT, TOKEN_IN_FOR_EXACT_BPT_OUT, ALL_TOKENS_IN_FOR_EXACT_BPT_OUT }
+enum ExitKind { EXACT_BPT_IN_FOR_ONE_TOKEN_OUT, BPT_IN_FOR_EXACT_TOKENS_OUT, EXACT_BPT_IN_FOR_ALL_TOKENS_OUT }
+enum SwapKind { GIVEN_IN, GIVEN_OUT }

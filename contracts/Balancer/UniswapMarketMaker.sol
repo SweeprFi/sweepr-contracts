@@ -15,7 +15,7 @@ Remove any LP positions that are converted to SWEEP, and repay it
 import "../Utils/LiquidityHelper.sol";
 import "../Stabilizer/Stabilizer.sol";
 
-contract MarketMaker is Stabilizer {
+contract UniswapMarketMaker is Stabilizer {
     // Uniswap V3 Position Manager
     INonfungiblePositionManager public constant nonfungiblePositionManager =
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);

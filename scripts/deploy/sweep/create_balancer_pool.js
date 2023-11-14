@@ -16,7 +16,7 @@ async function main() {
 	console.log("SWEEP:", addresses.sweep);
 	console.log("USDC:", addresses.usdc);
 	console.log("BalancerFactory:", addresses.balancer_factory);
-	console.log("FEE:", Const.FEE);
+	console.log("FEE:", 1e14/1e16);
 	console.log("===========================================");
 	console.log("Creating in 5 seconds...");
 	await sleep(5);
@@ -31,6 +31,7 @@ async function main() {
 	// 	[sweep, ]
 	// ).wait();
 
+	// TODO: sort tokens and rate providers
 	const pool = await( await factory.create(
 		"Balancer SWEEP-USDC Stable Pool",
 		"SWEEP-USDC-BTP",
