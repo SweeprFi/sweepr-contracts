@@ -10,7 +10,7 @@ require('solidity-coverage');
 require('dotenv').config();
 require('./tasks');
 const { rpcLink, apiKey } = require("./utils/address");
-const { rpcLinks } = require("./utils/constants");
+const { rpcLinks } = require("./utils/constantsOld");
 
 const accounts = [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY];
 

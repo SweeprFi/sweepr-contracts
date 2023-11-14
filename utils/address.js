@@ -11,7 +11,7 @@ const {
   apiKeys,
   chainlinkOracle,
   assets,
-} = require("./constants");
+} = require("./constantsOld");
 require('dotenv').config();
 
 const chainId = process.env.CHAIN_ID;
