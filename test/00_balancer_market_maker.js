@@ -62,7 +62,7 @@ contract.only('Balancer Market Maker', async () => {
       "Balancer SWEEP-USDC Stable Pool",
       "SWEEP-USDC-BTP",
       data.tokens,
-      1, // amplification
+      500, // amplification
       data.providers, //rateProviders
       [10800, 10800], // tokenRateCacheDurations
       true, // exemptFromYieldProtocolFeeFlag
@@ -105,7 +105,8 @@ contract.only('Balancer Market Maker', async () => {
     console.log("rate", await amm.getRate())
 
     console.log(await marketmaker.assetValue())
-    console.log(await marketmaker.currenttValue())
-    // await amm.setPool(poolAddress);
+    console.log(await marketmaker.currentValue())
+    await amm.setPool(poolAddress);
+    console.log("price", await amm.getPrice())
   });
 });

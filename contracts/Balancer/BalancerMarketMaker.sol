@@ -94,8 +94,8 @@ contract BalancerMarketMaker is Stabilizer {
         uint256 usdxAmount = 1e6;
 
         TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
-        // TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
-        // TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
+        TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
+        TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
 
         _borrow(sweepAmount);
 
@@ -104,12 +104,19 @@ contract BalancerMarketMaker is Stabilizer {
 
         uint8 sweepIndex = findAssetIndex(address(sweep), assets);
         uint8 usdxIndex = findAssetIndex(address(usdx), assets);
+        uint8 bptIndex = findAssetIndex(address(pool), assets);
 
         uint256[] memory amounts = new uint256[](3);
+        amounts[bptIndex] = 2**112;
         amounts[usdxIndex] = usdxAmount;
         amounts[sweepIndex] = sweepAmount;
 
-        bytes memory userData = abi.encode(JoinKind.INIT, amounts);
+        uint256[] memory userDataAmounts = new uint256[](3);
+        userDataAmounts[bptIndex] = 2**112;
+        userDataAmounts[usdxIndex] = usdxAmount;
+        userDataAmounts[sweepIndex] = sweepAmount;
+
+        bytes memory userData = abi.encode(JoinKind.INIT, userDataAmounts);
 
         IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(assets, amounts, userData, false);
         vault.joinPool(poolId, self, self, request);
