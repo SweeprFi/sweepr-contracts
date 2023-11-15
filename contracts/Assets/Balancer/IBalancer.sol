@@ -21,6 +21,7 @@ interface IBalancerVault {
     function joinPool(bytes32 poolId, address sender, address recipient, JoinPoolRequest memory request) external payable;
     function exitPool(bytes32 poolId, address sender, address recipient, ExitPoolRequest memory request) external payable;
     function getPoolTokens(bytes32 poolId) external view returns (IAsset[] memory tokens, uint256[] memory balances, uint256 lastChangeBlock);
+    function swap(SingleSwap memory singleSwap, FundManagement memory funds, uint256 limit, uint256 deadline) external returns (uint256 amountOut);
 }
 
 interface IAsset {
@@ -31,7 +32,7 @@ interface IBalancerPool is IERC20Metadata {
     function getPoolId() external view returns (bytes32);
     function getVault() external view returns (address);
     function getRate() external view returns (uint256);
-    function swap(SingleSwap memory singleSwap, FundManagement memory funds, uint256 limit, uint256 deadline) external returns (uint256 amountOut);
+    function getTokenRate(address) external view returns (uint256);
 }
 
 struct SingleSwap {

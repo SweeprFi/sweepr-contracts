@@ -20,8 +20,8 @@ import { IAsset, SingleSwap, FundManagement, SwapKind, IBalancerVault, IBalancer
 contract BalancerAMM {
     using Math for uint256;
 
-    IBalancerVault private vault;
-    IBalancerPool private pool;
+    IBalancerVault public vault;
+    IBalancerPool public pool;
 
     IERC20Metadata public immutable base;
     ISweep public immutable sweep;
@@ -58,8 +58,8 @@ contract BalancerAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getPrice() public view returns (uint256 price) {
-        if(address(pool) == address(0)) return 1e6;
-        uint256 rate = pool.getRate();
+        if(address(pool) == address(0)) return 2e6;
+        uint256 rate = pool.getTokenRate(address(sweep));
         uint8 rateDecimals = 18;
 
         uint256 stablePrice = ChainlinkLibrary.getPrice(
@@ -67,6 +67,7 @@ contract BalancerAMM {
             sequencer,
             oracleBaseUpdateFrequency
         );
+
         uint8 oracleDecimals = ChainlinkLibrary.getDecimals(oracleBase);
         price = rate.mulDiv(stablePrice * (10 ** base.decimals()), 10 ** (oracleDecimals + rateDecimals));
     }
@@ -163,15 +164,15 @@ contract BalancerAMM {
             userData
         );
         FundManagement memory funds = FundManagement(
-            msg.sender,
+            address(this),
             false,
             payable(msg.sender),
             false
         );
-        uint256 limit = amountOutMin;
+
         uint256 deadline = block.timestamp + DEADLINE_GAP;
 
-        amountOut = pool.swap(singleSwap, funds, limit, deadline);
+        amountOut = vault.swap(singleSwap, funds, amountOutMin, deadline);
     }
 
     function setPool(address poolAddress) external {

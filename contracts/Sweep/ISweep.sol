@@ -9,6 +9,8 @@ interface ISweep {
         bool isEnabled;
     }
 
+    function isMintingAllowed() external view returns (bool);
+
     function DEFAULT_ADMIN_ADDRESS() external view returns (address);
 
     function balancer() external view returns (address);

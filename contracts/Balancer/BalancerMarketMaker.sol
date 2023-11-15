@@ -11,10 +11,8 @@ pragma solidity 0.8.19;
  * Increases and decreases the liquidity
  */
 
-import { Stabilizer, TransferHelper } from "../Stabilizer/Stabilizer.sol";
+import { Stabilizer, TransferHelper, ISweep } from "../Stabilizer/Stabilizer.sol";
 import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "../Assets/Balancer/IBalancer.sol";
-
-import "hardhat/console.sol";
 
 contract BalancerMarketMaker is Stabilizer {
 
@@ -60,9 +58,9 @@ contract BalancerMarketMaker is Stabilizer {
         uint256 bpt = pool.balanceOf(address(this));
         uint256 rate = pool.getRate();
 
-        return (bpt * rate * (10 ** usdx.decimals())) / (10 ** (pool.decimals() * 2));
+        uint256 usdcAmount = (bpt * rate * (10 ** usdx.decimals())) / (10 ** (pool.decimals() * 2));
 
-        // return _oracleUsdxToUsd(bpt4BalanceInUsdx());
+        return _oracleUsdxToUsd(usdcAmount);
     }
 
     /* ========== Actions ========== */
@@ -71,7 +69,7 @@ contract BalancerMarketMaker is Stabilizer {
         uint256 sweepAvailable = sweep.minters(address(this)).maxAmount - sweepBorrowed;
         if (sweepAvailable < sweepAmount*2) revert NotEnoughBalance();
 
-        uint256 targetPrice = sweep.targetPrice();
+        uint256 targetPrice = _oracleUsdToUsdx(sweep.targetPrice());
         uint256 buyPrice = targetPrice + ((sweep.arbSpread() * targetPrice) / PRECISION);
         uint256 usdxAmount = (sweepAmount * buyPrice) / (10 ** sweep.decimals());
 
@@ -87,16 +85,19 @@ contract BalancerMarketMaker is Stabilizer {
         emit SweepPurchased(usdxAmount);
     }
 
-    function initPool() external nonReentrant onlyBorrower {
+    function initPool(uint256 usdxAmount, uint256 sweepAmount) external nonReentrant onlyBorrower {
         address self = address(this);
-        uint256 sweepAmount = 1e18;
-        uint256 usdxAmount = 1e6;
+
+        if(sweep.isMintingAllowed()){
+            _borrow(sweepAmount);
+        } else {
+            TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount);
+        }
 
         TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
-        TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
-        TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
 
-        _borrow(sweepAmount);
+        TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
+        TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);        
 
         bytes32 poolId = pool.getPoolId();
         (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);
@@ -132,9 +133,9 @@ contract BalancerMarketMaker is Stabilizer {
         userDataAmounts[0] = (sweepIndex > usdxIndex) ? usdxAmount : sweepAmount;
         userDataAmounts[1] = (sweepIndex > usdxIndex) ? sweepAmount : usdxAmount;
 
-        uint256 usdxAmountOut = usdxAmount * (10 ** (pool.decimals()+12)) / pool.getRate();
-        uint256 sweepAmountOut = sweepAmount * (10 ** pool.decimals()) / pool.getRate();
-        uint256 minTotalAmountOut = ( usdxAmountOut + sweepAmountOut ) * (PRECISION - slippage) / PRECISION;
+        uint256 usdxAmountOut = usdxAmount * (10 ** (pool.decimals()+12)) / pool.getTokenRate(address(usdx));
+        uint256 sweepAmountOut = sweepAmount * (10 ** pool.decimals()) / pool.getTokenRate(address(sweep));
+        uint256 minTotalAmountOut = (usdxAmountOut + sweepAmountOut) * (PRECISION - slippage) / PRECISION;
 
         bytes memory userData = abi.encode(JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT, userDataAmounts, minTotalAmountOut);
 
@@ -143,11 +144,20 @@ contract BalancerMarketMaker is Stabilizer {
     }
 
     function addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 slippage) external nonReentrant onlyBorrower {
-        uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
-        uint256 sweepAvailable = sweepLimit - sweepBorrowed;
-        if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
+        address self = address(this);
 
-        _borrow(sweepAmount);
+        if(sweep.isMintingAllowed()){
+            uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
+            uint256 sweepAvailable = sweepLimit - sweepBorrowed;
+            if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
+
+            _borrow(sweepAmount);
+        } else {
+            TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount);
+        }
+        
+        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
+
         TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
         TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
 

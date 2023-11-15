@@ -2,6 +2,7 @@ const { ethers } = require('hardhat');
 const { addresses, network } = require("../../../utils/address");
 const { Const, sleep } = require('../../../utils/helper_functions');
 
+
 async function main() {
 	[deployer] = await ethers.getSigners();
 	const sweep = addresses.sweep;
@@ -25,24 +26,40 @@ async function main() {
 
 	const factory = await ethers.getContractAt("IComposableStablePoolFactory", addresses.balancer_factory);
 
+	const sortTokensAndProviders = (sweep, token) => {
+		data = {};
+
+		if (token.toString().toLowerCase() < sweep.toString().toLowerCase()) {
+			data.tokens = [token, sweep];
+			data.providers = ['0x0000000000000000000000000000000000000000', addresses.balancer_amm];
+		} else {
+			data.tokens = [sweep, token];
+			data.providers = [addresses.balancer_amm, '0x0000000000000000000000000000000000000000'];
+		}
+
+		return data;
+	}
+
 	// const pool = await factory.create(
 	// 	"Balancer SWEEP-4POOL Stable Pool",
 	// 	"SWEEP-4POOL-BTP",
 	// 	[sweep, ]
 	// ).wait();
 
+	const data = sortTokensAndProviders(sweep, usdc);
+
 	// TODO: sort tokens and rate providers
 	const pool = await( await factory.create(
-		"Balancer SWEEP-USDC Stable Pool",
-		"SWEEP-USDC-BTP",
-		[usdc, sweep],
-		1, // amplification
-		['0x0000000000000000000000000000000000000000', addresses.balancer_amm], //rateProviders
+		"Balancer SWEEP-USDC StablePool",
+		"SWEEP-USDC-BPT",
+		data.tokens,
+		500, // amplification
+		data.providers, //rateProviders
 		[10800, 10800], // tokenRateCacheDurations
 		true, // exemptFromYieldProtocolFeeFlag
 		1e14, // swapFeePercentage, 1e12 = 0.0001%
 		'0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b', // balancer governance
-		'0x0000000000000000000000000000000000000000000000000000000000001234' // salt
+		'0x42616c616e6365722053574545502d5553444320537461626c65506f6f6c2031' // salt
 	)).wait();
 
 	console.log("===========================================");

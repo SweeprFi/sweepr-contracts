@@ -20,8 +20,8 @@ contract BalancerAsset is Stabilizer {
 
     error BadAddress(address asset);
 
-    IBalancerPool pool;
-    IBalancerVault vault;
+    IBalancerPool public pool;
+    IBalancerVault public vault;
 
     uint24 private constant PRECISION = 1e6;
     uint256 private constant ACTION = 1;
@@ -108,7 +108,7 @@ contract BalancerAsset is Stabilizer {
         uint256[] memory userDataAmounts = new uint256[](4);
         userDataAmounts[usdxIndex-1] = usdxAmount;
 
-        uint256 usdxAmountOut = usdxAmount * (10 ** pool.decimals()) / pool.getRate();
+        uint256 usdxAmountOut = usdxAmount * (10 ** (pool.decimals()+12)) / pool.getTokenRate(address(usdx));
         uint256 minAmountOut = usdxAmountOut * (PRECISION - slippage) / PRECISION;
         bytes memory userData = abi.encode(JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT, userDataAmounts, minAmountOut);
 
