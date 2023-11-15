@@ -67,9 +67,8 @@ contract BalancerAMM {
             sequencer,
             oracleBaseUpdateFrequency
         );
-        uint8 baseDecimals = ChainlinkLibrary.getDecimals(oracleBase);
-
-        price = rate.mulDiv(stablePrice, 10 ** (baseDecimals + rateDecimals));
+        uint8 oracleDecimals = ChainlinkLibrary.getDecimals(oracleBase);
+        price = rate.mulDiv(stablePrice * (10 ** base.decimals()), 10 ** (oracleDecimals + rateDecimals));
     }
 
     /**
