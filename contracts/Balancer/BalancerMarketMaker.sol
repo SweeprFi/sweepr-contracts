@@ -133,9 +133,9 @@ contract BalancerMarketMaker is Stabilizer {
         userDataAmounts[0] = (sweepIndex > usdxIndex) ? usdxAmount : sweepAmount;
         userDataAmounts[1] = (sweepIndex > usdxIndex) ? sweepAmount : usdxAmount;
 
-        uint256 usdxAmountOut = usdxAmount * (10 ** (pool.decimals()+12)) / pool.getTokenRate(address(usdx));
-        uint256 sweepAmountOut = sweepAmount * (10 ** pool.decimals()) / pool.getTokenRate(address(sweep));
-        uint256 minTotalAmountOut = (usdxAmountOut + sweepAmountOut) * (PRECISION - slippage) / PRECISION;
+        uint256 usdxMin = usdxAmount * pool.getTokenRate(address(usdx)) / (10 ** usdx.decimals());
+        uint256 sweepMin = sweepAmount * pool.getTokenRate(address(sweep)) / (10 ** sweep.decimals());
+        uint256 minTotalAmountOut = (usdxMin + sweepMin) * (PRECISION - slippage) / PRECISION;
 
         bytes memory userData = abi.encode(JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT, userDataAmounts, minTotalAmountOut);
 
@@ -167,14 +167,14 @@ contract BalancerMarketMaker is Stabilizer {
 
     function removeLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 slippage) external nonReentrant onlyBorrower {
         address self = address(this);
-        
-        uint256 maxAmountIn = pool.balanceOf(self);
-        uint maxUsdxAmountOut = usdxAmount * (PRECISION - slippage) / PRECISION;
-        uint maxSweepAmountOut = sweepAmount * (PRECISION - slippage) / PRECISION;
+
+        uint256 usdxMax = usdxAmount * pool.getTokenRate(address(usdx)) / (10**usdx.decimals());
+        uint256 sweepMax = sweepAmount * pool.getTokenRate(address(sweep)) / (10**sweep.decimals());
+        uint256 maxAmountIn = (usdxMax + sweepMax) * (PRECISION + slippage) / PRECISION;
 
         uint256[] memory amounts = new uint256[](3);
-        amounts[usdxIndex] = maxUsdxAmountOut;
-        amounts[sweepIndex] = maxSweepAmountOut;
+        amounts[usdxIndex] = usdxAmount;
+        amounts[sweepIndex] = sweepAmount;
 
         uint256[] memory userDataAmounts = new uint256[](2);
         userDataAmounts[0] = (sweepIndex > usdxIndex) ? usdxAmount : sweepAmount;

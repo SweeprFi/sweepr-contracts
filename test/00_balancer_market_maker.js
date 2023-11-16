@@ -146,7 +146,7 @@ contract.only('Balancer Market Maker', async () => {
     price = await sweep.ammPrice();
     sweepBefore = await sweep.balanceOf(vaultAddress);
 
-    await marketmaker.removeLiquidity(0, sweepToRemove, 0);
+    await marketmaker.removeLiquidity(0, sweepToRemove, 5000);
 
     // expect(await sweep.ammPrice()).to.greaterThan(price);
     expect(await sweep.balanceOf(vaultAddress)).to.equal(sweepBefore.sub(sweepToRemove));
@@ -154,7 +154,7 @@ contract.only('Balancer Market Maker', async () => {
     priceBefore = await sweep.ammPrice();
     usdcBefore = await usdc.balanceOf(vaultAddress);
 
-    await marketmaker.removeLiquidity(usdcToRemove, 0, 0);
+    await marketmaker.removeLiquidity(usdcToRemove, 0, 5000);
 
     // expect(await sweep.ammPrice()).to.greaterThan(price);
     expect(await usdc.balanceOf(vaultAddress)).to.equal(usdcBefore.sub(usdcToRemove));
@@ -182,7 +182,7 @@ contract.only('Balancer Market Maker', async () => {
 
     expect(sweepBefore).to.equal(0);
 
-    await marketmaker.buySweep(sweepToBuy, 1e4);
+    await marketmaker.buySweep(sweepToBuy, 5000);
 
     expect(await usdc.balanceOf(borrower.address)).to.lessThan(usdcBefore);
     expect(await sweep.balanceOf(borrower.address)).to.equal(sweepToBuy);
