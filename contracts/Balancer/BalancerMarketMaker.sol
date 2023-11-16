@@ -22,9 +22,16 @@ contract BalancerMarketMaker is Stabilizer {
     event LiquidityRemoved(uint256 usdxAmount, uint256 sweepAmount);
     event SweepPurchased(uint256 sweeAmount);
 
-    IBalancerPool pool;
-    IBalancerVault vault;
+    IBalancerPool public pool;
+    IBalancerVault public vault;
 
+    bytes32 public poolId;
+    IAsset[] public poolAssets;
+
+    uint8 public sweepIndex;
+    uint8 public usdxIndex;
+    uint8 public bptIndex;
+    
     uint24 private constant PRECISION = 1e6;
 
     constructor(
@@ -37,6 +44,12 @@ contract BalancerMarketMaker is Stabilizer {
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         pool = IBalancerPool(_poolAddress);
         vault = IBalancerVault(pool.getVault());
+
+        poolId = pool.getPoolId();
+        (poolAssets, , ) = vault.getPoolTokens(poolId);
+        sweepIndex = findAssetIndex(address(sweep), poolAssets);
+        usdxIndex = findAssetIndex(address(usdx), poolAssets);
+        bptIndex = findAssetIndex(address(pool), poolAssets);
     }
 
     /* ========== Views ========== */
@@ -95,16 +108,8 @@ contract BalancerMarketMaker is Stabilizer {
         }
 
         TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
-
         TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
-        TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);        
-
-        bytes32 poolId = pool.getPoolId();
-        (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);
-
-        uint8 sweepIndex = findAssetIndex(address(sweep), assets);
-        uint8 usdxIndex = findAssetIndex(address(usdx), assets);
-        uint8 bptIndex = findAssetIndex(address(pool), assets);
+        TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
 
         uint256[] memory amounts = new uint256[](3);
         amounts[bptIndex] = 2**112;
@@ -113,18 +118,13 @@ contract BalancerMarketMaker is Stabilizer {
 
         bytes memory userData = abi.encode(JoinKind.INIT, amounts);
 
-        IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(assets, amounts, userData, false);
+        IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(poolAssets, amounts, userData, false);
         vault.joinPool(poolId, self, self, request);
     }
 
     function _addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 slippage) internal {
         address self = address(this);
-        bytes32 poolId = pool.getPoolId();
-        (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);
         
-        uint8 sweepIndex = findAssetIndex(address(sweep), assets);
-        uint8 usdxIndex = findAssetIndex(address(usdx), assets);
-
         uint256[] memory amounts = new uint256[](3);
         amounts[usdxIndex] = usdxAmount;
         amounts[sweepIndex] = sweepAmount;
@@ -139,7 +139,7 @@ contract BalancerMarketMaker is Stabilizer {
 
         bytes memory userData = abi.encode(JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT, userDataAmounts, minTotalAmountOut);
 
-        IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(assets, amounts, userData, false);
+        IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(poolAssets, amounts, userData, false);
         vault.joinPool(poolId, self, self, request);
     }
 
@@ -150,30 +150,24 @@ contract BalancerMarketMaker is Stabilizer {
             uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
             uint256 sweepAvailable = sweepLimit - sweepBorrowed;
             if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
-
-            _borrow(sweepAmount);
+            if(sweepAmount > 0) _borrow(sweepAmount);
         } else {
             TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount);
         }
-        
+
         TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
 
         TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
         TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
 
         _addLiquidity(usdxAmount, sweepAmount, slippage);
-     
+
         emit LiquidityAdded(usdxAmount, sweepAmount);
     }
 
     function removeLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 slippage) external nonReentrant onlyBorrower {
         address self = address(this);
-        bytes32 poolId = pool.getPoolId();
-        (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);
         
-        uint8 sweepIndex = findAssetIndex(address(sweep), assets);
-        uint8 usdxIndex = findAssetIndex(address(usdx), assets);
-
         uint256 maxAmountIn = pool.balanceOf(self);
         uint maxUsdxAmountOut = usdxAmount * (PRECISION - slippage) / PRECISION;
         uint maxSweepAmountOut = sweepAmount * (PRECISION - slippage) / PRECISION;
@@ -188,7 +182,7 @@ contract BalancerMarketMaker is Stabilizer {
 
         bytes memory userData = abi.encode(ExitKind.BPT_IN_FOR_EXACT_TOKENS_OUT, userDataAmounts, maxAmountIn);
 
-        IBalancerVault.ExitPoolRequest memory request = IBalancerVault.ExitPoolRequest(assets, amounts, userData, false);
+        IBalancerVault.ExitPoolRequest memory request = IBalancerVault.ExitPoolRequest(poolAssets, amounts, userData, false);
         vault.exitPool(poolId, self, self, request);
 
         if(sweepAmount > 0) _repay(sweepAmount);

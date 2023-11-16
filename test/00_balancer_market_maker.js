@@ -64,7 +64,7 @@ contract.only('Balancer Market Maker', async () => {
       data.tokens,
       500, // amplification
       data.providers, //rateProviders
-      [10800, 10800], // tokenRateCacheDurations
+      [0, 0], // tokenRateCacheDurations
       true, // exemptFromYieldProtocolFeeFlag
       1e14, // swapFeePercentage, 1e12 = 0.0001%
       '0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b', // balancer governance
