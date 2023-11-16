@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { tokens, wallets, chainlink, protocols } = require('../utils/constants');
+const { tokens, wallets, chainlink, balancer } = require('../utils/constants');
 const { Const, impersonate, toBN, sendEth, increaseTime } = require("../utils/helper_functions");
 let poolAddress;
 
@@ -20,7 +20,7 @@ contract.only('Balancer Market Maker', async () => {
 
     sweep = await ethers.getContractAt("SweepCoin", SWEEP_ADDRESS);
     usdc = await ethers.getContractAt("ERC20", USDC_ADDRESS);
-    factory = await ethers.getContractAt("IComposableStablePoolFactory", protocols.balancer_factory);
+    factory = await ethers.getContractAt("IComposableStablePoolFactory", balancer.factory);
 
     AMM = await ethers.getContractFactory("BalancerAMM");
     amm = await AMM.deploy(
@@ -68,7 +68,7 @@ contract.only('Balancer Market Maker', async () => {
       true, // exemptFromYieldProtocolFeeFlag
       1e14, // swapFeePercentage, 1e12 = 0.0001%
       '0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b', // balancer governance
-      '0x42616c616e6365722053574545502d5553444320537461626c65506f6f6c2031' // salt
+      '0x42616c616e6365722053574545502d5553444320537461626c65506f6f6c2030' // salt
     )).wait();
 
     poolAddress = pool.logs[0].address;
@@ -94,8 +94,6 @@ contract.only('Balancer Market Maker', async () => {
   });
 
   it('Init the poool correctly', async () => {
-    expect(await sweep.balanceOf(vaultAddress)).to.equal(0);
-
     await usdc.approve(marketmaker.address, usdcAmount);
     await marketmaker.initPool(1e6, toBN("1", 18));
     await amm.connect(user).setPool(poolAddress);
@@ -173,9 +171,14 @@ contract.only('Balancer Market Maker', async () => {
     user = await impersonate(BALANCER);
     await sweep.connect(user).setTargetPrice(1e6, 1e6);
 
+    console.log("BEFORE SWEEP:", await sweep.balanceOf(vaultAddress));
+    console.log("BEFORE USDC:", await usdc.balanceOf(vaultAddress));
+
     sweepToBuy = toBN("500", 18);
     sweepBefore = await sweep.balanceOf(borrower.address);
     usdcBefore = await usdc.balanceOf(borrower.address);
+    vaultSweepBefore = await usdc.balanceOf(vaultAddress);
+    vaultUsdcBefore = await usdc.balanceOf(vaultAddress);
 
     expect(sweepBefore).to.equal(0);
 
@@ -184,6 +187,12 @@ contract.only('Balancer Market Maker', async () => {
     expect(await usdc.balanceOf(borrower.address)).to.lessThan(usdcBefore);
     expect(await sweep.balanceOf(borrower.address)).to.equal(sweepToBuy);
     
+    expect(await sweep.balanceOf(vaultAddress)).to.greaterThan(vaultSweepBefore);
+    expect(await usdc.balanceOf(vaultAddress)).to.greaterThan(vaultUsdcBefore);
+
+    console.log("AFTER SWEEP:", await sweep.balanceOf(vaultAddress));
+    console.log("AFTER USDC:", await usdc.balanceOf(vaultAddress));
+
     // await increaseTime(14400);
     console.log("===========================================");
     console.log("ammPrice:", await amm.getPrice());

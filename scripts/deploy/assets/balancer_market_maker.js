@@ -1,15 +1,15 @@
 const { ethers } = require("hardhat");
-const { addresses } = require("../../../utils/address");
-const { sleep } = require("../../../utils/helper_functions");
+const { wallets, tokens, chainlink, deployments } = require("../../../utils/constants");
+const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
     [deployer] = await ethers.getSigners();
     const assetName = 'Balancer Market Maker';
-    const sweep = addresses.sweep;
-    const usdc = addresses.usdc;
-    const oracleUsdc = addresses.oracle_usdc_usd;
-    const poolAddress = '0xD3f0A062c709dEd9C472438a9Ca46916e90A083B'; //addresses.balancer_pool;
-    const borrower = addresses.multisig;
+    const sweep = tokens.sweep;
+    const usdc = tokens.usdc;
+    const oracleUsdc = chainlink.usdc_usd;
+    const poolAddress = deployments.balancer_pool;
+    const borrower = wallets.multisig;
 
 
     console.log("===========================================");
@@ -25,8 +25,8 @@ async function main() {
     console.log("poolAddress:", poolAddress);
     console.log("Borrower:", borrower);
     console.log("===========================================");
-    console.log("Deploying in 5 seconds...");
-    await sleep(5);
+    const answer = (await ask("continue? y/n: "));
+    if(answer !== 'y'){ process.exit(); }
     console.log("Deploying...");
 
 
@@ -42,7 +42,7 @@ async function main() {
 
     console.log("===========================================");
     console.log("MarketMaker deployed to: ", stabilizer.address);
-    // console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${usdc} ${oracleUsdc} ${poolAddress} ${borrower}`)
+    console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${usdc} ${oracleUsdc} ${poolAddress} ${borrower}`)
 }
 
 main();

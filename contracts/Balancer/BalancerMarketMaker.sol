@@ -92,7 +92,7 @@ contract BalancerMarketMaker is Stabilizer {
 
         _borrow(sweepAmount*2);
 
-        _addLiquidity(0, sweepAmount, slippage);
+        _addLiquidity(usdxAmount, sweepAmount, slippage);
 
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
         emit SweepPurchased(usdxAmount);

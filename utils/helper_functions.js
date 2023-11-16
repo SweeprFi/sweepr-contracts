@@ -3,6 +3,7 @@ const { roles } = require("./address");
 const { networks } = require("../hardhat.config");
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
 const JSBI = require('jsbi');
+const readline = require('readline');
 
 const sendEth = async (account) => {
     await hre.network.provider.request({
@@ -144,6 +145,15 @@ const Const = {
 
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay*1000));
 
+function ask(query) {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+    return new Promise(resolve => rl.question(query, ans => {
+        rl.close();
+        resolve(ans);
+    }));
+}
+
 module.exports = {
     toBN,
     Const,
@@ -155,5 +165,6 @@ module.exports = {
     getBlockTimestamp,
     getTokenAmounts,
     unpauseAave,
-    sleep
+    sleep,
+    ask
 }
