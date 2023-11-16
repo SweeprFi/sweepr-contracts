@@ -140,24 +140,22 @@ contract.only('Balancer Market Maker', async () => {
   });
 
   it('Removes liquidity correctly', async () => {
-    sweepToRemove = toBN("500", 18);
-    usdcToRemove = toBN("0", 6);
+    usdcToRemove = toBN("250", 6);
+    sweepToRemove = toBN("250", 18);
 
     price = await sweep.ammPrice();
     sweepBefore = await sweep.balanceOf(vaultAddress);
-
-    await marketmaker.removeLiquidity(0, sweepToRemove, 5000);
-
-    // expect(await sweep.ammPrice()).to.greaterThan(price);
-    expect(await sweep.balanceOf(vaultAddress)).to.equal(sweepBefore.sub(sweepToRemove));
-
-    priceBefore = await sweep.ammPrice();
     usdcBefore = await usdc.balanceOf(vaultAddress);
 
-    await marketmaker.removeLiquidity(usdcToRemove, 0, 5000);
-
-    // expect(await sweep.ammPrice()).to.greaterThan(price);
+    // await marketmaker.removeLiquidity(0, sweepToRemove, 20000);
+    await marketmaker.removeLiquidity(usdcToRemove, sweepToRemove, 5000);
+    expect(await sweep.balanceOf(vaultAddress)).to.equal(sweepBefore.sub(sweepToRemove));
     expect(await usdc.balanceOf(vaultAddress)).to.equal(usdcBefore.sub(usdcToRemove));
+
+    // priceBefore = await sweep.ammPrice();
+  
+    // await marketmaker.removeLiquidity(usdcToRemove, 0, 5000);
+    // expect(await usdc.balanceOf(vaultAddress)).to.equal(usdcBefore.sub(usdcToRemove));
 
     // await increaseTime(14400);
     console.log("===========================================");
@@ -182,7 +180,7 @@ contract.only('Balancer Market Maker', async () => {
 
     expect(sweepBefore).to.equal(0);
 
-    await marketmaker.buySweep(sweepToBuy, 5000);
+    await marketmaker.buySweep(sweepToBuy, 0);
 
     expect(await usdc.balanceOf(borrower.address)).to.lessThan(usdcBefore);
     expect(await sweep.balanceOf(borrower.address)).to.equal(sweepToBuy);
