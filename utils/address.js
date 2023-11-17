@@ -3,6 +3,7 @@ const {
   tokens,
   libraries,
   protocol,
+  balancer,
   uniswap,
   maple,
   networks,
@@ -86,6 +87,9 @@ const addresses = {
   uniswap_pool: uniswap.pool[chainId],
   uniswap_quoter: uniswap.quoter[chainId],
 
+  // balancer
+  balancer_factory: balancer.factory[chainId],
+
   // maple
   maple_usdc_pool: maple.usdc_pool[chainId],
   maple_pool_manager: maple.pool_manager[chainId],
@@ -96,6 +100,7 @@ const addresses = {
   balancer: protocol.balancer[chainId],
   token_distributor: protocol.distributor[chainId],
   uniswap_amm: protocol.uniswap_amm[chainId],
+  balancer_amm: protocol.balancer_amm[chainId],
   timelock: protocol.timelock[chainId],
   approver: protocol.approver[chainId],
   vesting_approver: protocol.vesting_approver[chainId],

@@ -92,6 +92,7 @@ module.exports = {
 	etherscan: {
 		// apiKey: apiKey,
 		apiKey: {
+			arbitrumOne: apiKey,
 			base_goerli: apiKey,
 			base: apiKey
 		},
@@ -115,7 +116,7 @@ module.exports = {
 		]
 	},
 	gasReporter: {
-		enabled: (process.env.REPORT_GAS) ? true : false,
+		enabled: false,
 		currency: 'USD'
 	},
 	mocha: {

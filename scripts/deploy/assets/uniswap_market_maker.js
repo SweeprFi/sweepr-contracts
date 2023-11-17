@@ -4,7 +4,7 @@ const { sleep } = require("../../../utils/helper_functions");
 
 async function main() {
     [deployer] = await ethers.getSigners();
-    const assetName = 'Market Maker';
+    const assetName = 'Uniswap Market Maker';
     const sweep = addresses.sweep;
     const usdc = addresses.usdc;
     const liquidityHelper = addresses.liquidity_helper;
@@ -16,7 +16,7 @@ async function main() {
 
 
     console.log("===========================================");
-    console.log("MARKET MAKER ASSET DEPLOY");
+    console.log("UNISWAP MARKET MAKER ASSET DEPLOY");
     console.log("===========================================");
     console.log("Network:", network.name);
     console.log("Deployer:", deployer.address);

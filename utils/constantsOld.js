@@ -295,6 +295,16 @@ const chainlinkOracle = {
   }
 }
 
+
+const balancer = {
+  factory: {
+    42161: '0xA8920455934Da4D853faac1f94Fe7bEf72943eF1',
+  },
+  pool: {
+    42161: '',
+  }
+}
+
 const uniswap = {
   factory: {
     1: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
@@ -426,6 +436,9 @@ const protocol = {
     5: '0xa912ac69710e90bc9b97ac70E56b8453193E1e44',
     42161: '0x483761F16A7c978df09d1e7E22532e9DbD2Ee8D0',
   },
+   balancer_amm: {
+    42161: '0x0000000000000000000000000000000000000000',
+  },
 }
 
 const assets = {
@@ -490,4 +503,5 @@ module.exports = {
   apiKeys,
   chainlinkOracle,
   assets,
+  balancer
 }

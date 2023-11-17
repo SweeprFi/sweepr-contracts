@@ -41,7 +41,7 @@ const Const = {
     BLOCK_NUMBER: 64774877, // before adds BlockGetter
 }
 
-module.export = {
+module.exports = {
     ...constants,
     roles,
     Const,

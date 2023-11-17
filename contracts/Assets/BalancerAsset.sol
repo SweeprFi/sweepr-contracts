@@ -14,12 +14,14 @@ pragma solidity 0.8.19;
  */
 
 import { Stabilizer, TransferHelper } from "../Stabilizer/Stabilizer.sol";
-import { IBalancerPool, IBalancerVault, IAsset } from "./Balancer/IBalancer.sol";
+import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "./Balancer/IBalancer.sol";
 
 contract BalancerAsset is Stabilizer {
 
-    IBalancerPool pool;
-    IBalancerVault vault;
+    error BadAddress(address asset);
+
+    IBalancerPool public pool;
+    IBalancerVault public vault;
 
     uint24 private constant PRECISION = 1e6;
     uint256 private constant ACTION = 1;
@@ -98,19 +100,21 @@ contract BalancerAsset is Stabilizer {
         bytes32 poolId = pool.getPoolId();
         address self = address(this);
         
-        uint256[] memory amounts = new uint256[](5);
-        amounts[1] = usdxAmount;
-
-        uint256[] memory userDataAmounts = new uint256[](4);
-        userDataAmounts[0] = usdxAmount;
-
-        uint256 usdxAmountOut = usdxAmount * (10 ** pool.decimals()) / pool.getRate();
-        uint256 minAmountOut = usdxAmountOut * (PRECISION - slippage) / PRECISION;
-        bytes memory userData = abi.encode(ACTION, userDataAmounts, minAmountOut);
         (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);
+        uint8 usdxIndex = findAssetIndex(address(usdx), assets);
+
+        uint256[] memory amounts = new uint256[](5);
+        amounts[usdxIndex] = usdxAmount;
+        uint256[] memory userDataAmounts = new uint256[](4);
+        userDataAmounts[usdxIndex-1] = usdxAmount;
+
+        uint256 usdxAmountOut = usdxAmount * (10 ** (pool.decimals()+12)) / pool.getTokenRate(address(usdx));
+        uint256 minAmountOut = usdxAmountOut * (PRECISION - slippage) / PRECISION;
+        bytes memory userData = abi.encode(JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT, userDataAmounts, minAmountOut);
 
         IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(assets, amounts, userData, false);
         vault.joinPool(poolId, self, self, request);
+
         emit Invested(usdxAmount);
     }
 
@@ -123,18 +127,29 @@ contract BalancerAsset is Stabilizer {
         uint256 maxAmountIn = pool.balanceOf(self);
         uint maxAmountOut = usdxAmount * (PRECISION - slippage) / PRECISION;
 
+        (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);
+        uint8 usdxIndex = findAssetIndex(address(usdx), assets);
+
         uint256[] memory amounts = new uint256[](5);
-        amounts[1] = maxAmountOut;
+        amounts[usdxIndex] = maxAmountOut;
 
         uint256[] memory userDataAmounts = new uint256[](4);
-        userDataAmounts[0] = maxAmountOut;
+        userDataAmounts[usdxIndex-1] = maxAmountOut;
 
-        bytes memory userData = abi.encode(ACTION, userDataAmounts, maxAmountIn);
-        (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);
+        bytes memory userData = abi.encode(ExitKind.BPT_IN_FOR_EXACT_TOKENS_OUT, userDataAmounts, maxAmountIn);
 
         IBalancerVault.ExitPoolRequest memory request = IBalancerVault.ExitPoolRequest(assets, amounts, userData, false);
         vault.exitPool(poolId, self, self, request);
         return usdxAmount;
+    }
+
+    function findAssetIndex(address asset, IAsset[] memory assets) internal pure returns (uint8) {
+        for (uint8 i = 0; i < assets.length; i++) {
+            if ( address(assets[i]) == asset ) {
+                return i;
+            }
+        }
+        revert BadAddress(asset);
     }
 
 }

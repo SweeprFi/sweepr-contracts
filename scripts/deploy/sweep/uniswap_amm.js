@@ -12,7 +12,7 @@ async function main() {
     const fee = Const.FEE;
 
     console.log("===========================================");
-    console.log("AMM PLUGIN DEPLOY");
+    console.log("UNISWAP AMM PLUGIN DEPLOY");
     console.log("===========================================");
     console.log("Network:", network.name);
     console.log("Deployer:", deployer.address);

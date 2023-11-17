@@ -51,7 +51,7 @@ module.exports = {
         gDai_open_trades: '0x990BA9Edd8a9615A23E4c452E63A80e519A4a23D',
         usdPlus_exchanger: '0x73cb180bf0521828d8849bc8CF2B920918e23032',
         ets_exchanger: '0xc2c84ca763572c6aF596B703Df9232b4313AD4e3',
-        balancer_pool: '0x423A1323c871aBC9d89EB06855bF5347048Fc4A5',
+        balancer_4pool_bpt: '0x423A1323c871aBC9d89EB06855bF5347048Fc4A5',
     },
 
     chainlink: {
@@ -60,6 +60,10 @@ module.exports = {
         usdc_usd: '0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3',
         dai_usd: '0xc5c8e77b397e531b8ec06bfb0048328b30e9ecfb',
         sequencer: '0xfdb631f5ee196f0ed6faa767959853a9f217697d',
+    },
+
+    balancer: {
+        factory: '0xA8920455934Da4D853faac1f94Fe7bEf72943eF1',
     },
 
     uniswap: {
@@ -77,9 +81,11 @@ module.exports = {
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         liquidity_helper: '0x7560d15774499386B04A64177E090B33e803493F',
         distributor: '0x90453f4969420c2DCE4344431303EAE679dB8F0b',
-        pool: '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
+        uniswap_pool: '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
+        balancer_pool: '0xef093ccfdd4d5a590b028463e0528049939889c9',
         // pool: '0xE3bf979ecE07baEf3682e8E2Faa23FB41683d7Af', // SWEEP / USDC.e (bridged)
-        amm: '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8',
+        uniswap_amm: '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8',
+        balancer_amm: '0x0fba85de62c85c3cb444ec828b42bbf0a9208318',
         // amm: '0x709d075147a10495e5c3bBF3dfc0c138F34C6E72', // SWEEP / USDC.e (bridge)
         timelock: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         approver: '0x06d94665f02322781303224120326167483F5BD2', // whitelist from DeFi Ready

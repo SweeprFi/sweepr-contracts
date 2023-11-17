@@ -26,7 +26,9 @@ interface IAMM {
 
     function poolFee() external view returns (uint24);
 
-    function getTWAPrice() external view returns (uint256 amountOut);
+    function getTWAPrice() external view returns (uint256 twaPrice);
 
-    function getPrice() external view returns (uint256 amountOut);
+    function getPrice() external view returns (uint256 price);
+    
+    function getRate() external view returns (uint256 rate);
 }
