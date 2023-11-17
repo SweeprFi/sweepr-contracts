@@ -85,12 +85,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     function assetValue() public view returns (uint256) {
         if (tokenId == 0) return 0;
 
-        IAMM _amm = amm();
-        (uint256 amount0, uint256 amount1) = liquidityHelper
-            .getTokenAmountsFromLP(tokenId, token0, token1, _amm.poolFee());
-        (uint256 usdxAmount, uint256 sweepAmount) = flag
-            ? (amount0, amount1)
-            : (amount1, amount0);
+        (uint256 usdxAmount, uint256 sweepAmount) = amm().getPositions(tokenId);
 
         return _oracleUsdxToUsd(usdxAmount) + sweep.convertToUSD(sweepAmount);
     }
