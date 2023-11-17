@@ -13,10 +13,6 @@ module.exports = {
     alchemyLink: 'https://opt-mainnet.g.alchemy.com/v2/' + process.env.ALCHEMY_KEY,
     scanApiKey: process.env.OPTIMISTIC_API_KEY,
 
-    misc: {
-        observationCardinality: 480,
-    },
-
     wallets: {
         multisig: '0xE0585bDaee364deAd2683c5Aa1520B87F1d2FBAD',
         owner: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
@@ -48,7 +44,7 @@ module.exports = {
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         liquidity_helper: '0xaD490d3899A47482E31AF50DdCc5Db31C0eE9eB0',
         balancer_pool: '0xc4EE406970047A70aED14621d97b3B460a7DEA0B',
-        balancer_amm: '0xff368E106EA8782FaB6B2D4AD69739a60C66400E',
+        balancer_amm: '0x11C8eC8B0DFD355C9931cB47ADd0F635dAE062ad',
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',  
 
         assets: {

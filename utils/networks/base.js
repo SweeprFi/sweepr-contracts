@@ -10,12 +10,8 @@ module.exports = {
         endpoint: '0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7',
     },
 
-    alchemyLink: 'https://eth-mainnet.alchemyapi.io/v2/' + process.env.ALCHEMY_KEY,
-    scanApiKey: process.env.ETHERSCAN_API_KEY,
-
-    misc: {
-        observationCardinality: 480,
-    },
+    alchemyLink: 'https://base-mainnet.g.alchemy.com/v2/' + process.env.ALCHEMY_KEY,
+    scanApiKey: process.env.BASESCAN_API_KEY,
 
     wallets: {
         multisig: '0xA8ec2d0b62b85E55f410C0C94C7dc45919ba7c0A',
@@ -43,24 +39,20 @@ module.exports = {
         sequencer: '0xBCF85224fc0756B9Fa45aA7892530B47e10b6433',
     },
 
-    uniswap: {
-        factory: '0x33128a8fC17869897dcE68Ed026d694621f6FDfD',
-        universal_router: '0x198EF79F1F515F02dFE9e3115eD9fC07183f02fC',
-        positions_manager: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
-        quoterV2: '0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a',
+    balancer: {
+        factory: '0x8df317a729fcaA260306d7de28888932cb579b88',
     },
 
     deployments: {
         balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
-        liquidity_helper: '0xC5f0DE0D8f48E12CcDE9f1902dE15A975b59768d',
-        pool: '0xd72b983f56014e9672137469bfbcc5925b9a70a9',
-        amm: '0xa5Dd492674f8C68C89b403BDFd0e794db42f2b92',
+        balancer_pool: '0x15D9D108437B17d1FA70392f9eD086306229ec91',
+        balancer_amm: '0x709d075147a10495e5c3bBF3dfc0c138F34C6E72',
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
 
         assets: {
             uniswap: '',
-            market_maker: '',
+            market_maker: '0x7560d15774499386B04A64177E090B33e803493F',
             usd_plus: '',
             maple: '',
         }

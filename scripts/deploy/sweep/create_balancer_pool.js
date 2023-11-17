@@ -46,7 +46,6 @@ async function main() {
 	console.log("FEE:", poolFee);
 	console.log("FEE:", 100 * poolFee/1e18, '%');
 	console.log("===========================================");
-	
 	const answer = (await ask("continue? y/n: "));
     if(answer !== 'y'){ process.exit(); }
 	console.log("Creating...");

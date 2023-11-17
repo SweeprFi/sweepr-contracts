@@ -1,12 +1,10 @@
 const { ethers } = require("hardhat");
-const { network } = require("../../../utils/address");
-const { sleep } = require("../../../utils/helper_functions");
-const LZ_ENDPOINTS = require("../../../utils/layerzero/layerzeroEndpoints.json")
+const { network, layerZero } = require("../../../utils/constants");
+const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
   [deployer] = await ethers.getSigners();
   const isGovernanceChain = hre.network.name === process.env.GOVERNANCE_CHAIN;
-  const lzEndpointAddress = LZ_ENDPOINTS[hre.network.name];
 
   console.log("===========================================");
   console.log("SWEEPR DEPLOY");
@@ -15,18 +13,18 @@ async function main() {
   console.log("Deployer:", deployer.address);
   console.log("===========================================");
   console.log("isGovernanceChain:", isGovernanceChain);
-  console.log("lzEndpointAddress:", lzEndpointAddress);
+  console.log("lzEndpointAddress:", layerZero.endpoint);
   console.log("===========================================");
-  console.log("Deploying in 5 seconds...");
-  await sleep(5);
+  const answer = (await ask("continue? y/n: "));
+  if(answer !== 'y'){ process.exit(); }
   console.log("Deploying...");
 
   const sweeprInstance = await ethers.getContractFactory("SweeprCoin");
-  const sweeprContract = await sweeprInstance.deploy(isGovernanceChain, lzEndpointAddress);
+  const sweeprContract = await sweeprInstance.deploy(isGovernanceChain, layerZero.endpoint);
 
   console.log("===========================================");
   console.log("SweeprCoin deployed to:", sweeprContract.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${sweeprContract.address} ${isGovernanceChain} ${lzEndpointAddress}`);
+  console.log(`\nnpx hardhat verify --network ${network.name} ${sweeprContract.address} ${isGovernanceChain} ${layerZero.endpoint}`);
 }
 
 main();

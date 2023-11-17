@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { network } = require("../../../utils/address");
-const { sleep } = require("../../../utils/helper_functions");
+const { ask } = require("../../../utils/helper_functions");
 const LZ_ENDPOINTS = require("../../../utils/layerzero/layerzeroEndpoints.json")
 
 async function main() {
@@ -15,8 +15,8 @@ async function main() {
 	console.log("===========================================");
 	console.log("lzEndpointAddress:", lzEndpointAddress);
 	console.log("===========================================");
-	console.log("Deploying in 5 seconds...");
-	await sleep(5);
+	const answer = (await ask("continue? y/n: "));
+  	if(answer !== 'y'){ process.exit(); }
 	console.log("Deploying...");
 
 
