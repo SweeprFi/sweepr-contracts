@@ -9,6 +9,7 @@ async function main() {
     const oracle = addresses.oracle_usdc_usd;
     const frequency = 86400;
     const sequencer = addresses.sequencer_feed;
+    const helper = addresses.liquidity_helper;
     const fee = Const.FEE;
 
     console.log("===========================================");
@@ -22,6 +23,7 @@ async function main() {
     console.log("USDC/USD Chainlink Oracle:", oracle);
     console.log("Oracle Frequency:", frequency);
     console.log("Sequencer:", sequencer);
+    console.log("Liquidity helper:", helper);
     console.log("Fee:", fee);
     console.log("===========================================");
     console.log("Deploying in 5 seconds...");
@@ -30,11 +32,11 @@ async function main() {
 
 
     const uniswapAMMInstance = await ethers.getContractFactory("UniswapAMM");
-    const amm = await uniswapAMMInstance.deploy(sweep, usdc, sequencer, fee, oracle, frequency);
+    const amm = await uniswapAMMInstance.deploy(sweep, usdc, sequencer, fee, oracle, frequency, helper);
 
     console.log("===========================================");
     console.log(`UniswapAMM Deployed to:${amm.address}`);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${usdc} ${sequencer} ${fee} ${oracle} ${frequency}`);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${usdc} ${sequencer} ${fee} ${oracle} ${frequency} ${helper}`);
 
 }
 

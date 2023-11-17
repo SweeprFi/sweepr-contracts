@@ -81,10 +81,7 @@ contract UniswapMarketMaker is Stabilizer {
         uint256 sweepAmount;
         for (uint256 i = 0; i < len; ) {
             uint256 tokenId = positionIds[i];
-            (, , , , uint24 fee, , , , , , , ) = nonfungiblePositionManager
-                .positions(tokenId);
-            (uint256 amount0, uint256 amount1) = liquidityHelper
-                .getTokenAmountsFromLP(tokenId, token0, token1, fee);
+            (uint256 amount0, uint256 amount1) = amm().getPositions(tokenId);
 
             if (flag) {
                 usdxAmount += amount0;

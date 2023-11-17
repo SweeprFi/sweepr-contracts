@@ -84,6 +84,16 @@ contract BalancerAMM {
         rate = sweep.targetPrice() * 1e12;
     }
 
+    function getPositions(uint256)
+        public view
+        returns (uint256 usdxAmount, uint256 sweepAmount, uint256 lp)
+    {
+        (IAsset[] memory tokens, uint256[] memory balances,) = vault.getPoolTokens(pool.getPoolId());
+        usdxAmount = findAssetIndex(address(base), tokens, balances);
+        sweepAmount = findAssetIndex(address(sweep), tokens, balances);
+        lp = findAssetIndex(address(pool), tokens, balances);
+    }
+
     /* ========== Actions ========== */
 
     /**
@@ -180,5 +190,14 @@ contract BalancerAMM {
 
         pool = IBalancerPool(poolAddress);
         vault = IBalancerVault(pool.getVault());
+    }
+
+    function findAssetIndex(address asset, IAsset[] memory assets, uint256[] memory balances) internal pure returns (uint256) {
+        for (uint8 i = 0; i < assets.length; i++) {
+            if ( address(assets[i]) == asset ) {
+                return balances[i];
+            }
+        }
+        revert();
     }
 }

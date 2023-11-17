@@ -11,6 +11,7 @@ pragma solidity 0.8.19;
  */
 
 import "../Libraries/Chainlink.sol";
+import "../Utils/LiquidityHelper.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
@@ -32,6 +33,8 @@ contract UniswapAMM {
     IPriceFeed public immutable sequencer;
     uint24 public immutable poolFee;
     uint256 public immutable oracleBaseUpdateFrequency;
+    bool private immutable flag; // The sort status of tokens
+    LiquidityHelper private immutable liquidityHelper;
 
     uint8 private constant USD_DECIMALS = 6;
     // Uniswap V3
@@ -44,7 +47,8 @@ contract UniswapAMM {
         address _sequencer,
         uint24 _fee,
         address _oracleBase,
-        uint256 _oracleBaseUpdateFrequency
+        uint256 _oracleBaseUpdateFrequency,
+        address _liquidityHelper
     ) {
         sweep = IERC20Metadata(_sweep);
         base = IERC20Metadata(_base);
@@ -52,6 +56,8 @@ contract UniswapAMM {
         sequencer = IPriceFeed(_sequencer);
         poolFee = _fee;
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
+        liquidityHelper = LiquidityHelper(_liquidityHelper);
+        flag = _base < _sweep;
     }
 
     // Events
@@ -112,6 +118,16 @@ contract UniswapAMM {
         );
 
         amountOut = quote.mulDiv(price, 10 ** decimals);
+    }
+
+    function getPositions(uint256 tokenId)
+        public view
+        returns (uint256 usdxAmount, uint256 sweepAmount, uint256 lp)
+    {
+        lp = 0;
+        (uint256 amount0, uint256 amount1) = liquidityHelper
+            .getTokenAmountsFromLP(tokenId, address(base), address(sweep), poolFee);
+        (usdxAmount, sweepAmount) = flag ? (amount0, amount1) : (amount1, amount0);
     }
 
     /* ========== Actions ========== */
