@@ -5,7 +5,7 @@ on:
     - cron: '0 0 * * 0' # to executes every Sunday 00:00 UTC
 
 env:
-  CHAIN_ID: 42161
+  NETWORK: 'arbitrum'
   ARBITRUM_MAIN_KEY: ${{ vars.ARBITRUM_MAIN_KEY }}
   ARBISCAN_API_KEY: ${{ vars.ARBISCAN_API_KEY }}
   ALCHEMY_KEY: ${{ vars.ALCHEMY_KEY }}

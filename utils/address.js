@@ -13,9 +13,12 @@ const {
   chainlinkOracle,
   assets,
 } = require("./constantsOld");
+
+const { network } = require("./constants");
+
 require('dotenv').config();
 
-const chainId = process.env.CHAIN_ID;
+const chainId = network.id;
 const networkType = process.env.NETWORK_TYPE;
 
 const rpcLink = rpcLinks[chainId];
@@ -120,7 +123,7 @@ const addresses = {
 
 const cardinality = uniswap.observationCardinality[chainId];
 
-const network = {
+const _network = {
   name: networks[chainId],
   type: networkType
 }
@@ -160,7 +163,7 @@ function getDeployedAddress(networkName, contractType) {
 module.exports = {
   chainId,
   addresses,
-  network,
+  network: _network,
   roles,
   getDeployedAddress,
   cardinality,

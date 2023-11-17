@@ -25,7 +25,7 @@ npx hardhat run --network [your-network] scripts/deploy_N_[script].js
 Store the output addresses in the .env file
 
 ### Run the tests:
-The CHAIN_ID in the .env must be 42161 to fork Arbitrum One
+The NETWORK in the .env must be 'arbitrum' to fork Arbitrum One
 ```
 npx hardhat clean
 npx hardhat coverage

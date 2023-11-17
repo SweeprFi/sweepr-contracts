@@ -39,26 +39,21 @@ module.exports = {
         sequencer: '0x371EAD81c9102C9BF4874A9075FFFf170F2Ee389',
     },
 
-    uniswap: {
-        factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
-        router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
-        universal_router: '0x4648a43B2C14Da09FdF82B161150d3F634f40491',
-        positions_manager: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
-        quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
+    balancer: {
+        factory: '0x043A2daD730d585C44FB79D2614F295D2d625412',
     },
 
     deployments: {
         balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         liquidity_helper: '0xaD490d3899A47482E31AF50DdCc5Db31C0eE9eB0',
-        pool: '0x8A0F60a4544c712Becdf9d6c4A920F4b756186ec',
-        amm: '0x7685fc882c91936BF94974916cC410028F73C957',
-        proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
-        
+        balancer_pool: '0xc4EE406970047A70aED14621d97b3B460a7DEA0B',
+        balancer_amm: '0xff368E106EA8782FaB6B2D4AD69739a60C66400E',
+        proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',  
 
         assets: {
             uniswap: '0xC5f0DE0D8f48E12CcDE9f1902dE15A975b59768d',
-            market_maker: '0x676524646377A6e66Ca797edF7CCB1B5162a8cE0',
+            market_maker: '0xae851449e85b30b104e3155e5f4bb1bfd3a97010',
             usd_plus: '0x709d075147a10495e5c3bBF3dfc0c138F34C6E72',
         }
     },

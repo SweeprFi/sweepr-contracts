@@ -9,8 +9,11 @@ require("hardhat-tracer");
 require('solidity-coverage');
 require('dotenv').config();
 require('./tasks');
+
 const { rpcLink, apiKey } = require("./utils/address");
 const { rpcLinks } = require("./utils/constantsOld");
+
+const { alchemyLink, network } = require("./utils/constants");
 
 const accounts = [process.env.OWNER_PKEY, process.env.BORROWER_PKEY, process.env.EXECUTOR_PKEY];
 
@@ -31,7 +34,7 @@ module.exports = {
 	networks: {
 		hardhat: {
 			forking: {
-				url: rpcLink,
+				url: alchemyLink,
 				// blockNumber: 20005467
 			}
 		},
@@ -41,57 +44,60 @@ module.exports = {
 			url: 'http://127.0.0.1:8545/',
 		},
 		mainnet: {
-			url: rpcLinks[1],
+			url: alchemyLink,
 			gas: 10000000,
-			chainId: 1,
+			chainId: network.id,
 			accounts: accounts
 		},
 		goerli: {
-			url: rpcLinks[5],
+			url: alchemyLink,
 			gas: 10000000,
-			chainId: 5,
+			chainId: network.id,
 			accounts: accounts
 		},
 		arbitrum: {
-			url: rpcLinks[42161],
+			url: alchemyLink,
 			gas: 10000000,
-			chainId: 42161,
+			chainId: network.id,
 			accounts: accounts
 		},
 		arbitrum_goerli: {
-			url: rpcLinks[421613],
+			url: alchemyLink,
 			gas: 10000000,
-			chainId: 421613,
+			chainId: network.id,
 			accounts: accounts
 		},
 		optimism: {
-			url: rpcLinks[10],
+			url: alchemyLink,
 			gas: 10000000,
-			chainId: 10,
+			chainId: network.id,
 			accounts: accounts
 		},
 		optimism_goerli: {
-			url: rpcLinks[420],
+			url: alchemyLink,
 			gas: 10000000,
-			chainId: 420,
+			chainId: network.id,
 			accounts: accounts
 		},
 		base: {
-			url: rpcLinks[8453],
+			url: alchemyLink,
 			gas: 10000000,
-			chainId: 8453,
+			chainId: network.id,
 			accounts: accounts
 		},
 		base_goerli: {
-			url: rpcLinks[84531],
+			url: alchemyLink,
 			gas: 10000000,
-			chainId: 84531,
+			chainId: network.id,
 			accounts: accounts
 		},
 	},
 	etherscan: {
 		// apiKey: apiKey,
 		apiKey: {
+			mainnet: apiKey,
+			sepolia: apiKey,
+			optimisticEthereum: apiKey,
 			arbitrumOne: apiKey,
 			base_goerli: apiKey,
 			base: apiKey

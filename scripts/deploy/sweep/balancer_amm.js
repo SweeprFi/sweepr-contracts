@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { network, tokens, chainlink } = require("../../../utils/constants");
-const { sleep, ask } = require("../../../utils/helper_functions");
+const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
     [deployer] = await ethers.getSigners();
