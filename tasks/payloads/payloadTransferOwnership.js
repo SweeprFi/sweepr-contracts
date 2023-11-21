@@ -1,28 +1,27 @@
-const CHAIN_ID = require("../utils/layerzero/chainIds.json");
-const { getDeployedAddress } = require("../utils/address");
+const CHAIN_ID = require("../../utils/layerzero/chainIds.json");
+const { getDeployedAddress } = require("../../utils/address");
 
 module.exports = async function (taskArgs, hre) {
 	const senderAddress = getDeployedAddress(hre.network.name, "sender");
 	const remoteAddress = getDeployedAddress(taskArgs.targetNetwork, "sweep");
-	const minterAddress = taskArgs.minterAddress;
-	const amount = ethers.utils.parseEther(taskArgs.amount);
+	const newOwnerAddress = taskArgs.newOwnerAddress;
 
 	const payload = ethers.utils.defaultAbiCoder.encode(
 		["address[]", "uint256[]", "string[]", "bytes[]"],
 		[
 			[remoteAddress],
 			[0],
-			["addMinter(address,uint256)"],
+			["transferOwnership(address)"],
 			[
 				ethers.utils.defaultAbiCoder.encode(
-					["address", "uint256"],
-					[minterAddress, amount]
+					["address"],
+					[newOwnerAddress]
 				),
 			],
 		]
 	);
 
-	console.log("\nPayload for adding minter:", payload);
+	console.log("\nPayload changing ownership:", payload);
 
 	// get remote chain id
 	const remoteChainId = CHAIN_ID[taskArgs.targetNetwork];

@@ -1,27 +1,29 @@
-const CHAIN_ID = require("../utils/layerzero/chainIds.json");
-const { getDeployedAddress } = require("../utils/address");
+const CHAIN_ID = require("../../utils/layerzero/chainIds.json");
+const { getDeployedAddress } = require("../../utils/address");
 
 module.exports = async function (taskArgs, hre) {
+	console.log(hre.network.name);
 	const senderAddress = getDeployedAddress(hre.network.name, "sender");
 	const remoteAddress = getDeployedAddress(taskArgs.targetNetwork, "sweep");
-	const newOwnerAddress = taskArgs.newOwnerAddress;
+	const spenderAddress = taskArgs.spenderAddress;
+	const amount = taskArgs.amount;
 
 	const payload = ethers.utils.defaultAbiCoder.encode(
 		["address[]", "uint256[]", "string[]", "bytes[]"],
 		[
 			[remoteAddress],
 			[0],
-			["transferOwnership(address)"],
+			["approve(address,uint256)"],
 			[
 				ethers.utils.defaultAbiCoder.encode(
-					["address"],
-					[newOwnerAddress]
+					["address", "uint256"],
+					[spenderAddress, amount]
 				),
 			],
 		]
 	);
 
-	console.log("\nPayload changing ownership:", payload);
+	console.log("\nPayload approve:", payload);
 
 	// get remote chain id
 	const remoteChainId = CHAIN_ID[taskArgs.targetNetwork];

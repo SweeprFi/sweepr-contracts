@@ -1,4 +1,4 @@
-const { addresses, getDeployedAddress } = require('../utils/address');
+const { addresses, getDeployedAddress } = require('../../utils/address');
 
 module.exports = async function (taskArgs, hre) {
     // get deployed local address

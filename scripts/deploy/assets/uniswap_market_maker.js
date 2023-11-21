@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { addresses } = require("../../../utils/address");
-const { sleep } = require("../../../utils/helper_functions");
+const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
     [deployer] = await ethers.getSigners();
@@ -31,8 +31,8 @@ async function main() {
     console.log("USDC/USD Chainlink Oracle:", oracleUsdc);
     console.log("Borrower:", borrower);
     console.log("===========================================");
-    console.log("Deploying in 5 seconds...");
-    await sleep(5);
+    const answer = (await ask("continue? y/n: "));
+    if(answer !== 'y'){ process.exit(); }
     console.log("Deploying...");
 
 

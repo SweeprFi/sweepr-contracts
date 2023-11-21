@@ -23,9 +23,11 @@ module.exports = async function (taskArgs, hre) {
 
     if (!isTrustedRemoteSet) {
         try {
-            let tx = await (await localBalancerInstance.setTrustedRemote(remoteChainId, remoteAndLocal)).wait()
-            console.log(`✅ [${hre.network.name}] setTrustedRemote(${remoteChainId}, ${remoteAndLocal})`)
-            console.log(` tx: ${tx.transactionHash}`)
+            console.log
+            
+            // let tx = await (await localBalancerInstance.setTrustedRemote(remoteChainId, remoteAndLocal)).wait()
+            // console.log(`✅ [${hre.network.name}] setTrustedRemote(${remoteChainId}, ${remoteAndLocal})`)
+            // console.log(` tx: ${tx.transactionHash}`)
         } catch (e) {
             if (e.error.message.includes("The chainId + address is already trusted")) {
                 console.log("*source already set*")
