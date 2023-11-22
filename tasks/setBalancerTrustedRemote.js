@@ -1,40 +1,24 @@
-const CHAIN_ID = require("../utils/layerzero/chainIds.json");
-const { getDeployedAddress } = require('../utils/address');
-
 module.exports = async function (taskArgs, hre) {
-    // get deployed local and remote sweep address
-    const localAddress = getDeployedAddress(hre.network.name, 'balancer');
-    const remoteAddress = getDeployedAddress(taskArgs.targetNetwork, 'balancer');
+    const sourceNetwork = require('../utils/networks/' + hre.network.name);
+    const sourceAddress = sourceNetwork.deployments.balancer;
 
-    // get local contract
-    const localBalancerInstance = await ethers.getContractAt("Balancer", localAddress);
+    const targetNetwork = require('../utils/networks/' + taskArgs.targetNetwork);
+    const targetAddress = targetNetwork.deployments.balancer;
 
-    // get remote chain id
-    const remoteChainId = CHAIN_ID[taskArgs.targetNetwork]
+    const sourceContract = await ethers.getContractAt("Balancer", sourceAddress);
+    const targetChainId = targetNetwork.layerZero.id;
 
-    // concat remote and local address
-    let remoteAndLocal = hre.ethers.utils.solidityPack(
+    let packedAddresses = hre.ethers.utils.solidityPack(
         ['address','address'],
-        [remoteAddress, localAddress]
+        [targetAddress, sourceAddress]
     )
 
-    // check if pathway is already set
-    const isTrustedRemoteSet = await localBalancerInstance.isTrustedRemote(remoteChainId, remoteAndLocal);
+    const isTrustedRemoteSet = await sourceContract.isTrustedRemote(targetChainId, packedAddresses);
 
     if (!isTrustedRemoteSet) {
-        try {
-            console.log
-            
-            // let tx = await (await localBalancerInstance.setTrustedRemote(remoteChainId, remoteAndLocal)).wait()
-            // console.log(`✅ [${hre.network.name}] setTrustedRemote(${remoteChainId}, ${remoteAndLocal})`)
-            // console.log(` tx: ${tx.transactionHash}`)
-        } catch (e) {
-            if (e.error.message.includes("The chainId + address is already trusted")) {
-                console.log("*source already set*")
-            } else {
-                console.log(`❌ [${hre.network.name}] setTrustedRemote(${remoteChainId}, ${remoteAndLocal})`)
-            }
-        }
+        console.log("targetAddress check:", targetAddress);
+        console.log(sourceNetwork.network.name, "=> Balancer @", sourceAddress);
+        console.log("setTrustedRemote", targetChainId, packedAddresses);
     } else {
         console.log("*source already set*")
     }

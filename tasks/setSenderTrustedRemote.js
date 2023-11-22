@@ -1,22 +1,14 @@
-const CHAIN_ID = require("../utils/layerzero/chainIds.json");
-const { getDeployedAddress } = require('../utils/address');
-
 module.exports = async function (taskArgs, hre) {
-    // get deployed local and remote sweep address
-    const localAddress = getDeployedAddress(hre.network.name, 'sender');
-    const remoteAddress = getDeployedAddress(taskArgs.targetNetwork, 'executor');
+    const sourceNetwork = require('../utils/networks/' + hre.network.name);
+    const sourceAddress = sourceNetwork.deployments.proposal_sender;
 
-    // get local contract
-    const localInstance = await ethers.getContractAt("OmnichainProposalSender", localAddress);
+    const targetNetwork = require('../utils/networks/' + taskArgs.targetNetwork);
+    const targetAddress = targetNetwork.deployments.proposal_executor;
 
-    // get remote chain id
-    const remoteChainId = CHAIN_ID[taskArgs.targetNetwork]
+    const sourceBalancer = await ethers.getContractAt("Balancer", sourceAddress);
+    const targetChainId = targetNetwork.layerZero.id;
 
-    try {
-        let tx = await (await localInstance.setTrustedRemoteAddress(remoteChainId, remoteAddress)).wait()
-        console.log(`✅ [${hre.network.name}] setTrustedRemoteAddress(${remoteChainId}, ${remoteAddress})`)
-        console.log(` tx: ${tx.transactionHash}`)
-    } catch (e) {
-        console.log(`❌ [${hre.network.name}] setTrustedRemoteAddress(${remoteChainId}, ${remoteAddress})`)
-    }
+    console.log(sourceNetwork.network.name, "=> OmnichainProposalSender @", sourceAddress);
+    console.log("setTrustedRemoteAddress", targetChainId, targetAddress);
 }
+
