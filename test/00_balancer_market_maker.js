@@ -26,6 +26,7 @@ contract('Balancer Market Maker', async () => {
     amm = await AMM.deploy(
       SWEEP_ADDRESS,
       USDC_ADDRESS,
+      balancer.quoter,
       chainlink.sequencer,
       chainlink.usdc_usd,
       86400

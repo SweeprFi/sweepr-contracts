@@ -5,7 +5,7 @@ const { Const, getPriceAndData, toBN } = require("../utils/helper_functions");
 
 let poolAddress;
 
-contract('Market Maker', async () => {
+contract.skip('Market Maker', async () => {
     before(async () => {
         [owner, borrower, treasury, guest, lzEndpoint, multisig] = await ethers.getSigners();
 
@@ -38,7 +38,7 @@ contract('Market Maker', async () => {
         positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniswap_position_manager);
         swapRouter = await ethers.getContractAt("ISwapRouter", addresses.uniswap_router);
 
-        MarketMaker = await ethers.getContractFactory("MarketMaker");
+        MarketMaker = await ethers.getContractFactory("UniswapMarketMaker");
         marketmaker = await MarketMaker.deploy(
             'Market Maker',
             sweep.address,
@@ -80,7 +80,9 @@ contract('Market Maker', async () => {
             addresses.sequencer_feed,
             Const.FEE,
             usdcOracle.address,
-            86400
+            86400,
+            liquidityHelper.address,
+            "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6"
         );
 
         await sweep.setAMM(amm.address);

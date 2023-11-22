@@ -17,10 +17,9 @@ import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+import { IAMM } from "./IAMM.sol";
 
-contract UniswapAMM {
-    using Math for uint256;
+contract UniswapAMM is IAMM {
 
     ISwapRouter private constant ROUTER =
         ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
@@ -35,6 +34,7 @@ contract UniswapAMM {
     uint256 public immutable oracleBaseUpdateFrequency;
     bool private immutable flag; // The sort status of tokens
     LiquidityHelper private immutable liquidityHelper;
+    IUniswapQuoter private immutable quoter;
 
     uint8 private constant USD_DECIMALS = 6;
     // Uniswap V3
@@ -48,7 +48,8 @@ contract UniswapAMM {
         uint24 _fee,
         address _oracleBase,
         uint256 _oracleBaseUpdateFrequency,
-        address _liquidityHelper
+        address _liquidityHelper,
+        address _quoter
     ) {
         sweep = IERC20Metadata(_sweep);
         base = IERC20Metadata(_base);
@@ -58,15 +59,31 @@ contract UniswapAMM {
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
         liquidityHelper = LiquidityHelper(_liquidityHelper);
         flag = _base < _sweep;
+        quoter = IUniswapQuoter(_quoter);
     }
 
     // Events
     event Bought(uint256 usdxAmount);
     event Sold(uint256 sweepAmount);
-    event PoolFeeChanged(uint24 poolFee);
 
-    // Errors
-    error OverZero();
+    function currentPrice() external returns(uint256) {
+        uint256 quote = quoter.quoteExactInputSingle(
+            address(sweep),
+            address(base),
+            poolFee,
+            1e18,
+            0
+        );
+
+        uint256 price = ChainlinkLibrary.getPrice(
+            oracleBase,
+            sequencer,
+            oracleBaseUpdateFrequency
+        );
+        uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
+
+        return (quote * price) / (10 ** decimals);
+    }
 
     /**
      * @notice Get Price
@@ -90,7 +107,7 @@ contract UniswapAMM {
         );
         uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
-        amountOut = quote.mulDiv(price, 10 ** decimals);
+        amountOut = (quote * price) / (10 ** decimals);
     }
 
     /**
@@ -117,7 +134,11 @@ contract UniswapAMM {
             address(base)
         );
 
-        amountOut = quote.mulDiv(price, 10 ** decimals);
+        amountOut = (quote * price) / (10 ** decimals);
+    }
+
+    function getRate() public view returns (uint256 rate) {
+        rate = 1 ** sweep.decimals();
     }
 
     function getPositions(uint256 tokenId)
@@ -214,4 +235,14 @@ contract UniswapAMM {
 
         amountOut = ROUTER.exactInputSingle(swapParams);
     }
+}
+
+interface IUniswapQuoter {
+    function quoteExactInputSingle(
+        address tokenIn,
+        address tokenOut,
+        uint24 fee,
+        uint256 amountIn,
+        uint160 sqrtPriceLimitX96
+    ) external returns(uint256 amountOut);
 }

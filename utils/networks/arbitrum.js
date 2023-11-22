@@ -58,6 +58,16 @@ module.exports = {
         sequencer: '0xfdb631f5ee196f0ed6faa767959853a9f217697d',
     },
 
+    uniswap: {
+        factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+        router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+        universal_router: '0x4C60051384bd2d3C01bfc845Cf5F4b44bcbE9de5',
+        positions_manager: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
+        quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
+        observationCardinality: 480,
+        pool: ''
+    },
+
     balancer: {
         factory: '0xA8920455934Da4D853faac1f94Fe7bEf72943eF1',
         quoter: '0xE39B5e3B6D74016b2F6A9673D7d7493B6DF549d5',
@@ -74,6 +84,7 @@ module.exports = {
         approver: '0x06d94665f02322781303224120326167483F5BD2', // whitelist from DeFi Ready
         vesting_approver: '0x483761F16A7c978df09d1e7E22532e9DbD2Ee8D0',
         proposal_sender: '0xC6c730E0424A01BF6e1A2ff4Ffac8540E29Dd185',
+        liquidity_helper: '0x7560d15774499386B04A64177E090B33e803493F',
 
         assets: {
             off_chain: '0xecA8FCe753e10B87E40EDca2B6810Ae5Ea508FA4',

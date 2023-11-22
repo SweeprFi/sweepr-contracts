@@ -5,7 +5,7 @@ const { toBN, Const, increaseTime, getPriceAndData } = require("../utils/helper_
 
 contract("Uniswap AMM", async function () {
   before(async () => {
-    [owner] = await ethers.getSigners();
+    [owner, borrower] = await ethers.getSigners();
     OWNER = owner.address;
     USDC_AMOUNT = 100e6;
     SWEEP_AMOUNT = toBN("80", 18);
@@ -54,7 +54,9 @@ contract("Uniswap AMM", async function () {
       addresses.sequencer_feed,
       Const.FEE,
       usdcOracle.address,
-      86400 // oracle update frequency ~ 1 day
+      86400,
+      liquidityHelper.address,
+      "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6"
     );
 
     await sweep.addMinter(asset.address, SWEEP_INVEST);
@@ -82,12 +84,22 @@ contract("Uniswap AMM", async function () {
       await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
       pool_address = await factory.getPool(token0, token1, Const.FEE);
 
+      pool = await ethers.getContractAt("IUniswapV3Pool", pool_address);
+      await (await pool.increaseObservationCardinalityNext(96)).wait();
+
       await usdc.transfer(asset.address, USDC_MINT);
       await asset.borrow(SWEEP_MINT);
       await asset.invest(USDC_INVEST, SWEEP_MINT, 0, 0);
     });
 
     it("buys sweep correctly", async function () {
+      await increaseTime(Const.DAY);
+
+      console.log("===========================================");
+      console.log("AMM Price:", await amm.getPrice());
+      console.log("AMM TWA Price:", await amm.getTWAPrice())
+      console.log("AMM Current Price:", await amm.connect(borrower).callStatic.currentPrice());
+
       sweepBefore = await sweep.balanceOf(OWNER);
       usdcBefore = await usdc.balanceOf(OWNER);
 

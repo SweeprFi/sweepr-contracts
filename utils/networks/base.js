@@ -39,8 +39,19 @@ module.exports = {
         sequencer: '0xBCF85224fc0756B9Fa45aA7892530B47e10b6433',
     },
 
+    uniswap: {
+        factory: '0x33128a8fC17869897dcE68Ed026d694621f6FDfD',
+        router: '',
+        universal_router: '0xeC8B0F7Ffe3ae75d7FfAb09429e3675bb63503e4',
+        positions_manager: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
+        quoter: '',
+        observationCardinality: 480,
+        pool: ''
+    },
+
     balancer: {
         factory: '0x8df317a729fcaA260306d7de28888932cb579b88',
+        quoter: '0x300Ab2038EAc391f26D9F895dc61F8F66a548833',
     },
 
     deployments: {
@@ -49,6 +60,7 @@ module.exports = {
         balancer_pool: '0x15D9D108437B17d1FA70392f9eD086306229ec91',
         balancer_amm: '0x709d075147a10495e5c3bBF3dfc0c138F34C6E72',
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
+        liquidity_helper: '0xC5f0DE0D8f48E12CcDE9f1902dE15A975b59768d',
 
         assets: {
             uniswap: '',

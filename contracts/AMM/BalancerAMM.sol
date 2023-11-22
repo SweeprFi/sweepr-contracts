@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 // ==========================================================
-// ====================== BalancerAMM.sol ====================
+// ====================== BalancerAMM.sol ===================
 // ==========================================================
 
 /**
@@ -18,9 +18,6 @@ import { ISweep } from "../Sweep/ISweep.sol";
 import { IAsset, SingleSwap, FundManagement, SwapKind, IBalancerVault, IBalancerPool, IBalancerQuoter } from "../Assets/Balancer/IBalancer.sol";
 import { IAMM } from "./IAMM.sol";
 
-
-import "hardhat/console.sol";
-
 contract BalancerAMM is IAMM {
     using Math for uint256;
 
@@ -28,6 +25,7 @@ contract BalancerAMM is IAMM {
     IBalancerVault public vault;
     IBalancerPool public pool;
     bytes32 public poolId;
+    uint24 public poolFee;
 
     IERC20Metadata public immutable base;
     ISweep public immutable sweep;
@@ -57,9 +55,6 @@ contract BalancerAMM is IAMM {
     // Events
     event Bought(uint256 usdxAmount);
     event Sold(uint256 sweepAmount);
-
-    // Errors
-    error OverZero();
 
     function currentPrice() external returns(uint256) {
         bytes memory userData;
@@ -101,14 +96,15 @@ contract BalancerAMM is IAMM {
         rate = sweep.targetPrice() * 1e12;
     }
 
-    function getPositions(uint256)
-        public view
-        returns (uint256 usdxAmount, uint256 sweepAmount, uint256 lp)
-    {
+    function getPositions(uint256) public view returns (uint256 usdxAmount, uint256 sweepAmount, uint256 lp) {
         (IAsset[] memory tokens, uint256[] memory balances,) = vault.getPoolTokens(pool.getPoolId());
-        usdxAmount = findAssetIndex(address(base), tokens, balances);
-        sweepAmount = findAssetIndex(address(sweep), tokens, balances);
-        lp = findAssetIndex(address(pool), tokens, balances);
+        uint8 usdxIndex = findAssetIndex(address(base), tokens);
+        uint8 sweepIndex = findAssetIndex(address(sweep), tokens);
+        uint8 lpIndex = findAssetIndex(address(pool), tokens);
+
+        usdxAmount = balances[usdxIndex];
+        sweepAmount = balances[sweepIndex];
+        lp = balances[lpIndex];
     }
 
     /* ========== Actions ========== */
@@ -210,14 +206,12 @@ contract BalancerAMM is IAMM {
         poolId = pool.getPoolId();
     }
 
-    function findAssetIndex(address asset, IAsset[] memory assets, uint256[] memory balances) internal pure returns (uint256) {
+    function findAssetIndex(address asset, IAsset[] memory assets) internal pure returns (uint8) {
         for (uint8 i = 0; i < assets.length; i++) {
-            if ( address(assets[i]) == asset ) {
-                return balances[i];
+            if (address(assets[i]) == asset) {
+                return i;
             }
         }
-        revert();
+        revert("BalancerAMM: Asset not found");
     }
-
-    function poolFee() external pure returns(uint24) { return 0; }
 }

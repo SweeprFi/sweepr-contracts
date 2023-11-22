@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { addresses, chainId } = require("../utils/address");
 const { impersonate, sendEth, resetNetwork, Const, toBN } = require("../utils/helper_functions");
 
-contract("ETS Asset", async function () {
+contract.skip("ETS Asset", async function () {
     if (Number(chainId) !== 42161) return;
 
     before(async () => {

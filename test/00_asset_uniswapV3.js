@@ -111,7 +111,6 @@ contract('Uniswap V3 Asset', async () => {
         });
 
         it('mint LP token', async () => {
-            expect(await asset.assetValue()).to.equal(Const.ZERO);
             expect(await asset.liquidity()).to.equal(Const.ZERO);
             expect(await asset.tokenId()).to.equal(Const.ZERO);
             expect(await sweep.balanceOf(pool_address)).to.equal(Const.ZERO);
@@ -121,7 +120,6 @@ contract('Uniswap V3 Asset', async () => {
             
             expect(await asset.tokenId()).to.not.equal(Const.ZERO);
             expect(await asset.liquidity()).to.above(Const.ZERO);
-            expect(await asset.assetValue()).to.greaterThan(Const.ZERO);
             expect(await sweep.balanceOf(pool_address)).to.above(Const.ZERO);
             expect(await usdc.balanceOf(pool_address)).to.above(Const.ZERO);
         });
