@@ -15,13 +15,19 @@ import { IERC20Metadata } from "@openzeppelin/contracts/interfaces/IERC20Metadat
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import { ISweep } from "../Sweep/ISweep.sol";
-import { IAsset, SingleSwap, FundManagement, SwapKind, IBalancerVault, IBalancerPool } from "../Assets/Balancer/IBalancer.sol";
+import { IAsset, SingleSwap, FundManagement, SwapKind, IBalancerVault, IBalancerPool, IBalancerQuoter } from "../Assets/Balancer/IBalancer.sol";
+import { IAMM } from "./IAMM.sol";
 
-contract BalancerAMM {
+
+import "hardhat/console.sol";
+
+contract BalancerAMM is IAMM {
     using Math for uint256;
 
+    IBalancerQuoter public quoter;
     IBalancerVault public vault;
     IBalancerPool public pool;
+    bytes32 public poolId;
 
     IERC20Metadata public immutable base;
     ISweep public immutable sweep;
@@ -35,12 +41,14 @@ contract BalancerAMM {
     constructor(
         address _sweep,
         address _base,
+        address _quoter,
         address _sequencer,
         address _oracleBase,
         uint256 _oracleBaseUpdateFrequency
     ) {
         sweep = ISweep(_sweep);
         base = IERC20Metadata(_base);
+        quoter = IBalancerQuoter(_quoter);
         oracleBase = IPriceFeed(_oracleBase);
         sequencer = IPriceFeed(_sequencer);
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
@@ -52,6 +60,15 @@ contract BalancerAMM {
 
     // Errors
     error OverZero();
+
+    function currentPrice() external returns(uint256) {
+        bytes memory userData;
+        SingleSwap memory swap = SingleSwap(poolId, SwapKind.GIVEN_IN, IAsset(address(sweep)), IAsset(address(base)), 1e18, userData);
+        FundManagement memory funds = FundManagement(address(this), false, payable(msg.sender), false);
+        uint256 price = quoter.querySwap(swap, funds);
+
+        return price;
+    }
 
     /**
      * @notice Get Price
@@ -163,7 +180,6 @@ contract BalancerAMM {
         );
         TransferHelper.safeApprove(tokenIn, address(vault), amountIn);
 
-        bytes32 poolId = pool.getPoolId();
         bytes memory userData;
         SingleSwap memory singleSwap = SingleSwap(
             poolId,
@@ -190,6 +206,8 @@ contract BalancerAMM {
 
         pool = IBalancerPool(poolAddress);
         vault = IBalancerVault(pool.getVault());
+
+        poolId = pool.getPoolId();
     }
 
     function findAssetIndex(address asset, IAsset[] memory assets, uint256[] memory balances) internal pure returns (uint256) {
@@ -200,4 +218,6 @@ contract BalancerAMM {
         }
         revert();
     }
+
+    function poolFee() external pure returns(uint24) { return 0; }
 }

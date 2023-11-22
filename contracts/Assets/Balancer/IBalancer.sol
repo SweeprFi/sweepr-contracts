@@ -35,6 +35,10 @@ interface IBalancerPool is IERC20Metadata {
     function getTokenRate(address) external view returns (uint256);
 }
 
+interface IBalancerQuoter is IERC20Metadata {
+    function querySwap(SingleSwap memory singleSwap, FundManagement memory funds) external returns (uint256);
+}
+
 struct SingleSwap {
    bytes32 poolId;
    SwapKind kind;

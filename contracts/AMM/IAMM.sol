@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.19;
 
+import { IPriceFeed } from "../Libraries/Chainlink.sol";
+
 interface IAMM {
     function swapExactInput(
         address tokenA,
@@ -22,7 +24,7 @@ interface IAMM {
         uint256 amountOutMin
     ) external returns (uint256);
 
-    function sequencer() external view returns (address);
+    function sequencer() external view returns (IPriceFeed);
 
     function poolFee() external view returns (uint24);
 
@@ -31,6 +33,8 @@ interface IAMM {
     function getPrice() external view returns (uint256 price);
     
     function getRate() external view returns (uint256 rate);
+
+    function currentPrice() external returns (uint256 price);
 
     function getPositions(uint256) external view returns (uint256 usdxAmount, uint256 sweepAmount, uint256 lp);
 }

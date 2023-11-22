@@ -60,6 +60,7 @@ module.exports = {
 
     balancer: {
         factory: '0xA8920455934Da4D853faac1f94Fe7bEf72943eF1',
+        quoter: '0xE39B5e3B6D74016b2F6A9673D7d7493B6DF549d5',
     },
 
     deployments: {
