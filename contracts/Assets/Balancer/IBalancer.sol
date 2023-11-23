@@ -33,6 +33,8 @@ interface IBalancerPool is IERC20Metadata {
     function getVault() external view returns (address);
     function getRate() external view returns (uint256);
     function getTokenRate(address) external view returns (uint256);
+    function getScalingFactors() external view returns (uint256[] memory);
+    function getAmplificationParameter() external view returns (uint256, bool, uint256);
 }
 
 struct SingleSwap {
