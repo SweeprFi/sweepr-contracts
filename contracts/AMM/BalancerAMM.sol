@@ -16,6 +16,7 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import { ISweep } from "../Sweep/ISweep.sol";
 import { IAsset, SingleSwap, FundManagement, SwapKind, IBalancerVault, IBalancerPool } from "../Assets/Balancer/IBalancer.sol";
+import { StableMath } from "../Libraries/Balancer/StableMath.sol";
 
 contract BalancerAMM {
     using Math for uint256;
@@ -57,19 +58,32 @@ contract BalancerAMM {
      * @notice Get Price
      * @dev Get the quote for selling 1 unit of a token.
      */
-    function getPrice() public view returns (uint256 price) {
-        if(address(pool) == address(0)) return 2e6;
-        uint256 rate = pool.getTokenRate(address(sweep));
-        uint8 rateDecimals = 18;
+    function getPrice() public view returns (uint256 amountOut) {
+        uint8 sweepDecimals = sweep.decimals();
+        uint8 baseDecimals = base.decimals();
+        uint8 quoteDecimals = sweepDecimals - baseDecimals;
 
-        uint256 stablePrice = ChainlinkLibrary.getPrice(
+        uint256[] memory factors = pool.getScalingFactors();
+        (uint256 amplification, , ) = pool.getAmplificationParameter();
+        (IAsset[] memory tokens, uint256[] memory balances,) = vault.getPoolTokens(pool.getPoolId());
+
+        uint8 tokenIndexIn = findAssetIndex(address(sweep), tokens);
+        uint8 tokenIndexOut = findAssetIndex(address(base), tokens);
+
+        uint256[] memory newBalances = new uint256[](2);
+        newBalances[0] = balances[tokenIndexIn];
+        newBalances[1] = balances[tokenIndexOut] * (10 ** quoteDecimals);
+
+        uint256 invariant = StableMath._calculateInvariant(amplification, newBalances);
+        uint256 quote = StableMath._calcOutGivenIn(amplification, newBalances, 0, 1, 1e18, invariant);
+        uint8 oracleDecimals = ChainlinkLibrary.getDecimals(oracleBase);
+        uint256 price = ChainlinkLibrary.getPrice(
             oracleBase,
             sequencer,
             oracleBaseUpdateFrequency
         );
 
-        uint8 oracleDecimals = ChainlinkLibrary.getDecimals(oracleBase);
-        price = rate.mulDiv(stablePrice * (10 ** base.decimals()), 10 ** (oracleDecimals + rateDecimals));
+        amountOut = (quote * factors[tokenIndexIn] * price) / (10 ** (oracleDecimals + sweepDecimals + quoteDecimals));
     }
 
     /**
@@ -89,9 +103,13 @@ contract BalancerAMM {
         returns (uint256 usdxAmount, uint256 sweepAmount, uint256 lp)
     {
         (IAsset[] memory tokens, uint256[] memory balances,) = vault.getPoolTokens(pool.getPoolId());
-        usdxAmount = findAssetIndex(address(base), tokens, balances);
-        sweepAmount = findAssetIndex(address(sweep), tokens, balances);
-        lp = findAssetIndex(address(pool), tokens, balances);
+        uint8 usdxIndex = findAssetIndex(address(base), tokens);
+        uint8 sweepIndex = findAssetIndex(address(sweep), tokens);
+        uint8 lpIndex = findAssetIndex(address(pool), tokens);
+
+        usdxAmount = balances[usdxIndex];
+        sweepAmount = balances[sweepIndex];
+        lp = balances[lpIndex];
     }
 
     /* ========== Actions ========== */
@@ -192,12 +210,12 @@ contract BalancerAMM {
         vault = IBalancerVault(pool.getVault());
     }
 
-    function findAssetIndex(address asset, IAsset[] memory assets, uint256[] memory balances) internal pure returns (uint256) {
+    function findAssetIndex(address asset, IAsset[] memory assets) internal pure returns (uint8) {
         for (uint8 i = 0; i < assets.length; i++) {
-            if ( address(assets[i]) == asset ) {
-                return balances[i];
+            if (address(assets[i]) == asset) {
+                return i;
             }
         }
-        revert();
+        revert("BalancerAMM: Asset not found");
     }
 }

@@ -4,7 +4,7 @@ const { tokens, wallets, chainlink, balancer } = require('../utils/constants');
 const { Const, impersonate, toBN, sendEth, increaseTime } = require("../utils/helper_functions");
 let poolAddress;
 
-contract.only('Balancer Market Maker', async () => {
+contract('Balancer Market Maker', async () => {
   before(async () => {
     [borrower] = await ethers.getSigners();
 
