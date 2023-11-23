@@ -1,29 +1,28 @@
-const CHAIN_ID = require("../utils/layerzero/chainIds.json");
-const { getDeployedAddress } = require("../utils/address");
+const CHAIN_ID = require("../../utils/layerzero/chainIds.json");
+const { getDeployedAddress } = require("../../utils/address");
 
 module.exports = async function (taskArgs, hre) {
-	console.log(hre.network.name);
 	const senderAddress = getDeployedAddress(hre.network.name, "sender");
 	const remoteAddress = getDeployedAddress(taskArgs.targetNetwork, "sweep");
-	const spenderAddress = taskArgs.spenderAddress;
-	const amount = taskArgs.amount;
+	const minterAddress = taskArgs.minterAddress;
+	const amount = ethers.utils.parseEther(taskArgs.amount);
 
 	const payload = ethers.utils.defaultAbiCoder.encode(
 		["address[]", "uint256[]", "string[]", "bytes[]"],
 		[
 			[remoteAddress],
 			[0],
-			["approve(address,uint256)"],
+			["addMinter(address,uint256)"],
 			[
 				ethers.utils.defaultAbiCoder.encode(
 					["address", "uint256"],
-					[spenderAddress, amount]
+					[minterAddress, amount]
 				),
 			],
 		]
 	);
 
-	console.log("\nPayload approve:", payload);
+	console.log("\nPayload for adding minter:", payload);
 
 	// get remote chain id
 	const remoteChainId = CHAIN_ID[taskArgs.targetNetwork];

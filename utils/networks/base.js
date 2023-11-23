@@ -25,12 +25,11 @@ module.exports = {
         usdc_e: '0xeb466342c4d449bc9f53a865d5cb90586f405215',
     },
 
-    assets: {
+    protocols: {
         usdPlus_exchanger: '',
         maple: {
-            usdcPool: '',
-            poolManager: '',
-            withdrawalManager: '',
+            usdcPool: '0xdd5bb9acf5e02089735a33344c6e3a8bb0d4075d',
+            withdrawalManager: '0x5B8387aDa310352198EBFF14a297FAb44428C8CD',
         }
     },
 
@@ -54,7 +53,7 @@ module.exports = {
             uniswap: '',
             market_maker: '0x7560d15774499386B04A64177E090B33e803493F',
             usd_plus: '',
-            maple: '',
+            maple: '0x51040d72Cf1ee780FFA5F7C7e9eDAb6E6091BCaA',
         }
     },
 

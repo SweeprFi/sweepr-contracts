@@ -54,7 +54,22 @@ module.exports = {
 	},
 
 	etherscan: {
-		apiKey: scanApiKey,
+		apiKey: {
+			arbitrumOne: scanApiKey,
+			base: scanApiKey,
+			optimisticEthereum: scanApiKey,
+			mainnet: scanApiKey,
+		},
+		customChains: [
+			{
+				network: "base",
+				chainId: 8453,
+				urls: {
+					apiURL: "https://api.basescan.org/api",
+					browserURL: "https://basescan.org"
+				}
+			}
+		]
 	},
 
 	gasReporter: {

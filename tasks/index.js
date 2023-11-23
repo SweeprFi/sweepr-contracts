@@ -36,19 +36,19 @@ task(
 task(
     "setSenderTransferOwnership",
     "setSenderTransferOwnership() to transfer ownership of OmnichainProposalSender",
-    require("./setSenderTransferOwnership")
+    require("./ownership/setSenderTransferOwnership")
 )
 
 task(
     "setExecutorTransferOwnership",
     "setExecutorTransferOwnership() to transfer ownership of OmnichainProposalExecutor",
-    require("./setExecutorTransferOwnership")
+    require("./ownership/setExecutorTransferOwnership")
 )
 
 task(
     "payloadAddMinter",
     "payloadAddMinter() to create payload for adding minter",
-    require("./payloadAddMinter")
+    require("./payloads/payloadAddMinter")
 )
 .addParam("targetNetwork", "the target network to set as a trusted remote")
 .addParam("minterAddress", "minter address to add")
@@ -57,7 +57,7 @@ task(
 task(
     "payloadTransferOwnership",
     "payloadTransferOwnership() to create payload for transferring ownership",
-    require("./payloadTransferOwnership")
+    require("./payloads/payloadTransferOwnership")
 )
 .addParam("targetNetwork", "the target network")
 .addParam("newOwnerAddress", "new owner address")
@@ -65,21 +65,21 @@ task(
 task(
     "payloadApprove",
     "payloadApprove() to approve tokens to a spender",
-    require("./payloadApprove")
+    require("./payloads/payloadApprove")
 )
 .addParam("targetNetwork", "the target network")
 .addParam("spenderAddress", "spender of the tokens")
 .addParam("amount", "amount to be approved")
 
 
-task("sweep_oftSend", "send tokens to another chain", require("./sweep_oftSend"))
+task("sweep_oftSend", "send tokens to another chain", require("./sendtokens/sweep_oftSend"))
     .addParam("qty", "qty of tokens to send")
     .addParam("targetNetwork", "the target network to let this instance receive messages from")
 
-task("sweepr_oftSend", "send tokens to another chain", require("./sweepr_oftSend"))
+task("sweepr_oftSend", "send tokens to another chain", require("./sendtokens/sweepr_oftSend"))
     .addParam("qty", "qty of tokens to send")
     .addParam("targetNetwork", "the target network to let this instance receive messages from")
 
 
-task("decodePayload", "decodes a payload", require("./decodePayload"))
+task("decodePayload", "decodes a payload", require("./payloads/decodePayload"))
     .addParam("payload", "payload to decode")

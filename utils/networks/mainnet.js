@@ -45,8 +45,10 @@ module.exports = {
         dss_psm: '0x89B78CfA322F6C5dE0aBcEecab66Aee45393cC5A',
         maple: {
             usdcPool: '0xfe119e9C24ab79F1bDd5dd884B86Ceea2eE75D92',
-            poolManager: '0x219654a61a0bc394055652986be403fa14405bb8',
             withdrawalManager: '0x1146691782c089bCF0B19aCb8620943a35eebD12',
+
+            //tests - whitelist lender
+            poolManager: '0x219654a61a0bc394055652986be403fa14405bb8',
         }
     },
 
