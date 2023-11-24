@@ -46,7 +46,7 @@ module.exports = {
         balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         balancer_pool: '0x15D9D108437B17d1FA70392f9eD086306229ec91',
-        balancer_amm: '0x709d075147a10495e5c3bBF3dfc0c138F34C6E72',
+        balancer_amm: '0x8843b5Dd4A0757eE4ab639b34BA972686f9aCCD6', // old 0x709d075147a10495e5c3bBF3dfc0c138F34C6E72
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
 
         assets: {

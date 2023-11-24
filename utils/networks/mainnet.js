@@ -72,7 +72,7 @@ module.exports = {
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
 
         balancer_pool: '0xa468570dB143321Bc034BbD74A6Cc2694d15B252',
-        balancer_amm: '0xe3E123ED9fec48a6f40A8aC7bE9afEDDAD80F146',
+        balancer_amm: '0x28d5a9a0B763F219093Eb01056678e8e702Bf58A', // 0xe3E123ED9fec48a6f40A8aC7bE9afEDDAD80F146
         proposal_executor: '0xCFcE64f865f84144F9e6FA7C574F580B3eB878e6',
 
         assets: {

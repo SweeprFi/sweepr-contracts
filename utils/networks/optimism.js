@@ -44,7 +44,7 @@ module.exports = {
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         liquidity_helper: '0xaD490d3899A47482E31AF50DdCc5Db31C0eE9eB0',
         balancer_pool: '0xc4EE406970047A70aED14621d97b3B460a7DEA0B',
-        balancer_amm: '0x11C8eC8B0DFD355C9931cB47ADd0F635dAE062ad',
+        balancer_amm: '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8', // old 0x11C8eC8B0DFD355C9931cB47ADd0F635dAE062ad
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',  
 
         assets: {
