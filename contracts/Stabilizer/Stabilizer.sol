@@ -356,7 +356,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     function borrow(
         uint256 sweepAmount
     )
-        external
+        public
         onlyBorrower
         whenNotPaused
         validAmount(sweepAmount)
@@ -576,11 +576,13 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @param usdxAmount.
      * @dev Decreases the sweep balance and increase usdx balance
      */
-    function swapUsdxToSweep(
-        uint256 usdxAmount
-    ) external onlyBorrower whenNotPaused validAmount(usdxAmount) nonReentrant {
+    function swapUsdxToSweep(uint256 usdxAmount)
+        public onlyBorrower whenNotPaused validAmount(usdxAmount) nonReentrant
+        returns (uint256 sweepAmount)
+
+    {
         uint256 usdxInUsd = _oracleUsdxToUsd(usdxAmount);
-        uint256 sweepAmount = sweep.convertToSWEEP(usdxInUsd);
+        sweepAmount = sweep.convertToSWEEP(usdxInUsd);
         uint256 sweepBalance = sweep.balanceOf(address(this));
         if (sweepAmount > sweepBalance) revert NotEnoughBalance();
 
@@ -601,30 +603,54 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @param sweepAmount.
      * @dev Decreases the sweep balance and increase usdx balance
      */
-    function swapSweepToUsdx(
-        uint256 sweepAmount
-    )
-        external
-        onlyBorrower
-        whenNotPaused
-        validAmount(sweepAmount)
-        nonReentrant
+    function swapSweepToUsdx(uint256 sweepAmount)
+        public onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant
+        returns (uint256 usdxAmount)
     {
         uint256 sweepInUsd = sweep.convertToUSD(sweepAmount);
-        uint256 usdxAmount = _oracleUsdToUsdx(sweepInUsd);
+        usdxAmount = _oracleUsdToUsdx(sweepInUsd);
         uint256 usdxBalance = usdx.balanceOf(address(this));
 
         if (usdxAmount > usdxBalance) revert NotEnoughBalance();
 
-        TransferHelper.safeTransferFrom(
-            address(sweep),
-            msg.sender,
-            address(this),
-            sweepAmount
-        );
+        TransferHelper.safeTransferFrom(address(sweep), msg.sender, address(this), sweepAmount);
         TransferHelper.safeTransfer(address(usdx), msg.sender, usdxAmount);
 
         emit SoldSWEEP(usdxAmount);
+    }
+
+    function oneStepInvest(uint256 sweepAmount, uint256 slippage, bool useAMM) 
+        external onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant
+        returns(uint256 usdxAmount)
+    {
+        borrow(sweepAmount);
+        
+        if(useAMM){
+            usdxAmount = _oracleUsdToUsdx(sweep.convertToUSD(sweepAmount));
+            uint256 minAmountOut = OvnMath.subBasisPoints(usdxAmount, slippage);
+            usdxAmount = _sell(sweepAmount, minAmountOut);
+        } else {
+            usdxAmount = swapSweepToUsdx(sweepAmount);
+        }
+
+        _invest(usdxAmount, 0, slippage);
+    }
+
+    function oneStepDivest(uint256 usdxAmount, uint256 slippage, bool useAMM)
+        external onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant
+        returns(uint256 sweepAmount)
+    {
+        _divest(usdxAmount, slippage);
+
+        if(useAMM){
+            sweepAmount = sweep.convertToSWEEP(_oracleUsdxToUsd(usdxAmount));
+            uint256 minAmountOut = OvnMath.subBasisPoints(sweepAmount, slippage);
+            sweepAmount = _buy(usdxAmount, minAmountOut);
+        } else {
+            sweepAmount = swapUsdxToSweep(usdxAmount);
+        }
+
+        _repay(sweepAmount);
     }
 
     /**
@@ -741,7 +767,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     }
 
     function _buy(
-        uint256 usdxAmount,
+        uint256 usdxAmount, 
         uint256 amountOutMin
     ) internal returns (uint256) {
         uint256 usdxBalance = usdx.balanceOf(address(this));
