@@ -37,6 +37,9 @@ contract("USDPlus Asset", async function () {
         usdcE = await Token.attach(addresses.usdc_e);
         usdPlus = await Token.attach(addresses.usdPlus);
 
+        LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
+        liquidityHelper = await LiquidityHelper.deploy();
+
         // Uniswap Contract
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(
@@ -45,7 +48,8 @@ contract("USDPlus Asset", async function () {
             addresses.sequencer_feed,
             Const.FEE,
             addresses.oracle_dai_usd,
-            86400
+            86400,
+            liquidityHelper.address
         );
         await sweep.setAMM(amm.address);
 
@@ -142,7 +146,8 @@ contract("USDPlus Asset", async function () {
                 addresses.sequencer_feed,
                 Const.FEE,
                 addresses.oracle_dai_usd,
-                86400
+                86400,
+                liquidityHelper.address
             );
             await sweep.setAMM(amm.address);
 

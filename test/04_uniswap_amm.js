@@ -54,7 +54,8 @@ contract("Uniswap AMM", async function () {
       addresses.sequencer_feed,
       Const.FEE,
       usdcOracle.address,
-      86400 // oracle update frequency ~ 1 day
+      86400, // oracle update frequency ~ 1 day
+      liquidityHelper.address
     );
 
     await sweep.addMinter(asset.address, SWEEP_INVEST);
@@ -81,6 +82,9 @@ contract("Uniswap AMM", async function () {
 
       await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
       pool_address = await factory.getPool(token0, token1, Const.FEE);
+
+      pool = await ethers.getContractAt("IUniswapV3Pool", pool_address);
+      await (await pool.increaseObservationCardinalityNext(96)).wait();
 
       await usdc.transfer(asset.address, USDC_MINT);
       await asset.borrow(SWEEP_MINT);

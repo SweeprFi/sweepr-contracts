@@ -59,7 +59,7 @@ contract("Balancer Asset", async function () {
             expect(await usdc.balanceOf(balancer_asset.address)).to.greaterThan(Const.ZERO);
             expect(await pool.balanceOf(balancer_asset.address)).to.equal(Const.ZERO);
 
-            await balancer_asset.invest(depositAmount, 0);
+            await balancer_asset.invest(depositAmount, 2000);
 
             expect(await balancer_asset.assetValue()).to.greaterThan(Const.ZERO);
             expect(await usdc.balanceOf(balancer_asset.address)).to.equal(Const.ZERO);
