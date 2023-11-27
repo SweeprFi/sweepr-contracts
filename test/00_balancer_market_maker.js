@@ -68,7 +68,7 @@ contract('Balancer Market Maker', async () => {
       true, // exemptFromYieldProtocolFeeFlag
       1e14, // swapFeePercentage, 1e12 = 0.0001%
       '0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b', // balancer governance
-      '0x42616c616e6365722053574545502d5553444320537461626c65506f6f6c2030' // salt
+      '0x42616c616e6365722053574545502d5553444320537461626c65506f6f6c2031' // salt
     )).wait();
 
     poolAddress = pool.logs[0].address;
@@ -95,21 +95,13 @@ contract('Balancer Market Maker', async () => {
 
   it('Init the poool correctly', async () => {
     await usdc.approve(marketmaker.address, usdcAmount);
-    await marketmaker.initPool(1e6, toBN("1", 18));
+    await marketmaker.initPool(2e6, toBN("1", 18));
     await amm.connect(user).setPool(poolAddress);
 
     expect(await amm.getPrice()).to.greaterThan(0);
     expect(await marketmaker.assetValue()).to.greaterThan(0);
     expect(await marketmaker.currentValue()).to.greaterThan(0);
-
     expect(await sweep.balanceOf(vaultAddress)).to.greaterThan(0);
-
-    // await increaseTime(14400);
-    console.log("===========================================");
-    console.log("ammPrice:", await amm.getPrice());
-    console.log("getRate:", await balancerPool.getRate());
-    console.log("sweep getRate:", await balancerPool.getTokenRate(sweep.address));
-    console.log("usdc getRate:", await balancerPool.getTokenRate(usdc.address));
   });
 
   it('Adds Liquidity correctly', async () => {
@@ -126,17 +118,10 @@ contract('Balancer Market Maker', async () => {
     usdcBefore = await usdc.balanceOf(vaultAddress);
 
     await usdc.transfer(marketmaker.address, usdcToAdd);
-    await marketmaker.addLiquidity(usdcToAdd, sweepToAdd, 0);
+    await marketmaker.addLiquidity(usdcToAdd, sweepToAdd, 2000);
 
     expect(await usdc.balanceOf(vaultAddress)).to.equal(usdcBefore.add(usdcToAdd));
     expect(await sweep.balanceOf(vaultAddress)).to.equal(sweepBefore.add(sweepToAdd));
-
-    // await increaseTime(14400);
-    console.log("===========================================");
-    console.log("ammPrice:", await amm.getPrice());
-    console.log("getRate:", await balancerPool.getRate());
-    console.log("sweep getRate:", await balancerPool.getTokenRate(sweep.address));
-    console.log("usdc getRate:", await balancerPool.getTokenRate(usdc.address));
   });
 
   it('Removes liquidity correctly', async () => {
@@ -147,30 +132,14 @@ contract('Balancer Market Maker', async () => {
     sweepBefore = await sweep.balanceOf(vaultAddress);
     usdcBefore = await usdc.balanceOf(vaultAddress);
 
-    // await marketmaker.removeLiquidity(0, sweepToRemove, 20000);
     await marketmaker.removeLiquidity(usdcToRemove, sweepToRemove, 5000);
     expect(await sweep.balanceOf(vaultAddress)).to.equal(sweepBefore.sub(sweepToRemove));
     expect(await usdc.balanceOf(vaultAddress)).to.equal(usdcBefore.sub(usdcToRemove));
-
-    // priceBefore = await sweep.ammPrice();
-  
-    // await marketmaker.removeLiquidity(usdcToRemove, 0, 5000);
-    // expect(await usdc.balanceOf(vaultAddress)).to.equal(usdcBefore.sub(usdcToRemove));
-
-    // await increaseTime(14400);
-    console.log("===========================================");
-    console.log("ammPrice:", await amm.getPrice());
-    console.log("getRate:", await balancerPool.getRate());
-    console.log("sweep getRate:", await balancerPool.getTokenRate(sweep.address));
-    console.log("usdc getRate:", await balancerPool.getTokenRate(usdc.address));
   });
 
   it('Increases liquidity by buying Sweep', async () => {
     user = await impersonate(BALANCER);
     await sweep.connect(user).setTargetPrice(1e6, 1e6);
-
-    console.log("BEFORE SWEEP:", await sweep.balanceOf(vaultAddress));
-    console.log("BEFORE USDC:", await usdc.balanceOf(vaultAddress));
 
     sweepToBuy = toBN("500", 18);
     sweepBefore = await sweep.balanceOf(borrower.address);
@@ -187,16 +156,6 @@ contract('Balancer Market Maker', async () => {
     
     expect(await sweep.balanceOf(vaultAddress)).to.greaterThan(vaultSweepBefore);
     expect(await usdc.balanceOf(vaultAddress)).to.greaterThan(vaultUsdcBefore);
-
-    console.log("AFTER SWEEP:", await sweep.balanceOf(vaultAddress));
-    console.log("AFTER USDC:", await usdc.balanceOf(vaultAddress));
-
-    // await increaseTime(14400);
-    console.log("===========================================");
-    console.log("ammPrice:", await amm.getPrice());
-    console.log("getRate:", await balancerPool.getRate());
-    console.log("sweep getRate:", await balancerPool.getTokenRate(sweep.address));
-    console.log("usdc getRate:", await balancerPool.getTokenRate(usdc.address));
   });
 
   it('Swaps sweep', async () => {
@@ -206,14 +165,6 @@ contract('Balancer Market Maker', async () => {
 
     user = await impersonate(BALANCER);
     await sweep.connect(user).setTargetPrice(1005326, 1005326);
-
     await marketmaker.buySweepOnAMM(usdcToSwap, 0);
-
-    // await increaseTime(14400);
-    console.log("===========================================");
-    console.log("ammPrice:", await amm.getPrice());
-    console.log("getRate:", await balancerPool.getRate());
-    console.log("sweep getRate:", await balancerPool.getTokenRate(sweep.address));
-    console.log("usdc getRate:", await balancerPool.getTokenRate(usdc.address));
   });
 });

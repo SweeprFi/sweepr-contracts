@@ -59,6 +59,8 @@ contract BalancerAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getPrice() public view returns (uint256 amountOut) {
+        if(address(pool) == address(0)) return 2e6;
+
         uint8 sweepDecimals = sweep.decimals();
         uint8 baseDecimals = base.decimals();
         uint8 quoteDecimals = sweepDecimals - baseDecimals;

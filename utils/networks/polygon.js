@@ -39,6 +39,16 @@ module.exports = {
         sequencer: '0x0000000000000000000000000000000000000000',
     },
 
+    uniswap: {
+        factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+        router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+        universal_router: '0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD',
+        positions_manager: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
+        quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
+        observationCardinality: 480,
+        pool: ''
+    },
+
     balancer: {
         factory: '0xe2fa4e1d17725e72dcdAfe943Ecf45dF4B9E285b',
     },
@@ -49,6 +59,7 @@ module.exports = {
         balancer_pool: '',
         balancer_amm: '',
         proposal_executor: '',
+        liquidity_helper: '',
 
         assets: {
             uniswap: '',

@@ -35,6 +35,16 @@ module.exports = {
         sequencer: '0x371EAD81c9102C9BF4874A9075FFFf170F2Ee389',
     },
 
+    uniswap: {
+        factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+        router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+        universal_router: '0x4648a43B2C14Da09FdF82B161150d3F634f40491',
+        positions_manager: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
+        quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
+        observationCardinality: 480,
+        pool: ''
+    },
+
     balancer: {
         factory: '0x043A2daD730d585C44FB79D2614F295D2d625412',
     },

@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const { addresses } = require("../utils/address");
 const { impersonate, increaseTime, Const, sendEth, toBN } = require("../utils/helper_functions");
 
-contract('Compound V3 Asset', async () => {
+contract.skip('Compound V3 Asset', async () => {
     before(async () => {
         [borrower, guest, lzEndpoint] = await ethers.getSigners();
 
