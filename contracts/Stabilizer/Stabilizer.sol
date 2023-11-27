@@ -362,11 +362,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         validAmount(sweepAmount)
         nonReentrant
     {
-        if (!sweep.isValidMinter(address(this))) revert InvalidMinter();
-
-        uint256 sweepAvailable = loanLimit - sweepBorrowed;
-        if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
-
         int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
         if (currentEquityRatio < minEquityRatio) revert EquityRatioExcessed();
 
@@ -504,17 +499,13 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         uint256 slippage
     ) external nonReentrant {
         if (msg.sender != sweep.balancer()) revert NotBalancer();
-        uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
-        uint256 sweepAvailable = sweepLimit - sweepBorrowed;
-        sweepAmount = sweepAmount.min(sweepAvailable);
-        int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
-
         if (!autoInvestEnabled) revert NotAutoInvest();
-        if (sweepAmount < autoInvestMinAmount) revert NotAutoInvestMinAmount();
-        if (currentEquityRatio < autoInvestMinRatio)
-            revert NotAutoInvestMinRatio();
 
-        _borrow(sweepAmount);
+        int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
+        if (currentEquityRatio < autoInvestMinRatio) revert NotAutoInvestMinRatio();
+
+        uint256 sweepMinted = _borrow(sweepAmount);
+        if (sweepMinted < autoInvestMinAmount) revert NotAutoInvestMinAmount();
 
         uint256 usdAmount = sweepAmount.mulDiv(price, 10 ** sweep.decimals());
         uint256 usdInUsdx = _oracleUsdToUsdx(usdAmount);
@@ -623,7 +614,9 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         external onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant
         returns(uint256 usdxAmount)
     {
-        borrow(sweepAmount);
+        int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
+        if (currentEquityRatio < minEquityRatio) revert EquityRatioExcessed();
+        _borrow(sweepAmount);
         
         if(useAMM){
             usdxAmount = _oracleUsdToUsdx(sweep.convertToUSD(sweepAmount));
@@ -637,7 +630,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     }
 
     function oneStepDivest(uint256 usdxAmount, uint256 slippage, bool useAMM)
-        external onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant
+        external onlyBorrower whenNotPaused validAmount(usdxAmount) nonReentrant
         returns(uint256 sweepAmount)
     {
         _divest(usdxAmount, slippage);
@@ -804,7 +797,14 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         return usdxAmount;
     }
 
-    function _borrow(uint256 sweepAmount) internal {
+    function _borrow(uint256 sweepAmount) internal returns (uint256 sweepMinted) {
+        if (!sweep.isValidMinter(address(this))) revert InvalidMinter();
+        uint256 sweepAvailable = loanLimit - sweepBorrowed;
+        if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
+
+        // int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
+        // if (currentEquityRatio < ratio) revert EquityRatioExcessed();
+
         uint256 spreadAmount = accruedFee();
         sweep.mint(sweepAmount);
         sweepBorrowed += sweepAmount;
@@ -818,6 +818,8 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
             );
             emit PayFee(spreadAmount);
         }
+
+        sweepMinted = sweepAmount;
 
         emit Borrowed(sweepAmount);
     }

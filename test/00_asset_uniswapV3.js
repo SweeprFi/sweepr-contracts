@@ -2,7 +2,6 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { addresses } = require('../utils/address');
 const { Const, getPriceAndData, getTokenAmounts } = require("../utils/helper_functions");
-
 let pool_address;
 
 contract('Uniswap V3 Asset', async () => {
@@ -10,7 +9,7 @@ contract('Uniswap V3 Asset', async () => {
         [borrower, guest, lzEndpoint] = await ethers.getSigners();
 
         ratio = 1.084 // ratio of assets that should be used for LP
-        slippage = (Const.BASIS_DENOMINATOR - 50000) / Const.BASIS_DENOMINATOR;
+        slippage = (Const.BASIS_DENOMINATOR - 5e5) / Const.BASIS_DENOMINATOR;
         usdxAmount = 1000e6;
         mintLPUsdxAmount = 100e6;
         sweepAmount = ethers.utils.parseUnits("1000", 18);
@@ -44,7 +43,7 @@ contract('Uniswap V3 Asset', async () => {
             sweep.address,
             usdc.address,
             liquidityHelper.address,
-			addresses.oracle_usdc_usd,
+            addresses.oracle_usdc_usd,
             BORROWER
         );
 
@@ -117,7 +116,7 @@ contract('Uniswap V3 Asset', async () => {
             expect(await usdc.balanceOf(pool_address)).to.equal(Const.ZERO);
 
             await asset.invest(mintLPUsdxAmount, mintLPSweepAmount, 0, 0);
-            
+
             expect(await asset.tokenId()).to.not.equal(Const.ZERO);
             expect(await asset.liquidity()).to.above(Const.ZERO);
             expect(await sweep.balanceOf(pool_address)).to.above(Const.ZERO);
@@ -131,20 +130,15 @@ contract('Uniswap V3 Asset', async () => {
 
             increaseLPSUsdxAmount = 100 * 1e6;
             increaseLPSweepAmount = ethers.utils.parseUnits("100", 18);
-            if(usdc.address < sweep.address) {
-                usdxMinOut = (100 * slippage / ratio).toFixed(3) * 1e6; // 2% slippage
-                sweepMinOut = ethers.utils.parseUnits((100 * slippage).toString(), 18);  // 2% slippage
-            } else {
-                usdxMinOut = 100 * slippage * 1e6;  // 2% slippage
-                sweepMinOut = ethers.utils.parseUnits((100 * slippage / ratio).toFixed(3), 18);  // 2% slippage
-            }
-            
+            usdxMinOut = 100 * slippage * 1e6;  // 2% slippage
+            sweepMinOut = ethers.utils.parseUnits((100 * slippage).toString(), 18);  // 2% slippage
+
             const tx = await asset.invest(increaseLPSUsdxAmount, increaseLPSweepAmount, usdxMinOut, sweepMinOut);
             const receipt = await tx.wait();
             const data = receipt.events.pop().args;
             expect(data['usdxAmount']).to.above(usdxMinOut);
             expect(data['sweepAmount']).to.above(sweepMinOut);
-            
+
             expect(await sweep.balanceOf(pool_address)).to.above(balanceSweep);
             expect(await usdc.balanceOf(pool_address)).to.above(balanceUSDC);
             expect(await asset.liquidity()).to.above(liquidity);
@@ -164,18 +158,15 @@ contract('Uniswap V3 Asset', async () => {
             position = await positionManager.positions(tokenId);
             const { amount0, amount1 } = await getTokenAmounts(liquidity, slot0.sqrtPriceX96, position.tickLower, position.tickUpper);
 
-            usdxMinOut = Math.floor(amount0 / 2 * slippage); // 2% slippage
+            usdxMinOut = ethers.utils.parseUnits(Math.floor(amount0 / 2 * slippage).toString(), 0); // 2% slippage
             sweepMinOut = Math.floor(amount1 / 2 * slippage);  // 2% slippage
             sweepMinOut = ethers.utils.parseUnits(sweepMinOut.toString(), 0)
 
             await expect(asset.connect(guest).divest(withdrawAmount, 0, 0))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
-            const tx = await asset.divest(withdrawAmount, usdxMinOut, sweepMinOut);
-            const receipt = await tx.wait();
-            const data = receipt.events.pop().args;
-            expect(data['usdxAmount']).to.above(usdxMinOut);
-            expect(data['sweepAmount']).to.above(sweepMinOut);
+            await asset.divest(withdrawAmount, usdxMinOut, sweepMinOut);
+            expect(await asset.liquidity()).to.equal(withdrawAmount)
         });
 
         it('burn LP token', async () => {

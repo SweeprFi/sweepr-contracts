@@ -240,7 +240,7 @@ contract('Balancer - Auto Invests', async () => {
 
             await balancer.reset();
             // autoInvestMinRatio - higher
-            await balancer.addActions([assets[5].address], [mintAmount]);
+            await balancer.addActions([assets[5].address], [toBN("50", 18)]);
             await expect(balancer.execute(1, true, 1e6, 2000))
                 .to.be.revertedWithCustomError(AaveAsset, "NotAutoInvestMinRatio");
         });

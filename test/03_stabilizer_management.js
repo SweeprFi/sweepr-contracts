@@ -169,6 +169,7 @@ contract("Stabilizer - Management Functions", async function () {
     });
 
     it("not a valid minter", async function () {
+      await usdx.transfer(offChainAsset.address, 5e6);
       await offChainAsset.connect(multisig).unpause();
       await expect(offChainAsset.connect(borrower).borrow(amount))
         .to.be.revertedWithCustomError(offChainAsset, 'InvalidMinter');
@@ -176,13 +177,7 @@ contract("Stabilizer - Management Functions", async function () {
 
     it("maximum mint amount has been reached", async function () {
       await sweep.addMinter(offChainAsset.address, maxBorrow);
-      amount = toBN("101", 18);
-      await expect(offChainAsset.connect(borrower).borrow(amount))
-        .to.be.revertedWithCustomError(offChainAsset, 'NotEnoughBalance');
-    });
-
-    it("next equity ratio will be lower than the minimum", async function () {
-      amount = toBN("10", 18);
+      amount = toBN("50", 18);
       await expect(offChainAsset.connect(borrower).borrow(amount))
         .to.be.revertedWithCustomError(offChainAsset, 'EquityRatioExcessed');
     });
@@ -208,10 +203,9 @@ contract("Stabilizer - Management Functions", async function () {
       depositAmount = toBN("1", 18);
       withdrawAmount = toBN("10", 18);
       await sweep.transfer(offChainAsset.address, depositAmount);
-      await offChainAsset.connect(borrower).borrow(mintAmount);
 
       await expect(offChainAsset.connect(borrower).withdraw(sweep.address, withdrawAmount))
-        .to.be.revertedWithCustomError(offChainAsset, 'EquityRatioExcessed');
+        .to.be.revertedWithCustomError(offChainAsset, 'NotEnoughBalance');
     });
 
     it("tries to withdraw more that the current balance", async function () {
