@@ -8,6 +8,19 @@ module.exports = async function (taskArgs, hre) {
 
     const targetChainId = targetNetwork.layerZero.id;
 
-    console.log(sourceNetwork.network.name, "=> OmnichainGovernanceExecutor @", sourceAddress);
-    console.log("setTrustedRemoteAddress", targetChainId, targetAddress);
+    const OGE = await ethers.getContractAt("OmnichainGovernanceExecutor", sourceAddress);
+    
+    let currentRemoteAddress = "";
+    try {
+        currentRemoteAddress = await OGE.getTrustedRemoteAddress(targetChainId);
+    } catch (e) {}
+
+    if(currentRemoteAddress.toUpperCase() !== targetAddress.toUpperCase()) {
+        console.log(sourceNetwork.network.name, "=> OmnichainGovernanceExecutor @", sourceAddress);
+        console.log("setTrustedRemoteAddress", targetChainId, targetAddress);
+    } else {
+        console.log("*source already set*");
+    }
+
+    
 }

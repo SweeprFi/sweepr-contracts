@@ -5,10 +5,20 @@ module.exports = async function (taskArgs, hre) {
     const targetNetwork = require('../utils/networks/' + taskArgs.targetNetwork);
     const targetAddress = targetNetwork.deployments.proposal_executor;
 
-    const sourceBalancer = await ethers.getContractAt("Balancer", sourceAddress);
     const targetChainId = targetNetwork.layerZero.id;
 
-    console.log(sourceNetwork.network.name, "=> OmnichainProposalSender @", sourceAddress);
-    console.log("setTrustedRemoteAddress", targetChainId, targetAddress);
+    const OPS = await ethers.getContractAt("OmnichainProposalSender", sourceAddress);
+
+    let currentRemoteAddress = "";
+    try {
+        currentRemoteAddress = await OPS.getTrustedRemoteAddress(targetChainId);
+    } catch (e) {}
+
+    if(currentRemoteAddress.toUpperCase() !== targetAddress.toUpperCase()) {
+        console.log(sourceNetwork.network.name, "=> OmnichainProposalSender @", sourceAddress);
+        console.log("setTrustedRemoteAddress", targetChainId, targetAddress);
+    } else {
+        console.log("*source already set*");
+    }
 }
 
