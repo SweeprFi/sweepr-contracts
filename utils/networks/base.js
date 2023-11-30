@@ -22,11 +22,14 @@ module.exports = {
         sweep: '0xB88a5Ac00917a02d82c7cd6CEBd73E2852d43574',
         sweepr: '0x89B1e7068bF8E3232dD8f16c35cAc45bDA584f4E',
         usdc: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
-        usdc_e: '0xeb466342c4d449bc9f53a865d5cb90586f405215',
+        usd_bc: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
     },
 
     protocols: {
-        usdPlus_exchanger: '',
+        overnight: {
+            usd_plus: '0xB79DD08EA68A908A97220C76d19A6aA9cBDE4376',
+            exchange: '0x7cb1B38591021309C64f451859d79312d8Ca2789',
+        },
         maple: {
             usdcPool: '0xdd5bb9acf5e02089735a33344c6e3a8bb0d4075d',
             withdrawalManager: '0x5B8387aDa310352198EBFF14a297FAb44428C8CD',

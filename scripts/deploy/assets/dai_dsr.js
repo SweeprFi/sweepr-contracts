@@ -4,7 +4,6 @@ const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
     [deployer] = await ethers.getSigners();
-    deployer = deployer.address;
 
     const name = 'DAI DSR Asset';
     const sweep = tokens.sweep;
