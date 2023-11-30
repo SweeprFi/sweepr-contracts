@@ -64,10 +64,9 @@ module.exports = {
         liquidity_helper: '0xC5f0DE0D8f48E12CcDE9f1902dE15A975b59768d',
 
         assets: {
-            uniswap: '',
             market_maker: '0x7560d15774499386B04A64177E090B33e803493F',
-            usd_plus: '',
             maple: '0x51040d72Cf1ee780FFA5F7C7e9eDAb6E6091BCaA',
+            usd_plus: '0x05910e7B7A749b1c33d9EB63CE91B63F2ec1cD2A',
         }
     },
 
