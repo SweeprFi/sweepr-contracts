@@ -134,16 +134,12 @@ contract UniswapMarketMaker is Stabilizer {
     function sellSweepToAMM(
         uint256 sweepAmount
     ) internal returns (uint256 usdxAmount) {
-        uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
-        uint256 sweepAvailable = sweepLimit - sweepBorrowed;
-        if (sweepAmount > sweepAvailable) sweepAmount = sweepAvailable;
-
         // calculate usdx minimum amount for swap
-        uint256 minAmountUSD = sweep.convertToUSD(sweepAmount);
+        uint256 sweepMinted = _borrow(sweepAmount);
+        uint256 minAmountUSD = sweep.convertToUSD(sweepMinted);
         uint256 minAmountUSDx = _oracleUsdToUsdx(minAmountUSD);
-        _borrow(sweepAmount);
 
-        usdxAmount = _sell(sweepAmount, minAmountUSDx);
+        usdxAmount = _sell(sweepMinted, minAmountUSDx);
     }
 
     /**
@@ -151,19 +147,17 @@ contract UniswapMarketMaker is Stabilizer {
      * @param sweepAmount to buy.
      */
     function buySweep(uint256 sweepAmount) external nonReentrant {
-        uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
-        uint256 sweepAvailable = sweepLimit - sweepBorrowed;
-        if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
         // calculate amount to pay
         uint24 poolFee = amm().poolFee();
         uint256 price = sweep.ammPrice();
         uint256 maxPrice = price - tickSpread;
         uint256 minPrice = price - tickSpread * 2;
+        uint256 sweepMinted = _borrow(sweepAmount);
 
         uint256 targetPrice = sweep.targetPrice();
         uint256 spread = (sweep.arbSpread() * targetPrice) / PRECISION;
         uint256 buyPrice = targetPrice + spread;
-        uint256 usdxAmount = (sweepAmount * buyPrice) /
+        uint256 usdxAmount = (sweepMinted * buyPrice) /
             (10 ** sweep.decimals());
 
         TransferHelper.safeTransferFrom(
@@ -173,8 +167,6 @@ contract UniswapMarketMaker is Stabilizer {
             usdxAmount
         );
         addSingleLiquidity(minPrice, maxPrice, usdxAmount, poolFee);
-        _borrow(sweepAmount);
-
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
     }
 

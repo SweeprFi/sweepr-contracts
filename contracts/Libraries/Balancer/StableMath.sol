@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import "./FixedPoint.sol";
-import "./BMath.sol";
+import "./Math.sol";
 
 library StableMath {
     using FixedPoint for uint256;

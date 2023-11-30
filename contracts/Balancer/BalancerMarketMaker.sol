@@ -91,7 +91,6 @@ contract BalancerMarketMaker is Stabilizer {
         TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
 
         _borrow(sweepAmount*2);
-
         _addLiquidity(usdxAmount, sweepAmount, slippage);
 
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
@@ -101,15 +100,15 @@ contract BalancerMarketMaker is Stabilizer {
     function initPool(uint256 usdxAmount, uint256 sweepAmount) external nonReentrant onlyBorrower {
         address self = address(this);
 
+        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
+        TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
+        TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
+
         if(sweep.isMintingAllowed()){
             _borrow(sweepAmount);
         } else {
             TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount);
         }
-
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
-        TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
-        TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
 
         uint256[] memory amounts = new uint256[](3);
         amounts[bptIndex] = 2**112;
@@ -147,9 +146,6 @@ contract BalancerMarketMaker is Stabilizer {
         address self = address(this);
 
         if(sweep.isMintingAllowed()){
-            uint256 sweepLimit = sweep.minters(address(this)).maxAmount;
-            uint256 sweepAvailable = sweepLimit - sweepBorrowed;
-            if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
             if(sweepAmount > 0) _borrow(sweepAmount);
         } else {
             TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount);
