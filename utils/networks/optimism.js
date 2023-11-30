@@ -42,7 +42,6 @@ module.exports = {
         positions_manager: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
         quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
         observationCardinality: 480,
-        pool: ''
     },
 
     balancer: {

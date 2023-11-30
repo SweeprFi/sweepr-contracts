@@ -3,10 +3,11 @@
   "arbitrum":         110,
   "optimism":         111,
   "base":             184,
+  "avalanche":        106,
 
   "bsc":              102,
   "polygon":          109,
-  "avalanche":        106,
+  
   "linea":            183,
   "celo":             125,
   "canto":            159,

@@ -1,10 +1,10 @@
 const { ethers } = require("hardhat");
-const { addresses, network } = require("../../../utils/address");
-const { sleep } = require("../../../utils/helper_functions");
+const { tokens, network } = require("../../../utils/constants");
+const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
 	[deployer] = await ethers.getSigners();
-	const sweep = addresses.sweep;
+	const sweep = tokens.sweep;
 
 	console.log("===========================================");
 	console.log("TREASURY DEPLOY");
@@ -14,8 +14,8 @@ async function main() {
 	console.log("===========================================");
 	console.log("SweepAddress:", sweep);
 	console.log("===========================================");
-	console.log("Deploying in 5 seconds...");
-	await sleep(5);
+	const answer = (await ask("continue? y/n: "));
+  	if(answer !== 'y'){ process.exit(); }
 	console.log("Deploying...");
 
 

@@ -5,7 +5,7 @@ pragma solidity 0.8.19;
  * @dev Wrappers over Solidity's arithmetic operations with added overflow checks.
  * Adapted from OpenZeppelin's SafeMath library.
  */
-library Math {
+library BMath {
     // solhint-disable no-inline-assembly
 
     /**

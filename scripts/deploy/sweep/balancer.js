@@ -1,12 +1,10 @@
 const { ethers } = require("hardhat");
-const { addresses, network } = require("../../../utils/address");
-const { sleep } = require("../../../utils/helper_functions");
-const LZ_ENDPOINTS = require("../../../utils/layerzero/layerzeroEndpoints.json")
+const { tokens, network, layerZero } = require("../../../utils/constants");
+const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
   [deployer] = await ethers.getSigners();
-  const lzEndpointAddress = LZ_ENDPOINTS[hre.network.name];
-  const sweep = addresses.sweep;
+  const sweep = tokens.sweep;
 
   console.log("===========================================");
   console.log("BALANCER DEPLOY");
@@ -14,20 +12,20 @@ async function main() {
   console.log("Network:", network.name);
   console.log("Deployer:", deployer.address);
   console.log("===========================================");
-  console.log("lzEndpointAddress:", lzEndpointAddress);
+  console.log("lzEndpointAddress:", layerZero.endpoint);
   console.log("SweepAddress:", sweep);
   console.log("===========================================");
-  console.log("Deploying in 5 seconds...");
-  await sleep(5);
-  console.log("Deploying...");
+  const answer = (await ask("continue? y/n: "));
+  if(answer !== 'y'){ process.exit(); }
+	console.log("Deploying...");
 
 
   const Balancer = await ethers.getContractFactory("Balancer");
-  const balancer = await Balancer.deploy(sweep, lzEndpointAddress);
+  const balancer = await Balancer.deploy(sweep, layerZero.endpoint);
 
   console.log("===========================================");
   console.log("Balancer deployed to:", balancer.address);
-  console.log(`\nnpx hardhat verify --network ${network.name} ${balancer.address} ${sweep} ${lzEndpointAddress}`)
+  console.log(`\nnpx hardhat verify --network ${network.name} ${balancer.address} ${sweep} ${layerZero.endpoint}`)
 }
 
 main();

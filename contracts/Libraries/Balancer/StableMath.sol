@@ -36,21 +36,21 @@ library StableMath {
 
             for (uint256 j = 0; j < numTokens; j++) {
                 // (D_P * invariant) / (balances[j] * numTokens)
-                D_P = Math.divDown(Math.mul(D_P, invariant), Math.mul(balances[j], numTokens));
+                D_P = BMath.divDown(BMath.mul(D_P, invariant), BMath.mul(balances[j], numTokens));
             }
 
             prevInvariant = invariant;
 
-            invariant = Math.divDown(
-                Math.mul(
+            invariant = BMath.divDown(
+                BMath.mul(
                     // (ampTimesTotal * sum) / AMP_PRECISION + D_P * numTokens
-                    (Math.divDown(Math.mul(ampTimesTotal, sum), _AMP_PRECISION).add(Math.mul(D_P, numTokens))),
+                    (BMath.divDown(BMath.mul(ampTimesTotal, sum), _AMP_PRECISION).add(BMath.mul(D_P, numTokens))),
                     invariant
                 ),
                 // ((ampTimesTotal - _AMP_PRECISION) * invariant) / _AMP_PRECISION + (numTokens + 1) * D_P
                 (
-                    Math.divDown(Math.mul((ampTimesTotal - _AMP_PRECISION), invariant), _AMP_PRECISION).add(
-                        Math.mul((numTokens + 1), D_P)
+                    BMath.divDown(BMath.mul((ampTimesTotal - _AMP_PRECISION), invariant), _AMP_PRECISION).add(
+                        BMath.mul((numTokens + 1), D_P)
                     )
                 )
             );
@@ -319,32 +319,32 @@ library StableMath {
         uint256 sum = balances[0];
         uint256 P_D = balances[0] * balances.length;
         for (uint256 j = 1; j < balances.length; j++) {
-            P_D = Math.divDown(Math.mul(Math.mul(P_D, balances[j]), balances.length), invariant);
+            P_D = BMath.divDown(BMath.mul(BMath.mul(P_D, balances[j]), balances.length), invariant);
             sum = sum.add(balances[j]);
         }
-        // No need to use safe math, based on the loop above `sum` is greater than or equal to `balances[tokenIndex]`
+        // No need to use safe Bmath, based on the loop above `sum` is greater than or equal to `balances[tokenIndex]`
         sum = sum - balances[tokenIndex];
 
-        uint256 inv2 = Math.mul(invariant, invariant);
+        uint256 inv2 = BMath.mul(invariant, invariant);
         // We remove the balance from c by multiplying it
-        uint256 c = Math.mul(
-            Math.mul(Math.divUp(inv2, Math.mul(ampTimesTotal, P_D)), _AMP_PRECISION),
+        uint256 c = BMath.mul(
+            BMath.mul(BMath.divUp(inv2, BMath.mul(ampTimesTotal, P_D)), _AMP_PRECISION),
             balances[tokenIndex]
         );
-        uint256 b = sum.add(Math.mul(Math.divDown(invariant, ampTimesTotal), _AMP_PRECISION));
+        uint256 b = sum.add(BMath.mul(BMath.divDown(invariant, ampTimesTotal), _AMP_PRECISION));
 
         // We iterate to find the balance
         uint256 prevTokenBalance = 0;
         // We multiply the first iteration outside the loop with the invariant to set the value of the
         // initial approximation.
-        uint256 tokenBalance = Math.divUp(inv2.add(c), invariant.add(b));
+        uint256 tokenBalance = BMath.divUp(inv2.add(c), invariant.add(b));
 
         for (uint256 i = 0; i < 255; i++) {
             prevTokenBalance = tokenBalance;
 
-            tokenBalance = Math.divUp(
-                Math.mul(tokenBalance, tokenBalance).add(c),
-                Math.mul(tokenBalance, 2).add(b).sub(invariant)
+            tokenBalance = BMath.divUp(
+                BMath.mul(tokenBalance, tokenBalance).add(c),
+                BMath.mul(tokenBalance, 2).add(b).sub(invariant)
             );
 
             if (tokenBalance > prevTokenBalance) {

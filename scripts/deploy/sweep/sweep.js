@@ -1,11 +1,9 @@
 const { ethers, upgrades } = require('hardhat');
-const { addresses, network } = require("../../../utils/address");
-const { sleep } = require("../../../utils/helper_functions");
-const LZ_ENDPOINTS = require("../../../utils/layerzero/layerzeroEndpoints.json")
+const { network, layerZero, wallets } = require("../../../utils/constants");
+const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
 	[deployer] = await ethers.getSigners();
-	const lzEndpointAddress = LZ_ENDPOINTS[hre.network.name];
 	const stepValue = 70000; // 0.00274% daily rate ~ 4% yearly rate
 
 	console.log("===========================================");
@@ -14,19 +12,18 @@ async function main() {
 	console.log("Network:", network.name);
 	console.log("Deployer:", deployer.address);
 	console.log("===========================================");
-	console.log("lzEndpointAddress:", lzEndpointAddress);
-	console.log("Multisig:", addresses.multisig);
+	console.log("lzEndpointAddress:", layerZero.endpoint);
+	console.log("Multisig:", wallets.multisig);
 	console.log("StepValue:", stepValue);
 	console.log("===========================================");
-	console.log("Deploying in 5 seconds...");
-	await sleep(5);
+	const answer = (await ask("continue? y/n: "));
+  	if(answer !== 'y'){ process.exit(); }
 	console.log("Deploying...");
-
 
 	const sweepInstance = await ethers.getContractFactory("SweepCoin");
 	const sweep = await upgrades.deployProxy(sweepInstance, [
-		lzEndpointAddress,
-		addresses.multisig,
+		layerZero.endpoint,
+		wallets.multisig,
 		stepValue
 	], { initializer: 'initialize' });
 
