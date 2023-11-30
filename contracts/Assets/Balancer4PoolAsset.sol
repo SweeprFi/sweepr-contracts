@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ======================== BalancerAsset.sol =========================
+// ======================== Balancer4PoolAsset.sol =========================
 // ====================================================================
 
 /**
@@ -13,18 +13,24 @@ pragma solidity 0.8.19;
  * Collects fees from the LP.
  */
 
-import { Stabilizer, TransferHelper } from "../Stabilizer/Stabilizer.sol";
-import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "./Balancer/IBalancer.sol";
+import { Stabilizer, TransferHelper, IERC20Metadata } from "../Stabilizer/Stabilizer.sol";
+import { IBalancerGauge, IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "./Balancer/IBalancer.sol";
 
-contract BalancerAsset is Stabilizer {
+import "hardhat/console.sol";
 
-    error BadAddress(address asset);
+contract Balancer4PoolAsset is Stabilizer {
 
     IBalancerPool public pool;
     IBalancerVault public vault;
+    IBalancerGauge public gauge;
+
+    bytes32 public poolId;
+    IAsset[] public poolAssets;
+
+    uint8 public usdxIndexWithBPT;
+    uint8 public usdxIndexWithoutBPT;
 
     uint24 private constant PRECISION = 1e6;
-    uint256 private constant ACTION = 1;
 
     event Invested(uint256 indexed usdxAmount);
     event Divested(uint256 indexed usdxAmount);
@@ -33,12 +39,20 @@ contract BalancerAsset is Stabilizer {
         string memory _name,
         address _sweep,
         address _usdx,
-        address _oracleUsdx,
         address _poolAddress,
+        address _gaugeAddress,
+        address _oracleUsdx,
+        
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         pool = IBalancerPool(_poolAddress);
         vault = IBalancerVault(pool.getVault());
+        gauge = IBalancerGauge(_gaugeAddress);
+
+        poolId = pool.getPoolId();
+        (poolAssets, , ) = vault.getPoolTokens(poolId);
+        usdxIndexWithBPT = 1;
+        usdxIndexWithoutBPT = 0;
     }
 
     /* ========== Views ========== */
@@ -57,13 +71,16 @@ contract BalancerAsset is Stabilizer {
      * @return the amm usdx amount
      */
     function assetValue() public view returns (uint256) {    
-        return _oracleUsdxToUsd(bpt4BalanceInUsdx());
+        uint256 bptBalance = pool.balanceOf(address(this)) + gauge.balanceOf(address(this));
+        return _oracleUsdxToUsd(inUSDX(bptBalance));
     }
 
-    function bpt4BalanceInUsdx() private view returns (uint256) {
-        uint256 bpt4 = pool.balanceOf(address(this));
-        uint256 rate = pool.getRate();
-        return (bpt4 * rate * (10 ** usdx.decimals())) / (10 ** (pool.decimals() * 2));
+    function inUSDX(uint256 amount) private view returns (uint256) {
+        return (amount * pool.getRate() * (10 ** usdx.decimals())) / (10 ** (pool.decimals() * 2));
+    }
+
+    function inBPT(uint256 amount) private view returns (uint256) {
+        return (amount * (10 ** (pool.decimals() * 2))) / (pool.getRate() * (10 ** usdx.decimals()));
     }
 
     /* ========== Actions ========== */
@@ -87,69 +104,62 @@ contract BalancerAsset is Stabilizer {
     function divest(uint256 usdxAmount, uint256 slippage)
         external onlyBorrower nonReentrant
     {
-        emit Divested(_divest(usdxAmount, slippage));
+        _divest(usdxAmount, slippage);
     }
 
     function _invest(uint256 usdxAmount, uint256, uint256 slippage) internal override {
-        uint256 usdxBalance = usdx.balanceOf(address(this));
+        address self = address(this);
+
+        uint256 usdxBalance = usdx.balanceOf(self);
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
-
-        bytes32 poolId = pool.getPoolId();
-        address self = address(this);
-        
-        (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);
-        uint8 usdxIndex = findAssetIndex(address(usdx), assets);
-
         uint256[] memory amounts = new uint256[](5);
-        amounts[usdxIndex] = usdxAmount;
+        amounts[usdxIndexWithBPT] = usdxAmount;
+
         uint256[] memory userDataAmounts = new uint256[](4);
-        userDataAmounts[usdxIndex-1] = usdxAmount;
+        userDataAmounts[usdxIndexWithoutBPT] = usdxAmount;
 
-        uint256 usdxAmountOut = usdxAmount * (10 ** (pool.decimals()+12)) / pool.getTokenRate(address(usdx));
-        uint256 minAmountOut = usdxAmountOut * (PRECISION - slippage) / PRECISION;
+        uint256 bptAmount = inBPT(usdxAmount);
+        uint256 minAmountOut = bptAmount * (PRECISION - slippage) / PRECISION;
+
         bytes memory userData = abi.encode(JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT, userDataAmounts, minAmountOut);
+        IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(poolAssets, amounts, userData, false);
 
-        IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(assets, amounts, userData, false);
+        TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
         vault.joinPool(poolId, self, self, request);
+
+        uint256 bptBalance = pool.balanceOf(self);
+        TransferHelper.safeApprove(address(pool), address(gauge), bptBalance);
+        gauge.deposit(bptBalance);
 
         emit Invested(usdxAmount);
     }
 
     function _divest(uint256 usdxAmount, uint256 slippage) internal override returns (uint256) {
-        uint256 bpt4UsdxBalance = bpt4BalanceInUsdx();
-        if (bpt4UsdxBalance < usdxAmount) usdxAmount = bpt4UsdxBalance;
-
         address self = address(this);
-        bytes32 poolId = pool.getPoolId();
-        uint256 maxAmountIn = pool.balanceOf(self);
-        uint maxAmountOut = usdxAmount * (PRECISION - slippage) / PRECISION;
+        uint256 bptAmount = inBPT(usdxAmount);
+        uint256 gaugeBalance = gauge.balanceOf(self);
+        if (gaugeBalance < bptAmount) bptAmount = gaugeBalance;
 
-        (IAsset[] memory assets, , ) = vault.getPoolTokens(poolId);
-        uint8 usdxIndex = findAssetIndex(address(usdx), assets);
+        gauge.withdraw(bptAmount);
 
+        usdxAmount = inUSDX(bptAmount);
+        uint256 minUsdxAmountOut = usdxAmount * (PRECISION - slippage) / PRECISION;
         uint256[] memory amounts = new uint256[](5);
-        amounts[usdxIndex] = maxAmountOut;
+        amounts[usdxIndexWithBPT] = minUsdxAmountOut;
 
-        uint256[] memory userDataAmounts = new uint256[](4);
-        userDataAmounts[usdxIndex-1] = maxAmountOut;
+        bytes memory userData = abi.encode(ExitKind.EXACT_BPT_IN_FOR_ONE_TOKEN_OUT, bptAmount, usdxIndexWithoutBPT);
+        IBalancerVault.ExitPoolRequest memory request = IBalancerVault.ExitPoolRequest(poolAssets, amounts, userData, false);
 
-        bytes memory userData = abi.encode(ExitKind.BPT_IN_FOR_EXACT_TOKENS_OUT, userDataAmounts, maxAmountIn);
-
-        IBalancerVault.ExitPoolRequest memory request = IBalancerVault.ExitPoolRequest(assets, amounts, userData, false);
         vault.exitPool(poolId, self, self, request);
+
+        emit Divested(usdxAmount);
         return usdxAmount;
     }
 
-    function findAssetIndex(address asset, IAsset[] memory assets) internal pure returns (uint8) {
-        for (uint8 i = 0; i < assets.length; i++) {
-            if ( address(assets[i]) == asset ) {
-                return i;
-            }
-        }
-        revert BadAddress(asset);
+    function collect() external onlyBorrower nonReentrant {
+        gauge.claim_rewards();
     }
 
 }

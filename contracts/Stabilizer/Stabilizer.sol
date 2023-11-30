@@ -171,7 +171,19 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @dev this value have a precision of 6 decimals.
      */
     function getEquityRatio() public view returns (int256) {
-        return _calculateEquityRatio(0, 0);
+        uint256 totalValue = currentValue();
+
+        if (totalValue == 0) {
+            if (sweepBorrowed > 0) return -1e6;
+            else return 0;
+        }
+
+        uint256 seniorTrancheInUsd = sweep.convertToUSD(sweepBorrowed);
+        // 1e6 are decimals of the percentage result
+        int256 equityRatio = ((int256(totalValue) - int256(seniorTrancheInUsd)) * 1e6) / int256(totalValue);
+
+        if (equityRatio < -1e6) equityRatio = -1e6;
+        return equityRatio;
     }
 
     /**
@@ -362,10 +374,11 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         validAmount(sweepAmount)
         nonReentrant
     {
-        int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
-        if (currentEquityRatio < minEquityRatio) revert EquityRatioExcessed();
-
         _borrow(sweepAmount);
+
+        if (getEquityRatio() < minEquityRatio) {
+            revert EquityRatioExcessed();
+        }
     }
 
     /**
@@ -501,9 +514,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         if (msg.sender != sweep.balancer()) revert NotBalancer();
         if (!autoInvestEnabled) revert NotAutoInvest();
 
-        int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
-        if (currentEquityRatio < autoInvestMinRatio) revert NotAutoInvestMinRatio();
-
         uint256 sweepMinted = _borrow(sweepAmount);
         if (sweepMinted < autoInvestMinAmount) revert NotAutoInvestMinAmount();
 
@@ -513,6 +523,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         uint256 usdxAmount = _sell(sweepAmount, minAmountOut);
 
         _invest(usdxAmount, 0, slippage);
+
+        if (getEquityRatio() < autoInvestMinRatio){
+            revert NotAutoInvestMinRatio();
+        }
 
         emit AutoInvested(sweepAmount);
     }
@@ -614,8 +628,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         external onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant
         returns(uint256 usdxAmount)
     {
-        int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
-        if (currentEquityRatio < minEquityRatio) revert EquityRatioExcessed();
         _borrow(sweepAmount);
         
         if(useAMM){
@@ -627,6 +639,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         }
 
         _invest(usdxAmount, 0, slippage);
+
+        if (getEquityRatio() < minEquityRatio){
+            revert EquityRatioExcessed();
+        }
     }
 
     function oneStepDivest(uint256 usdxAmount, uint256 slippage, bool useAMM)
@@ -660,19 +676,11 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         if (amount > IERC20Metadata(token).balanceOf(address(this)))
             revert NotEnoughBalance();
 
-        if (sweepBorrowed > 0) {
-            if (token != address(sweep) && token != address(usdx))
-                revert InvalidToken();
-
-            uint256 usdAmount = token == address(sweep)
-                ? sweep.convertToUSD(amount)
-                : _oracleUsdxToUsd(amount);
-            int256 currentEquityRatio = _calculateEquityRatio(0, usdAmount);
-            if (currentEquityRatio < minEquityRatio)
-                revert EquityRatioExcessed();
-        }
-
         TransferHelper.safeTransfer(token, msg.sender, amount);
+
+        if (sweepBorrowed > 0 && getEquityRatio() < minEquityRatio) {
+            revert EquityRatioExcessed();
+        }
 
         emit Withdrawn(token, amount);
     }
@@ -802,9 +810,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         uint256 sweepAvailable = loanLimit - sweepBorrowed;
         if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
 
-        // int256 currentEquityRatio = _calculateEquityRatio(sweepAmount, 0);
-        // if (currentEquityRatio < ratio) revert EquityRatioExcessed();
-
         uint256 spreadAmount = accruedFee();
         sweep.mint(sweepAmount);
         sweepBorrowed += sweepAmount;
@@ -820,6 +825,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         }
 
         sweepMinted = sweepAmount;
+
+        // if (getEquityRatio() < minEquityRatio) {
+        //     revert EquityRatioExcessed();
+        // }
 
         emit Borrowed(sweepAmount);
     }
@@ -860,39 +869,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         if(!isDefaulted()) _stopAuction();
     }
 
-    /**
-     * @notice Calculate Equity Ratio
-     * Calculated the equity ratio based on the internal storage.
-     * @param sweepDelta Variation of SWEEP to recalculate the new equity ratio.
-     * @param usdDelta Variation of USD to recalculate the new equity ratio.
-     * @return the new equity ratio used to control the Mint and Withdraw functions.
-     * @dev Current Equity Ratio percentage has a precision of 4 decimals.
-     */
-    function _calculateEquityRatio(
-        uint256 sweepDelta,
-        uint256 usdDelta
-    ) internal view returns (int256) {
-        uint256 currentValue_ = currentValue();
-        uint256 sweepDeltaInUsd = sweep.convertToUSD(sweepDelta);
-        uint256 totalValue = currentValue_ + sweepDeltaInUsd - usdDelta;
-
-        if (totalValue == 0) {
-            if (sweepBorrowed > 0) return -1e6;
-            else return 0;
-        }
-
-        uint256 seniorTrancheInUsd = sweep.convertToUSD(
-            sweepBorrowed + sweepDelta
-        );
-
-        // 1e6 is decimals of the percentage result
-        int256 currentEquityRatio = ((int256(totalValue) -
-            int256(seniorTrancheInUsd)) * 1e6) / int256(totalValue);
-
-        if (currentEquityRatio < -1e6) currentEquityRatio = -1e6;
-
-        return currentEquityRatio;
-    }
+    
 
     /**
      * @notice Get Balances of the usdx and SWEEP.
