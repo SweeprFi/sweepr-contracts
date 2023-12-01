@@ -3,6 +3,13 @@ pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
+interface IBalancerGauge {
+    function claim_rewards() external;
+    function deposit(uint256 _amount) external;
+    function withdraw(uint256 _amount) external;
+    function balanceOf(address _address) external view returns(uint256 _balance);
+}
+
 interface IBalancerVault {
     struct JoinPoolRequest {
         IAsset[] assets;

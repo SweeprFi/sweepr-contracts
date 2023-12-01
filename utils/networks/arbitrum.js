@@ -37,17 +37,25 @@ module.exports = {
         wbtc: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
         dai: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
         gDai: '0xd85E038593d7A098614721EaE955EC2022B9B91B',
-        usdPlus: '0xe80772Eaf6e2E18B651F160Bc9158b2A5caFCA65',
         ets: '0x813fFCC4Af3e810E6b447235cC88A02f00454453',
+        arb: '0x912CE59144191C1204E64559FE8253a0e49E6548',
     },
 
     protocols: {
         aaveV3_pool: '0x794a61358D6845594F94dc1DB02A252b5b4814aD',
         glp_reward_router: '0xB95DB5B167D75e6d04227CfFFA61069348d271F5',
         gDai_open_trades: '0x990BA9Edd8a9615A23E4c452E63A80e519A4a23D',
-        usdPlus_exchanger: '0x73cb180bf0521828d8849bc8CF2B920918e23032',
         ets_exchanger: '0xc2c84ca763572c6aF596B703Df9232b4313AD4e3',
-        balancer_4pool_bpt: '0x423A1323c871aBC9d89EB06855bF5347048Fc4A5',
+
+        balancer: {
+            bpt_4pool: '0x423A1323c871aBC9d89EB06855bF5347048Fc4A5',
+            gauge_4pool: '0xa14453084318277b11d38fbe05d857a4f647442b',
+        },
+
+        overnight: {
+            usd_plus: '0xe80772Eaf6e2E18B651F160Bc9158b2A5caFCA65',
+            usd_plus_exchange: '0x73cb180bf0521828d8849bc8CF2B920918e23032',
+        },
     },
 
     chainlink: {

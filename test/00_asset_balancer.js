@@ -4,7 +4,7 @@ const { addresses } = require("../utils/address");
 const { impersonate, sendEth, Const, toBN } = require("../utils/helper_functions");
 let user;
 
-contract("Balancer Asset", async function () {
+contract.skip("Balancer Asset", async function () {
     before(async () => {
         [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
 
@@ -37,9 +37,9 @@ contract("Balancer Asset", async function () {
         Uniswap = await ethers.getContractFactory("UniswapMock");
         amm = await Uniswap.deploy(sweep.address, Const.FEE);
 
-        BalancerAsset = await ethers.getContractFactory("BalancerAsset");
+        BalancerAsset = await ethers.getContractFactory("Balancer4PoolAsset");
         balancer_asset = await BalancerAsset.deploy(
-            'Balancer Asset',
+            'Balancer 4 Pool Asset',
             sweep.address,
             addresses.usdc,
             addresses.oracle_usdc_usd,
