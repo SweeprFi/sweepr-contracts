@@ -56,6 +56,12 @@ module.exports = {
             usd_plus: '0xe80772Eaf6e2E18B651F160Bc9158b2A5caFCA65',
             usd_plus_exchange: '0x73cb180bf0521828d8849bc8CF2B920918e23032',
         },
+
+        silo: {
+            silo: '0xa8897b4552c075e884bdb8e7b704eb10db29bf0d',
+            lens: '0xBDb843c7a7e48Dc543424474d7Aa63b61B5D9536',
+            rewards: '0x4999873bF8741bfFFB0ec242AAaA7EF1FE74FCE8',
+        }
     },
 
     chainlink: {

@@ -1,0 +1,160 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.19;
+
+// ====================================================================
+// ========================== SiloAsset.sol ===========================
+// ====================================================================
+
+/**
+ * @title USDPlus Asset
+ * @dev Representation of an on-chain investment on Overnight finance.
+ */
+
+import { Stabilizer, IERC20Metadata, IAMM, TransferHelper, OvnMath } from "../Stabilizer/Stabilizer.sol";
+import { ISilo, ISiloLens } from "./Interfaces/Silo/ISilo.sol";
+
+contract SiloAsset is Stabilizer {
+    
+    error UnexpectedAmount();
+    
+    // Variables    
+    IERC20Metadata private immutable usdc_e;
+
+    ISilo private immutable silo;
+    ISiloLens private immutable lens;
+    uint24 private immutable poolFee;
+
+    // Events
+    event Invested(uint256 indexed usdxAmount);
+    event Divested(uint256 indexed usdxAmount);
+
+    constructor(
+        string memory _name,
+        address _sweep,
+        address _usdx,
+        address _usdc_e,
+        address _silo,
+        address _lens,
+        address _oracleUsdx,
+        address _borrower,
+        uint24 _poolFee
+    ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        usdc_e = IERC20Metadata(_usdc_e);
+        silo = ISilo(_silo);
+        lens = ISiloLens(_lens);
+        poolFee = _poolFee;
+    }
+
+    /* ========== Views ========== */
+
+    /**
+     * @notice Asset Value of investment.
+     * @return the Returns the value of the investment in the USD coin
+     */
+    function assetValue() public view override returns (uint256) {
+        return _oracleUsdxToUsd(getDepositAmount());
+    }
+
+    function getDepositAmount() public view returns (uint256) {
+        return lens.getDepositAmount(address(silo), address(usdc_e), address(this), block.timestamp);
+    }
+
+    /* ========== Actions ========== */
+
+    /**
+     * @notice Invest.
+     * @param usdxAmount Amount of usdx to be swapped for token.
+     * @dev Swap from usdx to token.
+     */
+    function invest(uint256 usdxAmount, uint256 slippage) 
+        external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount)
+    {
+        _invest(usdxAmount, 0, slippage);
+    }
+
+    /**
+     * @notice Divest.
+     * @param usdxAmount Amount to be divested.
+     * @dev Swap from the token to usdx.
+     */
+    function divest(uint256 usdxAmount, uint256 slippage)
+        external onlyBorrower nonReentrant validAmount(usdxAmount)
+        returns (uint256)
+    {
+        return _divest(usdxAmount, slippage);
+    }
+
+    /**
+     * @notice Liquidate
+     */
+    function liquidate() external nonReentrant {
+        if(auctionAllowed) revert ActionNotAllowed();
+        
+        // _liquidate(address(usdc_e), getDebt());
+        // liquidation is a divest followed by sending tokens to the liquidator
+        // silo does not provite a token
+    }
+
+    /* ========== Internals ========== */
+
+    function _getToken() internal view override returns (address) {
+        return address(usdc_e);
+    }
+
+    function _invest(uint256 usdxAmount, uint256, uint256 slippage)
+        internal override 
+    {
+        uint256 usdxBalance = usdx.balanceOf(address(this));
+        if (usdxBalance == 0) revert NotEnoughBalance();
+        if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
+
+        // Swap native USDx to USDC.e
+        IAMM _amm = amm();
+        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
+        uint256 usdceAmount = _amm.swapExactInput(
+            address(usdx),
+            address(usdc_e),
+            poolFee,
+            usdxAmount,
+            OvnMath.subBasisPoints(usdxAmount, slippage)
+        );
+
+        // deposits into SILO
+        TransferHelper.safeApprove(address(usdc_e), address(silo), usdceAmount);
+        (uint256 collateralAmount,) = silo.deposit(address(usdc_e), usdceAmount, false);
+
+        if(collateralAmount < usdceAmount) {
+            revert UnexpectedAmount();
+        }
+
+        emit Invested(usdceAmount);
+    }
+
+    function _divest(
+        uint256 usdxAmount,
+        uint256 slippage
+    ) internal override returns (uint256 divestedAmount) {
+        uint256 depositedAmount = getDepositAmount();
+        if(depositedAmount < usdxAmount) usdxAmount = depositedAmount;
+
+        // withdraw from SILO
+        (uint256 withdrawnAmount,) = silo.withdraw(address(usdc_e), usdxAmount, false);
+        // Check return amount
+        if(withdrawnAmount < usdxAmount) {
+            revert UnexpectedAmount();
+        }
+
+        // Swap native USDC.e to USDx
+        IAMM _amm = amm();
+        TransferHelper.safeApprove(address(usdc_e), address(_amm), usdxAmount);
+        divestedAmount = _amm.swapExactInput(
+            address(usdc_e),
+            address(usdx),
+            poolFee,
+            usdxAmount,
+            OvnMath.subBasisPoints(usdxAmount, slippage)
+        );
+
+        emit Divested(divestedAmount);
+    }
+}
