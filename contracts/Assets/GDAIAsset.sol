@@ -10,9 +10,9 @@ pragma solidity 0.8.19;
  * @dev Representation of an on-chain investment on gTrade.
  */
 
-import "./GDAI/IGToken.sol";
-import "./DAI/IPsm.sol";
-import "./GDAI/IOpenTradesPnlFeed.sol";
+import "./Interfaces/GDAI/IGToken.sol";
+import "./Interfaces/DAI/IPsm.sol";
+import "./Interfaces/GDAI/IOpenTradesPnlFeed.sol";
 import "../Stabilizer/Stabilizer.sol";
 
 contract GDAIAsset is Stabilizer {
@@ -64,20 +64,11 @@ contract GDAIAsset is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Current Value of investment.
-     * @return total with 6 decimal to be compatible with dollar coins.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUSD;
-    }
-
-    /**
      * @notice Asset Value of investment.
      * @return the Returns the value of the investment in the USD coin
      * @dev the price is obtained from Chainlink
      */
-    function assetValue() public view returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         uint256 gDaiBalance = gDai.balanceOf(address(this));
         uint256 daiBalance = gDai.previewRedeem(gDaiBalance);
 

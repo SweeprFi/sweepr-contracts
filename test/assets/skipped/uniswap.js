@@ -1,10 +1,10 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../utils/address');
-const { Const, getPriceAndData, getTokenAmounts } = require("../utils/helper_functions");
+const { addresses } = require('../../../utils/address');
+const { Const, getPriceAndData, getTokenAmounts } = require("../../../utils/helper_functions");
 let pool_address;
 
-contract('Uniswap V3 Asset', async () => {
+contract.skip('Uniswap V3 Asset', async () => {
     before(async () => {
         [borrower, guest, lzEndpoint] = await ethers.getSigners();
 

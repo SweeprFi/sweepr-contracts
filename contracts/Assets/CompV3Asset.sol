@@ -5,7 +5,7 @@ pragma solidity 0.8.19;
 // ========================= CompV3Asset.sol ==========================
 // ====================================================================
 
-import "./Compound/IcUSDC.sol";
+import "./Interfaces/Compound/IcUSDC.sol";
 import "../Stabilizer/Stabilizer.sol";
 
 /**
@@ -35,20 +35,11 @@ contract CompV3Asset is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Current Value
-     * @return total with 6 decimal to be compatible with dollar coins.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUsd = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUsd;
-    }
-
-    /**
      * @notice Current Value of investment.
      * @return the asset value
      * @dev the value of investment is calculated from cUsdc balance.
      */
-    function assetValue() public view returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         uint256 cUsdcBalance = cUsdc.balanceOf(address(this));
         // All numbers given are in USDX unless otherwise stated
         return _oracleUsdxToUsd(cUsdcBalance);

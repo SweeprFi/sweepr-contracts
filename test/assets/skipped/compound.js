@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
-const { addresses } = require("../utils/address");
-const { impersonate, increaseTime, Const, sendEth, toBN } = require("../utils/helper_functions");
+const { addresses } = require("../../../utils/address");
+const { impersonate, increaseTime, Const, sendEth, toBN } = require("../../../utils/helper_functions");
 
 contract.skip('Compound V3 Asset', async () => {
     before(async () => {

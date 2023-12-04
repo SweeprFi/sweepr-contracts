@@ -12,7 +12,7 @@ pragma solidity 0.8.19;
  */
 
 import "../Stabilizer/Stabilizer.sol";
-import "./Aave/IAaveV3Pool.sol";
+import "./Interfaces/Aave/IAaveV3Pool.sol";
 
 contract AaveV3Asset is Stabilizer {
     IERC20 private immutable aaveUsdx;
@@ -38,21 +38,11 @@ contract AaveV3Asset is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Get Current Value
-     * @return uint256 Current Value.
-     * @dev this value represents the invested amount plus the staked amount in the contract.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUsd = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUsd;
-    }
-
-    /**
      * @notice Get Asset Value
      * @return uint256 Asset Amount.
      * @dev the invested amount in USDX on the Aave V3 pool.
      */
-    function assetValue() public view returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         uint256 aaveUsdxBalance = aaveUsdx.balanceOf(address(this));
         // All numbers given are in USDX unless otherwise stated
         return _oracleUsdxToUsd(aaveUsdxBalance);

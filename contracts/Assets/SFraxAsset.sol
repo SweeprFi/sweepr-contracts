@@ -10,8 +10,7 @@ pragma solidity 0.8.19;
  * @dev Representation of an on-chain investment
  */
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import { IERC20Metadata } from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
-import { Stabilizer, IPriceFeed, IAMM, ChainlinkLibrary, OvnMath, TransferHelper } from "../Stabilizer/Stabilizer.sol";
+import { Stabilizer, IPriceFeed, IAMM, ChainlinkLibrary, OvnMath, TransferHelper, IERC20Metadata } from "../Stabilizer/Stabilizer.sol";
 
 contract SFraxAsset is Stabilizer {
     
@@ -46,24 +45,15 @@ contract SFraxAsset is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Current Value of investment.
-     * @return total with 6 decimal to be compatible with dollar coins.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
-        uint256 assetValueInUSD = super._oracleUsdxToUsd(assetValue());
-        return assetValueInUSD + super.currentValue() - accruedFeeInUSD;
-    }
-
-    /**
      * @notice Asset Value of investment.
      * @return the Returns the value of the investment in the USD coin
      * @dev the price is obtained from the target asset
      */
-    function assetValue() public view virtual returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         uint256 sharesBalance = asset.balanceOf(address(this));
-        // All numbers given are in USDX unless otherwise stated
-        return asset.convertToAssets(sharesBalance);
+        uint256 assetsBalance = asset.convertToAssets(sharesBalance);
+
+        return _oracleUsdxToUsd(assetsBalance);
     }
 
     /* ========== Actions ========== */

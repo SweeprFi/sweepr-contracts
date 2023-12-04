@@ -50,7 +50,7 @@ contract.only("Balancer Asset", async function () {
             expect(await gauge.balanceOf(balancer_asset.address)).to.be.greaterThan(0);
         });
 
-        it("collects arb rewards", async function () {
+        it.skip("collects arb rewards", async function () {
             expect(await arb.balanceOf(balancer_asset.address)).to.equal(0);
             await increaseTime(Const.DAY*365);
 

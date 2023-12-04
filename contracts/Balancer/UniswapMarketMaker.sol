@@ -62,20 +62,11 @@ contract UniswapMarketMaker is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Get Current Value
-     * @return uint256 Current Value.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUsd = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUsd;
-    }
-
-    /**
      * @notice Get Asset Value
      * @return uint256 Asset Amount.
      * @dev the LPs amount in USDX.
      */
-    function assetValue() public view returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         uint256 len = positionIds.length;
         uint256 usdxAmount;
         uint256 sweepAmount;

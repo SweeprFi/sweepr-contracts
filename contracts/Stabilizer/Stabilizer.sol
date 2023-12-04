@@ -216,12 +216,13 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * value = sweep balance + usdx balance
      * @return uint256.
      */
-    function currentValue() public view virtual returns (uint256) {
+    function currentValue() public view returns (uint256) {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
         uint256 sweepInUsd = sweep.convertToUSD(sweepBalance);
         uint256 usdxInUsd = _oracleUsdxToUsd(usdxBalance);
+        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
 
-        return usdxInUsd + sweepInUsd;
+        return assetValue() + usdxInUsd + sweepInUsd - accruedFeeInUSD;
     }
 
     /**
@@ -669,10 +670,9 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @param amount.
      * @dev Decreases the sweep balance.
      */
-    function withdraw(
-        address token,
-        uint256 amount
-    ) external onlyBorrower whenNotPaused validAmount(amount) nonReentrant {
+    function withdraw(address token, uint256 amount) 
+        external onlyBorrower whenNotPaused validAmount(amount) nonReentrant
+    {    
         if (amount > IERC20Metadata(token).balanceOf(address(this)))
             revert NotEnoughBalance();
 
@@ -689,7 +689,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @notice Start auction
      * Initiates a dutch auction for liquidation.
      */
-    function startAuction() external {
+    function startAuction() external nonReentrant {
         if (!isDefaulted()) revert NotDefaulted();
         if(!auctionAllowed || startingPrice > 0) revert ActionNotAllowed();
 
@@ -711,6 +711,8 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     /* ========== Internals ========== */
 
+    function assetValue() public view virtual returns (uint256) { return 0; }
+
     /**
      * @notice Invest To Asset.
      */
@@ -724,7 +726,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     /**
      * @notice Get asset address to liquidate.
      */
-    function _getToken() internal virtual returns (address) {}
+    function _getToken() internal view virtual returns (address) {}
 
     /**
      * @notice Stop the auction.
