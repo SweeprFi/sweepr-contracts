@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers, upgrades } = require("hardhat");
-const { addresses } = require('../utils/address');
-const { toBN, Const } = require("../utils/helper_functions");
+const { addresses } = require('../../utils/address');
+const { toBN, Const } = require("../../utils/helper_functions");
 
 const chainIdSrc = 1;
 const chainIdDst = 2;

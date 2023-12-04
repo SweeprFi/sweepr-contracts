@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../utils/address");
-const { toBN, Const, increaseTime, getPriceAndData } = require("../utils/helper_functions");
+const { addresses } = require("../../utils/address");
+const { toBN, Const, increaseTime, getPriceAndData } = require("../../utils/helper_functions");
 
 contract("Uniswap AMM", async function () {
   before(async () => {

@@ -1,8 +1,8 @@
 const { expect } = require('chai');
 const { ethers } = require("hardhat");
-const { addresses } = require("../utils/address");
+const { addresses } = require("../../utils/address");
 const { time } = require('@openzeppelin/test-helpers');
-const { impersonate, Const, toBN } = require('../utils/helper_functions');
+const { impersonate, Const, toBN } = require('../../utils/helper_functions');
 let account;
 
 contract('Sweepr Governance', async (accounts) => {

@@ -22,12 +22,15 @@ contract('Balancer Market Maker', async () => {
     usdc = await ethers.getContractAt("ERC20", USDC_ADDRESS);
     factory = await ethers.getContractAt("IComposableStablePoolFactory", balancer.factory);
 
+    Oracle = await ethers.getContractFactory("AggregatorMock");
+    usdcOracle = await Oracle.deploy();
+
     AMM = await ethers.getContractFactory("BalancerAMM");
     amm = await AMM.deploy(
       SWEEP_ADDRESS,
       USDC_ADDRESS,
       chainlink.sequencer,
-      chainlink.usdc_usd,
+      usdcOracle.address,
       86400
     )
 

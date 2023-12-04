@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../utils/address");
-const { impersonate, Const, toBN, sendEth, getBlockTimestamp } = require("../utils/helper_functions");
+const { addresses } = require("../../utils/address");
+const { impersonate, Const, toBN, sendEth, getBlockTimestamp } = require("../../utils/helper_functions");
 
 contract("Off-Chain Asset", async function (accounts) {
     before(async () => {
@@ -20,11 +20,7 @@ contract("Off-Chain Asset", async function (accounts) {
         usdx = await Token.attach(addresses.usdc);
 
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [
-            LZENDPOINT,
-            addresses.owner,
-            2500 // 0.25%
-        ]);
+        const Proxy = await upgrades.deployProxy(Sweep, [LZENDPOINT, addresses.owner, 2500]);
         sweep = await Proxy.deployed();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");

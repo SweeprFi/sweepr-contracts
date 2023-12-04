@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../utils/address');
-const { increaseTime, impersonate, Const, toBN, getBlockTimestamp } = require("../utils/helper_functions");
+const { addresses } = require('../../utils/address');
+const { increaseTime, impersonate, Const, toBN, getBlockTimestamp } = require("../../utils/helper_functions");
 
 contract("Stabilizer and spread", async function () {
   before(async () => {

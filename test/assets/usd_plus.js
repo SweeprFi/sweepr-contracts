@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses, chainId } = require("../utils/address");
-const { impersonate, Const, toBN, resetNetwork, sendEth } = require("../utils/helper_functions");
+const { addresses, chainId } = require("../../utils/address");
+const { impersonate, Const, toBN, resetNetwork, sendEth } = require("../../utils/helper_functions");
 
 contract("USDPlus Asset", async function () {
     before(async () => {
@@ -86,14 +86,11 @@ contract("USDPlus Asset", async function () {
     });
 
     describe("invest and divest functions", async function () {
-        it('deposit usdc.e to the asset', async () => {
+        it("invest correctly", async function () {
             user = await impersonate(addresses.usdc_e);
             await sendEth(user.address);
             await usdcE.connect(user).transfer(asset.address, depositAmount);
-            expect(await usdcE.balanceOf(asset.address)).to.equal(depositAmount);
-        });
 
-        it("invest correctly", async function () {
             usdPlusBalance = await usdPlus.balanceOf(asset.address);
             expect(usdPlusBalance).to.equal(Const.ZERO);
 
@@ -131,11 +128,7 @@ contract("USDPlus Asset", async function () {
 
             // redeploy contracts to the latest block
             Sweep = await ethers.getContractFactory("SweepMock");
-            const Proxy = await upgrades.deployProxy(Sweep, [
-                lzEndpoint.address,
-                borrower.address,
-                2500 // 0.25%
-            ]);
+            const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, borrower.address, 2500]);
             sweep = await Proxy.deployed();
             await sweep.setTreasury(addresses.treasury);
 

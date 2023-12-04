@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../utils/address");
-const { Const, toBN, getBlockTimestamp } = require("../utils/helper_functions");
+const { addresses } = require("../../utils/address");
+const { Const, toBN, getBlockTimestamp } = require("../../utils/helper_functions");
 
 contract("Off-Chain Asset - Settings", async function () {
 	before(async () => {
@@ -14,11 +14,7 @@ contract("Off-Chain Asset - Settings", async function () {
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepMock");
-		const Proxy = await upgrades.deployProxy(Sweep, [
-			lzEndpoint.address,
-            owner.address,
-            2500 // 0.25%
-		]);
+		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 2500]);
 		sweep = await Proxy.deployed();
 
 		Token = await ethers.getContractFactory("USDCMock");
@@ -38,31 +34,6 @@ contract("Off-Chain Asset - Settings", async function () {
 			addresses.oracle_usdc_usd,
 			borrower.address
 		);
-
-		await offChainAsset.connect(borrower).configure(
-			Const.RATIO,
-			Const.spreadFee,
-			maxBorrow,
-			Const.ZERO,
-			Const.DAY,
-			Const.RATIO,
-			maxBorrow,
-			Const.ZERO,
-			Const.TRUE,
-			Const.FALSE,
-			Const.URL
-		);
-
-		// usd to the borrower to he can invest
-		await usdx.transfer(borrower.address, 50e6);
-		await sweep.transfer(borrower.address, maxBorrow);
-
-		// owner/borrower/asset approve stabilizer to spend
-		await usdx.approve(offChainAsset.address, usdxAmount);
-		await usdx.connect(borrower).approve(offChainAsset.address, usdxAmount);
-
-		// add stabilizer to whitelist
-		await sweep.addMinter(offChainAsset.address, maxBorrow);
 	});
 
 	describe("settings functions", async function () {

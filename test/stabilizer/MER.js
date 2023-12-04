@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
-const { addresses } = require("../utils/address");
-const { impersonate, toBN, sendEth, Const } = require("../utils/helper_functions");
+const { addresses } = require("../../utils/address");
+const { impersonate, toBN, sendEth, Const } = require("../../utils/helper_functions");
 
 contract('Stabilizer - Minimum equity ratio', async () => {
   before(async () => {

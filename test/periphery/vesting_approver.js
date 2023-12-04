@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { Const, toBN, increaseTime, getBlockTimestamp } = require("../utils/helper_functions");
+const { Const, toBN, increaseTime, getBlockTimestamp } = require("../../utils/helper_functions");
 
 contract("VestingApprover", async function () {
 	before(async () => {

@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../utils/address');
-const { impersonate, Const, toBN, sendEth, getBlockTimestamp, unpauseAave } = require("../utils/helper_functions");
+const { addresses } = require('../../utils/address');
+const { impersonate, Const, toBN, sendEth, getBlockTimestamp, unpauseAave } = require("../../utils/helper_functions");
 let user;
 
 contract('Balancer - Auto Call', async () => {

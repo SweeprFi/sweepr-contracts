@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers, upgrades } = require("hardhat");
-const { toBN, increaseTime, Const, sendEth } = require("../utils/helper_functions");
+const { toBN, increaseTime, Const, sendEth } = require("../../utils/helper_functions");
 
 const chainIdSrc = 1;
 const chainIdDst = 2;

@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { Const } = require("../utils/helper_functions");
+const { Const } = require("../../utils/helper_functions");
 
 contract("TokenDistributor", async function () {
 	before(async () => {

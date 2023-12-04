@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../utils/address');
-const { impersonate, Const, sendEth, toBN, unpauseAave } = require("../utils/helper_functions");
+const { addresses } = require('../../utils/address');
+const { impersonate, Const, sendEth, toBN, unpauseAave } = require("../../utils/helper_functions");
 
 contract('Balancer - Auto Invests', async () => {
     before(async () => {

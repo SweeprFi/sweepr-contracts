@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { addresses, chainId } = require("../../../utils/address");
 const { impersonate, sendEth, increaseTime, Const, toBN, getBlockTimestamp } = require("../../../utils/helper_functions");
 
-contract.only("Backed IB01 Asset", async function () {
+contract("Backed IB01 Asset", async function () {
   if (Number(chainId) !== 1) return;
 
   before(async () => {
