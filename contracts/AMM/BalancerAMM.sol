@@ -15,7 +15,7 @@ import { IERC20Metadata } from "@openzeppelin/contracts/interfaces/IERC20Metadat
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import { ISweep } from "../Sweep/ISweep.sol";
-import { IAsset, SingleSwap, FundManagement, SwapKind, IBalancerVault, IBalancerPool } from "../Assets/Balancer/IBalancer.sol";
+import { IAsset, SingleSwap, FundManagement, SwapKind, IBalancerVault, IBalancerPool } from "../Assets/Interfaces/Balancer/IBalancer.sol";
 import { StableMath } from "../Libraries/Balancer/StableMath.sol";
 
 contract BalancerAMM {

@@ -81,7 +81,7 @@ contract("Backed IB01 Asset", async function () {
       expect(await sweep.balanceOf(asset.address)).to.below(borrowAmount);
     });
 
-    it("deafult the asset correctly", async function () {
+    it("default the asset correctly", async function () {
       await balancer.addActions([asset.address], [borrowAmount]);
       await balancer.execute(2, true, 1e6, 2000);
       await increaseTime(Const.DAY * 7);

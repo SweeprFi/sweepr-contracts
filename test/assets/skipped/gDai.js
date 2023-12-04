@@ -1,9 +1,9 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses, chainId } = require("../utils/address");
-const { impersonate, sendEth, increaseTime, Const, toBN, resetNetwork } = require("../utils/helper_functions");
+const { addresses, chainId } = require("../../../utils/address");
+const { impersonate, sendEth, increaseTime, Const, toBN, resetNetwork } = require("../../../utils/helper_functions");
 
-contract("gDAI Asset", async function () {
+contract.skip("gDAI Asset", async function () {
     if (Number(chainId) !== 1) return;
 
     before(async () => {

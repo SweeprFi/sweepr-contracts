@@ -14,9 +14,8 @@ pragma solidity 0.8.19;
  */
 
 import { Stabilizer, TransferHelper, IERC20Metadata } from "../Stabilizer/Stabilizer.sol";
-import { IBalancerGauge, IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "./Balancer/IBalancer.sol";
+import { IBalancerGauge, IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "./Interfaces/Balancer/IBalancer.sol";
 
-import "hardhat/console.sol";
 
 contract Balancer4PoolAsset is Stabilizer {
 
@@ -55,25 +54,7 @@ contract Balancer4PoolAsset is Stabilizer {
         usdxIndexWithoutBPT = 0;
     }
 
-    /* ========== Views ========== */
-
-    /**
-     * @notice Current Value of investment.
-     * @return total with 6 decimal to be compatible with dollar coins.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUSD;
-    }
-
-    /**
-     * @notice Gets the asset price of AMM
-     * @return the amm usdx amount
-     */
-    function assetValue() public view returns (uint256) {    
-        uint256 bptBalance = pool.balanceOf(address(this)) + gauge.balanceOf(address(this));
-        return _oracleUsdxToUsd(inUSDX(bptBalance));
-    }
+    /* ========== Private ========== */    
 
     function inUSDX(uint256 amount) private view returns (uint256) {
         return (amount * pool.getRate() * (10 ** usdx.decimals())) / (10 ** (pool.decimals() * 2));
@@ -84,6 +65,19 @@ contract Balancer4PoolAsset is Stabilizer {
     }
 
     /* ========== Actions ========== */
+
+    /**
+     * @notice Gets the asset price of AMM
+     * @return the amm usdx amount
+     */
+    function assetValue() public view override returns (uint256) {    
+        uint256 bptBalance = pool.balanceOf(address(this)) + gauge.balanceOf(address(this));
+        return _oracleUsdxToUsd(inUSDX(bptBalance));
+    }
+
+    function collect() external onlyBorrower nonReentrant {
+        gauge.claim_rewards();
+    }
 
     /**
      * @notice Increases liquidity in the current range
@@ -106,6 +100,8 @@ contract Balancer4PoolAsset is Stabilizer {
     {
         _divest(usdxAmount, slippage);
     }
+
+    /** ========= Internal Overrides ========== **/
 
     function _invest(uint256 usdxAmount, uint256, uint256 slippage) internal override {
         address self = address(this);
@@ -158,8 +154,9 @@ contract Balancer4PoolAsset is Stabilizer {
         return usdxAmount;
     }
 
-    function collect() external onlyBorrower nonReentrant {
-        gauge.claim_rewards();
+
+    function _getToken() internal view override returns (address) {
+        return address(gauge);
     }
 
 }

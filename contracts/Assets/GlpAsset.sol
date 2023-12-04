@@ -10,9 +10,9 @@ pragma solidity 0.8.19;
  * @dev Representation of an on-chain investment on GMX
  */
 
-import "./GMX/IGlpManager.sol";
-import "./GMX/IRewardRouter.sol";
-import "./GMX/IRewardTracker.sol";
+import "./Interfaces/GMX/IGlpManager.sol";
+import "./Interfaces/GMX/IRewardRouter.sol";
+import "./Interfaces/GMX/IRewardTracker.sol";
 import "../Stabilizer/Stabilizer.sol";
 
 contract GlpAsset is Stabilizer {
@@ -51,19 +51,10 @@ contract GlpAsset is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Get Current Value
-     * @return uint256.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUSD;
-    }
-
-    /**
      * @notice Gets the current value in USDX of this OnChainAsset
      * @return the current usdx amount
      */
-    function assetValue() public view returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         // Get staked GLP value in USDX
         uint256 glpBalance = stakedGlpTracker.balanceOf(address(this));
         uint256 stakedInUsd = getUsdAmount(glpBalance);

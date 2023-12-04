@@ -9,8 +9,8 @@ pragma solidity 0.8.19;
  * @title Maple Asset
  * @dev Representation of an on-chain investment
  */
-import "./Maple/IWithdrawalManager.sol";
-import "./Maple/IMaplePool.sol";
+import "./Interfaces/Maple/IWithdrawalManager.sol";
+import "./Interfaces/Maple/IMaplePool.sol";
 import "./ERC4626Asset.sol";
 
 contract MapleAsset is ERC4626Asset {

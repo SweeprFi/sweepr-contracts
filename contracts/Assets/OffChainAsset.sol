@@ -55,18 +55,9 @@ contract OffChainAsset is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Get Current Value
-     * @return uint256.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUSD;
-    }
-
-    /**
      * @notice Asset Value of investment.
      */
-    function assetValue() public view returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         return _oracleUsdxToUsd(actualValue);
     }
 

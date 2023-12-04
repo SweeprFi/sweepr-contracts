@@ -12,7 +12,7 @@ pragma solidity 0.8.19;
  */
 
 import { Stabilizer, TransferHelper, ISweep } from "../Stabilizer/Stabilizer.sol";
-import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "../Assets/Balancer/IBalancer.sol";
+import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "../Assets/Interfaces/Balancer/IBalancer.sol";
 
 contract BalancerMarketMaker is Stabilizer {
 
@@ -55,19 +55,10 @@ contract BalancerMarketMaker is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Current Value of investment.
-     * @return total with 6 decimal to be compatible with dollar coins.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUSD;
-    }
-
-    /**
      * @notice Gets the asset price of AMM
      * @return the amm usdx amount
      */
-    function assetValue() public view returns (uint256) {    
+    function assetValue() public view override returns (uint256) {    
         uint256 bpt = pool.balanceOf(address(this));
         uint256 rate = pool.getRate();
 

@@ -43,20 +43,11 @@ contract BackedAsset is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Current Value of investment.
-     * @return total with 6 decimal to be compatible with dollar coins.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUsd = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUsd;
-    }
-
-    /**
      * @notice Asset Value of investment.
      * @return the Returns the value of the investment in the USD coin
      * @dev the price is obtained from Chainlink
      */
-    function assetValue() public view returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         uint256 tokenBalance = token.balanceOf(address(this));
         // All numbers given are in USDX unless otherwise stated
         return _oracleTokenToUsd(tokenBalance);

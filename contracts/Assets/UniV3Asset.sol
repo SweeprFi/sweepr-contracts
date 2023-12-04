@@ -70,19 +70,10 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Current Value of investment.
-     * @return total with 6 decimal to be compatible with dollar coins.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUSD;
-    }
-
-    /**
      * @notice Gets the asset price of AMM
      * @return the amm usdx amount
      */
-    function assetValue() public view returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         if (tokenId == 0) return 0;
 
         (uint256 usdxAmount, uint256 sweepAmount,) = amm().getPositions(tokenId);

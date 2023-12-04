@@ -11,7 +11,7 @@ pragma solidity 0.8.19;
  */
 
 import "../Stabilizer/Stabilizer.sol";
-import "../Assets/Overnight/IExchanger.sol";
+import "../Assets/Interfaces/Overnight/IExchanger.sol";
 
 contract USDPlusAssetMock is Stabilizer {
     // Variables
@@ -47,19 +47,10 @@ contract USDPlusAssetMock is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Current Value of investment.
-     * @return total with 6 decimal to be compatible with dollar coins.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUSD = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUSD;
-    }
-
-    /**
      * @notice Asset Value of investment.
      * @return the Returns the value of the investment in the USD coin
      */
-    function assetValue() public view returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         uint256 tokenBalance = token.balanceOf(address(this));
         uint256 redeemFee = exchanger.redeemFee();
         uint256 redeemFeeDenominator = exchanger.redeemFeeDenominator();

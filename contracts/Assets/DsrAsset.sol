@@ -10,9 +10,9 @@ pragma solidity 0.8.19;
  * @dev Representation of an on-chain investment on a DAI
  */
 
-import "./DAI/IDsrManager.sol";
-import "./DAI/IPot.sol";
-import "./DAI/IPsm.sol";
+import "./Interfaces/DAI/IDsrManager.sol";
+import "./Interfaces/DAI/IPot.sol";
+import "./Interfaces/DAI/IPsm.sol";
 import "../Libraries/RMath.sol";
 import "../Stabilizer/Stabilizer.sol";
 
@@ -55,21 +55,11 @@ contract DsrAsset is Stabilizer {
     /* ========== Views ========== */
 
     /**
-     * @notice Get Current Value
-     * @return uint256 Current Value.
-     * @dev this value represents the invested amount plus the staked amount in the contract.
-     */
-    function currentValue() public view override returns (uint256) {
-        uint256 accruedFeeInUsd = sweep.convertToUSD(accruedFee());
-        return assetValue() + super.currentValue() - accruedFeeInUsd;
-    }
-
-    /**
      * @notice Get Asset Value
      * @return uint256 Asset Amount.
      * @dev the invested amount in USDX on the DSR.
      */
-    function assetValue() public view returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         uint256 daiAmount = dsrManager.pieOf(address(this));
         uint256 chi = pot.chi();
         daiAmount = RMath.rmul(chi, daiAmount); // included reward
