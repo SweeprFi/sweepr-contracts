@@ -1,10 +1,10 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../utils/address');
-const { Const, getPriceAndData, toBN } = require("../utils/helper_functions");
+const { addresses } = require('../../utils/address');
+const { Const, getPriceAndData, toBN } = require("../../utils/helper_functions");
 let poolAddress;
 
-contract('Uniswap Market Maker', async () => {
+contract.only('Uniswap Market Maker', async () => {
   before(async () => {
     [owner, borrower, treasury, guest, lzEndpoint, multisig] = await ethers.getSigners();
   
@@ -68,6 +68,7 @@ contract('Uniswap Market Maker', async () => {
   describe("main functions", async function () {
     it('create the pool and adds liquidity', async () => {
       expect(await factory.getPool(usdc.address, sweep.address, Const.FEE)).to.equal(Const.ADDRESS_ZERO);
+      expect(await marketmaker.assetValue()).to.equal(0);
 
       const { token0, token1, sqrtPriceX96 } = getPriceAndData(sweep.address, usdc.address, sweepAmount, usdxAmount);
 
@@ -103,7 +104,7 @@ contract('Uniswap Market Maker', async () => {
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
     });
 
-    it('change the price swaping and add liquidity again', async () => {
+    it('changes the price swaping and add liquidity again', async () => {
       ammPrice = await sweep.ammPrice()
       usdcBefore = await usdc.balanceOf(marketmaker.address);
       sweepBefore = await sweep.balanceOf(marketmaker.address);
@@ -158,6 +159,43 @@ contract('Uniswap Market Maker', async () => {
       expect(await sweep.balanceOf(borrower.address)).to.equal(buyAmount);
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(usdcPoolBalance);
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
+    });
+
+    it('adds single side liquidty correctly', async () => {
+      usdcPoolBalance = await usdc.balanceOf(poolAddress);
+      assetValue = await marketmaker.assetValue();
+      singleAmount0 = toBN("3000", 6);
+      tickSpread = 1000;
+
+      await usdc.approve(marketmaker.address, singleAmount0);
+      await marketmaker.addSingleLiquidity(singleAmount0, tickSpread);
+      position0 = await marketmaker.positionIds(0);
+
+      usdcBalance = await usdc.balanceOf(poolAddress);
+      expect(usdcBalance).to.equal(usdcPoolBalance.add(singleAmount0));
+      expect(position0).to.greaterThan(0);
+
+      singleAmount1 = toBN("4000", 6);
+      tickSpread = 1000;
+
+      await usdc.approve(marketmaker.address, singleAmount1);
+      await marketmaker.addSingleLiquidity(singleAmount1, tickSpread);
+      position1 = await marketmaker.positionIds(1);
+
+      expect(await usdc.balanceOf(poolAddress)).to.equal(usdcBalance.add(singleAmount1));
+      expect(await marketmaker.assetValue()).to.greaterThan(assetValue);
+      expect(position1).to.greaterThan(0);
+    });
+
+    it('removes first position correctly', async () => {
+      marketBalance = await usdc.balanceOf(marketmaker.address)
+      poolBalance = await usdc.balanceOf(poolAddress)
+
+      await marketmaker.removePosition(position0);
+
+      expect(await usdc.balanceOf(marketmaker.address)).to.closeTo(marketBalance.add(singleAmount0), 1);
+      expect(await usdc.balanceOf(poolAddress)).to.closeTo(poolBalance.sub(singleAmount0), 1);
+      expect(await marketmaker.positionIds(0)).to.equal(position1);
     });
   })
 });

@@ -28,10 +28,10 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     uint256 public tokenId;
     address public token0;
     address public token1;
-    uint128 public liquidity;
     bool private immutable flag; // The sort status of tokens
     int24 public constant TICK_SPACE = 10; // TICK_SPACE are 10, 60, 200
     uint256 private constant PRECISION = 1e6;
+    uint256[] public positionIds;
 
     // Errors
     error NotMinted();
@@ -61,6 +61,11 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
 
     /* ========== Views ========== */
 
+    function liquidity() external view returns (uint128) {
+        (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(tokenId);
+        return _liquidity;
+    }
+
     /**
     /**
      * @notice Gets the asset price of AMM
@@ -69,6 +74,16 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     function assetValue() public view override returns (uint256) {
         if (tokenId == 0) return 0;
         (uint256 usdxAmount, uint256 sweepAmount,) = amm().getPositions(tokenId);
+
+        uint256 len = positionIds.length;
+        for (uint256 i = 0; i < len; ) {
+            uint256 id = positionIds[i];
+            (uint256 amount0, uint256 amount1,) = amm().getPositions(id);
+            usdxAmount += amount0;
+            sweepAmount += amount1;
+
+            unchecked { ++i; }
+        }
 
         return _oracleUsdxToUsd(usdxAmount) + sweep.convertToUSD(sweepAmount);
     }
@@ -87,8 +102,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         if (msg.sender != address(nonfungiblePositionManager))
             revert OnlyPositionManager();
         if (tokenId > 0) revert AlreadyMinted();
-
-        _updateLiquidity(_tokenId);
+        tokenId = _tokenId;
 
         return this.onERC721Received.selector;
     }
@@ -155,8 +169,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
             })
         );
 
-        _collect();
-        _updateLiquidity(tokenId);
+        _collect(tokenId);
     }
 
     /**
@@ -169,9 +182,8 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         whenNotPaused
         nonReentrant
         isMinted
-        returns (uint256, uint256)
     {
-        return _collect();
+        _collect(tokenId);
     }
 
     /**
@@ -209,12 +221,9 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
 
         (int24 minTick, int24 maxTick) = showTicks();
         IAMM _amm = amm();
-        (uint256 amountAdd0, uint256 amountAdd1) = flag
-            ? (usdxAmount, sweepAmount)
-            : (sweepAmount, usdxAmount);
-        (uint256 minAmount0, uint256 minAmount1) = flag
-            ? (usdxMinAmount, sweepMinAmount)
-            : (sweepMinAmount, usdxMinAmount);
+        (usdxAmount, sweepAmount, usdxMinAmount, sweepMinAmount) = flag
+            ? (usdxAmount, sweepAmount, usdxMinAmount, sweepMinAmount)
+            : (sweepAmount, usdxAmount, sweepMinAmount, usdxMinAmount);
 
         (_tokenId, _liquidity, _amount0, _amount1) = nonfungiblePositionManager
             .mint(
@@ -224,19 +233,75 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
                     fee: _amm.poolFee(),
                     tickLower: minTick,
                     tickUpper: maxTick,
-                    amount0Desired: amountAdd0,
-                    amount1Desired: amountAdd1,
-                    amount0Min: minAmount0,
-                    amount1Min: minAmount1,
+                    amount0Desired: usdxAmount,
+                    amount1Desired: sweepAmount,
+                    amount0Min: usdxMinAmount,
+                    amount1Min: sweepMinAmount,
                     recipient: address(this),
                     deadline: block.timestamp
                 })
             );
 
-        _updateLiquidity(_tokenId);
         tokenId = _tokenId;
     }
 
+    function addSingleLiquidity(uint256 usdxAmount, uint256 tickSpread) external onlyBorrower nonReentrant {
+        address self = address(this);
+        uint24 poolFee = amm().poolFee();
+        uint8 decimals = sweep.decimals();
+        uint256 targetPrice = sweep.targetPrice();
+        uint256 minPrice = ((PRECISION - tickSpread) * targetPrice) / PRECISION;
+
+        uint256 sweepAmount;
+        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
+        TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
+
+        int24 tickSpacing = liquidityHelper.getTickSpacing(token0, token1, poolFee);
+        int24 minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, tickSpacing, flag);
+        int24 maxTick = liquidityHelper.getTickFromPrice(targetPrice, decimals, tickSpacing, flag);
+        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
+
+        (uint256 amount0Mint, uint256 amount1Mint) = flag
+            ? (usdxAmount, sweepAmount)
+            : (sweepAmount, usdxAmount);
+
+        (uint256 _tokenId,,,) = nonfungiblePositionManager.mint(
+                INonfungiblePositionManager.MintParams({
+                    token0: token0,
+                    token1: token1,
+                    fee: poolFee,
+                    tickLower: minTick,
+                    tickUpper: maxTick,
+                    amount0Desired: amount0Mint,
+                    amount1Desired: amount1Mint,
+                    amount0Min: amount0Mint,
+                    amount1Min: amount1Mint,
+                    recipient: address(this),
+                    deadline: block.timestamp
+                })
+            );
+
+        positionIds.push(_tokenId);
+    }
+
+    function removePosition(uint256 positionId)  external onlyBorrower nonReentrant {
+        (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(positionId);
+        nonfungiblePositionManager.decreaseLiquidity(
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: positionId,
+                liquidity: _liquidity,
+                amount0Min: 0,
+                amount1Min: 0,
+                deadline: block.timestamp
+            })
+        );
+        _collect(positionId);
+
+        nonfungiblePositionManager.burn(positionId);
+        _removePosition(positionId);
+    }
+
+    /* ========== Internals ========== */
     function _addLiquidity(
         uint256 usdxAmount,
         uint256 sweepAmount,
@@ -247,34 +312,26 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
         TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
 
-        uint128 _liquidity;
-        uint256 _amount0;
-        uint256 _amount1;
-        (uint256 amountAdd0, uint256 amountAdd1) = flag
-            ? (usdxAmount, sweepAmount)
-            : (sweepAmount, usdxAmount);
-        (uint256 minAmount0, uint256 minAmount1) = flag
-            ? (usdxMinIn, sweepMinIn)
-            : (sweepMinIn, usdxMinIn);
+        (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn) = flag
+            ? (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn)
+            : (sweepAmount, usdxAmount, sweepMinIn, usdxMinIn);
 
-        (_liquidity, _amount0, _amount1) = nonfungiblePositionManager
-                .increaseLiquidity(
-                    INonfungiblePositionManager.IncreaseLiquidityParams({
-                        tokenId: tokenId,
-                        amount0Desired: amountAdd0,
-                        amount1Desired: amountAdd1,
-                        amount0Min: minAmount0,
-                        amount1Min: minAmount1,
-                        deadline: block.timestamp + 60 // Expiration: 1 hour from now
-                    })
-                );
-        liquidity += _liquidity;
+        nonfungiblePositionManager.increaseLiquidity(
+            INonfungiblePositionManager.IncreaseLiquidityParams({
+                tokenId: tokenId,
+                amount0Desired: usdxAmount,
+                amount1Desired: sweepAmount,
+                amount0Min: usdxMinIn,
+                amount1Min: sweepMinIn,
+                deadline: block.timestamp + 60 // Expiration: 1 hour from now
+            })
+        );
     }
 
-    function _collect() internal returns (uint256 amount0, uint256 amount1) {
-        (amount0, amount1) = nonfungiblePositionManager.collect(
+    function _collect(uint256 id) internal {
+        (uint256 amount0, uint256 amount1) = nonfungiblePositionManager.collect(
             INonfungiblePositionManager.CollectParams({
-                tokenId: tokenId,
+                tokenId: id,
                 recipient: address(this),
                 amount0Max: type(uint128).max,
                 amount1Max: type(uint128).max
@@ -295,27 +352,23 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 maxPrice = (sweepPrice * 101) / 100;
         uint8 decimals = sweep.decimals();
 
-        minTick = liquidityHelper.getTickFromPrice(
-            minPrice,
-            decimals,
-            TICK_SPACE,
-            flag
-        );
-
-        maxTick = liquidityHelper.getTickFromPrice(
-            maxPrice,
-            decimals,
-            TICK_SPACE,
-            flag
-        );
+        minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, TICK_SPACE, flag);
+        maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, TICK_SPACE, flag);
 
         (minTick, maxTick) = minTick < maxTick
             ? (minTick, maxTick)
             : (maxTick, minTick);
     }
 
-    function _updateLiquidity(uint256 _tokenId) internal {
-        (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(_tokenId);
-        liquidity = _liquidity;
+    function _removePosition(uint256 positionId) internal {
+        uint256 len = positionIds.length;
+        for (uint256 i = 0; i < len; ) {
+            if(positionIds[i] == positionId) {
+                positionIds[i] = positionIds[len-1];
+                positionIds.pop();
+                return;
+            }
+            unchecked { ++i; }
+        }
     }
 }
