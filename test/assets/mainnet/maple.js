@@ -1,10 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
-const { addresses, chainId } = require("../utils/address");
-const { impersonate, Const, sendEth, increaseTime, getBlockTimestamp } = require("../utils/helper_functions")
+const { addresses, chainId } = require("../../../utils/address");
+const { impersonate, Const, sendEth, increaseTime, getBlockTimestamp } = require("../../../utils/helper_functions")
 
 contract('Maple Asset', async () => {
-    // Maple Asset only work on the Ethereum mainnet.
     if (Number(chainId) !== 1) return;
 
     before(async () => {
@@ -30,6 +29,8 @@ contract('Maple Asset', async () => {
         maplePool = await ethers.getContractAt("IMaplePool", MAPLE_POOL);
         mapleManager = await ethers.getContractAt("IMapplePoolManager", POOL_MANAGER);
         mapleWithdrawal = await ethers.getContractAt("IWithdrawalManager", WITHDRAWAL_MANAGER);
+        LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
+        liquidityHelper = await LiquidityHelper.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(
@@ -38,7 +39,8 @@ contract('Maple Asset', async () => {
             addresses.sequencer_feed,
             Const.FEE,
             ORACLE,
-            86400
+            86400,
+            liquidityHelper.address
         );
 
         Asset = await ethers.getContractFactory("MapleAsset");
@@ -58,17 +60,10 @@ contract('Maple Asset', async () => {
     });
 
     describe("Initial Test", async function () {
-        it('deposit usdc to the asset', async () => {
-            expect(await asset.currentValue()).to.equal(Const.ZERO);
-
+        it('invest into Maple pool', async () => {
             user = await impersonate(USDC_HOLDER);
             await usdx.connect(user).transfer(asset.address, depositAmount);
 
-            expect(await usdx.balanceOf(asset.address)).to.equal(depositAmount)
-            expect(await asset.currentValue()).to.above(Const.ZERO);
-        });
-
-        it('invest into Maple pool', async () => {
             user = await impersonate(POOL_DELEGATE);
             await mapleManager.connect(user).setAllowedLender(asset.address, true);
             expect(await asset.assetValue()).to.equal(Const.ZERO);

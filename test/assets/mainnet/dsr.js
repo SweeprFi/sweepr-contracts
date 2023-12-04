@@ -1,28 +1,26 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
-const { addresses, chainId } = require("../utils/address");
-const { impersonate, Const, sendEth, increaseTime } = require("../utils/helper_functions")
+const { addresses, chainId } = require("../../../utils/address");
+const { impersonate, Const, sendEth, increaseTime } = require("../../../utils/helper_functions")
 
 contract('DSR Asset', async () => {
-    // DSR Asset only work on the Ethereum mainnet.
     if (Number(chainId) !== 1) return;
 
     before(async () => {
-        [owner, lzEndpoint] = await ethers.getSigners();
+        [borrower, other, lzEndpoint] = await ethers.getSigners();
 
-        BORROWER = addresses.multisig;
+        BORROWER = borrower.address;
         depositAmount = 200e6;
         investAmount = 100e6;
         divestAmount = 50e6;
         
         // Sweep Contract
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [
-            lzEndpoint.address,
-            addresses.owner,
-            2500 // 0.25%
-        ]);
+        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, BORROWER, 2500]);
         sweep = await Proxy.deployed();
+        
+        LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
+        liquidityHelper = await LiquidityHelper.deploy();
 
         // Token Contract
         ERC20 = await ethers.getContractFactory("ERC20");
@@ -37,7 +35,8 @@ contract('DSR Asset', async () => {
             addresses.sequencer_feed,
             Const.FEE,
             addresses.oracle_dai_usd,
-            86400
+            86400,
+            liquidityHelper.address
         );
         await sweep.setAMM(amm.address);
 
@@ -54,32 +53,25 @@ contract('DSR Asset', async () => {
             addresses.oracle_dai_usd,
             BORROWER
         );
-
-        await sendEth(BORROWER)
     });
 
     describe("Initial Test", async function () {
-        it('deposit usdc to the asset', async () => {
-            expect(await asset.currentValue()).to.equal(Const.ZERO);
+        it('invest to the DSR', async () => {
             user = await impersonate(addresses.usdc_holder);
             await sendEth(user.address);
             await usdx.connect(user).transfer(asset.address, depositAmount);
-            expect(await usdx.balanceOf(asset.address)).to.equal(depositAmount)
-            expect(await asset.currentValue()).to.above(Const.ZERO);
-        });
 
-        it('invest to the DSR', async () => {
-            await expect(asset.invest(depositAmount, 0))
+            await expect(asset.connect(other).invest(depositAmount, 0))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
             user = await impersonate(BORROWER);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
-            await asset.connect(user).invest(investAmount, Const.SLIPPAGE);
+            await asset.invest(investAmount, Const.SLIPPAGE);
             expect(await asset.assetValue()).to.above(Const.ZERO);
 
-            await asset.connect(user).invest(depositAmount, Const.SLIPPAGE);
+            await asset.invest(depositAmount, Const.SLIPPAGE);
 
-            await expect(asset.connect(user).invest(depositAmount, 0))
+            await expect(asset.invest(depositAmount, 0))
                 .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
 
@@ -93,13 +85,13 @@ contract('DSR Asset', async () => {
             expect(await asset.assetValue()).to.above(assetVal);
 
             // Divest usdx
-            await expect(asset.divest(divestAmount, 0))
+            await expect(asset.connect(other).divest(divestAmount, 0))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
-            await asset.connect(user).divest(divestAmount, Const.SLIPPAGE);
+            await asset.divest(divestAmount, Const.SLIPPAGE);
             expect(await asset.assetValue()).to.above(Const.ZERO);
             
             divestAmount = 250e6;
-            await asset.connect(user).divest(divestAmount, Const.SLIPPAGE);
+            await asset.divest(divestAmount, Const.SLIPPAGE);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
         });
     });

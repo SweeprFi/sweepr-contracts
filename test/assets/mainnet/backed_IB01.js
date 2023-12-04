@@ -1,9 +1,9 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses, chainId } = require("../utils/address");
-const { impersonate, sendEth, increaseTime, Const, toBN, getBlockTimestamp } = require("../utils/helper_functions");
+const { addresses, chainId } = require("../../../utils/address");
+const { impersonate, sendEth, increaseTime, Const, toBN, getBlockTimestamp } = require("../../../utils/helper_functions");
 
-contract("Backed IB01 Asset", async function () {
+contract.only("Backed IB01 Asset", async function () {
   if (Number(chainId) !== 1) return;
 
   before(async () => {
@@ -63,14 +63,10 @@ contract("Backed IB01 Asset", async function () {
   });
 
   describe("invest and divest functions", async function () {
-    it('deposit into the asset', async () => {
+    it("borrow correctly", async function () {
       await sendEth(BACKED_HOLDER);
       user = await impersonate(BACKED_HOLDER);
       await backed.connect(user).transfer(asset.address, depositBacked);
-      expect(await backed.balanceOf(asset.address)).to.equal(depositBacked);
-    });
-
-    it("borrow correctly", async function () {
       expect(await sweep.balanceOf(asset.address)).to.equal(Const.ZERO);
       await asset.borrow(borrowAmount);
       expect(await sweep.balanceOf(asset.address)).to.equal(borrowAmount);

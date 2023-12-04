@@ -65,7 +65,7 @@ module.exports = {
 
         assets: {
             market_maker: '0x7560d15774499386B04A64177E090B33e803493F',
-            maple: '0x51040d72Cf1ee780FFA5F7C7e9eDAb6E6091BCaA',
+            maple: '0xe55D44783D8DB0684fe992e87d4703632f66cBB3',
             usd_plus: '0x05910e7B7A749b1c33d9EB63CE91B63F2ec1cD2A',
         }
     },

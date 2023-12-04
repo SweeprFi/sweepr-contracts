@@ -4,7 +4,7 @@ const { addresses } = require('../../utils/address');
 const { Const, getPriceAndData, toBN } = require("../../utils/helper_functions");
 let poolAddress;
 
-contract.only('Uniswap Market Maker', async () => {
+contract('Uniswap Market Maker', async () => {
   before(async () => {
     [owner, borrower, treasury, guest, lzEndpoint, multisig] = await ethers.getSigners();
   

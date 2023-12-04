@@ -1,10 +1,10 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../utils/address");
-const { impersonate, sendEth, Const, toBN } = require("../utils/helper_functions");
+const { addresses } = require("../../utils/address");
+const { impersonate, sendEth, Const, toBN } = require("../../utils/helper_functions");
 let user;
 
-contract("WETH Asset", async function () {
+contract("Token Asset (WETH)", async function () {
     before(async () => {
         [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
 
