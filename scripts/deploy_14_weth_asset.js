@@ -22,7 +22,7 @@ async function main() {
 
     console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
-    const WETHAsset = await ethers.getContractFactory("TokenAsset");
+    const WETHAsset = await ethers.getContractFactory("ERC20Asset");
     const wethAsset = await WETHAsset.deploy(
         assetName,
         sweep,

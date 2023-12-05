@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ========================== TokenAsset.sol ==========================
+// ========================== ERC20Asset.sol ==========================
 // ====================================================================
 
 /**
@@ -12,7 +12,7 @@ pragma solidity 0.8.19;
 
 import "../Stabilizer/Stabilizer.sol";
 
-contract TokenAsset is Stabilizer {
+contract ERC20Asset is Stabilizer {
     // Variables
     IERC20Metadata private immutable token;
     IPriceFeed private immutable oracleToken;

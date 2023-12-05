@@ -80,7 +80,8 @@ module.exports = {
         positions_manager: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
         quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
         observationCardinality: 480,
-        pool: ''
+        pool_sweep: '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
+        pool_weth: '0xC6962004f452bE9203591991D15f6b388e09E8D0',
     },
 
     balancer: {

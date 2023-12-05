@@ -32,7 +32,7 @@ contract("Backed IB01 Asset", async function () {
     Balancer = await ethers.getContractFactory("Balancer");
     balancer = await Balancer.deploy(SWEEP_ADDRESS, lzEndpoint.address);
 
-    Asset = await ethers.getContractFactory("BaseTokenAsset");
+    Asset = await ethers.getContractFactory("EmptyAsset");
     asset = await Asset.deploy(
       'Backed IB01 Asset',
       SWEEP_ADDRESS,

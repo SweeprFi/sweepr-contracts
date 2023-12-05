@@ -171,7 +171,7 @@ contract SiloAsset is Stabilizer {
         address tokenOut,
         uint256 amountIn,
         uint256 amountOutMin
-    ) public returns (uint256 amountOut) {
+    ) internal returns (uint256 amountOut) {
         bytes32 poolId = pool.getPoolId();
         address vaultAddress = pool.getVault();
 
