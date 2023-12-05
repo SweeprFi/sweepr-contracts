@@ -60,6 +60,7 @@ module.exports = {
         silo: {
             silo: '0xa8897b4552c075e884bdb8e7b704eb10db29bf0d',
             lens: '0xBDb843c7a7e48Dc543424474d7Aa63b61B5D9536',
+            shares: '0x713fc13caab628f116bc34961f22a6b44ad27668',
             rewards: '0x4999873bF8741bfFFB0ec242AAaA7EF1FE74FCE8',
         }
     },

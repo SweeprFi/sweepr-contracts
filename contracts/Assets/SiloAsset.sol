@@ -19,12 +19,13 @@ contract SiloAsset is Stabilizer {
     error UnexpectedAmount();
     uint16 private constant DEADLINE_GAP = 15 minutes;
 
-    // Variables    
+    // Variables
     IERC20Metadata private immutable usdc_e;
-
-    ISilo private immutable silo;
-    ISiloLens private immutable lens;
     IBalancerPool private immutable pool;
+
+    ISilo private constant silo = ISilo(0xA8897b4552c075e884BDB8e7b704eB10DB29BF0D);
+    ISiloLens private immutable lens = ISiloLens(0xBDb843c7a7e48Dc543424474d7Aa63b61B5D9536);
+    IERC20Metadata private immutable shares = IERC20Metadata(0x713fc13CaAB628F116Bc34961f22a6B44aD27668);
 
     // Events
     event Invested(uint256 indexed usdxAmount);
@@ -35,15 +36,11 @@ contract SiloAsset is Stabilizer {
         address _sweep,
         address _usdx,
         address _usdc_e,
-        address _silo,
-        address _lens,
         address _oracleUsdx,
         address _borrower,
         address _pool
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         usdc_e = IERC20Metadata(_usdc_e);
-        silo = ISilo(_silo);
-        lens = ISiloLens(_lens);
         pool = IBalancerPool(_pool);
     }
 
@@ -91,16 +88,13 @@ contract SiloAsset is Stabilizer {
      */
     function liquidate() external nonReentrant {
         if(auctionAllowed) revert ActionNotAllowed();
-        
-        // _liquidate(address(usdc_e), getDebt());
-        // liquidation is a divest followed by sending tokens to the liquidator
-        // silo does not provite a token
+        _liquidate(_getToken(), getDebt());
     }
 
     /* ========== Internals ========== */
 
     function _getToken() internal view override returns (address) {
-        return address(usdc_e);
+        return address(shares);
     }
 
     function _invest(uint256 usdxAmount, uint256, uint256 slippage)

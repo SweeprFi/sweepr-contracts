@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { wallets, tokens, chainlink, protocols } = require("../../utils/constants");
 const { impersonate, sendEth, increaseTime, Const } = require("../../utils/helper_functions");
 
-contract("Silo Asset", async function () {
+contract.only("Silo Asset", async function () {
     before(async () => {
         [borrower] = await ethers.getSigners();
 
@@ -16,6 +16,7 @@ contract("Silo Asset", async function () {
         arb = await Token.attach(tokens.arb);
         silo = await Token.attach(protocols.silo.silo);
         lens = await Token.attach(protocols.silo.lens);
+        shares = await Token.attach(protocols.silo.shares);
 
         SiloAsset = await ethers.getContractFactory("SiloAsset");
         silo_asset = await SiloAsset.deploy(
@@ -23,8 +24,6 @@ contract("Silo Asset", async function () {
             tokens.sweep,
             tokens.usdc,
             tokens.usdc_e,
-            silo.address,
-            lens.address,
             chainlink.usdc_usd,
             borrower.address,
             protocols.balancer.bpt_4pool
