@@ -27,7 +27,6 @@ contract SiloAsset is Stabilizer {
     ISiloLens private immutable lens = ISiloLens(0xBDb843c7a7e48Dc543424474d7Aa63b61B5D9536);
     IERC20Metadata private immutable shares = IERC20Metadata(0x713fc13CaAB628F116Bc34961f22a6B44aD27668);
     ISiloIncentives private immutable incentives = ISiloIncentives(0xd592F705bDC8C1B439Bd4D665Ed99C4FaAd5A680);
-    address rewardToken = 0x912CE59144191C1204E64559FE8253a0e49E6548; // ARB
 
     // Events
     event Invested(uint256 indexed usdxAmount);
@@ -94,12 +93,9 @@ contract SiloAsset is Stabilizer {
     }
 
     function collect() external nonReentrant onlyBorrower {
-        address[] memory assets = new address[](3);
-        assets[0] = address(usdc_e);
-        assets[1] = address(shares);
-        assets[2] = rewardToken;
-
-        uint256 amount = incentives.getRewardsBalance(assets);
+        address[] memory assets = new address[](1);
+        assets[0] = address(shares);
+        uint256 amount = incentives.getRewardsBalance(assets, address(this));
         incentives.claimRewardsToSelf(assets, amount);
     }
 

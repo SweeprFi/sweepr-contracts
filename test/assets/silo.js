@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { wallets, tokens, chainlink, protocols } = require("../../utils/constants");
-const { impersonate, sendEth, increaseTime, Const } = require("../../utils/helper_functions");
+const { impersonate, sendEth } = require("../../utils/helper_functions");
 
 contract("Silo Asset", async function () {
     before(async () => {
@@ -50,9 +50,8 @@ contract("Silo Asset", async function () {
             expect(await usdc.balanceOf(silo_asset.address)).to.equal(0);
         });
 
-        it.skip("collects arb rewards", async function () {
+        it("collects arb rewards", async function () {
             expect(await arb.balanceOf(silo_asset.address)).to.equal(0);            
-            await increaseTime(Const.DAY*365);
 
             await silo_asset.collect();
 

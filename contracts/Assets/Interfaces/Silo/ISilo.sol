@@ -13,6 +13,6 @@ interface ISiloLens {
 }
 
 interface ISiloIncentives {
-    function getRewardsBalance(address[] calldata assets) external view returns (uint256 amount);
-    function claimRewardsToSelf(address[] calldata assets, uint256 amount) external returns (uint256 claimedAmount);
+    function getRewardsBalance(address[] calldata assets, address user) external view returns (uint256 amount);
+    function claimRewardsToSelf(address[] calldata assets, uint256 amount) external returns (uint256 claimed);
 }
