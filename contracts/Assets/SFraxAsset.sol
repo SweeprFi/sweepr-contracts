@@ -182,7 +182,7 @@ contract SFraxAsset is Stabilizer {
         address tokenB,
         uint256 amountIn,
         uint256 amountOutMin
-    ) public returns (uint256 amountOut) {
+    ) internal returns (uint256 amountOut) {
         // Approval
         TransferHelper.safeApprove(tokenA, address(ROUTER), amountIn);
 
@@ -191,7 +191,7 @@ contract SFraxAsset is Stabilizer {
                 tokenIn: tokenA,
                 tokenOut: tokenB,
                 fee: pool.fee(),
-                recipient: msg.sender,
+                recipient: address(this),
                 deadline: block.timestamp + DEADLINE_GAP,
                 amountIn: amountIn,
                 amountOutMinimum: amountOutMin,

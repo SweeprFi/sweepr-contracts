@@ -1,30 +1,29 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
-const { addresses, chainId } = require("../../../utils/address");
+const { network, tokens, chainlink, uniswap, protocols, wallets } = require("../../../utils/constants");
 const { impersonate, Const, sendEth, increaseTime, getBlockTimestamp } = require("../../../utils/helper_functions")
 
 contract('Maple Asset', async () => {
-    if (Number(chainId) !== 1) return;
+    if (Number(network.id) !== 1) return;
 
     before(async () => {
         [owner, lzEndpoint] = await ethers.getSigners();
 
         BORROWER = owner.address;
-        USDC_ADDRESS = addresses.usdc;
-        USDC_HOLDER = addresses.usdc_holder;
-        ORACLE = addresses.oracle_usdc_usd;
+        USDC_ADDRESS = tokens.usdc;
+        SWEEP_ADDRESS = tokens.sweep;
+        USDC_HOLDER = wallets.usdc_holder;
+        ORACLE = chainlink.usdc_usd;
         POOL_DELEGATE = "0x8c8C2431658608F5649B8432764a930c952d8A98";
-        POOL_MANAGER = addresses.maple_pool_manager;
-        MAPLE_POOL = addresses.maple_usdc_pool;
-        WITHDRAWAL_MANAGER = addresses.maple_withdrawal_manager;
+        POOL_MANAGER = protocols.maple.poolManager;
+        MAPLE_POOL = protocols.maple.usdcPool;
+        WITHDRAWAL_MANAGER = protocols.maple.withdrawalManager;
 
         depositAmount = 100000e6;
         investAmount = 60000e6;
 
         // Sweep Contract
-        Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 2500]);
-        sweep = await Proxy.deployed();
+        sweep = await ethers.getContractAt("SweepCoin", SWEEP_ADDRESS);
         usdx = await ethers.getContractAt("ERC20", USDC_ADDRESS);
         maplePool = await ethers.getContractAt("IMaplePool", MAPLE_POOL);
         mapleManager = await ethers.getContractAt("IMapplePoolManager", POOL_MANAGER);
@@ -34,11 +33,11 @@ contract('Maple Asset', async () => {
 
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(
-            sweep.address,
+            SWEEP_ADDRESS,
             USDC_ADDRESS,
-            addresses.sequencer_feed,
-            Const.FEE,
-            ORACLE,
+            chainlink.sequencer,
+            uniswap.pool_sweep,
+            chainlink.usdc_usd,
             86400,
             liquidityHelper.address
         );
@@ -54,9 +53,11 @@ contract('Maple Asset', async () => {
             BORROWER
         );
 
-        await sweep.setAMM(amm.address);
-        await sendEth(BORROWER);
+        OWNER = await sweep.owner();
+        await sendEth(OWNER);
         await sendEth(USDC_HOLDER);
+        SWEEP_OWNER = await impersonate(OWNER);
+        await sweep.connect(SWEEP_OWNER).setAMM(amm.address);
     });
 
     describe("Initial Test", async function () {

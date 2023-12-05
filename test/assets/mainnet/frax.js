@@ -1,42 +1,32 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
-const { addresses, chainId } = require("../../../utils/address");
-const { impersonate, Const, sendEth, increaseTime, getBlockTimestamp } = require("../../../utils/helper_functions")
+const { impersonate, Const, sendEth } = require("../../../utils/helper_functions");
+const { network, tokens, chainlink, uniswap, wallets } = require("../../../utils/constants");
 
 contract('sFrax Asset', async () => {
-    if (Number(chainId) !== 1) return;
+    if (Number(network.id) !== 1) return;
 
     before(async () => {
         [owner, lzEndpoint] = await ethers.getSigners();
 
-        BORROWER = owner.address;
-        USDC_ADDRESS = addresses.usdc;
-        USDC_HOLDER = addresses.usdc_holder;
-        USDX_ORACLE = addresses.oracle_usdc_usd;
-        FRAX_ORACLE = addresses.oracle_frax_usd;
-        FRAX_ADDRESS = addresses.frax;
-        S_FRAX_ADDRESS = addresses.sfrax;
+        depositAmount = 10000e6;
+        investAmount = 6000e6;
+        divestAmount = 12000e6;
 
-        depositAmount = 100000e6;
-        investAmount = 60000e6;
+        sweep = await ethers.getContractAt("SweepCoin", tokens.sweep);
+        usdx = await ethers.getContractAt("ERC20", tokens.usdc);
+        sFrax = await ethers.getContractAt("IERC4626", tokens.sfrax);
 
-        // Sweep Contract
-        Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 2500]);
-        sweep = await Proxy.deployed();
-        usdx = await ethers.getContractAt("ERC20", USDC_ADDRESS);
-
-        sFrax = await ethers.getContractAt("IERC4626", S_FRAX_ADDRESS);
         LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
         liquidityHelper = await LiquidityHelper.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(
-            sweep.address,
-            USDC_ADDRESS,
-            addresses.sequencer_feed,
-            Const.FEE,
-            USDX_ORACLE,
+            tokens.sweep,
+            tokens.usdc,
+            chainlink.sequencer,
+            uniswap.pool_sweep,
+            chainlink.usdc_usd,
             86400,
             liquidityHelper.address
         );
@@ -44,26 +34,28 @@ contract('sFrax Asset', async () => {
         Asset = await ethers.getContractFactory("SFraxAsset");
         asset = await Asset.deploy(
             "sFrax Asset",
-            sweep.address, // SWEEP
-            USDC_ADDRESS, // USDC
-            FRAX_ADDRESS,
-            S_FRAX_ADDRESS,
-            USDX_ORACLE,
-            FRAX_ORACLE,
-            Const.FEE,
-            BORROWER
+            tokens.sweep,
+            tokens.usdc,
+            tokens.frax,
+            tokens.sfrax,
+            chainlink.usdc_usd,
+            chainlink.frax_usd,
+            owner.address,
+            uniswap.pool_frax
         );
-                
-        await sweep.setAMM(amm.address);
-        await sendEth(BORROWER);
-        await sendEth(USDC_HOLDER);
+
+        OWNER = await sweep.owner();
+        await sendEth(OWNER);
+        SWEEP_OWNER = await impersonate(OWNER);
+        await sweep.connect(SWEEP_OWNER).setAMM(amm.address);
+
+        HOLDER = await impersonate(wallets.usdc_holder);
+        await sendEth(HOLDER.address);
+        await usdx.connect(HOLDER).transfer(asset.address, depositAmount);
     });
 
     describe("Initial Test", async function () {
         it('invest into sFrax', async () => {
-            user = await impersonate(USDC_HOLDER);
-            await usdx.connect(user).transfer(asset.address, depositAmount);
-
             await asset.invest(investAmount, Const.SLIPPAGE);
             expect(await asset.assetValue()).to.above(Const.ZERO);
             expect(await sFrax.balanceOf(asset.address)).to.be.above(0);
@@ -75,7 +67,7 @@ contract('sFrax Asset', async () => {
         });
 
         it('divest from sFrax', async () => {
-            await asset.divest(investAmount, Const.SLIPPAGE);
+            await asset.divest(divestAmount, Const.SLIPPAGE);
             expect(await usdx.balanceOf(asset.address)).to.be.above(depositAmount * 0,95);
         });
     });

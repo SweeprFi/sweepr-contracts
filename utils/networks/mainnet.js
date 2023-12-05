@@ -70,7 +70,8 @@ module.exports = {
         positions_manager: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
         quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
         observationCardinality: 96,
-        pool: ''
+        pool_sweep: '0xfCAF342A7CbE3ea38622337F8d0Df029dc68bFF5',
+        pool_frax: '0xc63B0708E2F7e69CB8A1df0e1389A98C35A76D52'
     },
 
     balancer: {

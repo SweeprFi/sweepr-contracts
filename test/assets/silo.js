@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { wallets, tokens, chainlink, protocols } = require("../../utils/constants");
 const { impersonate, sendEth, increaseTime, Const } = require("../../utils/helper_functions");
 
-contract.only("Silo Asset", async function () {
+contract("Silo Asset", async function () {
     before(async () => {
         [borrower] = await ethers.getSigners();
 
