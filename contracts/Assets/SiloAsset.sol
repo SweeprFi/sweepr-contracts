@@ -12,17 +12,19 @@ pragma solidity 0.8.19;
 
 import { Stabilizer, IERC20Metadata, IAMM, TransferHelper, OvnMath } from "../Stabilizer/Stabilizer.sol";
 import { ISilo, ISiloLens } from "./Interfaces/Silo/ISilo.sol";
+import { IBalancerPool, IBalancerVault, SingleSwap, SwapKind, IAsset, FundManagement } from "./Interfaces/Balancer/IBalancer.sol";
 
 contract SiloAsset is Stabilizer {
-    
+
     error UnexpectedAmount();
-    
+    uint16 private constant DEADLINE_GAP = 15 minutes;
+
     // Variables    
     IERC20Metadata private immutable usdc_e;
 
     ISilo private immutable silo;
     ISiloLens private immutable lens;
-    uint24 private immutable poolFee;
+    IBalancerPool private immutable pool;
 
     // Events
     event Invested(uint256 indexed usdxAmount);
@@ -37,12 +39,12 @@ contract SiloAsset is Stabilizer {
         address _lens,
         address _oracleUsdx,
         address _borrower,
-        uint24 _poolFee
+        address _pool
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         usdc_e = IERC20Metadata(_usdc_e);
         silo = ISilo(_silo);
         lens = ISiloLens(_lens);
-        poolFee = _poolFee;
+        pool = IBalancerPool(_pool);
     }
 
     /* ========== Views ========== */
@@ -109,17 +111,13 @@ contract SiloAsset is Stabilizer {
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         // Swap native USDx to USDC.e
-        IAMM _amm = amm();
-        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
-        uint256 usdceAmount = _amm.swapExactInput(
+        uint256 usdceAmount = swap(
             address(usdx),
             address(usdc_e),
-            poolFee,
             usdxAmount,
             OvnMath.subBasisPoints(usdxAmount, slippage)
         );
 
-        // deposits into SILO
         TransferHelper.safeApprove(address(usdc_e), address(silo), usdceAmount);
         (uint256 collateralAmount,) = silo.deposit(address(usdc_e), usdceAmount, false);
 
@@ -145,16 +143,48 @@ contract SiloAsset is Stabilizer {
         }
 
         // Swap native USDC.e to USDx
-        IAMM _amm = amm();
-        TransferHelper.safeApprove(address(usdc_e), address(_amm), usdxAmount);
-        divestedAmount = _amm.swapExactInput(
+        divestedAmount = swap(
             address(usdc_e),
             address(usdx),
-            poolFee,
             usdxAmount,
             OvnMath.subBasisPoints(usdxAmount, slippage)
         );
 
         emit Divested(divestedAmount);
     }
+
+    /**
+     * @notice Swap tokenIn for tokenOut using balancer exact input swap
+     * @param tokenIn Address to in
+     * @param tokenOut Address to out
+     * @param amountIn Amount of _tokenA
+     * @param amountOutMin Minimum amount out.
+     */
+    function swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOutMin
+    ) public returns (uint256 amountOut) {
+        bytes32 poolId = pool.getPoolId();
+        address vaultAddress = pool.getVault();
+
+        TransferHelper.safeApprove(tokenIn, vaultAddress, amountIn);
+
+        bytes memory userData;
+        SingleSwap memory singleSwap = SingleSwap(
+            poolId,
+            SwapKind.GIVEN_IN,
+            IAsset(tokenIn),
+            IAsset(tokenOut),
+            amountIn,
+            userData
+        );
+
+        FundManagement memory funds = FundManagement(address(this), false, payable(address(this)), false);
+        uint256 deadline = block.timestamp + DEADLINE_GAP;
+
+        amountOut = IBalancerVault(vaultAddress).swap(singleSwap, funds, amountOutMin, deadline);
+    }
+
 }

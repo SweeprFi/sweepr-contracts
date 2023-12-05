@@ -12,13 +12,15 @@ pragma solidity 0.8.19;
 
 import "../Stabilizer/Stabilizer.sol";
 import "./Interfaces/Overnight/IExchanger.sol";
+import { IBalancerPool, IBalancerVault, SingleSwap, SwapKind, IAsset, FundManagement } from "./Interfaces/Balancer/IBalancer.sol";
 
 contract USDPlusAsset is Stabilizer {
+    uint16 private constant DEADLINE_GAP = 15 minutes;
     // Variables
     IERC20Metadata private immutable token;
-    IERC20Metadata private immutable usdcE; // Arbitrum USDC.e
+    IERC20Metadata private immutable usdc_e; // Arbitrum USDC.e
     IExchanger private immutable exchanger;
-    uint24 private immutable poolFee;
+    IBalancerPool private immutable pool;
 
     // Events
     event Invested(uint256 indexed usdxAmount);
@@ -32,16 +34,16 @@ contract USDPlusAsset is Stabilizer {
         address _sweep,
         address _usdx,
         address _token,
-        address _usdcE,
+        address _usdc_e,
         address _exchanger,
         address _oracleUsdx,
         address _borrower,
-        uint24 _poolFee
+        address _pool
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         token = IERC20Metadata(_token);
-        usdcE = IERC20Metadata(_usdcE);
+        usdc_e = IERC20Metadata(_usdc_e);
         exchanger = IExchanger(_exchanger);
-        poolFee = _poolFee;
+        pool = IBalancerPool(_pool);
     }
 
     /* ========== Views ========== */
@@ -119,27 +121,24 @@ contract USDPlusAsset is Stabilizer {
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
         // Swap native USDx to USDC.e
-        IAMM _amm = amm();
-        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
-        uint256 usdcEAmount = _amm.swapExactInput(
+        uint256 usdceAmount = swap(
             address(usdx),
-            address(usdcE),
-            poolFee,
+            address(usdc_e),
             usdxAmount,
             OvnMath.subBasisPoints(usdxAmount, slippage)
         );
 
         // Invest to USD+
         uint256 estimatedAmount = _usdxToToken(
-            OvnMath.subBasisPoints(usdcEAmount, slippage)
+            OvnMath.subBasisPoints(usdceAmount, slippage)
         );
         TransferHelper.safeApprove(
-            address(usdcE),
+            address(usdc_e),
             address(exchanger),
-            usdcEAmount
+            usdceAmount
         );
         uint256 tokenAmount = exchanger.mint(
-            IExchanger.MintParams(address(usdcE), usdcEAmount, "")
+            IExchanger.MintParams(address(usdc_e), usdceAmount, "")
         );
         if (tokenAmount == 0 || tokenAmount < estimatedAmount)
             revert UnExpectedAmount();
@@ -157,23 +156,20 @@ contract USDPlusAsset is Stabilizer {
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
 
         // Redeem
-        uint256 usdcEAmount = exchanger.redeem(address(usdcE), tokenAmount);
+        uint256 usdceAmount = exchanger.redeem(address(usdc_e), tokenAmount);
 
         // Check return amount
         uint256 estimatedAmount = _tokenToUsdx(
             OvnMath.subBasisPoints(tokenAmount, slippage)
         );
-        if (usdcEAmount < estimatedAmount) revert UnExpectedAmount();
+        if (usdceAmount < estimatedAmount) revert UnExpectedAmount();
 
         // Swap native USDC.e to USDx
-        IAMM _amm = amm();
-        TransferHelper.safeApprove(address(usdcE), address(_amm), usdcEAmount);
-        divestedAmount = _amm.swapExactInput(
-            address(usdcE),
+        divestedAmount = swap(
+            address(usdc_e),
             address(usdx),
-            poolFee,
-            usdcEAmount,
-            OvnMath.subBasisPoints(usdcEAmount, slippage)
+            usdceAmount,
+            OvnMath.subBasisPoints(usdceAmount, slippage)
         );
 
         emit Divested(divestedAmount);
@@ -193,5 +189,39 @@ contract USDPlusAsset is Stabilizer {
     function _usdxToToken(uint256 usdxAmount) internal view returns (uint256) {
         return
             (usdxAmount * (10 ** token.decimals())) / (10 ** usdx.decimals());
+    }
+
+    /**
+     * @notice Swap tokenIn for tokenOut using balancer exact input swap
+     * @param tokenIn Address to in
+     * @param tokenOut Address to out
+     * @param amountIn Amount of _tokenA
+     * @param amountOutMin Minimum amount out.
+     */
+    function swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOutMin
+    ) public returns (uint256 amountOut) {
+        bytes32 poolId = pool.getPoolId();
+        address vaultAddress = pool.getVault();
+
+        TransferHelper.safeApprove(tokenIn, vaultAddress, amountIn);
+
+        bytes memory userData;
+        SingleSwap memory singleSwap = SingleSwap(
+            poolId,
+            SwapKind.GIVEN_IN,
+            IAsset(tokenIn),
+            IAsset(tokenOut),
+            amountIn,
+            userData
+        );
+
+        FundManagement memory funds = FundManagement(address(this), false, payable(address(this)), false);
+        uint256 deadline = block.timestamp + DEADLINE_GAP;
+
+        amountOut = IBalancerVault(vaultAddress).swap(singleSwap, funds, amountOutMin, deadline);
     }
 }

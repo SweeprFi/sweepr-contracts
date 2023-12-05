@@ -56,7 +56,7 @@ contract("USDPlus Asset", async function () {
         blockNumber = await ethers.provider.getBlockNumber();
         await resetNetwork(Const.BLOCK_NUMBER);
 
-        Asset = await ethers.getContractFactory("USDPlusAssetMock");
+        Asset = await ethers.getContractFactory("USDPlusAsset");
         asset = await Asset.deploy(
             'USDPlus Asset',
             sweep.address,

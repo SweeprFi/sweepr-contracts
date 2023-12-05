@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 const { tokens, network, wallets, protocols, chainlink } = require("../../../utils/constants");
-const { Const, ask } = require("../../../utils/helper_functions");
+const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
     [deployer] = await ethers.getSigners();
@@ -12,9 +12,8 @@ async function main() {
     const usdPlus = protocols.overnight.usd_plus;
     const exchange = protocols.overnight.exchange;
     const oracleUsdc = chainlink.usdc_usd;
-    const borrower = '0x68b2a7B9ca1D8C87A170e9Bb2e120cFd09Ef144F';//wallets.multisig;
-    const poolFee = Const.FEE;
-
+    const borrower = '0x68b2a7B9ca1D8C87A170e9Bb2e120cFd09Ef144F'; //wallets.multisig;
+    const poolAddress = protocols.balancer.bpt_4pool;
 
     console.log("===========================================");
 	console.log("USD+ ASSET DEPLOY");
@@ -30,7 +29,7 @@ async function main() {
     console.log("Exchanger:", exchange);
 	console.log("USDC/USD Chainlink Oracle:", oracleUsdc);
 	console.log("Borrower:", borrower);
-    console.log("Pool Fee (uniswap):", poolFee);
+    console.log("Pool Address (USDC/USDC.e):", poolAddress);
 	console.log("===========================================");
 	const answer = (await ask("continue? y/n: "));
     if(answer !== 'y'){ process.exit(); }
@@ -47,11 +46,11 @@ async function main() {
         exchange,
         oracleUsdc,
         borrower,
-        poolFee
+        poolAddress
     );
 
     console.log("USD+ Asset deployed to:", asset.address);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${name}" ${sweep} ${usdc} ${usdPlus} ${usdcE} ${exchange} ${oracleUsdc} ${borrower} ${poolFee}`)
+    console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${name}" ${sweep} ${usdc} ${usdPlus} ${usdcE} ${exchange} ${oracleUsdc} ${borrower} ${poolAddress}`)
 }
 
 main();

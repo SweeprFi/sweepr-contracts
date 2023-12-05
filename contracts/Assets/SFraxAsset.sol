@@ -11,12 +11,16 @@ pragma solidity 0.8.19;
  */
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import { Stabilizer, IPriceFeed, IAMM, ChainlinkLibrary, OvnMath, TransferHelper, IERC20Metadata } from "../Stabilizer/Stabilizer.sol";
+import { ISwapRouter } from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 contract SFraxAsset is Stabilizer {
-    
+    uint16 private constant DEADLINE_GAP = 15 minutes;
+    ISwapRouter private constant ROUTER = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+
     IERC20Metadata private immutable token;
     IPriceFeed private immutable oracleToken;
-    uint24 private immutable poolFee;
+    IUniswapV3Pool private immutable pool;
 
     // Variables
     IERC4626 public immutable asset;
@@ -33,13 +37,13 @@ contract SFraxAsset is Stabilizer {
         address _asset,
         address _oracleUsdx,
         address _oracleToken,
-        uint24 _poolFee,
-        address _borrower
+        address _borrower,
+        address _pool
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         asset = IERC4626(_asset);
         token = IERC20Metadata(_token);
         oracleToken = IPriceFeed(_oracleToken);
-        poolFee = _poolFee;
+        pool = IUniswapV3Pool(_pool);
     }
 
     /* ========== Views ========== */
@@ -101,13 +105,10 @@ contract SFraxAsset is Stabilizer {
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
 
-        IAMM _amm = amm();
         uint256 usdxInToken = _oracleUsdxToToken(usdxAmount);
-        TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
-        uint256 tokenAmount = _amm.swapExactInput(
+        uint256 tokenAmount = swap(
             address(usdx),
             address(token),
-            poolFee,
             usdxAmount,
             OvnMath.subBasisPoints(usdxInToken, slippage)
         );
@@ -128,13 +129,10 @@ contract SFraxAsset is Stabilizer {
         usdxAmount = asset.convertToAssets(sharesAmount);
         uint256 tokenAmount = asset.withdraw(usdxAmount, address(this), address(this));
 
-        IAMM _amm = amm();
-        uint256 tokenInUsdx = _oracleTokenToUsdx(tokenAmount);
-        TransferHelper.safeApprove(address(token), address(_amm), tokenAmount);
-        divestedAmount = _amm.swapExactInput(
+        uint256 tokenInUsdx = _oracleTokenToUsdx(tokenAmount);        
+        divestedAmount = swap(
             address(token),
             address(usdx),
-            poolFee,
             tokenAmount,
             OvnMath.subBasisPoints(tokenInUsdx, slippage)
         );
@@ -170,6 +168,37 @@ contract SFraxAsset is Stabilizer {
                 oracleUsdx,
                 oracleToken
             );
+    }
+
+    /**
+     * @notice Swap tokenA into tokenB using uniV3Router.ExactInputSingle()
+     * @param tokenA Address to in
+     * @param tokenB Address to out
+     * @param amountIn Amount of _tokenA
+     * @param amountOutMin Minimum amount out.
+     */
+    function swap(
+        address tokenA,
+        address tokenB,
+        uint256 amountIn,
+        uint256 amountOutMin
+    ) public returns (uint256 amountOut) {
+        // Approval
+        TransferHelper.safeApprove(tokenA, address(ROUTER), amountIn);
+
+        ISwapRouter.ExactInputSingleParams memory swapParams = ISwapRouter
+            .ExactInputSingleParams({
+                tokenIn: tokenA,
+                tokenOut: tokenB,
+                fee: pool.fee(),
+                recipient: msg.sender,
+                deadline: block.timestamp + DEADLINE_GAP,
+                amountIn: amountIn,
+                amountOutMinimum: amountOutMin,
+                sqrtPriceLimitX96: 0
+            });
+
+        amountOut = ROUTER.exactInputSingle(swapParams);
     }
 
 }

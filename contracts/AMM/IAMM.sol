@@ -10,6 +10,14 @@ interface IAMM {
         uint256 amountOutMin
     ) external returns (uint256);
 
+    function swap(
+        address tokenA,
+        address tokenB,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address poolAddress
+    ) external returns (uint256);
+
     function buySweep(
         address token,
         uint256 amountIn,
@@ -24,7 +32,7 @@ interface IAMM {
 
     function sequencer() external view returns (address);
 
-    function poolFee() external view returns (uint24);
+    function pool() external view returns (address);
 
     function getTWAPrice() external view returns (uint256 twaPrice);
 

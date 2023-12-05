@@ -230,7 +230,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
                     token1: token1,
-                    fee: _amm.poolFee(),
+                    fee: IUniswapV3Pool(_amm.pool()).fee(),
                     tickLower: minTick,
                     tickUpper: maxTick,
                     amount0Desired: usdxAmount,
@@ -247,7 +247,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
 
     function addSingleLiquidity(uint256 usdxAmount, uint256 tickSpread) external onlyBorrower nonReentrant {
         address self = address(this);
-        uint24 poolFee = amm().poolFee();
+        address poolAddress = IAMM(amm()).pool();
         uint8 decimals = sweep.decimals();
         uint256 targetPrice = sweep.targetPrice();
         uint256 minPrice = ((PRECISION - tickSpread) * targetPrice) / PRECISION;
@@ -256,7 +256,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
         TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
 
-        int24 tickSpacing = liquidityHelper.getTickSpacing(token0, token1, poolFee);
+        int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
         int24 minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, tickSpacing, flag);
         int24 maxTick = liquidityHelper.getTickFromPrice(targetPrice, decimals, tickSpacing, flag);
         (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
@@ -269,7 +269,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
                     token1: token1,
-                    fee: poolFee,
+                    fee: IUniswapV3Pool(poolAddress).fee(),
                     tickLower: minTick,
                     tickUpper: maxTick,
                     amount0Desired: amount0Mint,

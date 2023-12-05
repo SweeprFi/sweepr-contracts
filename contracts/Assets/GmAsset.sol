@@ -19,7 +19,6 @@ contract GmAsset is Stabilizer {
     // Variables
     IERC20Metadata private immutable token;
     // IPriceFeed private immutable oracleToken;
-    uint24 private immutable poolFee;
 
     // Events
     event Invested(uint256 indexed tokenAmount);
@@ -32,13 +31,11 @@ contract GmAsset is Stabilizer {
         address _token,
         address _oracleUsdx,
         // address _oracleToken,
-        address _borrower,
-        uint24 _poolFee
+        address _borrower
 
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         token = IERC20Metadata(_token);
         // oracleToken = IPriceFeed(_oracleToken);
-        poolFee = _poolFee;
     }
 
     /* ========== Views ========== */

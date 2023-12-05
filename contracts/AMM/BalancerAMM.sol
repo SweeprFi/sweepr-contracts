@@ -67,7 +67,7 @@ contract BalancerAMM {
 
         uint256[] memory factors = pool.getScalingFactors();
         (uint256 amplification, , ) = pool.getAmplificationParameter();
-        (IAsset[] memory tokens, uint256[] memory balances,) = vault.getPoolTokens(pool.getPoolId());
+        (IAsset[] memory tokens, uint256[] memory balances,) = IBalancerVault(pool.getVault()).getPoolTokens(pool.getPoolId());
 
         uint8 tokenIndexIn = findAssetIndex(address(sweep), tokens);
         uint8 tokenIndexOut = findAssetIndex(address(base), tokens);
@@ -104,7 +104,7 @@ contract BalancerAMM {
         public view
         returns (uint256 usdxAmount, uint256 sweepAmount, uint256 lp)
     {
-        (IAsset[] memory tokens, uint256[] memory balances,) = vault.getPoolTokens(pool.getPoolId());
+        (IAsset[] memory tokens, uint256[] memory balances,) = IBalancerVault(pool.getVault()).getPoolTokens(pool.getPoolId());
         uint8 usdxIndex = findAssetIndex(address(base), tokens);
         uint8 sweepIndex = findAssetIndex(address(sweep), tokens);
         uint8 lpIndex = findAssetIndex(address(pool), tokens);
@@ -129,12 +129,12 @@ contract BalancerAMM {
         uint256 amountOutMin
     ) external returns (uint256 sweepAmount) {
         emit Bought(tokenAmount);
-        sweepAmount = swapExactInput(
+        sweepAmount = swap(
             tokenAddress,
             address(sweep),
-            0,
             tokenAmount,
-            amountOutMin
+            amountOutMin,
+            address(pool)
         );
     }
 
@@ -151,12 +151,12 @@ contract BalancerAMM {
         uint256 amountOutMin
     ) external returns (uint256 tokenAmount) {
         emit Sold(sweepAmount);
-        tokenAmount = swapExactInput(
+        tokenAmount = swap(
             address(sweep),
             tokenAddress,
-            0,
             sweepAmount,
-            amountOutMin
+            amountOutMin,
+            address(pool)
         );
     }
 
@@ -174,42 +174,12 @@ contract BalancerAMM {
         uint256 amountIn,
         uint256 amountOutMin
     ) public returns (uint256 amountOut) {
-        // Approval
-        TransferHelper.safeTransferFrom(
-            tokenIn,
-            msg.sender,
-            address(this),
-            amountIn
-        );
-        TransferHelper.safeApprove(tokenIn, address(vault), amountIn);
-
-        bytes32 poolId = pool.getPoolId();
-        bytes memory userData;
-        SingleSwap memory singleSwap = SingleSwap(
-            poolId,
-            SwapKind.GIVEN_IN,
-            IAsset(tokenIn),
-            IAsset(tokenOut),
-            amountIn,
-            userData
-        );
-        FundManagement memory funds = FundManagement(
-            address(this),
-            false,
-            payable(msg.sender),
-            false
-        );
-
-        uint256 deadline = block.timestamp + DEADLINE_GAP;
-
-        amountOut = vault.swap(singleSwap, funds, amountOutMin, deadline);
+        return swap(tokenIn, tokenOut, amountIn, amountOutMin, address(pool));
     }
 
     function setPool(address poolAddress) external {
         require(msg.sender == sweep.owner(), "BalancerAMM: Not Governance");
-
         pool = IBalancerPool(poolAddress);
-        vault = IBalancerVault(pool.getVault());
     }
 
     function findAssetIndex(address asset, IAsset[] memory assets) internal pure returns (uint8) {
@@ -219,5 +189,42 @@ contract BalancerAMM {
             }
         }
         revert("BalancerAMM: Asset not found");
+    }
+
+    /**
+     * @notice Swap tokenIn for tokenOut using balancer exact input swap
+     * @param tokenIn Address to in
+     * @param tokenOut Address to out
+     * @param amountIn Amount of _tokenA
+     * @param amountOutMin Minimum amount out.
+     * @param poolAddress The pool to execute the swap into
+     */
+    function swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address poolAddress
+    ) public returns (uint256 amountOut) {
+        bytes32 poolId = IBalancerPool(poolAddress).getPoolId();
+        address vaultAddress = IBalancerPool(poolAddress).getVault();
+
+        TransferHelper.safeTransferFrom(tokenIn, msg.sender, address(this), amountIn);
+        TransferHelper.safeApprove(tokenIn, vaultAddress, amountIn);
+
+        bytes memory userData;
+        SingleSwap memory singleSwap = SingleSwap(
+            poolId,
+            SwapKind.GIVEN_IN,
+            IAsset(tokenIn),
+            IAsset(tokenOut),
+            amountIn,
+            userData
+        );
+
+        FundManagement memory funds = FundManagement(address(this), false, payable(msg.sender), false);
+        uint256 deadline = block.timestamp + DEADLINE_GAP;
+
+        amountOut = IBalancerVault(vaultAddress).swap(singleSwap, funds, amountOutMin, deadline);
     }
 }
