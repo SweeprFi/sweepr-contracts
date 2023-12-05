@@ -11,7 +11,7 @@ pragma solidity 0.8.19;
  */
 
 import { Stabilizer, IERC20Metadata, IAMM, TransferHelper, OvnMath } from "../Stabilizer/Stabilizer.sol";
-import { ISilo, ISiloLens } from "./Interfaces/Silo/ISilo.sol";
+import { ISilo, ISiloLens, ISiloIncentives } from "./Interfaces/Silo/ISilo.sol";
 import { IBalancerPool, IBalancerVault, SingleSwap, SwapKind, IAsset, FundManagement } from "./Interfaces/Balancer/IBalancer.sol";
 
 contract SiloAsset is Stabilizer {
@@ -26,6 +26,8 @@ contract SiloAsset is Stabilizer {
     ISilo private constant silo = ISilo(0xA8897b4552c075e884BDB8e7b704eB10DB29BF0D);
     ISiloLens private immutable lens = ISiloLens(0xBDb843c7a7e48Dc543424474d7Aa63b61B5D9536);
     IERC20Metadata private immutable shares = IERC20Metadata(0x713fc13CaAB628F116Bc34961f22a6B44aD27668);
+    ISiloIncentives private immutable incentives = ISiloIncentives(0xd592F705bDC8C1B439Bd4D665Ed99C4FaAd5A680);
+    address rewardToken = 0x912CE59144191C1204E64559FE8253a0e49E6548; // ARB
 
     // Events
     event Invested(uint256 indexed usdxAmount);
@@ -89,6 +91,16 @@ contract SiloAsset is Stabilizer {
     function liquidate() external nonReentrant {
         if(auctionAllowed) revert ActionNotAllowed();
         _liquidate(_getToken(), getDebt());
+    }
+
+    function collect() external nonReentrant onlyBorrower {
+        address[] memory assets = new address[](3);
+        assets[0] = address(usdc_e);
+        assets[1] = address(shares);
+        assets[2] = rewardToken;
+
+        uint256 amount = incentives.getRewardsBalance(assets);
+        incentives.claimRewardsToSelf(assets, amount);
     }
 
     /* ========== Internals ========== */

@@ -12,3 +12,7 @@ interface ISiloLens {
     function getDepositAmount(address _silo, address _asset, address _user, uint256 _timestamp) external view returns (uint256);
 }
 
+interface ISiloIncentives {
+    function getRewardsBalance(address[] calldata assets) external view returns (uint256 amount);
+    function claimRewardsToSelf(address[] calldata assets, uint256 amount) external returns (uint256 claimedAmount);
+}
