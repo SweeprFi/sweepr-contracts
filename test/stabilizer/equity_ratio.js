@@ -76,7 +76,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     expect(equity_ratio.toNumber()).to.closeTo(180300, 5000); // expected ~18.03%
 
     // Sell Sweep
-    await st.sellSweepOnAMM(mintAmount, 0);
+    await st.sellSweepOnAMM(mintAmount, 2000);
     equity_ratio = await st.getEquityRatio();
     expect(equity_ratio.toNumber()).to.closeTo(173000, 5000); // expected ~17.30%
 

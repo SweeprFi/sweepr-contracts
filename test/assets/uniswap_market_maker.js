@@ -108,9 +108,7 @@ contract('Uniswap Market Maker', async () => {
       sweepBefore = await sweep.balanceOf(marketmaker.address);
 
       usdxAmount = toBN("5000", 6);
-      minAmount = toBN("4000", 6);
-
-      await marketmaker.buySweepOnAMM(usdxAmount, minAmount)
+      await marketmaker.buySweepOnAMM(usdxAmount, 2000)
 
       expect(await sweep.ammPrice()).to.greaterThan(ammPrice)
       expect(await usdc.balanceOf(marketmaker.address)).to.equal(usdcBefore.sub(usdxAmount))

@@ -144,7 +144,7 @@ contract("Stabilizer - Liquidation", async function () {
 
       await Promise.all(
         assets.map(async (asset) => {
-          await asset.connect(borrower).sellSweepOnAMM(BORROW_AMOUNT, Const.ZERO);
+          await asset.connect(borrower).sellSweepOnAMM(BORROW_AMOUNT, 2000);
         })
       );
 

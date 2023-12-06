@@ -148,10 +148,10 @@ contract('Balancer - Auto Call', async () => {
 
     it('config the assets', async () => {
       user = await impersonate(BORROWER);
-      await assets[1].connect(user).sellSweepOnAMM(SWEEP_MINT, Const.ZERO);
-      await assets[2].connect(user).sellSweepOnAMM(SWEEP_MINT, Const.ZERO);
-      await assets[3].connect(user).sellSweepOnAMM(HALF_MINT, Const.ZERO);
-      await assets[4].connect(user).sellSweepOnAMM(SWEEP_MINT, Const.ZERO);
+      await assets[1].connect(user).sellSweepOnAMM(SWEEP_MINT, 2000);
+      await assets[2].connect(user).sellSweepOnAMM(SWEEP_MINT, 2000);
+      await assets[3].connect(user).sellSweepOnAMM(HALF_MINT, 2000);
+      await assets[4].connect(user).sellSweepOnAMM(SWEEP_MINT, 2000);
 
       balance2 = await usdc.balanceOf(assets[2].address);
       await assets[2].connect(user).invest(balance2);
