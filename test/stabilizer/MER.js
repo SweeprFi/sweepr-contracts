@@ -92,7 +92,7 @@ contract('Stabilizer - Minimum equity ratio', async () => {
       await asset.borrow(mintAmount);
       expect(await asset.sweepBorrowed()).to.equal(mintAmount);
 
-      await asset.sellSweepOnAMM(mintAmount, 0);
+      await asset.sellSweepOnAMM(mintAmount, 2000);
       expect(await sweep.balanceOf(asset.address)).to.equal(Const.ZERO);
       expect(await usdx.balanceOf(asset.address)).to.above(depositAmount);
     });

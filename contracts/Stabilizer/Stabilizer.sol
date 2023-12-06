@@ -447,7 +447,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function autoCall(
         uint256 sweepAmount,
-        uint256 price,
+        uint256,
         uint256 slippage
     ) external nonReentrant {
         if (msg.sender != sweep.balancer()) revert NotBalancer();
@@ -469,16 +469,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
             }
 
             if (usdx.balanceOf(address(this)) > 0) {
-                uint256 missingUsd = _oracleUsdxToUsd(missingUsdx);
-                uint256 sweepInUsdx = missingUsd.mulDiv(
-                    10 ** sweep.decimals(),
-                    price
-                );
-                uint256 minAmountOut = OvnMath.subBasisPoints(
-                    sweepInUsdx,
-                    slippage
-                );
-                _buy(missingUsdx, minAmountOut);
+                _buy(missingUsdx, slippage);
             }
         }
 
@@ -504,12 +495,11 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     /**
      * @notice Auto Invest.
      * @param sweepAmount to mint.
-     * @param price.
      * @param slippage.
      */
     function autoInvest(
         uint256 sweepAmount,
-        uint256 price,
+        uint256,
         uint256 slippage
     ) external nonReentrant {
         if (msg.sender != sweep.balancer()) revert NotBalancer();
@@ -518,10 +508,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         uint256 sweepMinted = _borrow(sweepAmount);
         if (sweepMinted < autoInvestMinAmount) revert NotAutoInvestMinAmount();
 
-        uint256 usdAmount = sweepAmount.mulDiv(price, 10 ** sweep.decimals());
-        uint256 usdInUsdx = _oracleUsdToUsdx(usdAmount);
-        uint256 minAmountOut = OvnMath.subBasisPoints(usdInUsdx, slippage);
-        uint256 usdxAmount = _sell(sweepAmount, minAmountOut);
+        uint256 usdxAmount = _sell(sweepAmount, slippage);
 
         _invest(usdxAmount, 0, slippage);
 
@@ -536,12 +523,12 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @notice Buy
      * Buys sweep amount from the stabilizer's balance to the AMM (swaps USDX to SWEEP).
      * @param usdxAmount Amount to be changed in the AMM.
-     * @param amountOutMin Minimum amount out.
+     * @param slippage Minimum amount out.
      * @dev Increases the sweep balance and decrease usdx balance.
      */
     function buySweepOnAMM(
         uint256 usdxAmount,
-        uint256 amountOutMin
+        uint256 slippage
     )
         external
         onlyBorrower
@@ -549,8 +536,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         nonReentrant
         returns (uint256 sweepAmount)
     {
-        sweepAmount = _buy(usdxAmount, amountOutMin);
-
+        sweepAmount = _buy(usdxAmount, slippage);
         emit Bought(sweepAmount);
     }
 
@@ -558,12 +544,12 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @notice Sell Sweep
      * Sells sweep amount from the stabilizer's balance to the AMM (swaps SWEEP to USDX).
      * @param sweepAmount.
-     * @param amountOutMin Minimum amount out.
+     * @param slippage Minimum amount out.
      * @dev Decreases the sweep balance and increase usdx balance
      */
     function sellSweepOnAMM(
         uint256 sweepAmount,
-        uint256 amountOutMin
+        uint256 slippage
     )
         external
         onlyBorrower
@@ -571,8 +557,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         nonReentrant
         returns (uint256 usdxAmount)
     {
-        usdxAmount = _sell(sweepAmount, amountOutMin);
-
+        usdxAmount = _sell(sweepAmount, slippage);
         emit Sold(sweepAmount);
     }
 
@@ -632,9 +617,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         _borrow(sweepAmount);
         
         if(useAMM){
-            usdxAmount = _oracleUsdToUsdx(sweep.convertToUSD(sweepAmount));
-            uint256 minAmountOut = OvnMath.subBasisPoints(usdxAmount, slippage);
-            usdxAmount = _sell(sweepAmount, minAmountOut);
+            usdxAmount = _sell(sweepAmount, slippage);
         } else {
             usdxAmount = swapSweepToUsdx(sweepAmount);
         }
@@ -653,9 +636,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         _divest(usdxAmount, slippage);
 
         if(useAMM){
-            sweepAmount = sweep.convertToSWEEP(_oracleUsdxToUsd(usdxAmount));
-            uint256 minAmountOut = OvnMath.subBasisPoints(sweepAmount, slippage);
-            sweepAmount = _buy(usdxAmount, minAmountOut);
+            sweepAmount = _buy(usdxAmount, slippage);
         } else {
             sweepAmount = swapUsdxToSweep(usdxAmount);
         }
@@ -771,18 +752,21 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     function _buy(
         uint256 usdxAmount, 
-        uint256 amountOutMin
-    ) internal returns (uint256) {
+        uint256 slippage
+    ) internal returns (uint256 sweepAmount) {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         usdxAmount = usdxAmount.min(usdxBalance);
         if (usdxAmount == 0) revert NotEnoughBalance();
 
+        sweepAmount = sweep.convertToSWEEP(_oracleUsdxToUsd(usdxAmount));
+        uint256 minAmountOut = OvnMath.subBasisPoints(sweepAmount, slippage);
+
         IAMM _amm = amm();
         TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
-        uint256 sweepAmount = _amm.buySweep(
+        sweepAmount = _amm.buySweep(
             address(usdx),
             usdxAmount,
-            amountOutMin
+            minAmountOut
         );
 
         return sweepAmount;
@@ -790,18 +774,21 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     function _sell(
         uint256 sweepAmount,
-        uint256 amountOutMin
-    ) internal returns (uint256) {
+        uint256 slippage
+    ) internal returns (uint256 usdxAmount) {
         uint256 sweepBalance = sweep.balanceOf(address(this));
         sweepAmount = sweepAmount.min(sweepBalance);
         if (sweepAmount == 0) revert NotEnoughBalance();
 
+        usdxAmount = _oracleUsdToUsdx(sweep.convertToUSD(sweepAmount));
+        uint256 minAmountOut = OvnMath.subBasisPoints(usdxAmount, slippage);
+
         IAMM _amm = amm();
         TransferHelper.safeApprove(address(sweep), address(_amm), sweepAmount);
-        uint256 usdxAmount = _amm.sellSweep(
+        usdxAmount = _amm.sellSweep(
             address(usdx),
             sweepAmount,
-            amountOutMin
+            minAmountOut
         );
 
         return usdxAmount;

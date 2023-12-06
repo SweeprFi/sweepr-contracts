@@ -168,6 +168,6 @@ contract('Balancer Market Maker', async () => {
 
     user = await impersonate(BALANCER);
     await sweep.connect(user).setTargetPrice(1005326, 1005326);
-    await marketmaker.buySweepOnAMM(usdcToSwap, 0);
+    await marketmaker.buySweepOnAMM(usdcToSwap, 9000);
   });
 });

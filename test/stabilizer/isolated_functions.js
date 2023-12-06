@@ -114,7 +114,7 @@ contract("Stabilizer - Isolated Functions", async function () {
 
   describe("payback and repay functions", async function () {
     it("tries to swap without balance", async function () {
-      await expect(offChainAsset.connect(borrower).buySweepOnAMM(tenSweep, 0))
+      await expect(offChainAsset.connect(borrower).buySweepOnAMM(tenSweep, 2000))
         .to.be.revertedWithCustomError(offChainAsset, "NotEnoughBalance");
     });
 
@@ -177,7 +177,7 @@ contract("Stabilizer - Isolated Functions", async function () {
     it("sell SWEEP through the AMM", async function () {
       balance = await sweep.balanceOf(offChainAsset.address);
       usdxBalanceBefore = await usdx.balanceOf(offChainAsset.address);
-      await offChainAsset.connect(borrower).sellSweepOnAMM(balance, 0);
+      await offChainAsset.connect(borrower).sellSweepOnAMM(balance, 2000);
       expect(await usdx.balanceOf(offChainAsset.address)).to.above(usdxBalanceBefore);
       expect(await sweep.balanceOf(offChainAsset.address)).to.equal(Const.ZERO);
     });
@@ -187,7 +187,7 @@ contract("Stabilizer - Isolated Functions", async function () {
       sweepAmount = toBN("49.975", 18); // 50 * 0.9995 (0.05% fee of uniswap)
       balanceBefore = await usdx.balanceOf(offChainAsset.address);
 
-      await offChainAsset.connect(borrower).buySweepOnAMM(usdxAmount, 0);
+      await offChainAsset.connect(borrower).buySweepOnAMM(usdxAmount, 2000);
 
       balanceAfter = await usdx.balanceOf(offChainAsset.address);
 
