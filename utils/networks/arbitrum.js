@@ -62,7 +62,7 @@ module.exports = {
             silo: '0xa8897b4552c075e884bdb8e7b704eb10db29bf0d',
             lens: '0xBDb843c7a7e48Dc543424474d7Aa63b61B5D9536',
             shares: '0x713fc13caab628f116bc34961f22a6b44ad27668',
-            rewards: '0x4999873bF8741bfFFB0ec242AAaA7EF1FE74FCE8',
+            incentives: '0x4999873bF8741bfFFB0ec242AAaA7EF1FE74FCE8',
         }
     },
 
@@ -96,20 +96,16 @@ module.exports = {
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         distributor: '0x90453f4969420c2DCE4344431303EAE679dB8F0b',
         balancer_pool: '0xef093ccfdd4d5a590b028463e0528049939889c9',
-        balancer_amm: '0x3bB6861c0Be6673809D55b9D346b6774B634a9D7', // old 0xf0604A1c725F8eeb14FF082F2275AfE0B67A32D5
+        balancer_amm: '0x3bB6861c0Be6673809D55b9D346b6774B634a9D7',
         timelock: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
-        approver: '0x06d94665f02322781303224120326167483F5BD2', // whitelist from DeFi Ready
+        approver: '0x06d94665f02322781303224120326167483F5BD2',
         vesting_approver: '0x483761F16A7c978df09d1e7E22532e9DbD2Ee8D0',
         proposal_sender: '0xC6c730E0424A01BF6e1A2ff4Ffac8540E29Dd185',
         liquidity_helper: '0x7560d15774499386B04A64177E090B33e803493F',
 
         assets: {
-            off_chain: '0xecA8FCe753e10B87E40EDca2B6810Ae5Ea508FA4',
-            aave: '0x99fb540EA905Ac084F938c4aC7cDBAb88d650e25',
-            weth: '0xc625763a67735999FE52111c4CE4cd26C3C60186',
-            wbtc: '0xe45c18a04eB1027f8E2806b6291f23beAadC10a7',
             market_maker: '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',
-            usd_plus: '0x52D0a9E74fC159F47cEE668801082a975c10bBba',
+            silo: '0x53b5fae6e17c7f9b35952779150446e99a4887d3',
         }
     },
 

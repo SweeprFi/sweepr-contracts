@@ -6,7 +6,7 @@ pragma solidity 0.8.19;
 // ====================================================================
 
 /**
- * @title USDPlus Asset
+ * @title Silo Asset
  * @dev Representation of an on-chain investment on Overnight finance.
  */
 

@@ -22,10 +22,13 @@ module.exports = {
         sweep: '0xB88a5Ac00917a02d82c7cd6CEBd73E2852d43574',
         sweepr: '0x89B1e7068bF8E3232dD8f16c35cAc45bDA584f4E',
         usdc: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
-        usd_bc: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
+        usdc_e: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
     },
 
     protocols: {
+        balancer: {
+            bpt_4pool: '0x0c659734f1eef9c63b7ebdf78a164cdd745586db',
+        },
         overnight: {
             usd_plus: '0xB79DD08EA68A908A97220C76d19A6aA9cBDE4376',
             exchange: '0x7cb1B38591021309C64f451859d79312d8Ca2789',
@@ -66,7 +69,7 @@ module.exports = {
         assets: {
             market_maker: '0x7560d15774499386B04A64177E090B33e803493F',
             maple: '0xe55D44783D8DB0684fe992e87d4703632f66cBB3',
-            usd_plus: '0x05910e7B7A749b1c33d9EB63CE91B63F2ec1cD2A',
+            usd_plus: '0x7537035fE6fFb0ed72Ee65B5569a5c090729f0Fa', // '0x05910e7B7A749b1c33d9EB63CE91B63F2ec1cD2A',
         }
     },
 
