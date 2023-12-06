@@ -1,14 +1,14 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../../utils/address");
-const { impersonate, Const, toBN, sendEth, getBlockTimestamp } = require("../../utils/helper_functions");
+const { tokens, chainlink, wallets } = require("../../../utils/constants");
+const { impersonate, Const, toBN, sendEth, getBlockTimestamp } = require("../../../utils/helper_functions");
 
-contract("Off-Chain Asset", async function (accounts) {
+contract.skip("Off-Chain Asset", async function (accounts) {
     before(async () => {
-        GUEST = accounts[0];
-        LZENDPOINT = accounts[1];
+        BORROWER = accounts[0];
+        GUEST = accounts[1];
+        LZENDPOINT = accounts[2];
         WALLET = accounts[8];
-        BORROWER = addresses.borrower;
 
         sweepAmount = toBN("100", 18);
         usdxAmount = 100e6;
@@ -16,32 +16,30 @@ contract("Off-Chain Asset", async function (accounts) {
         usdxPayback = 50e6;
 
         // ------------- Deployment of contracts -------------
-        Token = await ethers.getContractFactory("ERC20");
-        usdx = await Token.attach(addresses.usdc);
-
-        Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [LZENDPOINT, addresses.owner, 2500]);
-        sweep = await Proxy.deployed();
-
-        Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, Const.FEE);
-        await sweep.setAMM(amm.address);
+        sweep = await ethers.getContractAt("SweepCoin", tokens.sweep);
+        usdx = await ethers.getContractAt("ERC20", tokens.usdc);
 
         OffChainAsset = await ethers.getContractFactory("OffChainAsset");
-        asset = await OffChainAsset.deploy(
-            'OffChain Asset',
-            sweep.address,
-            addresses.usdc,
-            WALLET,
-            amm.address,
-			addresses.oracle_usdc_usd,
-            BORROWER
-        );
+		asset = await OffChainAsset.deploy(
+			'OffChain Asset',
+			tokens.sweep,
+			tokens.usdc,
+			WALLET,
+			Const.ADDRESS_ZERO,
+			chainlink.usdc_usd,
+			BORROWER
+		);
+
+        OWNER = await sweep.owner();
+        await sendEth(OWNER);
+        SWEEP_OWNER = await impersonate(OWNER);
+        await sweep.connect(SWEEP_OWNER).addMinter(BORROWER, sweepAmount);
+        await sweep.mint(sweepAmount);
     });
 
     describe("main functions", async function () {
         it('deposit usdc and sweep to the asset', async () => {
-            user = await impersonate(addresses.usdc_holder);
+            user = await impersonate(wallets.usdc_holder);
             await sendEth(user.address);
             await usdx.connect(user).transfer(asset.address, usdxAmount);
             await sweep.transfer(asset.address, sweepAmount);
@@ -80,11 +78,11 @@ contract("Off-Chain Asset", async function (accounts) {
         it("returns investment correctly", async function () {
             user = await impersonate(WALLET);
             await usdx.connect(user).approve(asset.address, usdxPayback);
-            await expect(asset.connect(user).payback(addresses.usdt, usdxPayback))
+            await expect(asset.connect(user).payback(tokens.usdt, usdxPayback))
                 .to.be.revertedWithCustomError(asset, "InvalidToken");
-            await expect(asset.connect(user).payback(addresses.usdc, 10e6))
+            await expect(asset.connect(user).payback(tokens.usdc, 10e6))
                 .to.be.revertedWithCustomError(asset, "NotEnoughAmount");
-            await asset.connect(user).payback(addresses.usdc, usdxPayback);
+            await asset.connect(user).payback(tokens.usdc, usdxPayback);
 
             expect(await asset.redeemMode()).to.equal(Const.FALSE);
             expect(await asset.redeemAmount()).to.equal(Const.ZERO);

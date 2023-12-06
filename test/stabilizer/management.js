@@ -1,7 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../../utils/address');
-const { Const, toBN, impersonate } = require("../../utils/helper_functions");
+const { Const, toBN } = require("../../utils/helper_functions");
 
 contract("Stabilizer - Management Functions", async function () {
   before(async () => {
@@ -11,31 +10,29 @@ contract("Stabilizer - Management Functions", async function () {
     autoInvestAmount = toBN("10", 18);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [
-      lzEndpoint.address,
-      multisig.address,
-      2500 // 0.25%
-    ]);
+    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, multisig.address, 2500]);
     sweep = await Proxy.deployed();
-    await sweep.setTreasury(addresses.treasury);
+    await sweep.setTreasury(treasury.address);
     await sweep.setBalancer(balancer.address);
 
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    amm = await Uniswap.deploy(sweep.address, agent.address);
     await sweep.setAMM(amm.address);
 
+    Oracle = await ethers.getContractFactory("AggregatorMock");
+    usdcOracle = await Oracle.deploy();
+
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
-    // ------------- Initialize context -------------
     offChainAsset = await OffChainAsset.deploy(
       'OffChain Asset',
       sweep.address,
       usdx.address,
       wallet.address,
       agent.address,
-      addresses.oracle_usdc_usd,
+      usdcOracle.address,
       borrower.address
     );
 
@@ -76,7 +73,7 @@ contract("Stabilizer - Management Functions", async function () {
           Const.RATIO,
           maxBorrow,
           Const.RATIO,
-          Const.FEE,
+          500,
           Const.RATIO,
           autoInvestAmount,
           Const.ZERO,
@@ -92,7 +89,7 @@ contract("Stabilizer - Management Functions", async function () {
           Const.RATIO,
           maxBorrow,
           Const.RATIO,
-          Const.FEE,
+          500,
           Const.RATIO,
           autoInvestAmount,
           Const.ZERO,
@@ -105,7 +102,7 @@ contract("Stabilizer - Management Functions", async function () {
       expect(await offChainAsset.spreadFee()).to.equal(Const.RATIO);
       expect(await offChainAsset.loanLimit()).to.equal(maxBorrow);
       expect(await offChainAsset.decreaseFactor()).to.equal(Const.RATIO);
-      expect(await offChainAsset.callDelay()).to.equal(Const.FEE);
+      expect(await offChainAsset.callDelay()).to.equal(500);
 
       expect(await offChainAsset.link()).to.equal(Const.URL);
     });
@@ -126,7 +123,7 @@ contract("Stabilizer - Management Functions", async function () {
           Const.RATIO,
           maxBorrow,
           Const.RATIO,
-          Const.FEE,
+          500,
           Const.RATIO,
           autoInvestAmount,
           Const.ZERO,

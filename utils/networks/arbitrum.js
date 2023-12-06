@@ -23,6 +23,7 @@ module.exports = {
         borrower: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
         usdc_holder: '0x70d95587d40a2caf56bd97485ab3eec10bee6336',
         dai_holder: '0xf0428617433652c9dc6d1093a42adfbf30d29f74',
+        weth_holder: '0x489ee077994b6658eafa855c308275ead8097c4a',
     },
 
     tokens: {
@@ -56,6 +57,13 @@ module.exports = {
             usd_plus: '0xe80772Eaf6e2E18B651F160Bc9158b2A5caFCA65',
             usd_plus_exchange: '0x73cb180bf0521828d8849bc8CF2B920918e23032',
         },
+
+        silo: {
+            silo: '0xa8897b4552c075e884bdb8e7b704eb10db29bf0d',
+            lens: '0xBDb843c7a7e48Dc543424474d7Aa63b61B5D9536',
+            shares: '0x713fc13caab628f116bc34961f22a6b44ad27668',
+            rewards: '0x4999873bF8741bfFFB0ec242AAaA7EF1FE74FCE8',
+        }
     },
 
     chainlink: {
@@ -73,7 +81,9 @@ module.exports = {
         positions_manager: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
         quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
         observationCardinality: 480,
-        pool: ''
+        pool_sweep: '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
+        pool_weth: '0xC6962004f452bE9203591991D15f6b388e09E8D0',
+        pool_wbtc: '0x0E4831319A50228B9e450861297aB92dee15B44F',
     },
 
     balancer: {

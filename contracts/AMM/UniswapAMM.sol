@@ -15,23 +15,20 @@ import "../Utils/LiquidityHelper.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract UniswapAMM {
     using Math for uint256;
 
-    ISwapRouter private constant ROUTER =
-        ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
-    IUniswapV3Factory private constant FACTORY =
-        IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
+    ISwapRouter private constant ROUTER = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
     IERC20Metadata public immutable base;
     IERC20Metadata public immutable sweep;
     IPriceFeed public immutable oracleBase;
     IPriceFeed public immutable sequencer;
-    uint24 public immutable poolFee;
+    address public immutable pool;
     uint256 public immutable oracleBaseUpdateFrequency;
     bool private immutable flag; // The sort status of tokens
     LiquidityHelper private immutable liquidityHelper;
@@ -45,7 +42,7 @@ contract UniswapAMM {
         address _sweep,
         address _base,
         address _sequencer,
-        uint24 _fee,
+        address _pool,
         address _oracleBase,
         uint256 _oracleBaseUpdateFrequency,
         address _liquidityHelper
@@ -54,7 +51,7 @@ contract UniswapAMM {
         base = IERC20Metadata(_base);
         oracleBase = IPriceFeed(_oracleBase);
         sequencer = IPriceFeed(_sequencer);
-        poolFee = _fee;
+        pool = _pool;
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
         liquidityHelper = LiquidityHelper(_liquidityHelper);
         flag = _base < _sweep;
@@ -63,7 +60,6 @@ contract UniswapAMM {
     // Events
     event Bought(uint256 usdxAmount);
     event Sold(uint256 sweepAmount);
-    event PoolFeeChanged(uint24 poolFee);
 
     // Errors
     error OverZero();
@@ -73,9 +69,7 @@ contract UniswapAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getPrice() external view returns (uint256 amountOut) {
-        (, int24 tick, , , , , ) = IUniswapV3Pool(
-            FACTORY.getPool(address(base), address(sweep), poolFee)
-        ).slot0();
+        (, int24 tick, , , , , ) = IUniswapV3Pool(pool).slot0();
 
         uint256 quote = OracleLibrary.getQuoteAtTick(
             tick,
@@ -105,7 +99,6 @@ contract UniswapAMM {
         );
         uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
-        address pool = FACTORY.getPool(address(base), address(sweep), poolFee);
         // Get the average price tick first
         (int24 arithmeticMeanTick, ) = OracleLibrary.consult(pool, LOOKBACK);
 
@@ -125,8 +118,7 @@ contract UniswapAMM {
         returns (uint256 usdxAmount, uint256 sweepAmount, uint256 lp)
     {
         lp = 0;
-        (uint256 amount0, uint256 amount1) = liquidityHelper
-            .getTokenAmountsFromLP(tokenId, address(base), address(sweep), poolFee);
+        (uint256 amount0, uint256 amount1) = liquidityHelper.getTokenAmountsFromLP(tokenId, pool);
         (usdxAmount, sweepAmount) = flag ? (amount0, amount1) : (amount1, amount0);
     }
 
@@ -145,12 +137,12 @@ contract UniswapAMM {
         uint256 amountOutMin
     ) external returns (uint256 sweepAmount) {
         emit Bought(tokenAmount);
-        sweepAmount = swapExactInput(
+        sweepAmount = swap(
             tokenAddress,
             address(sweep),
-            poolFee,
             tokenAmount,
-            amountOutMin
+            amountOutMin,
+            pool
         );
     }
 
@@ -167,12 +159,12 @@ contract UniswapAMM {
         uint256 amountOutMin
     ) external returns (uint256 tokenAmount) {
         emit Sold(sweepAmount);
-        tokenAmount = swapExactInput(
+        tokenAmount = swap(
             address(sweep),
             tokenAddress,
-            poolFee,
             sweepAmount,
-            amountOutMin
+            amountOutMin,
+            pool
         );
     }
 
@@ -182,30 +174,25 @@ contract UniswapAMM {
      * @param tokenB Address to out
      * @param amountIn Amount of _tokenA
      * @param amountOutMin Minimum amount out.
+     * @param poolAddress Pool to use in the swap
      */
-    function swapExactInput(
+    function swap(
         address tokenA,
         address tokenB,
-        uint24 fee,
         uint256 amountIn,
-        uint256 amountOutMin
+        uint256 amountOutMin,
+        address poolAddress
     ) public returns (uint256 amountOut) {
         // Approval
-        TransferHelper.safeTransferFrom(
-            tokenA,
-            msg.sender,
-            address(this),
-            amountIn
-        );
+        TransferHelper.safeTransferFrom(tokenA, msg.sender, address(this), amountIn);
         TransferHelper.safeApprove(tokenA, address(ROUTER), amountIn);
 
         ISwapRouter.ExactInputSingleParams memory swapParams = ISwapRouter
             .ExactInputSingleParams({
                 tokenIn: tokenA,
                 tokenOut: tokenB,
-                fee: fee,
+                fee: IUniswapV3Pool(poolAddress).fee(),
                 recipient: msg.sender,
-                // TODO: will this hardcoded 200 work for every network?
                 deadline: block.timestamp + DEADLINE_GAP,
                 amountIn: amountIn,
                 amountOutMinimum: amountOutMin,

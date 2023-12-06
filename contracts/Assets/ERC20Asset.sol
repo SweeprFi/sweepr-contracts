@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ========================== TokenAsset.sol ==========================
+// ========================== ERC20Asset.sol ==========================
 // ====================================================================
 
 /**
@@ -12,11 +12,11 @@ pragma solidity 0.8.19;
 
 import "../Stabilizer/Stabilizer.sol";
 
-contract TokenAsset is Stabilizer {
+contract ERC20Asset is Stabilizer {
     // Variables
     IERC20Metadata private immutable token;
     IPriceFeed private immutable oracleToken;
-    uint24 private immutable poolFee;
+    address private immutable poolAddress;
 
     // Events
     event Invested(uint256 indexed tokenAmount);
@@ -30,12 +30,12 @@ contract TokenAsset is Stabilizer {
         address _oracleUsdx,
         address _oracleToken,
         address _borrower,
-        uint24 _poolFee
+        address _poolAddress
 
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         token = IERC20Metadata(_token);
         oracleToken = IPriceFeed(_oracleToken);
-        poolFee = _poolFee;
+        poolAddress = _poolAddress;
     }
 
     /* ========== Views ========== */
@@ -111,12 +111,12 @@ contract TokenAsset is Stabilizer {
         IAMM _amm = amm();
         uint256 usdxInToken = _oracleUsdxToToken(usdxAmount);
         TransferHelper.safeApprove(address(usdx), address(_amm), usdxAmount);
-        uint256 tokenAmount = _amm.swapExactInput(
+        uint256 tokenAmount = _amm.swap(
             address(usdx),
             address(token),
-            poolFee,
             usdxAmount,
-            OvnMath.subBasisPoints(usdxInToken, slippage)
+            OvnMath.subBasisPoints(usdxInToken, slippage),
+            poolAddress
         );
 
         emit Invested(tokenAmount);
@@ -133,12 +133,12 @@ contract TokenAsset is Stabilizer {
         IAMM _amm = amm();
         uint256 tokenInUsdx = _oracleTokenToUsdx(tokenAmount);
         TransferHelper.safeApprove(address(token), address(_amm), tokenAmount);
-        divestedAmount = _amm.swapExactInput(
+        divestedAmount = _amm.swap(
             address(token),
             address(usdx),
-            poolFee,
             tokenAmount,
-            OvnMath.subBasisPoints(tokenInUsdx, slippage)
+            OvnMath.subBasisPoints(tokenInUsdx, slippage),
+            poolAddress
         );
 
         emit Divested(divestedAmount);

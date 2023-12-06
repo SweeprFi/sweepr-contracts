@@ -1,8 +1,8 @@
 const { expect } = require('chai');
 const { ethers } = require("hardhat");
-const { addresses } = require("../../utils/address");
+const { deployments, wallets } = require("../../utils/constants");
 const { time } = require('@openzeppelin/test-helpers');
-const { impersonate, Const, toBN } = require('../../utils/helper_functions');
+const { impersonate, Const, toBN, sendEth } = require('../../utils/helper_functions');
 let account;
 
 contract('Sweepr Governance', async (accounts) => {
@@ -15,7 +15,8 @@ contract('Sweepr Governance', async (accounts) => {
 		USER3 = accounts[4];
 		USER4 = accounts[5];
 		LZENDPOINT = accounts[6];
-		OWNER_SWEEPR = addresses.owner;
+		TREASURY = accounts[7];
+		OWNER_SWEEPR = wallets.multisig;
 		MINT_AMOUNT = toBN("100000", 18);
 		SWEEP_AMOUNT = toBN("1400", 18);
 		SWEEPR_MINT_AMOUNT = toBN("10000", 18);
@@ -38,8 +39,10 @@ contract('Sweepr Governance', async (accounts) => {
 			2500 // 0.25%
 		]);
 		sweep = await Proxy.deployed(Sweep);
+
+		await sendEth(OWNER_SWEEPR);
 		user = await impersonate(OWNER_SWEEPR);
-		await sweep.connect(user).setTreasury(addresses.treasury);
+		await sweep.connect(user).setTreasury(TREASURY);
 
 		timelockInstance = await ethers.getContractFactory("TimelockController");
 		timelock = await timelockInstance.deploy(172800, [], [], OWNER_SWEEPR);
@@ -54,7 +57,7 @@ contract('Sweepr Governance', async (accounts) => {
 		// deploys
 		sweepr = await SWEEPR.deploy(Const.TRUE, LZENDPOINT); // TRUE means governance chain
 
-		tokenDistributor = await TokenDistributor.deploy(sweepr.address, addresses.treasury);
+		tokenDistributor = await TokenDistributor.deploy(sweepr.address, TREASURY);
 		governance = await Governance.deploy(
 			sweepr.address,
 			timelock.address,
@@ -140,7 +143,7 @@ contract('Sweepr Governance', async (accounts) => {
 
 	it('proposes only who has enough sweepr', async () => {
 		// Transfer sweep ownership to governance
-		await sweep.transferOwnership(addresses.timelock);
+		await sweep.transferOwnership(deployments.timelock);
 
 		totalSupply = await sweepr.totalSupply();
 		blockNumber = await ethers.provider.getBlockNumber();

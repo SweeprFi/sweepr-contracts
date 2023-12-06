@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../../utils/address");
+const { chainlink, uniswap, tokens, wallets } = require("../../utils/constants");
 const { impersonate, sendEth, Const, toBN } = require("../../utils/helper_functions");
 let user;
 
@@ -20,33 +20,33 @@ contract("Stabilizer - One step invest/divest", async function () {
         Sweep = await ethers.getContractFactory("SweepMock");
         const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 2500]);
         sweep = await Proxy.deployed();
-        await sweep.setTreasury(addresses.treasury);
+        await sweep.setTreasury(treasury.address);
 
         Token = await ethers.getContractFactory("ERC20");
-        usdc = await Token.attach(addresses.usdc);
-        weth = await Token.attach(addresses.weth);
+        usdc = await Token.attach(tokens.usdc);
+        weth = await Token.attach(tokens.weth);
 
         Oracle = await ethers.getContractFactory("AggregatorMock");
         wethOracle = await Oracle.deploy();
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, Const.FEE);
+        amm = await Uniswap.deploy(sweep.address, owner.address);
         await sweep.setAMM(amm.address);
 
-        WETHAsset = await ethers.getContractFactory("TokenAsset");
+        WETHAsset = await ethers.getContractFactory("ERC20Asset");
         weth_asset = await WETHAsset.deploy(
             'WETH Asset',
             sweep.address,
-            addresses.usdc,
-            addresses.weth,
-			addresses.oracle_usdc_usd,
+            tokens.usdc,
+            tokens.weth,
+			chainlink.usdc_usd,
             wethOracle.address,
             BORROWER,
-            Const.FEE
+            uniswap.pool_weth
         );
 
-        await sendEth(addresses.usdc_holder);
-        user = await impersonate(addresses.usdc_holder);
+        await sendEth(wallets.usdc_holder);
+        user = await impersonate(wallets.usdc_holder);
         await usdc.connect(user).transfer(weth_asset.address, depositAmount);
         await usdc.connect(user).transfer(amm.address, depositAmount * 5);
 
@@ -59,7 +59,7 @@ contract("Stabilizer - One step invest/divest", async function () {
 
         await sweep.addMinter(weth_asset.address, maxSweep);
         await weth_asset.configure(
-            Const.RATIO, Const.FEE, maxSweep, Const.ZERO, Const.ZERO, Const.DAYS_5,
+            Const.RATIO, 500, maxSweep, Const.ZERO, Const.ZERO, Const.DAYS_5,
             Const.RATIO, maxSweep, Const.TRUE, Const.FALSE, Const.URL
         );
     });

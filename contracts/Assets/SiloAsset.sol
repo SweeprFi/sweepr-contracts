@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ========================== USDPlusAsset.sol ========================
+// ========================== SiloAsset.sol ===========================
 // ====================================================================
 
 /**
@@ -10,39 +10,38 @@ pragma solidity 0.8.19;
  * @dev Representation of an on-chain investment on Overnight finance.
  */
 
-import "../Stabilizer/Stabilizer.sol";
-import "./Interfaces/Overnight/IExchanger.sol";
+import { Stabilizer, IERC20Metadata, IAMM, TransferHelper, OvnMath } from "../Stabilizer/Stabilizer.sol";
+import { ISilo, ISiloLens, ISiloIncentives } from "./Interfaces/Silo/ISilo.sol";
 import { IBalancerPool, IBalancerVault, SingleSwap, SwapKind, IAsset, FundManagement } from "./Interfaces/Balancer/IBalancer.sol";
 
-contract USDPlusAsset is Stabilizer {
+contract SiloAsset is Stabilizer {
+
+    error UnexpectedAmount();
     uint16 private constant DEADLINE_GAP = 15 minutes;
+
     // Variables
-    IERC20Metadata private immutable token;
-    IERC20Metadata private immutable usdc_e; // Arbitrum USDC.e
-    IExchanger private immutable exchanger;
+    IERC20Metadata private immutable usdc_e;
     IBalancerPool private immutable pool;
+
+    ISilo private constant silo = ISilo(0xA8897b4552c075e884BDB8e7b704eB10DB29BF0D);
+    ISiloLens private immutable lens = ISiloLens(0xBDb843c7a7e48Dc543424474d7Aa63b61B5D9536);
+    IERC20Metadata private immutable shares = IERC20Metadata(0x713fc13CaAB628F116Bc34961f22a6B44aD27668);
+    ISiloIncentives private immutable incentives = ISiloIncentives(0xd592F705bDC8C1B439Bd4D665Ed99C4FaAd5A680);
 
     // Events
     event Invested(uint256 indexed usdxAmount);
     event Divested(uint256 indexed usdxAmount);
 
-    // Errors
-    error UnExpectedAmount();
-
     constructor(
         string memory _name,
         address _sweep,
         address _usdx,
-        address _token,
         address _usdc_e,
-        address _exchanger,
         address _oracleUsdx,
         address _borrower,
         address _pool
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
-        token = IERC20Metadata(_token);
         usdc_e = IERC20Metadata(_usdc_e);
-        exchanger = IExchanger(_exchanger);
         pool = IBalancerPool(_pool);
     }
 
@@ -53,14 +52,11 @@ contract USDPlusAsset is Stabilizer {
      * @return the Returns the value of the investment in the USD coin
      */
     function assetValue() public view override returns (uint256) {
-        uint256 tokenBalance = token.balanceOf(address(this));
-        uint256 redeemFee = exchanger.redeemFee();
-        uint256 redeemFeeDenominator = exchanger.redeemFeeDenominator();
-        uint256 tokenInUsdx = _tokenToUsdx(tokenBalance);
-        uint256 usdxAmount = (tokenInUsdx *
-            (redeemFeeDenominator - redeemFee)) / redeemFeeDenominator;
+        return _oracleUsdxToUsd(getDepositAmount());
+    }
 
-        return _oracleUsdxToUsd(usdxAmount);
+    function getDepositAmount() public view returns (uint256) {
+        return lens.getDepositAmount(address(silo), address(usdc_e), address(this), block.timestamp);
     }
 
     /* ========== Actions ========== */
@@ -68,30 +64,21 @@ contract USDPlusAsset is Stabilizer {
     /**
      * @notice Invest.
      * @param usdxAmount Amount of usdx to be swapped for token.
-     * @param slippage .
      * @dev Swap from usdx to token.
      */
-    function invest(
-        uint256 usdxAmount,
-        uint256 slippage
-    ) external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount) {
+    function invest(uint256 usdxAmount, uint256 slippage) 
+        external onlyBorrower whenNotPaused nonReentrant validAmount(usdxAmount)
+    {
         _invest(usdxAmount, 0, slippage);
     }
 
     /**
      * @notice Divest.
      * @param usdxAmount Amount to be divested.
-     * @param slippage .
      * @dev Swap from the token to usdx.
      */
-    function divest(
-        uint256 usdxAmount,
-        uint256 slippage
-    )
-        external
-        onlyBorrower
-        nonReentrant
-        validAmount(usdxAmount)
+    function divest(uint256 usdxAmount, uint256 slippage)
+        external onlyBorrower nonReentrant validAmount(usdxAmount)
         returns (uint256)
     {
         return _divest(usdxAmount, slippage);
@@ -102,20 +89,25 @@ contract USDPlusAsset is Stabilizer {
      */
     function liquidate() external nonReentrant {
         if(auctionAllowed) revert ActionNotAllowed();
-        _liquidate(address(token), getDebt());
+        _liquidate(_getToken(), getDebt());
+    }
+
+    function collect() external nonReentrant onlyBorrower {
+        address[] memory assets = new address[](1);
+        assets[0] = address(shares);
+        uint256 amount = incentives.getRewardsBalance(assets, address(this));
+        incentives.claimRewardsToSelf(assets, amount);
     }
 
     /* ========== Internals ========== */
 
     function _getToken() internal view override returns (address) {
-        return address(token);
+        return address(shares);
     }
 
-    function _invest(
-        uint256 usdxAmount,
-        uint256,
-        uint256 slippage
-    ) internal override {
+    function _invest(uint256 usdxAmount, uint256, uint256 slippage)
+        internal override 
+    {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         if (usdxBalance == 0) revert NotEnoughBalance();
         if (usdxBalance < usdxAmount) usdxAmount = usdxBalance;
@@ -128,67 +120,39 @@ contract USDPlusAsset is Stabilizer {
             OvnMath.subBasisPoints(usdxAmount, slippage)
         );
 
-        // Invest to USD+
-        uint256 estimatedAmount = _usdxToToken(
-            OvnMath.subBasisPoints(usdceAmount, slippage)
-        );
-        TransferHelper.safeApprove(
-            address(usdc_e),
-            address(exchanger),
-            usdceAmount
-        );
-        uint256 tokenAmount = exchanger.mint(
-            IExchanger.MintParams(address(usdc_e), usdceAmount, "")
-        );
-        if (tokenAmount == 0 || tokenAmount < estimatedAmount)
-            revert UnExpectedAmount();
+        TransferHelper.safeApprove(address(usdc_e), address(silo), usdceAmount);
+        (uint256 collateralAmount,) = silo.deposit(address(usdc_e), usdceAmount, false);
 
-        emit Invested(_tokenToUsdx(tokenAmount));
+        if(collateralAmount < usdceAmount) {
+            revert UnexpectedAmount();
+        }
+
+        emit Invested(usdceAmount);
     }
 
     function _divest(
         uint256 usdxAmount,
         uint256 slippage
     ) internal override returns (uint256 divestedAmount) {
-        uint256 tokenBalance = token.balanceOf(address(this));
-        if (tokenBalance == 0) revert NotEnoughBalance();
-        uint256 tokenAmount = _usdxToToken(usdxAmount);
-        if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
+        uint256 depositedAmount = getDepositAmount();
+        if(depositedAmount < usdxAmount) usdxAmount = depositedAmount;
 
-        // Redeem
-        uint256 usdceAmount = exchanger.redeem(address(usdc_e), tokenAmount);
-
+        // withdraw from SILO
+        (uint256 withdrawnAmount,) = silo.withdraw(address(usdc_e), usdxAmount, false);
         // Check return amount
-        uint256 estimatedAmount = _tokenToUsdx(
-            OvnMath.subBasisPoints(tokenAmount, slippage)
-        );
-        if (usdceAmount < estimatedAmount) revert UnExpectedAmount();
+        if(withdrawnAmount < usdxAmount) {
+            revert UnexpectedAmount();
+        }
 
         // Swap native USDC.e to USDx
         divestedAmount = swap(
             address(usdc_e),
             address(usdx),
-            usdceAmount,
-            OvnMath.subBasisPoints(usdceAmount, slippage)
+            usdxAmount,
+            OvnMath.subBasisPoints(usdxAmount, slippage)
         );
 
         emit Divested(divestedAmount);
-    }
-
-    /**
-     * @notice Convert Usdx to Token (1:1 rate)
-     */
-    function _tokenToUsdx(uint256 tokenAmount) internal view returns (uint256) {
-        return
-            (tokenAmount * (10 ** usdx.decimals())) / (10 ** token.decimals());
-    }
-
-    /**
-     * @notice Convert Token to Usdx (1:1 rate)
-     */
-    function _usdxToToken(uint256 usdxAmount) internal view returns (uint256) {
-        return
-            (usdxAmount * (10 ** token.decimals())) / (10 ** usdx.decimals());
     }
 
     /**
@@ -224,4 +188,5 @@ contract USDPlusAsset is Stabilizer {
 
         amountOut = IBalancerVault(vaultAddress).swap(singleSwap, funds, amountOutMin, deadline);
     }
+
 }

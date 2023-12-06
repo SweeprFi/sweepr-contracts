@@ -8,25 +8,17 @@ pragma solidity >=0.8.0;
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
 import "@uniswap/v3-core/contracts/libraries/SqrtPriceMath.sol";
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "abdk-libraries-solidity/ABDKMath64x64.sol";
 
 contract LiquidityHelper {
-    IUniswapV3Factory internal constant uniswapV3Factory =
-        IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
-
-    INonfungiblePositionManager internal constant nonfungiblePositionManager =
-        INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
+    INonfungiblePositionManager internal constant NFPS = INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
 
     function getTokenAmountsFromLP(
         uint256 tokenId,
-        address token0,
-        address token1,
-        uint24 fee
+        address poolAddress
     ) external view returns (uint256 amount0, uint256 amount1) {
-        address poolAddress = uniswapV3Factory.getPool(token0, token1, fee);
         IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
         (uint160 sqrtPriceX96, int24 tickCurrent, , , , , ) = pool.slot0();
         (
@@ -42,7 +34,7 @@ contract LiquidityHelper {
             ,
             ,
 
-        ) = nonfungiblePositionManager.positions(tokenId);
+        ) = NFPS.positions(tokenId);
 
         if (tickCurrent < tickLower) {
             amount0 = SqrtPriceMath.getAmount0Delta(
@@ -99,25 +91,10 @@ contract LiquidityHelper {
         tick = (tick / tickSpacing) * tickSpacing;
     }
 
-    function getTickSpacing(
-        address token0,
-        address token1,
-        uint24 fee
-    ) external view returns (int24 tickSpacing) {
-        address poolAddress = uniswapV3Factory.getPool(token0, token1, fee);
-        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
-
-        tickSpacing = pool.tickSpacing();
-    }
-
     function getCurrentTick(
-        address token0,
-        address token1,
-        uint24 fee
+        address poolAddress
     ) external view returns (int24 tickCurrent) {
-        address poolAddress = uniswapV3Factory.getPool(token0, token1, fee);
         IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
-
         (, tickCurrent, , , , , ) = pool.slot0();
     }
 }

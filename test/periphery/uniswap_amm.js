@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../../utils/address");
+const { chainlink, uniswap } = require("../../utils/constants");
 const { toBN, Const, increaseTime, getPriceAndData } = require("../../utils/helper_functions");
 
 contract("Uniswap AMM", async function () {
@@ -27,12 +27,8 @@ contract("Uniswap AMM", async function () {
     LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
     liquidityHelper = await LiquidityHelper.deploy();
 
-    Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, Const.FEE);
-    await sweep.setAMM(amm.address);
-
-    factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
-    positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniswap_position_manager);
+    factory = await ethers.getContractAt("IUniswapV3Factory", uniswap.factory);
+    positionManager = await ethers.getContractAt("INonfungiblePositionManager", uniswap.positions_manager);
 
     UniV3Asset = await ethers.getContractFactory("UniV3Asset");
     asset = await UniV3Asset.deploy(
@@ -40,23 +36,12 @@ contract("Uniswap AMM", async function () {
       sweep.address,
       usdc.address,
       liquidityHelper.address,
-      addresses.oracle_usdc_usd,
+      chainlink.usdc_usd,
       OWNER
     );
 
     Oracle = await ethers.getContractFactory("AggregatorMock");
     usdcOracle = await Oracle.deploy();
-
-    UniswapAMM = await ethers.getContractFactory("UniswapAMM");
-    amm = await UniswapAMM.deploy(
-      sweep.address,
-      usdc.address,
-      addresses.sequencer_feed,
-      Const.FEE,
-      usdcOracle.address,
-      86400, // oracle update frequency ~ 1 day
-      liquidityHelper.address
-    );
 
     await sweep.addMinter(asset.address, SWEEP_INVEST);
     // config stabilizer
@@ -80,12 +65,23 @@ contract("Uniswap AMM", async function () {
       const { token0, token1, sqrtPriceX96 } =
         getPriceAndData(sweep.address, usdc.address, sweepAmount, usdxAmount);
 
-      await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
-      pool_address = await factory.getPool(token0, token1, Const.FEE);
+      await positionManager.createAndInitializePoolIfNecessary(token0, token1, 500, sqrtPriceX96)
+      pool_address = await factory.getPool(token0, token1, 500);
 
       pool = await ethers.getContractAt("IUniswapV3Pool", pool_address);
       await (await pool.increaseObservationCardinalityNext(96)).wait();
 
+      UniswapAMM = await ethers.getContractFactory("UniswapAMM");
+      amm = await UniswapAMM.deploy(
+        sweep.address,
+        usdc.address,
+        chainlink.sequencer,
+        pool_address,
+        usdcOracle.address,
+        86400,
+        liquidityHelper.address
+      );
+      await sweep.setAMM(amm.address);
       await usdc.transfer(asset.address, USDC_MINT);
       await asset.borrow(SWEEP_MINT);
       await asset.invest(USDC_INVEST, SWEEP_MINT, 0, 0);

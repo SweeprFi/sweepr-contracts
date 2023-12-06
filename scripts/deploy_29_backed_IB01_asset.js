@@ -15,7 +15,7 @@ async function main() {
 
     console.log(`Deploying contracts on ${network.name} with the account: ${deployer}`);
 
-    const BackedAsset = await ethers.getContractFactory("BaseTokenAsset");
+    const BackedAsset = await ethers.getContractFactory("EmptyAsset");
     const backedAsset = await BackedAsset.deploy(
         assetName,
         sweep,

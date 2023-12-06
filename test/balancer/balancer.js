@@ -14,11 +14,7 @@ contract("Balancer", async function () {
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepCoin");
-		SweepProxy = await upgrades.deployProxy(Sweep, [
-			lzEndpoint.address,
-			owner.address,
-			750 // 0.00274% daily rate = 1% yearly rate
-		]);
+		SweepProxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 750]);
 		sweep = await SweepProxy.deployed();
 
 		Balancer = await ethers.getContractFactory("Balancer");
@@ -29,7 +25,7 @@ contract("Balancer", async function () {
 
 		// AMM
 		Uniswap = await ethers.getContractFactory("UniswapMock");
-		amm = await Uniswap.deploy(sweep.address, Const.FEE);
+		amm = await Uniswap.deploy(sweep.address, multisig.address);
 		await sweep.setAMM(amm.address);
 
 		await sweep.setBalancer(balancer.address);

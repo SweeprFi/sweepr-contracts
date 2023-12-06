@@ -1,7 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../../utils/address');
-const { increaseTime, impersonate, Const, toBN, getBlockTimestamp } = require("../../utils/helper_functions");
+const { increaseTime, Const, toBN, getBlockTimestamp } = require("../../utils/helper_functions");
 
 contract("Stabilizer and spread", async function () {
   before(async () => {
@@ -17,21 +16,19 @@ contract("Stabilizer and spread", async function () {
     autoInvestMinAmount = toBN("10", 18);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [
-      lzEndpoint.address,
-      addresses.owner,
-      2500 // 0.25%
-    ]);
+    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 2500]);
     sweep = await Proxy.deployed();
-    user = await impersonate(addresses.owner);
-    await sweep.connect(user).setTreasury(addresses.treasury);
+    await sweep.setTreasury(treasury.address);
 
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    amm = await Uniswap.deploy(sweep.address, owner.address);
     await sweep.setAMM(amm.address);
+
+    Oracle = await ethers.getContractFactory("AggregatorMock");
+    usdcOracle = await Oracle.deploy();
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
   });
@@ -43,7 +40,7 @@ contract("Stabilizer and spread", async function () {
       usdx.address,
       wallet.address,
       agent.address,
-      addresses.oracle_usdc_usd,
+      usdcOracle.address,
       borrower.address
     );
 

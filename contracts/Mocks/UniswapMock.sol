@@ -3,20 +3,21 @@ pragma solidity >=0.6.11;
 
 import "../Sweep/ISweep.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
 contract UniswapMock {
     uint256 public price;
     uint256 public twaPrice;
-    uint24 public immutable poolFee;
+    address public immutable poolAddress;
     address public sweepAddress;
     address public sequencer;
 
     constructor(
         address _sweepAddress,
-        uint24 _poolFee
+        address _poolAddress
     ) {
         sweepAddress = _sweepAddress;
-        poolFee = _poolFee;
+        poolAddress = _poolAddress;
         price = ISweep(_sweepAddress).targetPrice();
     }
 
@@ -41,12 +42,12 @@ contract UniswapMock {
         uint256 _collateral_amount,
         uint256 _amountOutMin
     ) public returns (uint256 sweep_amount) {
-        sweep_amount = swapExactInput(
+        sweep_amount = swap(
             _collateral_address,
             sweepAddress,
-            poolFee,
             _collateral_amount,
-            _amountOutMin
+            _amountOutMin,
+            poolAddress
         );
     }
 
@@ -55,21 +56,21 @@ contract UniswapMock {
         uint256 _sweep_amount,
         uint256 _amountOutMin
     ) public returns (uint256 collateral_amount) {
-        collateral_amount = swapExactInput(
+        collateral_amount = swap(
             sweepAddress,
             _collateral_address,
-            poolFee,
             _sweep_amount,
-            _amountOutMin
+            _amountOutMin,
+            poolAddress
         );
     }
 
-    function swapExactInput(
+    function swap(
         address _tokenA,
         address _tokenB,
-        uint24 _poolFee,
         uint256 _amount,
-        uint256 _amount_out_min
+        uint256 _amount_out_min,
+        address
     ) public returns (uint256 result) {
         _amount_out_min;
 
@@ -77,12 +78,12 @@ contract UniswapMock {
         uint8 decimalsA = ERC20(_tokenA).decimals();
         uint8 decimalsB = ERC20(_tokenB).decimals();
 
-        // TODO: minus poolFee, not 3000
+        uint256 _fee = 500;
 
         if (decimalsA > 6) {
-            result = ((_amount * price) * (1e6 - _poolFee)) / ((10 ** decimalsA) * 1e6);
+            result = ((_amount * price) * (1e6 - _fee)) / ((10 ** decimalsA) * 1e6);
         } else {
-            result = ((_amount * (10 ** decimalsB) * (1e6 - _poolFee)) / (price * 1e6));
+            result = ((_amount * (10 ** decimalsB) * (1e6 - _fee)) / (price * 1e6));
         }
         ERC20(_tokenB).transfer(msg.sender, result);
     }

@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ========================== BaseTokenAsset.sol ======================
+// ============================ EmptyAsset.sol ========================
 // ====================================================================
 
 /**
@@ -12,7 +12,7 @@ pragma solidity 0.8.19;
 
 import "../Stabilizer/Stabilizer.sol";
 
-contract BaseTokenAsset is Stabilizer {
+contract EmptyAsset is Stabilizer {
     // Variables
     IERC20Metadata private immutable token;
     IPriceFeed private immutable oracleToken;
@@ -41,6 +41,11 @@ contract BaseTokenAsset is Stabilizer {
         uint256 tokenBalance = token.balanceOf(address(this));
         // All numbers given are in USDX unless otherwise stated
         return _oracleTokenToUsd(tokenBalance);
+    }
+
+    function liquidate() external nonReentrant {
+        if(auctionAllowed) revert ActionNotAllowed();
+        _liquidate(_getToken(), getDebt());
     }
 
     /* ========== Internals ========== */

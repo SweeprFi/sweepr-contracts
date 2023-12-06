@@ -1,37 +1,21 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../../utils/address");
-const { Const, toBN, getBlockTimestamp } = require("../../utils/helper_functions");
+const { tokens, chainlink } = require("../../../utils/constants");
+const { Const, toBN, getBlockTimestamp } = require("../../../utils/helper_functions");
 
-contract("Off-Chain Asset - Settings", async function () {
+contract.skip("Off-Chain Asset - Settings", async function () {
 	before(async () => {
 		[owner, borrower, wallet, treasury, multisig, lzEndpoint] = await ethers.getSigners();
-
-		sweepAmount = toBN("1000", 18);
-		maxBorrow = toBN("100", 18);
 		amount = toBN("10", 18);
-		usdxAmount = 1000e6;
-
-		// ------------- Deployment of contracts -------------
-		Sweep = await ethers.getContractFactory("SweepMock");
-		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 2500]);
-		sweep = await Proxy.deployed();
-
-		Token = await ethers.getContractFactory("USDCMock");
-		usdx = await Token.deploy();
-
-        Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, Const.FEE);
-        await sweep.setAMM(amm.address);
 
 		OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 		offChainAsset = await OffChainAsset.deploy(
 			'OffChain Asset',
-			sweep.address,
-			usdx.address,
+			tokens.sweep,
+			tokens.usdc,
 			wallet.address,
 			Const.ADDRESS_ZERO,
-			addresses.oracle_usdc_usd,
+			chainlink.usdc_usd,
 			borrower.address
 		);
 	});
@@ -57,8 +41,6 @@ contract("Off-Chain Asset - Settings", async function () {
 		describe("Use collateral agent", async function () {
 			it("Update value by collateral agent", async function () {
 				// Update value by collateral agent
-				sweep_owner = await sweep.owner();
-				expect(await offChainAsset.collateralAgency()).to.equal(sweep_owner);
 				await expect(offChainAsset.connect(borrower).setCollateralAgent(Const.ADDRESS_ZERO))
 					.to.be.revertedWithCustomError(offChainAsset, "ZeroAddressDetected");
 

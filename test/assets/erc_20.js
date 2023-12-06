@@ -1,10 +1,10 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../../utils/address");
+const { tokens, chainlink, uniswap, wallets } = require("../../utils/constants");
 const { impersonate, sendEth, Const, toBN } = require("../../utils/helper_functions");
 let user;
 
-contract("Token Asset (WETH)", async function () {
+contract("ERC20 Asset (WETH)", async function () {
     before(async () => {
         [borrower, other, treasury, lzEndpoint] = await ethers.getSigners();
 
@@ -16,54 +16,41 @@ contract("Token Asset (WETH)", async function () {
 
         await sendEth(Const.WETH_HOLDER);
         // ------------- Deployment of contracts -------------
-        Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [
-            lzEndpoint.address,
-            addresses.owner,
-            2500 // 0.25%
-        ]);
-        sweep = await Proxy.deployed();
-        user = await impersonate(addresses.owner);
-        await sweep.connect(user).setTreasury(addresses.treasury);
-
+        sweep = await ethers.getContractAt("SweepCoin", tokens.sweep);
         Token = await ethers.getContractFactory("ERC20");
-        usdc = await Token.attach(addresses.usdc);
-        weth = await Token.attach(addresses.weth);
+        usdc = await Token.attach(tokens.usdc);
+        weth = await Token.attach(tokens.weth);
 
-        Oracle = await ethers.getContractFactory("AggregatorMock");
-        wethOracle = await Oracle.deploy();
+        LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
+        liquidityHelper = await LiquidityHelper.deploy();
 
-        Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, Const.FEE);
-        await sweep.setAMM(amm.address);
-
-        await amm.setPrice(Const.WETH_AMM);
-        await wethOracle.setPrice(Const.WETH_PRICE);
-
-        WETHAsset = await ethers.getContractFactory("TokenAsset");
-        weth_asset = await WETHAsset.deploy(
-            'WETH Asset',
-            sweep.address,
-            addresses.usdc,
-            addresses.weth,
-			addresses.oracle_usdc_usd,
-            wethOracle.address,
-            BORROWER,
-            Const.FEE
+        Uniswap = await ethers.getContractFactory("UniswapAMM");
+        amm = await Uniswap.deploy(
+            tokens.sweep,
+            tokens.usdc,
+            chainlink.sequencer,
+            uniswap.pool_sweep,
+            chainlink.usdc_usd,
+            86400,
+            liquidityHelper.address
         );
 
-        // simulates a pool in uniswap with 10000 SWEEP/USDX
-        await sweep.addMinter(BORROWER, maxSweep);
-        user = await impersonate(BORROWER);
-        await sweep.connect(user).mint(maxBorrow);
-        await sweep.connect(user).transfer(amm.address, maxBorrow);
+        WETHAsset = await ethers.getContractFactory("ERC20Asset");
+        weth_asset = await WETHAsset.deploy(
+            'WETH Asset',
+            tokens.sweep,
+            tokens.usdc,
+            tokens.weth,
+			chainlink.usdc_usd,
+            chainlink.weth_usd,
+            BORROWER,
+            uniswap.pool_weth
+        );
 
-        user = await impersonate(addresses.usdc_holder);
-        await sendEth(user.address);
-        await usdc.connect(user).transfer(amm.address, 100e6);
-
-        user = await impersonate(Const.WETH_HOLDER);
-        await weth.connect(user).transfer(amm.address, maxBorrow);
+        OWNER = await sweep.owner();
+        await sendEth(OWNER);
+        SWEEP_OWNER = await impersonate(OWNER);
+        await sweep.connect(SWEEP_OWNER).setAMM(amm.address);
     });
 
     describe("asset constraints", async function () {
@@ -79,13 +66,11 @@ contract("Token Asset (WETH)", async function () {
     });
 
     describe("invest and divest functions", async function () {
-        it('deposit usdc to the asset', async () => {
-            user = await impersonate(addresses.usdc_holder);
-            await usdc.connect(user).transfer(weth_asset.address, depositAmount);
-            expect(await usdc.balanceOf(weth_asset.address)).to.equal(depositAmount)
-        });
-
         it("invest correctly", async function () {
+            await sendEth(wallets.usdc_holder);
+            user = await impersonate(wallets.usdc_holder);
+            await usdc.connect(user).transfer(weth_asset.address, depositAmount);
+
             expect(await weth_asset.assetValue()).to.equal(Const.ZERO);
             await weth_asset.invest(depositAmount, Const.SLIPPAGE);
             expect(await usdc.balanceOf(weth_asset.address)).to.equal(Const.ZERO);

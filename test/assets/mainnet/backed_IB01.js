@@ -1,10 +1,10 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses, chainId } = require("../../../utils/address");
+const { network, tokens, chainlink, uniswap, wallets } = require("../../../utils/constants");
 const { impersonate, sendEth, increaseTime, Const, toBN, getBlockTimestamp } = require("../../../utils/helper_functions");
 
 contract("Backed IB01 Asset", async function () {
-  if (Number(chainId) !== 1) return;
+  if (Number(network.id) !== 1) return;
 
   before(async () => {
     [borrower, liquidator, treasury, lzEndpoint] = await ethers.getSigners();
@@ -15,35 +15,31 @@ contract("Backed IB01 Asset", async function () {
     borrowAmount = toBN("50000", 18);
     withdrawAmount = toBN("8000", 18);
 
-    USDC_ADDRESS = addresses.usdc;
-    BACKED_ADDRESS = addresses.backedIB01;
-    USDC_HOLDER = addresses.usdc_holder;
-    BACKED_HOLDER = addresses.backed_holder;
+    SWEEP_ADDRESS = tokens.sweep;
+    USDC_ADDRESS = tokens.usdc;
+    BACKED_ADDRESS = tokens.backed;
+    USDC_HOLDER = wallets.usdc_holder;
+    BACKED_HOLDER = wallets.backed_holder;
     // ------------- Deployment of contracts -------------
-    Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, borrower.address, 2500]);
-    sweep = await Proxy.deployed();
-    await sweep.setTreasury(treasury.address);
-
+    sweep = await ethers.getContractAt("SweepCoin", SWEEP_ADDRESS);
     Token = await ethers.getContractFactory("ERC20");
     usdc = await Token.attach(USDC_ADDRESS);
     backed = await Token.attach(BACKED_ADDRESS);
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, Const.FEE);
-    await sweep.setAMM(amm.address);
+    amm = await Uniswap.deploy(SWEEP_ADDRESS, uniswap.pool_sweep);
 
     Balancer = await ethers.getContractFactory("Balancer");
-    balancer = await Balancer.deploy(sweep.address, lzEndpoint.address);
+    balancer = await Balancer.deploy(SWEEP_ADDRESS, lzEndpoint.address);
 
-    Asset = await ethers.getContractFactory("BaseTokenAsset");
+    Asset = await ethers.getContractFactory("EmptyAsset");
     asset = await Asset.deploy(
       'Backed IB01 Asset',
-      sweep.address,
+      SWEEP_ADDRESS,
       USDC_ADDRESS,
       BACKED_ADDRESS,
-      addresses.oracle_usdc_usd,
-      addresses.oracle_backedIB01_usd,
+      chainlink.usdc_usd,
+      chainlink.backed_usd,
       borrower.address
     );
 
@@ -56,10 +52,16 @@ contract("Backed IB01 Asset", async function () {
       Const.DAY * 6,
       0, 0, 5e5, false, true, Const.URL
     );
-    // add asset as a minter
-    await sweep.addMinter(asset.address, maxSweep);
-    await sweep.setBalancer(balancer.address);
-    await sweep.transfer(liquidator.address, maxSweep);
+
+    OWNER = await sweep.owner();
+    await sendEth(OWNER);
+    SWEEP_OWNER = await impersonate(OWNER);
+    await sweep.connect(SWEEP_OWNER).setAMM(amm.address);
+    await sweep.connect(SWEEP_OWNER).addMinter(asset.address, maxSweep);
+    await sweep.connect(SWEEP_OWNER).setBalancer(balancer.address);
+
+    await sweep.connect(SWEEP_OWNER).addMinter(liquidator.address, maxSweep);
+    await sweep.connect(liquidator).mint(maxSweep);
   });
 
   describe("invest and divest functions", async function () {
@@ -78,8 +80,8 @@ contract("Backed IB01 Asset", async function () {
     });
 
     it("default the asset correctly", async function () {
-      await balancer.addActions([asset.address], [borrowAmount]);
-      await balancer.execute(2, true, 1e6, 2000);
+      await balancer.connect(SWEEP_OWNER).addActions([asset.address], [borrowAmount]);
+      await balancer.connect(SWEEP_OWNER).execute(2, true, 1e6, 2000);
       await increaseTime(Const.DAY * 7);
 
       expect(await asset.callTime()).to.greaterThan(0);

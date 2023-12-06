@@ -253,7 +253,7 @@ contract UniV3Asset is IERC721Receiver, Stabilizer {
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
                     token1: token1,
-                    fee: _amm.poolFee(),
+                    fee: IUniswapV3Pool(_amm.pool()).fee(),
                     tickLower: minTick,
                     tickUpper: maxTick,
                     amount0Desired: amount0ToMint,

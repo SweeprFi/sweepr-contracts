@@ -1,76 +1,70 @@
 const { ethers } = require('hardhat');
 const { expect } = require("chai");
-const { addresses, chainId } = require("../../../utils/address");
 const { impersonate, Const, sendEth, increaseTime } = require("../../../utils/helper_functions")
+const { network, tokens, chainlink, uniswap, protocols, wallets } = require("../../../utils/constants");
 
 contract('DSR Asset', async () => {
-    if (Number(chainId) !== 1) return;
+    if (Number(network.id) !== 1) return;
 
     before(async () => {
         [borrower, other, lzEndpoint] = await ethers.getSigners();
 
-        BORROWER = borrower.address;
         depositAmount = 200e6;
         investAmount = 100e6;
         divestAmount = 50e6;
-        
-        // Sweep Contract
-        Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, BORROWER, 2500]);
-        sweep = await Proxy.deployed();
-        
+
+        sweep = await ethers.getContractAt("SweepCoin", tokens.sweep);
+        ERC20 = await ethers.getContractFactory("ERC20");
+        usdx = await ERC20.attach(tokens.usdc);
+        dai = await ERC20.attach(tokens.dai);
+
         LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
         liquidityHelper = await LiquidityHelper.deploy();
 
-        // Token Contract
-        ERC20 = await ethers.getContractFactory("ERC20");
-        usdx = await ERC20.attach(addresses.usdc);
-        dai = await ERC20.attach(addresses.dai);
-
-        // Uniswap Contract
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(
-            sweep.address,
-            addresses.usdc,
-            addresses.sequencer_feed,
-            Const.FEE,
-            addresses.oracle_dai_usd,
+            tokens.sweep,
+            tokens.usdc,
+            chainlink.sequencer,
+            uniswap.pool_sweep,
+            chainlink.usdc_usd,
             86400,
             liquidityHelper.address
         );
-        await sweep.setAMM(amm.address);
-
-        // DSR Contract
+        
         Asset = await ethers.getContractFactory("DsrAsset");
         asset = await Asset.deploy(
             'DSR Asset',
-            sweep.address,
-            addresses.usdc,
-            addresses.dai,
-            addresses.dsr_manager,
-            addresses.dss_psm,
-            addresses.oracle_usdc_usd,
-            addresses.oracle_dai_usd,
-            BORROWER
+            tokens.sweep,
+            tokens.usdc,
+            tokens.dai,
+            protocols.dsr_manager,
+            protocols.dss_psm,
+            chainlink.usdc_usd,
+            chainlink.dai_usd,
+            borrower.address
         );
+
+        OWNER = await sweep.owner();
+        await sendEth(OWNER);
+        SWEEP_OWNER = await impersonate(OWNER);
+        await sweep.connect(SWEEP_OWNER).setAMM(amm.address);
+
+        HOLDER = await impersonate(wallets.usdc_holder);
+        await sendEth(HOLDER.address);
+        await usdx.connect(HOLDER).transfer(asset.address, depositAmount);
     });
 
     describe("Initial Test", async function () {
         it('invest to the DSR', async () => {
-            user = await impersonate(addresses.usdc_holder);
-            await sendEth(user.address);
-            await usdx.connect(user).transfer(asset.address, depositAmount);
-
             await expect(asset.connect(other).invest(depositAmount, 0))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
-            user = await impersonate(BORROWER);
             expect(await asset.assetValue()).to.equal(Const.ZERO);
             await asset.invest(investAmount, Const.SLIPPAGE);
             expect(await asset.assetValue()).to.above(Const.ZERO);
 
             await asset.invest(depositAmount, Const.SLIPPAGE);
-
             await expect(asset.invest(depositAmount, 0))
                 .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
