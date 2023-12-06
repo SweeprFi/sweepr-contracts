@@ -19,8 +19,6 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-
-
 contract UniswapAMM {
     using Math for uint256;
 

@@ -3,6 +3,7 @@ pragma solidity >=0.6.11;
 
 import "../Sweep/ISweep.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
 contract UniswapMock {
     uint256 public price;

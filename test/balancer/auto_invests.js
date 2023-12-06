@@ -1,16 +1,16 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../../utils/address');
+const { chainlink, protocols, uniswap, tokens } = require("../../utils/constants");
 const { impersonate, Const, sendEth, toBN, unpauseAave } = require("../../utils/helper_functions");
 
 contract('Balancer - Auto Invests', async () => {
     before(async () => {
-        [owner, lzEndpoint] = await ethers.getSigners();
+        [owner, treasury, lzEndpoint] = await ethers.getSigners();
         // Variables
-        BORROWER = addresses.borrower;
-        USDC_ADDRESS = addresses.usdc_e;
-        TREASURY = addresses.treasury;
-        OWNER = addresses.owner;
+        BORROWER = owner.address;
+        USDC_ADDRESS = tokens.usdc_e;
+        TREASURY = treasury.address;
+        OWNER = BORROWER;
         usdxAmount = 1000e6;
         depositAmount = 100e6;
         sweepAmount = toBN("1000", 18);
@@ -23,11 +23,7 @@ contract('Balancer - Auto Invests', async () => {
 
         // Deploys
         Sweep = await ethers.getContractFactory("SweepMock");
-        const Proxy = await upgrades.deployProxy(Sweep, [
-            lzEndpoint.address,
-            owner.address,
-            2500 // 0.25%
-        ]);
+        const Proxy = await upgrades.deployProxy(Sweep, [ lzEndpoint.address, OWNER, 2500]);
         sweep = await Proxy.deployed();
 
         ERC20 = await ethers.getContractFactory("ERC20");
@@ -37,7 +33,7 @@ contract('Balancer - Auto Invests', async () => {
         balancer = await Balancer.deploy(sweep.address, lzEndpoint.address);
 
         Uniswap = await ethers.getContractFactory("UniswapMock");
-        amm = await Uniswap.deploy(sweep.address, Const.FEE);
+        amm = await Uniswap.deploy(sweep.address, uniswap.pool_sweep);
         await sweep.setAMM(amm.address);
 
         AaveAsset = await ethers.getContractFactory("AaveV3Asset");
@@ -47,9 +43,9 @@ contract('Balancer - Auto Invests', async () => {
                     'Aave Asset',
                     sweep.address,
                     USDC_ADDRESS,
-                    addresses.aave_usdc,
-                    addresses.aaveV3_pool,
-                    addresses.oracle_usdc_usd,
+                    tokens.aave_usdc,
+                    protocols.aaveV3_pool,
+                    chainlink.usdc_usd,
                     BORROWER
                 );
             })
@@ -144,7 +140,6 @@ contract('Balancer - Auto Invests', async () => {
 
             // Set Balancer in the Sweep
             await sweep.setBalancer(balancer.address);
-            user = await impersonate(addresses.owner);
             await sweep.setTreasury(TREASURY);
 
             // Add the assets to the minter list
@@ -155,7 +150,7 @@ contract('Balancer - Auto Invests', async () => {
             );
 
             // Send USDC to Borrower
-            user = await impersonate(addresses.usdc_e);
+            user = await impersonate(tokens.usdc_e);
             await sendEth(user.address);
             await usdc.connect(user).transfer(BORROWER, usdxAmount);
 

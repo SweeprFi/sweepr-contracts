@@ -1,16 +1,17 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../../utils/address');
+const { chainlink, protocols, uniswap, tokens } = require("../../utils/constants");
 const { impersonate, Const, toBN, sendEth, getBlockTimestamp, unpauseAave } = require("../../utils/helper_functions");
+const {  } = require("../../utils/constantsOld");
 let user;
 
 contract('Balancer - Auto Call', async () => {
   before(async () => {
-    [owner, lzEndpoint, wallet] = await ethers.getSigners();
+    [owner, lzEndpoint, treasury, wallet] = await ethers.getSigners();
     // constants
-    BORROWER = addresses.borrower;
-    USDC_ADDRESS = addresses.usdc_e;
-    TREASURY = addresses.treasury;
+    BORROWER = owner.address;
+    USDC_ADDRESS = tokens.usdc_e;
+    TREASURY = treasury.address;
     WALLET = wallet.address;
 
     MAX_MINT = toBN("1000", 18);
@@ -24,19 +25,13 @@ contract('Balancer - Auto Call', async () => {
     loanLimit = SWEEP_MINT; // 900 sweeps
     AUTO_MIN_RATIO = 5e4; // 5%
 
-    // Contracts
     usdc = await ethers.getContractAt("ERC20", USDC_ADDRESS);
-    // Deploys
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [
-      lzEndpoint.address,
-      owner.address,
-      2500 // 0.25%
-    ]);
+    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 2500]);
     sweep = await Proxy.deployed();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    amm = await Uniswap.deploy(sweep.address, uniswap.pool_sweep);
     await sweep.setAMM(amm.address);
 
     Balancer = await ethers.getContractFactory("Balancer");
@@ -51,9 +46,9 @@ contract('Balancer - Auto Call', async () => {
           'Aave Asset',
           sweep.address,
           USDC_ADDRESS,
-          addresses.aave_usdc,
-          addresses.aaveV3_pool,
-          addresses.oracle_usdc_usd,
+          tokens.aave_usdc,
+          protocols.aaveV3_pool,
+          chainlink.usdc_usd,
           BORROWER
         );
       })
@@ -65,7 +60,7 @@ contract('Balancer - Auto Call', async () => {
       USDC_ADDRESS,
       WALLET,
       amm.address,
-			addresses.oracle_usdc_usd,
+			chainlink.usdc_usd,
       BORROWER
     );
 
@@ -121,7 +116,7 @@ contract('Balancer - Auto Call', async () => {
       await sweep.setTreasury(TREASURY);
       
       // sends funds to Borrower
-      user = await impersonate(addresses.usdc_e);
+      user = await impersonate(tokens.usdc_e);
       await sendEth(user.address);
       await usdc.connect(user).transfer(BORROWER, USDC_AMOUNT * 6);
       await usdc.connect(user).transfer(amm.address, USDC_AMOUNT * 100);

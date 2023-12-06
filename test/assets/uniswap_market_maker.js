@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../../utils/address');
+const { chainlink, uniswap } = require("../../utils/constants");
 const { Const, getPriceAndData, toBN } = require("../../utils/helper_functions");
 let poolAddress;
 
@@ -12,6 +12,7 @@ contract('Uniswap Market Maker', async () => {
     sweepAmount = toBN("10000000", 18); // 10M
     minAutoSweepAmount = toBN("100", 18);
     BORROWER = owner.address;
+    FEE = 500;
 
     Sweep = await ethers.getContractFactory("SweepCoin");
     const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, multisig.address, 2500]);
@@ -28,9 +29,9 @@ contract('Uniswap Market Maker', async () => {
     usdcOracle = await Oracle.deploy();
     await usdcOracle.setPrice(Const.USDC_PRICE);
 
-    factory = await ethers.getContractAt("IUniswapV3Factory", addresses.uniswap_factory);
-    positionManager = await ethers.getContractAt("INonfungiblePositionManager", addresses.uniswap_position_manager);
-    swapRouter = await ethers.getContractAt("ISwapRouter", addresses.uniswap_router);
+    positionManager = await ethers.getContractAt("INonfungiblePositionManager", uniswap.positions_manager);
+    factory = await ethers.getContractAt("IUniswapV3Factory", uniswap.factory);
+    swapRouter = await ethers.getContractAt("ISwapRouter", uniswap.router);
 
     MarketMaker = await ethers.getContractFactory("UniswapMarketMaker");
     marketmaker = await MarketMaker.deploy(
@@ -38,7 +39,7 @@ contract('Uniswap Market Maker', async () => {
       sweep.address,
       usdc.address,
       liquidityHelper.address,
-      addresses.oracle_usdc_usd,
+      chainlink.usdc_usd,
       BORROWER
     );
 
@@ -50,34 +51,31 @@ contract('Uniswap Market Maker', async () => {
       0, Const.spreadFee, sweepAmount, Const.ZERO, Const.DAY, Const.RATIO,
       minAutoSweepAmount, Const.ZERO, Const.TRUE, Const.FALSE, Const.URL
     );
-
-    Uniswap = await ethers.getContractFactory("UniswapAMM");
-    amm = await Uniswap.deploy(
-      sweep.address,
-      usdc.address,
-      addresses.sequencer_feed,
-      Const.FEE,
-      usdcOracle.address,
-      86400,
-      liquidityHelper.address
-    );
-
-    await sweep.setAMM(amm.address);
   });
 
   describe("main functions", async function () {
     it('create the pool and adds liquidity', async () => {
-      expect(await factory.getPool(usdc.address, sweep.address, Const.FEE)).to.equal(Const.ADDRESS_ZERO);
+      const { token0, token1, sqrtPriceX96 } = getPriceAndData(sweep.address, usdc.address, 0, 0);
+      expect(await factory.getPool(token0, token1, FEE)).to.equal(Const.ADDRESS_ZERO);
       expect(await marketmaker.assetValue()).to.equal(0);
-
-      const { token0, token1, sqrtPriceX96 } = getPriceAndData(sweep.address, usdc.address, sweepAmount, usdxAmount);
-
-      await positionManager.createAndInitializePoolIfNecessary(token0, token1, Const.FEE, sqrtPriceX96)
-      poolAddress = await factory.getPool(token0, token1, Const.FEE);
+      await positionManager.createAndInitializePoolIfNecessary(token0, token1, FEE, sqrtPriceX96)
+      poolAddress = await factory.getPool(token0, token1, FEE);
 
       expect(poolAddress).to.not.equal(Const.ADDRESS_ZERO);
       pool = await ethers.getContractAt("IUniswapV3Pool", poolAddress);
       await(await pool.increaseObservationCardinalityNext(96)).wait();
+
+      Uniswap = await ethers.getContractFactory("UniswapAMM");
+      amm = await Uniswap.deploy(
+        sweep.address,
+        usdc.address,
+        chainlink.sequencer,
+        poolAddress,
+        usdcOracle.address,
+        86400,
+        liquidityHelper.address
+      );
+      await sweep.setAMM(amm.address);
 
       usdxAmount = toBN("15000", 6);
       sweepAmount = toBN("15000", 18);

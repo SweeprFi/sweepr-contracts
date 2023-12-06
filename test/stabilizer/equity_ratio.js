@@ -1,6 +1,5 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../../utils/address');
 const { Const, toBN } = require("../../utils/helper_functions");
 
 contract("Test Equity Ratio of Stabilizer", async function () {
@@ -14,19 +13,18 @@ contract("Test Equity Ratio of Stabilizer", async function () {
 
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
-    const Proxy = await upgrades.deployProxy(Sweep, [
-      lzEndpoint.address,
-      addresses.owner,
-      50 // 0.005%
-    ]);
+    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, owner.address, 50]);
     sweep = await Proxy.deployed();
 
     Token = await ethers.getContractFactory("USDCMock");
     usdx = await Token.deploy();
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
-    amm = await Uniswap.deploy(sweep.address, Const.FEE);
+    amm = await Uniswap.deploy(sweep.address, owner.address);
     await sweep.setAMM(amm.address);
+
+    Oracle = await ethers.getContractFactory("AggregatorMock");
+    usdcOracle = await Oracle.deploy();
 
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
     offChainAsset = await OffChainAsset.deploy(
@@ -35,7 +33,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
       usdx.address,
       wallet.address,
       amm.address,
-      addresses.oracle_usdc_usd,
+      usdcOracle.address,
       borrower.address
     );
 

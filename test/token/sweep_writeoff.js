@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require('../../utils/address');
 const { toBN, Const } = require("../../utils/helper_functions");
+const { tokens, protocols, uniswap } = require("../../utils/constants");
 
 contract("Sweep - WriteOff", async function () {
 	before(async () => {
@@ -16,27 +16,20 @@ contract("Sweep - WriteOff", async function () {
 
 		// ------------- Deployment of contracts -------------
 		Sweep = await ethers.getContractFactory("SweepCoin");
-		const Proxy = await upgrades.deployProxy(Sweep, [
-			lzEndpoint.address,
-			addresses.owner,
-			2500 // 0.25%
-		]);
+		const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, wallet.address, 2500]);
 		sweep = await Proxy.deployed();
 
-		// USDX
 		Token = await ethers.getContractFactory("USDCMock");
 		usdx = await Token.deploy();
 
-		// AMM
 		Uniswap = await ethers.getContractFactory("UniswapMock");
-		amm = await Uniswap.deploy(sweep.address, Const.FEE);
+		amm = await Uniswap.deploy(sweep.address, wallet.address);
 		await sweep.setAMM(amm.address);
 
-		// Oracle
 		Oracle = await ethers.getContractFactory("AggregatorMock");
 		wbtcOracle = await Oracle.deploy();
+		usdcOracle = await Oracle.deploy();
 
-		// OffChain Asset
 		OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 		offChainAsset = await OffChainAsset.deploy(
 			'OffChain Asset',
@@ -44,32 +37,31 @@ contract("Sweep - WriteOff", async function () {
 			usdx.address,
 			wallet.address,
 			amm.address,
-			addresses.oracle_usdc_usd,
+			usdcOracle.address,
 			borrower.address
 		);
 
-		// WBTC Asset
-		WBTCAsset = await ethers.getContractFactory("TokenAsset");
+		WBTCAsset = await ethers.getContractFactory("ERC20Asset");
 		wbtcAsset = await WBTCAsset.deploy(
 			'WBTC Asset',
 			sweep.address,
 			usdx.address,
-			addresses.wbtc,
-			addresses.oracle_usdc_usd,
+			tokens.wbtc,
+			usdcOracle.address,
 			wbtcOracle.address,
 			borrower.address,
-			Const.FEE
+			uniswap.pool_wbtc
 		);
 
 		wethAsset = await WBTCAsset.deploy(
 			'WETH Asset',
 			sweep.address,
 			usdx.address,
-			addresses.weth,
-			addresses.oracle_usdc_usd,
+			tokens.weth,
+			usdcOracle.address,
 			wbtcOracle.address,
 			borrower.address,
-			Const.FEE
+			uniswap.pool_weth
 		);
 
 		AaveAsset = await ethers.getContractFactory("AaveV3Asset");
@@ -77,14 +69,12 @@ contract("Sweep - WriteOff", async function () {
 			'Aave Asset',
 			sweep.address,
 			usdx.address,
-			addresses.aave_usdc,
-			addresses.aaveV3_pool,
-			addresses.oracle_usdc_usd,
+			tokens.aave_usdc,
+			protocols.aaveV3_pool,
+			usdcOracle.address,
 			borrower.address,
 		);
 	});
-
-	function pp(v, d) { return ethers.utils.formatUnits(v.toString(), d) }
 
 	it('Initial Setting', async () => {
 		// Add minter
