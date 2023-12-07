@@ -193,5 +193,22 @@ contract('Uniswap Market Maker', async () => {
       expect(await usdc.balanceOf(poolAddress)).to.closeTo(poolBalance.sub(singleAmount0), 1);
       expect(await marketmaker.positionIds(0)).to.equal(position1);
     });
+
+    it('slippage test', async () => {
+      amount = toBN("25000", 6);
+      await expect(marketmaker.buySweepOnAMM(amount, 2000)).to.be.revertedWith('Too little received')
+
+      mmUBB = await usdc.balanceOf(marketmaker.address);
+      mmSBB = await sweep.balanceOf(marketmaker.address);
+      pUBB = await usdc.balanceOf(poolAddress);
+      sUBB = await sweep.balanceOf(poolAddress);
+
+      await(marketmaker.buySweepOnAMM(amount, 9e5));
+
+      expect(await usdc.balanceOf(poolAddress)).to.equal(pUBB.add(amount));
+      expect(await sweep.balanceOf(poolAddress)).to.lessThan(sUBB);
+      expect(await usdc.balanceOf(marketmaker.address)).to.equal(mmUBB.sub(amount));
+      expect(await sweep.balanceOf(marketmaker.address)).to.greaterThan(mmSBB);
+    })
   })
 });
