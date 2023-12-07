@@ -52,7 +52,8 @@ contract BalancerAMM {
     event Sold(uint256 sweepAmount);
 
     // Errors
-    error OverZero();
+    error ZeroAmount();
+    error BadRate();
 
     /**
      * @notice Get Price
@@ -128,7 +129,8 @@ contract BalancerAMM {
         uint256 tokenAmount,
         uint256 amountOutMin
     ) external returns (uint256 sweepAmount) {
-        emit Bought(tokenAmount);
+        checkRate(tokenAddress, tokenAmount, amountOutMin);
+
         sweepAmount = swap(
             tokenAddress,
             address(sweep),
@@ -136,6 +138,8 @@ contract BalancerAMM {
             amountOutMin,
             address(pool)
         );
+
+        emit Bought(tokenAmount);
     }
 
     /**
@@ -150,7 +154,8 @@ contract BalancerAMM {
         uint256 sweepAmount,
         uint256 amountOutMin
     ) external returns (uint256 tokenAmount) {
-        emit Sold(sweepAmount);
+        checkRate(tokenAddress, amountOutMin, sweepAmount);
+
         tokenAmount = swap(
             address(sweep),
             tokenAddress,
@@ -158,6 +163,8 @@ contract BalancerAMM {
             amountOutMin,
             address(pool)
         );
+
+        emit Sold(sweepAmount);
     }
 
     /**
@@ -189,6 +196,14 @@ contract BalancerAMM {
             }
         }
         revert("BalancerAMM: Asset not found");
+    }
+
+    function checkRate(address token, uint256 tokenAmount, uint256 sweepAmount) internal view {
+        if(tokenAmount == 0 || sweepAmount == 0) revert ZeroAmount();
+        uint256 tokenFactor = 10 ** IERC20Metadata(token).decimals();
+        uint256 sweepFactor = 10 ** sweep.decimals();
+        uint256 rate = tokenAmount * sweepFactor * 1e6 / (tokenFactor * sweepAmount);
+        if(rate > 16e5 || rate < 6e5) revert BadRate();
     }
 
     /**
