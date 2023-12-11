@@ -17,6 +17,7 @@ import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "../As
 contract BalancerMarketMaker is Stabilizer {
 
     error BadAddress(address asset);
+    error OnlyAMM();
 
     event LiquidityAdded(uint256 usdxAmount, uint256 sweepAmount);
     event LiquidityRemoved(uint256 usdxAmount, uint256 sweepAmount);
@@ -52,6 +53,11 @@ contract BalancerMarketMaker is Stabilizer {
         bptIndex = findAssetIndex(address(pool), poolAssets);
     }
 
+    modifier onlyAMM() {
+        if (msg.sender != sweep.amm()) revert OnlyAMM();
+        _;
+    }
+
     /* ========== Views ========== */
 
     /**
@@ -77,16 +83,34 @@ contract BalancerMarketMaker is Stabilizer {
         uint256 buyPrice = targetPrice + ((sweep.arbSpread() * targetPrice) / PRECISION);
         uint256 usdxAmount = (sweepAmount * buyPrice) / (10 ** sweep.decimals());
 
+        _buySweep(usdxAmount, sweepAmount, slippage);
+
+        emit SweepPurchased(usdxAmount);
+    }
+
+    function buySweep(
+        uint256 usdxAmount,
+        uint256 sweepAmount,
+        uint256 ,
+        uint256 ,
+        uint256 slippage
+    ) external nonReentrant onlyAMM {
+        _buySweep(usdxAmount, sweepAmount, slippage);
+    }
+
+    function _buySweep(
+        uint256 usdxAmount,
+        uint256 sweepAmount,
+        uint256 slippage
+    ) internal {
         TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
         TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
         TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
-
-        _borrow(sweepAmount*2);
+        _borrow(sweepAmount * 2);
         _addLiquidity(usdxAmount, sweepAmount, slippage);
-
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
-        emit SweepPurchased(usdxAmount);
-    }
+}
+
 
     function initPool(uint256 usdxAmount, uint256 sweepAmount) external nonReentrant onlyBorrower {
         address self = address(this);

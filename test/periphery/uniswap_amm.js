@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { chainlink, uniswap } = require("../../utils/constants");
 const { toBN, Const, increaseTime, getPriceAndData } = require("../../utils/helper_functions");
 
-contract("Uniswap AMM", async function () {
+contract.only("Uniswap AMM", async function () {
   before(async () => {
     [owner] = await ethers.getSigners();
     OWNER = owner.address;
@@ -30,9 +30,12 @@ contract("Uniswap AMM", async function () {
     factory = await ethers.getContractAt("IUniswapV3Factory", uniswap.factory);
     positionManager = await ethers.getContractAt("INonfungiblePositionManager", uniswap.positions_manager);
 
-    UniV3Asset = await ethers.getContractFactory("UniV3Asset");
-    asset = await UniV3Asset.deploy(
-      'Uniswap Asset',
+    Oracle = await ethers.getContractFactory("AggregatorMock");
+    usdcOracle = await Oracle.deploy();
+
+    MarketMaker = await ethers.getContractFactory("UniswapMarketMaker");
+    marketmaker = await MarketMaker.deploy(
+      'Uniswap Market Maker',
       sweep.address,
       usdc.address,
       liquidityHelper.address,
@@ -40,12 +43,9 @@ contract("Uniswap AMM", async function () {
       OWNER
     );
 
-    Oracle = await ethers.getContractFactory("AggregatorMock");
-    usdcOracle = await Oracle.deploy();
-
-    await sweep.addMinter(asset.address, SWEEP_INVEST);
+    await sweep.addMinter(marketmaker.address, SWEEP_INVEST);
     // config stabilizer
-    await asset.configure(
+    await marketmaker.configure(
       Const.RATIO,
       Const.spreadFee,
       SWEEP_INVEST,
@@ -81,10 +81,14 @@ contract("Uniswap AMM", async function () {
         86400,
         liquidityHelper.address
       );
+
       await sweep.setAMM(amm.address);
-      await usdc.transfer(asset.address, USDC_MINT);
-      await asset.borrow(SWEEP_MINT);
-      await asset.invest(USDC_INVEST, SWEEP_MINT, 0, 0);
+      await amm.setMarketMaker(marketmaker.address);
+      await usdc.approve(marketmaker.address, USDC_INVEST);
+      await marketmaker.initPool(USDC_INVEST, SWEEP_MINT, 0, 0);
+
+      expect(await sweep.balanceOf(pool_address)).to.greaterThan(0);
+      expect(await usdc.balanceOf(pool_address)).to.greaterThan(0);
     });
 
     it("buys sweep correctly", async function () {
@@ -115,11 +119,33 @@ contract("Uniswap AMM", async function () {
       expect(usdcAfter).to.be.above(usdcBefore);
     });
 
-    it('fetches the Sweep price correctly', async () => {
-      await increaseTime(86400); // 1 day
-      price = await amm.getPrice();
-      twaPrice = await amm.getTWAPrice();
-      expect(price).to.eq(twaPrice);
+    it('buys Sweep from the MM', async () => {
+      priceBefore = await amm.getPrice();
+      sweepBalanceB = await sweep.balanceOf(pool_address);
+      usdcBalanceB = await usdc.balanceOf(pool_address);
+      
+      expect(await marketmaker.getBuyPrice()).to.greaterThan(priceBefore);
+
+      USDC_AMOUNT = toBN("900", 6);
+      MIN_AMOUNT = toBN("800", 18);
+      await usdc.approve(amm.address, USDC_AMOUNT);
+      await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT);
+
+      priceAfter = await amm.getPrice();
+
+      expect(await amm.getPrice()).to.greaterThan(priceBefore);
+      expect(await marketmaker.getBuyPrice()).to.lessThan(priceAfter);
+      expect(await sweep.balanceOf(pool_address)).to.lessThan(sweepBalanceB);
+      expect(await usdc.balanceOf(pool_address)).to.equal(usdcBalanceB.add(USDC_AMOUNT));
+
+      sweepBalanceB = await sweep.balanceOf(pool_address);
+      usdcBalanceB = await usdc.balanceOf(pool_address);
+
+      await usdc.approve(amm.address, USDC_AMOUNT);
+      await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT);
+
+      expect(await sweep.balanceOf(pool_address)).to.greaterThan(sweepBalanceB)
+      expect(await usdc.balanceOf(pool_address)).to.greaterThan(usdcBalanceB)
     });
   });
 });

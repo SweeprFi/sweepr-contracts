@@ -37,12 +37,18 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     error NotMinted();
     error AlreadyMinted();
     error OnlyPositionManager();
+    error OnlyAMM();
 
     event Collected(uint256 amount0, uint256 amount1);
 
     /* ========== Modifies ========== */
     modifier isMinted() {
         if (tokenId == 0) revert NotMinted();
+        _;
+    }
+
+    modifier onlyAMM() {
+        if (msg.sender != sweep.amm()) revert OnlyAMM();
         _;
     }
 
@@ -88,6 +94,11 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         return _oracleUsdxToUsd(usdxAmount) + sweep.convertToUSD(sweepAmount);
     }
 
+    function getBuyPrice() public view returns (uint256) {
+        uint256 targetPrice = _oracleUsdToUsdx(sweep.targetPrice());
+        return targetPrice + ((sweep.arbSpread() * targetPrice) / PRECISION);
+    }
+
     /* ========== Actions ========== */
 
     /**
@@ -131,13 +142,29 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function buySweep(uint256 sweepAmount, uint256 slippage) external nonReentrant {
-        uint256 targetPrice = _oracleUsdToUsdx(sweep.targetPrice());
-        uint256 buyPrice = targetPrice + ((sweep.arbSpread() * targetPrice) / PRECISION);
-        uint256 usdxAmount = (sweepAmount * buyPrice) / (10 ** sweep.decimals());
-
+        uint256 usdxAmount = (sweepAmount * getBuyPrice()) / (10 ** sweep.decimals());
         uint256 usdxMinIn = usdxAmount * (PRECISION - slippage) / PRECISION;
         uint256 sweepMinIn = sweepAmount * (PRECISION - slippage) / PRECISION;
 
+        _buySweep(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
+    }
+
+    function buySweep(
+        uint256 usdxAmount,
+        uint256 sweepAmount,
+        uint256 usdxMinIn,
+        uint256 sweepMinIn,
+        uint256
+    ) external nonReentrant onlyAMM {
+        _buySweep(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
+    }
+
+    function _buySweep(
+        uint256 usdxAmount,
+        uint256 sweepAmount,
+        uint256 usdxMinIn,
+        uint256 sweepMinIn
+    ) internal {
         _borrow(sweepAmount*2);
         _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);

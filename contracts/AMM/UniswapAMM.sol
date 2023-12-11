@@ -18,6 +18,8 @@ import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "../Balancer/IMarketMaker.sol";
+import "../Sweep/ISweep.sol";
 
 contract UniswapAMM {
     using Math for uint256;
@@ -25,13 +27,14 @@ contract UniswapAMM {
     ISwapRouter private constant ROUTER = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
     IERC20Metadata public immutable base;
-    IERC20Metadata public immutable sweep;
+    ISweep public immutable sweep;
     IPriceFeed public immutable oracleBase;
     IPriceFeed public immutable sequencer;
     address public immutable pool;
     uint256 public immutable oracleBaseUpdateFrequency;
     bool private immutable flag; // The sort status of tokens
     LiquidityHelper private immutable liquidityHelper;
+    IMarketMaker public marketMaker;
 
     uint8 private constant USD_DECIMALS = 6;
     // Uniswap V3
@@ -47,7 +50,7 @@ contract UniswapAMM {
         uint256 _oracleBaseUpdateFrequency,
         address _liquidityHelper
     ) {
-        sweep = IERC20Metadata(_sweep);
+        sweep = ISweep(_sweep);
         base = IERC20Metadata(_base);
         oracleBase = IPriceFeed(_oracleBase);
         sequencer = IPriceFeed(_sequencer);
@@ -63,12 +66,19 @@ contract UniswapAMM {
 
     // Errors
     error OverZero();
+    error NotOwnerOrGov();
+
+    modifier onlyOwner () {
+        if (msg.sender != sweep.fastMultisig() && msg.sender != sweep.owner())
+            revert NotOwnerOrGov();
+        _;
+    }
 
     /**
      * @notice Get Price
      * @dev Get the quote for selling 1 unit of a token.
      */
-    function getPrice() external view returns (uint256 amountOut) {
+    function getPrice() public view returns (uint256 amountOut) {
         (, int24 tick, , , , , ) = IUniswapV3Pool(pool).slot0();
 
         uint256 quote = OracleLibrary.getQuoteAtTick(
@@ -136,14 +146,35 @@ contract UniswapAMM {
         uint256 tokenAmount,
         uint256 amountOutMin
     ) external returns (uint256 sweepAmount) {
+        bool lowerPriceInPool = true;
+
+        if (address(marketMaker) != address(0)) {
+            uint256 buyPrice = marketMaker.getBuyPrice();
+            if (buyPrice < getPrice()) {
+                lowerPriceInPool = false;
+                uint256 usdxInUsd = ChainlinkLibrary.convertTokenToUsd(tokenAmount, base.decimals(), oracleBase);
+                sweepAmount = sweep.convertToSWEEP(usdxInUsd);
+                uint256 slippage = ((sweepAmount/amountOutMin)-1) * USD_DECIMALS;
+                uint256 usdxMinIn = (tokenAmount * (USD_DECIMALS - slippage)) / USD_DECIMALS;
+
+                TransferHelper.safeTransferFrom(address(base), msg.sender, address(this), tokenAmount);
+                TransferHelper.safeApprove(address(base), address(marketMaker), tokenAmount);
+                marketMaker.buySweep(tokenAmount, sweepAmount, usdxMinIn, amountOutMin, slippage);
+                TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
+            }
+        }
+
+        if(lowerPriceInPool) {
+            sweepAmount = swap(
+                tokenAddress,
+                address(sweep),
+                tokenAmount,
+                amountOutMin,
+                pool
+            );
+        }
+
         emit Bought(tokenAmount);
-        sweepAmount = swap(
-            tokenAddress,
-            address(sweep),
-            tokenAmount,
-            amountOutMin,
-            pool
-        );
     }
 
     /**
@@ -200,5 +231,9 @@ contract UniswapAMM {
             });
 
         amountOut = ROUTER.exactInputSingle(swapParams);
+    }
+
+    function setMarketMaker(address _marketMaker) external onlyOwner {
+        marketMaker = IMarketMaker(_marketMaker);
     }
 }
