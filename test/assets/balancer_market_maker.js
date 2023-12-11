@@ -92,6 +92,8 @@ contract('Balancer Market Maker', async () => {
       BORROWER
     );
 
+    await marketmaker.setMintFactor(1e6);
+
     await marketmaker.configure(0, 0, sweepAmount, 0, 0, 0, 0, 0, false, false, Const.URL)
     await sweep.connect(user).addMinter(marketmaker.address, sweepAmount);
     await amm.connect(user).setMarketMaker(marketmaker.address);

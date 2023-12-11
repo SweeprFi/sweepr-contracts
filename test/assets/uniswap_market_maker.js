@@ -43,6 +43,8 @@ contract('Uniswap Market Maker', async () => {
       BORROWER
     );
 
+    await marketmaker.setMintFactor(1e6);
+
     await sweep.addMinter(BORROWER, sweepAmount.mul(5));
     await sweep.addMinter(marketmaker.address, sweepAmount);
 

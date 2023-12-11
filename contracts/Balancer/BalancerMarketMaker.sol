@@ -17,6 +17,7 @@ import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "../As
 contract BalancerMarketMaker is Stabilizer {
 
     error BadAddress(address asset);
+    error InvalidMintFactor();
 
     event LiquidityAdded(uint256 usdxAmount, uint256 sweepAmount);
     event LiquidityRemoved(uint256 usdxAmount, uint256 sweepAmount);
@@ -31,6 +32,8 @@ contract BalancerMarketMaker is Stabilizer {
     uint8 public sweepIndex;
     uint8 public usdxIndex;
     uint8 public bptIndex;
+
+    uint256 public mintFactor;
     
     uint24 private constant PRECISION = 1e6;
 
@@ -78,8 +81,9 @@ contract BalancerMarketMaker is Stabilizer {
         uint256 buyPrice = _oracleUsdToUsdx(getBuyPrice());
         uint256 usdxAmount = (sweepAmount * buyPrice) / (10 ** sweep.decimals());
 
-        _borrow(sweepAmount * 2);
-        _addLiquidity(usdxAmount, sweepAmount, slippage);
+        uint256 mintAmount = sweepAmount * (PRECISION + mintFactor) / PRECISION;
+        _borrow(mintAmount);
+        _addLiquidity(usdxAmount, mintAmount - sweepAmount, slippage);
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
         emit SweepPurchased(usdxAmount);
@@ -183,4 +187,8 @@ contract BalancerMarketMaker is Stabilizer {
         revert BadAddress(asset);
     }
 
+    function setMintFactor(uint256 _mintFactor) external nonReentrant onlyBorrower {
+        if(_mintFactor > PRECISION) revert InvalidMintFactor();
+        mintFactor = _mintFactor;
+    }
 }
