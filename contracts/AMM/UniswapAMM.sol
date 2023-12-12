@@ -65,7 +65,6 @@ contract UniswapAMM {
     event Sold(uint256 sweepAmount);
 
     // Errors
-    error OverZero();
     error NotOwnerOrGov();
 
     modifier onlyOwner () {

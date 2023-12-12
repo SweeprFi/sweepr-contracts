@@ -534,7 +534,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         onlyBorrower
         whenNotPaused
         nonReentrant
-        validAmount(usdxAmount)
         returns (uint256 sweepAmount)
     {
         sweepAmount = _buy(usdxAmount, slippage);
@@ -556,7 +555,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         onlyBorrower
         whenNotPaused
         nonReentrant
-        validAmount(usdxAmount)
         returns (uint256 usdxAmount)
     {
         usdxAmount = _sell(sweepAmount, slippage);
@@ -816,10 +814,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         }
 
         sweepMinted = sweepAmount;
-
-        // if (getEquityRatio() < minEquityRatio) {
-        //     revert EquityRatioExcessed();
-        // }
 
         emit Borrowed(sweepAmount);
     }
