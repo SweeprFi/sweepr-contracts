@@ -3,6 +3,5 @@ pragma solidity 0.8.19;
 
 interface IMarketMaker {
     function getBuyPrice() external view returns (uint256 price); 
-
-    function buySweep(uint256 sweepAmount, uint256 slippage) external;
+    function buySweep(uint256 usdxAmount) external returns (uint256 sweepAmount);
 }

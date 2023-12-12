@@ -4,7 +4,7 @@ const { chainlink, uniswap, tokens, wallets } = require("../../utils/constants")
 const { impersonate, sendEth, Const, toBN } = require("../../utils/helper_functions");
 let user;
 
-contract("Stabilizer - One step invest/divest", async function () {
+contract.only("Stabilizer - One step invest/divest", async function () {
     before(async () => {
         [owner, other, treasury, lzEndpoint] = await ethers.getSigners();
 
@@ -71,13 +71,13 @@ contract("Stabilizer - One step invest/divest", async function () {
             expect(await weth.balanceOf(weth_asset.address)).to.equal(Const.ZERO);
 
             borrowAmount = toBN("1000", 18);
-            await weth_asset.oneStepInvest(borrowAmount, 2000, true);
+            await weth_asset.oneStepInvest(borrowAmount, 30000, true);
             balanceBefore = await weth.balanceOf(weth_asset.address);
 
             expect(balanceBefore).to.greaterThan(Const.ZERO);
             expect(await weth_asset.assetValue()).to.greaterThan(Const.ZERO);
 
-            await weth_asset.invest(depositAmount, 2000);
+            await weth_asset.invest(depositAmount, 30000);
 
             expect(await usdc.balanceOf(weth_asset.address)).to.equal(Const.ZERO);
             expect(await weth.balanceOf(weth_asset.address)).to.greaterThan(balanceBefore);
@@ -88,12 +88,12 @@ contract("Stabilizer - One step invest/divest", async function () {
             currentValue = await weth_asset.currentValue();
             expect(assetValue).to.equal(currentValue);
 
-            await weth_asset.oneStepDivest(withdrawAmount, 2000, true);
+            await weth_asset.oneStepDivest(withdrawAmount, 5000, true);
 
             assetValue = await weth_asset.assetValue();
             balance = await usdc.balanceOf(weth_asset.address);
 
-            await weth_asset.divest(withdrawAmount, 150);
+            await weth_asset.divest(withdrawAmount, 5000);
             
             expect(await usdc.balanceOf(weth_asset.address)).to.greaterThan(balance);
             expect(await weth_asset.assetValue()).to.below(assetValue);

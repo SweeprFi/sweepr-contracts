@@ -145,14 +145,14 @@ contract('Uniswap Market Maker', async () => {
       
       usdcPoolBalance = await usdc.balanceOf(poolAddress);
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
-      buyAmount = toBN("5000", 18);
-      buyUSDC = toBN("6000", 6);
+      buyAmount = toBN("5000", 6);
+      sweepToget = toBN("4999", 18);
 
-      await usdc.transfer(borrower.address, buyUSDC)
-      await usdc.connect(borrower).approve(marketmaker.address, buyUSDC);
-      await marketmaker.connect(borrower).buySweep(buyAmount, 5e5);
+      await usdc.transfer(borrower.address, buyAmount)
+      await usdc.connect(borrower).approve(marketmaker.address, buyAmount);
+      await marketmaker.connect(borrower).buySweep(buyAmount);
       
-      expect(await sweep.balanceOf(borrower.address)).to.equal(buyAmount);
+      expect(await sweep.balanceOf(borrower.address)).to.be.greaterThan(sweepToget);
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(usdcPoolBalance);
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
     });

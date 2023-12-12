@@ -32,11 +32,13 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     int24 public constant TICK_SPACE = 10; // TICK_SPACE are 10, 60, 200
     uint256 private constant PRECISION = 1e6;
     uint256[] public positionIds;
+    uint32 public slippage; 
 
     // Errors
     error NotMinted();
     error AlreadyMinted();
     error OnlyPositionManager();
+    error BadSlippage();
 
     event Collected(uint256 amount0, uint256 amount1);
 
@@ -54,6 +56,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         address _oracleUsdx,
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        slippage = 5000; // 0.5%
         flag = _usdx < _sweep;
         (token0, token1) = flag ? (_usdx, _sweep) : (_sweep, _usdx);
         liquidityHelper = LiquidityHelper(_liquidityHelper);
@@ -135,7 +138,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
     }
 
-    function buySweep(uint256 sweepAmount, uint256 slippage) external nonReentrant {
+    function buySweep(uint256 sweepAmount) external nonReentrant {
         uint256 price = _oracleUsdToUsdx(getBuyPrice());
         uint256 usdxAmount = (sweepAmount * price) / (10 ** sweep.decimals());
 
@@ -304,6 +307,11 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
 
         nonfungiblePositionManager.burn(positionId);
         _removePosition(positionId);
+    }
+
+    function setSlippage(uint32 newSlippage) external nonReentrant onlyBorrower {
+        if(newSlippage > PRECISION) revert BadSlippage();
+        slippage = newSlippage;
     }
 
     /* ========== Internals ========== */

@@ -97,7 +97,7 @@ contract('Balancer Market Maker', async () => {
     await amm.connect(user).setMarketMaker(marketmaker.address);
   });
 
-  it('Init the poool correctly', async () => {
+  it('Inits the pool correctly', async () => {
     await usdc.approve(marketmaker.address, usdcAmount);
     await marketmaker.initPool(2e6, toBN("1", 18));
     await amm.connect(user).setPool(poolAddress);
@@ -122,7 +122,7 @@ contract('Balancer Market Maker', async () => {
     usdcBefore = await usdc.balanceOf(vaultAddress);
 
     await usdc.transfer(marketmaker.address, usdcToAdd);
-    await marketmaker.addLiquidity(usdcToAdd, sweepToAdd, 2000);
+    await marketmaker.addLiquidity(usdcToAdd, sweepToAdd);
 
     expect(await usdc.balanceOf(vaultAddress)).to.equal(usdcBefore.add(usdcToAdd));
     expect(await sweep.balanceOf(vaultAddress)).to.equal(sweepBefore.add(sweepToAdd));
@@ -136,7 +136,7 @@ contract('Balancer Market Maker', async () => {
     sweepBefore = await sweep.balanceOf(vaultAddress);
     usdcBefore = await usdc.balanceOf(vaultAddress);
 
-    await marketmaker.removeLiquidity(usdcToRemove, sweepToRemove, 5000);
+    await marketmaker.removeLiquidity(usdcToRemove, sweepToRemove);
     expect(await sweep.balanceOf(vaultAddress)).to.equal(sweepBefore.sub(sweepToRemove));
     expect(await usdc.balanceOf(vaultAddress)).to.equal(usdcBefore.sub(usdcToRemove));
   });
@@ -145,7 +145,8 @@ contract('Balancer Market Maker', async () => {
     user = await impersonate(BALANCER);
     await sweep.connect(user).setTargetPrice(1e6, 1e6);
 
-    sweepToBuy = toBN("500", 18);
+    usdxAmount = toBN("500", 6);
+    sweepToGet = toBN("499", 18);
     sweepBefore = await sweep.balanceOf(borrower.address);
     usdcBefore = await usdc.balanceOf(borrower.address);
     vaultSweepBefore = await usdc.balanceOf(vaultAddress);
@@ -153,10 +154,10 @@ contract('Balancer Market Maker', async () => {
 
     expect(sweepBefore).to.equal(0);
 
-    await marketmaker.buySweep(sweepToBuy, 0);
+    await marketmaker.buySweep(usdxAmount);
 
-    expect(await usdc.balanceOf(borrower.address)).to.lessThan(usdcBefore);
-    expect(await sweep.balanceOf(borrower.address)).to.equal(sweepToBuy);
+    expect(await usdc.balanceOf(borrower.address)).to.equal(usdcBefore.sub(usdxAmount));
+    expect(await sweep.balanceOf(borrower.address)).to.be.greaterThan(sweepToGet);
     
     expect(await sweep.balanceOf(vaultAddress)).to.greaterThan(vaultSweepBefore);
     expect(await usdc.balanceOf(vaultAddress)).to.greaterThan(vaultUsdcBefore);
