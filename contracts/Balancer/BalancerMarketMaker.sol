@@ -67,24 +67,21 @@ contract BalancerMarketMaker is Stabilizer {
         return _oracleUsdxToUsd(usdcAmount);
     }
 
+    function getBuyPrice() public view returns (uint256) {
+        uint256 targetPrice = sweep.targetPrice();
+        return targetPrice + ((sweep.arbSpread() * targetPrice) / PRECISION);
+    }
+
     /* ========== Actions ========== */
 
     function buySweep(uint256 sweepAmount, uint256 slippage) external nonReentrant {
-        uint256 sweepAvailable = sweep.minters(address(this)).maxAmount - sweepBorrowed;
-        if (sweepAvailable < sweepAmount*2) revert NotEnoughBalance();
-
-        uint256 targetPrice = _oracleUsdToUsdx(sweep.targetPrice());
-        uint256 buyPrice = targetPrice + ((sweep.arbSpread() * targetPrice) / PRECISION);
+        uint256 buyPrice = _oracleUsdToUsdx(getBuyPrice());
         uint256 usdxAmount = (sweepAmount * buyPrice) / (10 ** sweep.decimals());
 
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
-        TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
-        TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
-
-        _borrow(sweepAmount*2);
+        _borrow(sweepAmount * 2);
         _addLiquidity(usdxAmount, sweepAmount, slippage);
-
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
+
         emit SweepPurchased(usdxAmount);
     }
 
@@ -114,6 +111,10 @@ contract BalancerMarketMaker is Stabilizer {
 
     function _addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 slippage) internal {
         address self = address(this);
+
+        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
+        TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
+        TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
         
         uint256[] memory amounts = new uint256[](3);
         amounts[usdxIndex] = usdxAmount;
@@ -141,11 +142,6 @@ contract BalancerMarketMaker is Stabilizer {
         } else {
             TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount);
         }
-
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
-
-        TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
-        TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
 
         _addLiquidity(usdxAmount, sweepAmount, slippage);
 

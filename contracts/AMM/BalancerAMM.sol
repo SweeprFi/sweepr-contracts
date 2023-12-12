@@ -17,6 +17,7 @@ import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/Transf
 import { ISweep } from "../Sweep/ISweep.sol";
 import { IAsset, SingleSwap, FundManagement, SwapKind, IBalancerVault, IBalancerPool } from "../Assets/Interfaces/Balancer/IBalancer.sol";
 import { StableMath } from "../Libraries/Balancer/StableMath.sol";
+import "../Balancer/IMarketMaker.sol";
 
 contract BalancerAMM {
     using Math for uint256;
@@ -29,6 +30,7 @@ contract BalancerAMM {
     IPriceFeed public immutable oracleBase;
     IPriceFeed public immutable sequencer;
     uint256 public immutable oracleBaseUpdateFrequency;
+    IMarketMaker public marketMaker;
 
     uint8 private constant USD_DECIMALS = 6;
     uint16 private constant DEADLINE_GAP = 15 minutes;
@@ -54,6 +56,13 @@ contract BalancerAMM {
     // Errors
     error ZeroAmount();
     error BadRate();
+    error NotOwnerOrGov();
+
+    modifier onlyOwner () {
+        if (msg.sender != sweep.fastMultisig() && msg.sender != sweep.owner())
+            revert NotOwnerOrGov();
+        _;
+    }
 
     /**
      * @notice Get Price
@@ -129,15 +138,32 @@ contract BalancerAMM {
         uint256 tokenAmount,
         uint256 amountOutMin
     ) external returns (uint256 sweepAmount) {
-        checkRate(tokenAddress, tokenAmount, amountOutMin);
+        bool lowerPriceInPool = true;
 
-        sweepAmount = swap(
-            tokenAddress,
-            address(sweep),
-            tokenAmount,
-            amountOutMin,
-            address(pool)
-        );
+        if (address(marketMaker) != address(0)) {
+            uint256 buyPrice = marketMaker.getBuyPrice();
+            if (buyPrice < getPrice()) {
+                lowerPriceInPool = false;
+                sweepAmount = (tokenAmount * (10 ** sweep.decimals())) / buyPrice;
+                uint256 slippage =  (sweepAmount * (10 ** base.decimals()) / amountOutMin) - (10 ** base.decimals());
+
+                TransferHelper.safeTransferFrom(address(base), msg.sender, address(this), tokenAmount);
+                TransferHelper.safeApprove(address(base), address(marketMaker), tokenAmount);
+                marketMaker.buySweep(sweepAmount, slippage);
+                TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
+            }
+        }
+
+        if(lowerPriceInPool) {
+            checkRate(tokenAddress, tokenAmount, amountOutMin);
+            sweepAmount = swap(
+                tokenAddress,
+                address(sweep),
+                tokenAmount,
+                amountOutMin,
+                address(pool)
+            );
+        }
 
         emit Bought(tokenAmount);
     }
@@ -241,5 +267,9 @@ contract BalancerAMM {
         uint256 deadline = block.timestamp + DEADLINE_GAP;
 
         amountOut = IBalancerVault(vaultAddress).swap(singleSwap, funds, amountOutMin, deadline);
+    }
+
+    function setMarketMaker(address _marketMaker) external onlyOwner {
+        marketMaker = IMarketMaker(_marketMaker);
     }
 }

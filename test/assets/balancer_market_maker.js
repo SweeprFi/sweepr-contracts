@@ -94,6 +94,7 @@ contract('Balancer Market Maker', async () => {
 
     await marketmaker.configure(0, 0, sweepAmount, 0, 0, 0, 0, 0, false, false, Const.URL)
     await sweep.connect(user).addMinter(marketmaker.address, sweepAmount);
+    await amm.connect(user).setMarketMaker(marketmaker.address);
   });
 
   it('Init the poool correctly', async () => {
@@ -161,13 +162,20 @@ contract('Balancer Market Maker', async () => {
     expect(await usdc.balanceOf(vaultAddress)).to.greaterThan(vaultUsdcBefore);
   });
 
-  it('Swaps sweep', async () => {
-    usdcToSwap = toBN("1000", 6);
+  it('buys Sweep from the MM', async () => {
+    price = await amm.getPrice();
+    expect(await marketmaker.getBuyPrice()).to.lessThan(price);
 
-    await usdc.transfer(marketmaker.address, usdcToSwap);
+    sweepBalanceB = await sweep.balanceOf(vaultAddress);
+    usdcBalanceB = await usdc.balanceOf(vaultAddress);
 
-    user = await impersonate(BALANCER);
-    await sweep.connect(user).setTargetPrice(1005326, 1005326);
-    await marketmaker.buySweepOnAMM(usdcToSwap, 9000);
+    USDC_AMOUNT = toBN("950", 6);
+    MIN_AMOUNT = toBN("850", 18);
+
+    await usdc.approve(amm.address, USDC_AMOUNT);
+    await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT);
+
+    expect(await sweep.balanceOf(vaultAddress)).to.greaterThan(sweepBalanceB)
+    expect(await usdc.balanceOf(vaultAddress)).to.greaterThan(usdcBalanceB)
   });
 });
