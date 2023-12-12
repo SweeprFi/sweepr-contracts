@@ -32,6 +32,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     int24 public constant TICK_SPACE = 10; // TICK_SPACE are 10, 60, 200
     uint256 private constant PRECISION = 1e6;
     uint256[] public positionIds;
+    uint256 public mintFactor;
     uint32 public slippage; 
 
     // Errors
@@ -39,6 +40,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     error AlreadyMinted();
     error OnlyPositionManager();
     error BadSlippage();
+    error InvalidMintFactor();
 
     event Collected(uint256 amount0, uint256 amount1);
 
@@ -142,12 +144,13 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 price = _oracleUsdToUsdx(getBuyPrice());
         uint256 usdxAmount = (sweepAmount * price) / (10 ** sweep.decimals());
 
-        _borrow(sweepAmount*2);
+        uint256 mintAmount = sweepAmount * (PRECISION + mintFactor) / PRECISION;
+        _borrow(mintAmount);
 
         uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, slippage);
-        uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, slippage);
+        uint256 sweepMinIn = OvnMath.subBasisPoints(mintAmount - sweepAmount, slippage);
 
-        _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
+        _addLiquidity(usdxAmount, mintAmount - sweepAmount, usdxMinIn, sweepMinIn);
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
     }
 
@@ -381,5 +384,10 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
             }
             unchecked { ++i; }
         }
+    }
+
+    function setMintFactor(uint256 _mintFactor) external nonReentrant onlyBorrower {
+        if(_mintFactor > PRECISION) revert InvalidMintFactor();
+        mintFactor = _mintFactor;
     }
 }
