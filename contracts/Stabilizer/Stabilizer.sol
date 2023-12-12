@@ -534,6 +534,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         onlyBorrower
         whenNotPaused
         nonReentrant
+        validAmount(usdxAmount)
         returns (uint256 sweepAmount)
     {
         sweepAmount = _buy(usdxAmount, slippage);
@@ -555,6 +556,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         onlyBorrower
         whenNotPaused
         nonReentrant
+        validAmount(usdxAmount)
         returns (uint256 usdxAmount)
     {
         usdxAmount = _sell(sweepAmount, slippage);
