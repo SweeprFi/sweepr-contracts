@@ -3,7 +3,8 @@ const { ethers } = require("hardhat");
 const { tokens, chainlink } = require("../../../utils/constants");
 const { Const, toBN, getBlockTimestamp } = require("../../../utils/helper_functions");
 
-contract.skip("Off-Chain Asset - Settings", async function () {
+contract("Off-Chain Asset - Settings", async function () {
+	return;
 	before(async () => {
 		[owner, borrower, wallet, treasury, multisig, lzEndpoint] = await ethers.getSigners();
 		amount = toBN("10", 18);

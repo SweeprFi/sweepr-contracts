@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { tokens, wallets, chainlink, balancer } = require('../../utils/constants');
-const { Const, impersonate, toBN, sendEth } = require("../../utils/helper_functions");
+const { Const, impersonate, toBN, sendEth, getAddressAndProviders } = require("../../utils/helper_functions");
 let poolAddress;
 
 contract('Balancer Market Maker', async () => {
@@ -43,20 +43,6 @@ contract('Balancer Market Maker', async () => {
     user = await impersonate(SWEEP_OWNER);
     await sweep.connect(user).setAMM(amm.address);
   });
-
-  const getAddressAndProviders = (sweep, token) => {
-    data = {};
-
-    if (token.toString().toLowerCase() < sweep.toString().toLowerCase()) {
-      data.tokens = [token, sweep];
-      data.providers = ['0x0000000000000000000000000000000000000000', amm.address];
-    } else {
-      data.tokens = [sweep, token];
-      data.providers = [amm.address, '0x0000000000000000000000000000000000000000'];
-    }
-
-    return data;
-  }
 
   it('create the pool', async () => {
     data = getAddressAndProviders(sweep.address, USDC_ADDRESS);

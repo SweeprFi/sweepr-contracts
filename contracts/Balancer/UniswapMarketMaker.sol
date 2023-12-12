@@ -140,11 +140,10 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
     }
 
-    function buySweep(uint256 sweepAmount) external nonReentrant {
-        uint256 price = _oracleUsdToUsdx(getBuyPrice());
-        uint256 usdxAmount = (sweepAmount * price) / (10 ** sweep.decimals());
-
+    function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {
+        sweepAmount = (_oracleUsdxToUsd(usdxAmount) * (10 ** sweep.decimals())) / getBuyPrice();
         uint256 mintAmount = sweepAmount * (PRECISION + mintFactor) / PRECISION;
+
         _borrow(mintAmount);
 
         uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, slippage);

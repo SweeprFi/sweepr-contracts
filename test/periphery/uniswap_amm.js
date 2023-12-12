@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { chainlink, uniswap } = require("../../utils/constants");
-const { toBN, Const, increaseTime, getPriceAndData } = require("../../utils/helper_functions");
+const { toBN, Const, getPriceAndData } = require("../../utils/helper_functions");
 
 contract("Uniswap AMM", async function () {
   before(async () => {
@@ -123,6 +123,8 @@ contract("Uniswap AMM", async function () {
       priceBefore = await amm.getPrice();
       sweepBalanceB = await sweep.balanceOf(pool_address);
       usdcBalanceB = await usdc.balanceOf(pool_address);
+      await marketmaker.setMintFactor(1e6);
+      await marketmaker.setSlippage(3e5);
       
       expect(await marketmaker.getBuyPrice()).to.greaterThan(priceBefore);
 
@@ -133,7 +135,7 @@ contract("Uniswap AMM", async function () {
 
       priceAfter = await amm.getPrice();
 
-      expect(await amm.getPrice()).to.greaterThan(priceBefore);
+      expect(priceAfter).to.greaterThan(priceBefore);
       expect(await marketmaker.getBuyPrice()).to.lessThan(priceAfter);
       expect(await sweep.balanceOf(pool_address)).to.lessThan(sweepBalanceB);
       expect(await usdc.balanceOf(pool_address)).to.equal(usdcBalanceB.add(USDC_AMOUNT));

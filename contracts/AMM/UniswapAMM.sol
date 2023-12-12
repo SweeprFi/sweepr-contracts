@@ -21,8 +21,6 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../Balancer/IMarketMaker.sol";
 import "../Sweep/ISweep.sol";
 
-import "hardhat/console.sol";
-
 contract UniswapAMM {
     using Math for uint256;
 
@@ -214,18 +212,6 @@ contract UniswapAMM {
         uint256 tokenFactor = 10 ** IERC20Metadata(usdxAddress).decimals();
         uint256 sweepFactor = 10 ** sweep.decimals();
         uint256 rate = usdxAmount * sweepFactor * 1e6 / (tokenFactor * sweepAmount);
-        
-        console.log("usdxAmount:");
-        console.log(usdxAmount);
-
-        console.log("sweepAmount:");
-        console.log(sweepAmount);
-
-        console.log("usdxAddress:");
-        console.log(usdxAddress);
-        
-        console.log("rate:");
-        console.log(rate);
 
         if(rate > 16e5 || rate < 6e5) revert BadRate();
     }

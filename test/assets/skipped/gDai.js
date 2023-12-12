@@ -3,7 +3,8 @@ const { ethers } = require("hardhat");
 const { addresses, chainId } = require("../../../utils/address");
 const { impersonate, sendEth, increaseTime, Const, toBN, resetNetwork } = require("../../../utils/helper_functions");
 
-contract.skip("gDAI Asset", async function () {
+contract("gDAI Asset", async function () {
+    return;
     if (Number(chainId) !== 1) return;
 
     before(async () => {

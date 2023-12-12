@@ -14,12 +14,11 @@ pragma solidity 0.8.19;
 import { Stabilizer, TransferHelper, ISweep } from "../Stabilizer/Stabilizer.sol";
 import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "../Assets/Interfaces/Balancer/IBalancer.sol";
 
-import "hardhat/console.sol";
-
 contract BalancerMarketMaker is Stabilizer {
 
     error BadAddress();
     error BadSlippage();
+    error InvalidMintFactor();
 
     event LiquidityAdded(uint256 usdxAmount, uint256 sweepAmount);
     event LiquidityRemoved(uint256 usdxAmount, uint256 sweepAmount);
@@ -83,10 +82,11 @@ contract BalancerMarketMaker is Stabilizer {
 
     function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {
         sweepAmount = (_oracleUsdxToUsd(usdxAmount) * (10 ** sweep.decimals())) / getBuyPrice();
-
         uint256 mintAmount = sweepAmount * (PRECISION + mintFactor) / PRECISION;
+
         _borrow(mintAmount);
-        _addLiquidity(usdxAmount, mintAmount - sweepAmount, slippage);
+        _addLiquidity(usdxAmount, mintAmount - sweepAmount);
+
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
         emit SweepPurchased(usdxAmount);

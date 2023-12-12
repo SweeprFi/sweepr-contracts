@@ -3,7 +3,8 @@ const { expect } = require("chai");
 const { addresses, chainId } = require("../../../utils/address");
 const { impersonate, sendEth, Const } = require("../../../utils/helper_functions")
 
-contract.skip('GLP Asset', async () => {
+contract('GLP Asset', async () => {
+    return;
     // GLP Asset only work on the Arbitrum.
     if (Number(chainId) !== 42161) return;
 

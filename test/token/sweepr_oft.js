@@ -166,14 +166,14 @@ contract("Sweepr - OFT", async function () {
         it("add destination chain", async function () {
             expect(await OFTSrc.chainCount()).to.be.equal(Const.ZERO)
 
-            await OFTSrc.addChain(chainIdDst, sweepDst.address);
+            await OFTSrc.addChain(chainIdDst, OFTDst.address);
             expect(await OFTSrc.chainCount()).to.be.equal(1);
 
             chain = await OFTSrc.chains(chainIdDst);
-            expect(chain).to.equal(sweepDst.address);
+            expect(chain).to.equal(OFTDst.address);
 
             sweepAddress = await OFTSrc.getBalancerWithChainId(chainIdDst);
-            expect(sweepAddress).to.equal(sweepDst.address);
+            expect(sweepAddress).to.equal(OFTDst.address);
         })
 
         it("remove destination chain", async function () {

@@ -121,8 +121,8 @@ const Const = {
     PRICE: 1e6,
     WBTC_PRICE: 28e11,
     WBTC_AMM: 28e9,
-    WETH_PRICE: 19e10,
-    WETH_AMM: 19e8,
+    WETH_PRICE: 23e10,
+    WETH_AMM: 23e8,
     USDC_PRICE: 99993053,
     BASIS_DENOMINATOR: 1e6,
     SLIPPAGE: 2000,
@@ -153,6 +153,20 @@ function ask(query) {
     }));
 }
 
+const getAddressAndProviders = (sweep, token) => {
+    data = {};
+
+    if (token.toString().toLowerCase() < sweep.toString().toLowerCase()) {
+        data.tokens = [token, sweep];
+        data.providers = ['0x0000000000000000000000000000000000000000', amm.address];
+    } else {
+        data.tokens = [sweep, token];
+        data.providers = [amm.address, '0x0000000000000000000000000000000000000000'];
+    }
+
+    return data;
+}
+
 module.exports = {
     toBN,
     Const,
@@ -165,5 +179,6 @@ module.exports = {
     getTokenAmounts,
     unpauseAave,
     sleep,
-    ask
+    ask,
+    getAddressAndProviders
 }

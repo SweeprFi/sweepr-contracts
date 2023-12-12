@@ -3,7 +3,8 @@ const { ethers } = require("hardhat");
 const { tokens, chainlink, wallets } = require("../../../utils/constants");
 const { impersonate, Const, toBN, sendEth, getBlockTimestamp } = require("../../../utils/helper_functions");
 
-contract.skip("Off-Chain Asset", async function (accounts) {
+contract("Off-Chain Asset", async function (accounts) {
+    return;
     before(async () => {
         BORROWER = accounts[0];
         GUEST = accounts[1];

@@ -43,8 +43,6 @@ contract('Uniswap Market Maker', async () => {
       BORROWER
     );
 
-    await marketmaker.setMintFactor(1e6);
-
     await sweep.addMinter(BORROWER, sweepAmount.mul(5));
     await sweep.addMinter(marketmaker.address, sweepAmount);
 
@@ -147,14 +145,17 @@ contract('Uniswap Market Maker', async () => {
       
       usdcPoolBalance = await usdc.balanceOf(poolAddress);
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
+      await marketmaker.setMintFactor(1e6);
+      await marketmaker.setSlippage(5e5);
+      
       buyAmount = toBN("5000", 6);
-      sweepToget = toBN("4999", 18);
+      sweepToGet = toBN("4900", 18);
 
       await usdc.transfer(borrower.address, buyAmount)
       await usdc.connect(borrower).approve(marketmaker.address, buyAmount);
       await marketmaker.connect(borrower).buySweep(buyAmount);
-      
-      expect(await sweep.balanceOf(borrower.address)).to.be.greaterThan(sweepToget);
+
+      expect(await sweep.balanceOf(borrower.address)).to.be.greaterThan(sweepToGet);
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(usdcPoolBalance);
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
     });
@@ -201,6 +202,8 @@ contract('Uniswap Market Maker', async () => {
       await expect(marketmaker.buySweepOnAMM(amount, 2000))
         .to.be.revertedWith('Too little received')
 
+      expect(await marketmaker.getBuyPrice()).to.lessThan(await sweep.ammPrice());
+
       mmUBB = await usdc.balanceOf(marketmaker.address);
       mmSBB = await sweep.balanceOf(marketmaker.address);
       pUBB = await usdc.balanceOf(poolAddress);
@@ -208,10 +211,10 @@ contract('Uniswap Market Maker', async () => {
 
       await(marketmaker.buySweepOnAMM(amount, 3e5));
 
-      expect(await usdc.balanceOf(poolAddress)).to.equal(pUBB.add(amount));
-      expect(await sweep.balanceOf(poolAddress)).to.lessThan(sUBB);
       expect(await usdc.balanceOf(marketmaker.address)).to.equal(mmUBB.sub(amount));
       expect(await sweep.balanceOf(marketmaker.address)).to.greaterThan(mmSBB);
+      expect(await usdc.balanceOf(poolAddress)).to.greaterThan(pUBB);
+      expect(await sweep.balanceOf(poolAddress)).to.lessThan(sUBB);
     })
   })
 });

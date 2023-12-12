@@ -131,6 +131,7 @@ contract ERC20Asset is Stabilizer {
     ) internal override returns (uint256 divestedAmount) {
         uint256 tokenAmount = _oracleUsdxToToken(usdxAmount);
         uint256 tokenBalance = token.balanceOf(address(this));
+        if (tokenBalance == 0) revert NotEnoughBalance();
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
 
         uint256 tokenInUsdx = _oracleTokenToUsdx(tokenAmount);
