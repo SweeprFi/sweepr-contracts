@@ -144,14 +144,12 @@ contract BalancerAMM {
             uint256 buyPrice = marketMaker.getBuyPrice();
             if (buyPrice < getPrice()) {
                 lowerPriceInPool = false;
-                uint256 usdxInUsd = ChainlinkLibrary.convertTokenToUsd(tokenAmount, base.decimals(), oracleBase);
-                sweepAmount = sweep.convertToSWEEP(usdxInUsd);
-                uint256 slippage = ((sweepAmount/amountOutMin)-1) * USD_DECIMALS;
-                uint256 usdxMinIn = (tokenAmount * (USD_DECIMALS - slippage)) / USD_DECIMALS;
+                sweepAmount = (tokenAmount * (10 ** sweep.decimals())) / buyPrice;
+                uint256 slippage =  (sweepAmount * (10 ** base.decimals()) / amountOutMin) - (10 ** base.decimals());
 
                 TransferHelper.safeTransferFrom(address(base), msg.sender, address(this), tokenAmount);
                 TransferHelper.safeApprove(address(base), address(marketMaker), tokenAmount);
-                marketMaker.buySweep(tokenAmount, sweepAmount, usdxMinIn, amountOutMin, slippage);
+                marketMaker.buySweep(sweepAmount, slippage);
                 TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
             }
         }

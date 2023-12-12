@@ -37,18 +37,12 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     error NotMinted();
     error AlreadyMinted();
     error OnlyPositionManager();
-    error OnlyAMM();
 
     event Collected(uint256 amount0, uint256 amount1);
 
     /* ========== Modifies ========== */
     modifier isMinted() {
         if (tokenId == 0) revert NotMinted();
-        _;
-    }
-
-    modifier onlyAMM() {
-        if (msg.sender != sweep.amm()) revert OnlyAMM();
         _;
     }
 
@@ -95,7 +89,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function getBuyPrice() public view returns (uint256) {
-        uint256 targetPrice = _oracleUsdToUsdx(sweep.targetPrice());
+        uint256 targetPrice = sweep.targetPrice();
         return targetPrice + ((sweep.arbSpread() * targetPrice) / PRECISION);
     }
 
@@ -142,30 +136,14 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function buySweep(uint256 sweepAmount, uint256 slippage) external nonReentrant {
-        uint256 usdxAmount = (sweepAmount * getBuyPrice()) / (10 ** sweep.decimals());
-        uint256 usdxMinIn = usdxAmount * (PRECISION - slippage) / PRECISION;
-        uint256 sweepMinIn = sweepAmount * (PRECISION - slippage) / PRECISION;
+        uint256 price = _oracleUsdToUsdx(getBuyPrice());
+        uint256 usdxAmount = (sweepAmount * price) / (10 ** sweep.decimals());
 
-        _buySweep(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
-    }
-
-    function buySweep(
-        uint256 usdxAmount,
-        uint256 sweepAmount,
-        uint256 usdxMinIn,
-        uint256 sweepMinIn,
-        uint256
-    ) external nonReentrant onlyAMM {
-        _buySweep(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
-    }
-
-    function _buySweep(
-        uint256 usdxAmount,
-        uint256 sweepAmount,
-        uint256 usdxMinIn,
-        uint256 sweepMinIn
-    ) internal {
         _borrow(sweepAmount*2);
+
+        uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, slippage);
+        uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, slippage);
+
         _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
     }
@@ -303,7 +281,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
                     amount1Desired: amount1Mint,
                     amount0Min: amount0Mint,
                     amount1Min: amount1Mint,
-                    recipient: address(this),
+                    recipient: self,
                     deadline: block.timestamp
                 })
             );
@@ -335,9 +313,9 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 usdxMinIn,
         uint256 sweepMinIn
     ) internal {
+        TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
         TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
         TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
 
         (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn) = flag
             ? (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn)
@@ -382,9 +360,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, TICK_SPACE, flag);
         maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, TICK_SPACE, flag);
 
-        (minTick, maxTick) = minTick < maxTick
-            ? (minTick, maxTick)
-            : (maxTick, minTick);
+        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
     }
 
     function _removePosition(uint256 positionId) internal {

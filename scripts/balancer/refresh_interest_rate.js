@@ -11,6 +11,7 @@ async function main() {
 	console.log(`tx: ${tx.transactionHash}`)
 
     console.log("... done");
+	process.exit(0);
 }
 
 main();

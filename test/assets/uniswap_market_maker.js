@@ -196,14 +196,15 @@ contract('Uniswap Market Maker', async () => {
 
     it('slippage test', async () => {
       amount = toBN("25000", 6);
-      await expect(marketmaker.buySweepOnAMM(amount, 2000)).to.be.revertedWith('Too little received')
+      await expect(marketmaker.buySweepOnAMM(amount, 2000))
+        .to.be.revertedWith('Too little received')
 
       mmUBB = await usdc.balanceOf(marketmaker.address);
       mmSBB = await sweep.balanceOf(marketmaker.address);
       pUBB = await usdc.balanceOf(poolAddress);
       sUBB = await sweep.balanceOf(poolAddress);
 
-      await(marketmaker.buySweepOnAMM(amount, 9e5));
+      await(marketmaker.buySweepOnAMM(amount, 3e5));
 
       expect(await usdc.balanceOf(poolAddress)).to.equal(pUBB.add(amount));
       expect(await sweep.balanceOf(poolAddress)).to.lessThan(sUBB);

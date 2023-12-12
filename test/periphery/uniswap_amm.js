@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { chainlink, uniswap } = require("../../utils/constants");
 const { toBN, Const, increaseTime, getPriceAndData } = require("../../utils/helper_functions");
 
-contract.only("Uniswap AMM", async function () {
+contract("Uniswap AMM", async function () {
   before(async () => {
     [owner] = await ethers.getSigners();
     OWNER = owner.address;
@@ -126,8 +126,8 @@ contract.only("Uniswap AMM", async function () {
       
       expect(await marketmaker.getBuyPrice()).to.greaterThan(priceBefore);
 
-      USDC_AMOUNT = toBN("900", 6);
-      MIN_AMOUNT = toBN("800", 18);
+      USDC_AMOUNT = toBN("950", 6);
+      MIN_AMOUNT = toBN("850", 18);
       await usdc.approve(amm.address, USDC_AMOUNT);
       await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT);
 
