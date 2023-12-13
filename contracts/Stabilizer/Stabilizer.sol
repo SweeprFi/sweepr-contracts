@@ -504,12 +504,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     ) external nonReentrant {
         if (msg.sender != sweep.balancer()) revert NotBalancer();
         if (!autoInvestEnabled) revert NotAutoInvest();
+        if (sweepAmount < autoInvestMinAmount) revert NotAutoInvestMinAmount();
 
-        uint256 sweepMinted = _borrow(sweepAmount);
-        if (sweepMinted < autoInvestMinAmount) revert NotAutoInvestMinAmount();
-
+        _borrow(sweepAmount);
         uint256 usdxAmount = _sell(sweepAmount, slippage);
-
         _invest(usdxAmount, 0, slippage);
 
         if (getEquityRatio() < autoInvestMinRatio){
@@ -794,7 +792,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         return usdxAmount;
     }
 
-    function _borrow(uint256 sweepAmount) internal returns (uint256 sweepMinted) {
+    function _borrow(uint256 sweepAmount) internal {
         if (!sweep.isValidMinter(address(this))) revert InvalidMinter();
         uint256 sweepAvailable = loanLimit - sweepBorrowed;
         if (sweepAvailable < sweepAmount) revert NotEnoughBalance();
@@ -812,8 +810,6 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
             );
             emit PayFee(spreadAmount);
         }
-
-        sweepMinted = sweepAmount;
 
         emit Borrowed(sweepAmount);
     }

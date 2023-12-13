@@ -109,9 +109,6 @@ contract("Stabilizer - One step invest/divest", async function () {
 
       await amm.setPool(poolAddress);
       await amm.setMarketMaker(marketmaker.address);
-
-      // mintFactor and slippage
-      await marketmaker.setMintFactor(1e6);
     })
 
     it("invest correctly", async function () {

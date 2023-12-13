@@ -18,7 +18,6 @@ contract BalancerMarketMaker is Stabilizer {
 
     error BadAddress();
     error BadSlippage();
-    error InvalidMintFactor();
 
     event LiquidityAdded(uint256 usdxAmount, uint256 sweepAmount);
     event LiquidityRemoved(uint256 usdxAmount, uint256 sweepAmount);
@@ -34,7 +33,6 @@ contract BalancerMarketMaker is Stabilizer {
     uint8 public usdxIndex;
     uint8 public bptIndex;
 
-    uint256 public mintFactor;
     uint32 public slippage; 
 
     uint24 private constant PRECISION = 1e6;
@@ -81,10 +79,9 @@ contract BalancerMarketMaker is Stabilizer {
 
     function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {
         sweepAmount = (_oracleUsdxToUsd(usdxAmount) * (10 ** sweep.decimals())) / getBuyPrice();
-        uint256 mintAmount = sweepAmount * (PRECISION + mintFactor) / PRECISION;
 
-        _borrow(mintAmount);
-        _addLiquidity(usdxAmount, mintAmount - sweepAmount);
+        _borrow(sweepAmount * 2);
+        _addLiquidity(usdxAmount, sweepAmount);
 
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
@@ -191,8 +188,4 @@ contract BalancerMarketMaker is Stabilizer {
         revert BadAddress();
     }
 
-    function setMintFactor(uint256 _mintFactor) external nonReentrant onlyBorrower {
-        if(_mintFactor > PRECISION) revert InvalidMintFactor();
-        mintFactor = _mintFactor;
-    }
 }
