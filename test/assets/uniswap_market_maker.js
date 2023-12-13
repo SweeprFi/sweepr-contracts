@@ -145,7 +145,6 @@ contract('Uniswap Market Maker', async () => {
       
       usdcPoolBalance = await usdc.balanceOf(poolAddress);
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
-      await marketmaker.setMintFactor(1e6);
       await marketmaker.setSlippage(5e5);
       
       buyAmount = toBN("5000", 6);

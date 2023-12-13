@@ -123,7 +123,6 @@ contract("Uniswap AMM", async function () {
       priceBefore = await amm.getPrice();
       sweepBalanceB = await sweep.balanceOf(pool_address);
       usdcBalanceB = await usdc.balanceOf(pool_address);
-      await marketmaker.setMintFactor(1e6);
       await marketmaker.setSlippage(3e5);
       
       expect(await marketmaker.getBuyPrice()).to.greaterThan(priceBefore);
