@@ -35,7 +35,6 @@ contract BalancerMarketMaker is Stabilizer {
     uint8 public bptIndex;
 
     uint256 public mintFactor;
-    
     uint32 public slippage; 
 
     uint24 private constant PRECISION = 1e6;
