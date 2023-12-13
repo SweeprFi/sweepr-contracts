@@ -1,13 +1,13 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { chainlink, uniswap } = require("../../utils/constants");
-const { toBN, Const, increaseTime, getPriceAndData } = require("../../utils/helper_functions");
+const { toBN, Const, getPriceAndData } = require("../../utils/helper_functions");
 
 contract("Uniswap AMM", async function () {
   before(async () => {
     [owner] = await ethers.getSigners();
     OWNER = owner.address;
-    USDC_AMOUNT = 100e6;
+    USDC_AMOUNT = toBN("100", 6);
     SWEEP_AMOUNT = toBN("80", 18);
 
     USDC_MINT = 10000e6;
@@ -96,7 +96,7 @@ contract("Uniswap AMM", async function () {
       usdcBefore = await usdc.balanceOf(OWNER);
 
       await usdc.approve(amm.address, USDC_AMOUNT);
-      await amm.buySweep(usdc.address, USDC_AMOUNT, Const.ZERO);
+      await amm.buySweep(usdc.address, USDC_AMOUNT, USDC_AMOUNT.mul(99e10));
 
       sweepAfter = await sweep.balanceOf(OWNER);
       usdcAfter = await usdc.balanceOf(OWNER);
@@ -110,7 +110,7 @@ contract("Uniswap AMM", async function () {
       usdcBefore = await usdc.balanceOf(OWNER);
 
       await sweep.approve(amm.address, SWEEP_AMOUNT);
-      await amm.sellSweep(usdc.address, SWEEP_AMOUNT, Const.ZERO);
+      await amm.sellSweep(usdc.address, SWEEP_AMOUNT, SWEEP_AMOUNT.div(11e11));
 
       sweepAfter = await sweep.balanceOf(OWNER);
       usdcAfter = await usdc.balanceOf(OWNER);
@@ -123,17 +123,19 @@ contract("Uniswap AMM", async function () {
       priceBefore = await amm.getPrice();
       sweepBalanceB = await sweep.balanceOf(pool_address);
       usdcBalanceB = await usdc.balanceOf(pool_address);
+      await marketmaker.setMintFactor(1e6);
+      await marketmaker.setSlippage(3e5);
       
       expect(await marketmaker.getBuyPrice()).to.greaterThan(priceBefore);
 
       USDC_AMOUNT = toBN("950", 6);
-      MIN_AMOUNT = toBN("850", 18);
+      MIN_AMOUNT_OUT = toBN("850", 18);
       await usdc.approve(amm.address, USDC_AMOUNT);
-      await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT);
+      await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT_OUT);
 
       priceAfter = await amm.getPrice();
 
-      expect(await amm.getPrice()).to.greaterThan(priceBefore);
+      expect(priceAfter).to.greaterThan(priceBefore);
       expect(await marketmaker.getBuyPrice()).to.lessThan(priceAfter);
       expect(await sweep.balanceOf(pool_address)).to.lessThan(sweepBalanceB);
       expect(await usdc.balanceOf(pool_address)).to.equal(usdcBalanceB.add(USDC_AMOUNT));
@@ -142,7 +144,7 @@ contract("Uniswap AMM", async function () {
       usdcBalanceB = await usdc.balanceOf(pool_address);
 
       await usdc.approve(amm.address, USDC_AMOUNT);
-      await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT);
+      await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT_OUT);
 
       expect(await sweep.balanceOf(pool_address)).to.greaterThan(sweepBalanceB)
       expect(await usdc.balanceOf(pool_address)).to.greaterThan(usdcBalanceB)

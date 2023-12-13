@@ -16,7 +16,9 @@ import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "../As
 
 contract BalancerMarketMaker is Stabilizer {
 
-    error BadAddress(address asset);
+    error BadAddress();
+    error BadSlippage();
+    error InvalidMintFactor();
 
     event LiquidityAdded(uint256 usdxAmount, uint256 sweepAmount);
     event LiquidityRemoved(uint256 usdxAmount, uint256 sweepAmount);
@@ -31,7 +33,10 @@ contract BalancerMarketMaker is Stabilizer {
     uint8 public sweepIndex;
     uint8 public usdxIndex;
     uint8 public bptIndex;
-    
+
+    uint256 public mintFactor;
+    uint32 public slippage; 
+
     uint24 private constant PRECISION = 1e6;
 
     constructor(
@@ -42,9 +47,9 @@ contract BalancerMarketMaker is Stabilizer {
         address _poolAddress,
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
+        slippage = 5000; // 0.5%
         pool = IBalancerPool(_poolAddress);
-        vault = IBalancerVault(pool.getVault());
-
+        vault = IBalancerVault(pool.getVault()); 
         poolId = pool.getPoolId();
         (poolAssets, , ) = vault.getPoolTokens(poolId);
         sweepIndex = findAssetIndex(address(sweep), poolAssets);
@@ -74,12 +79,13 @@ contract BalancerMarketMaker is Stabilizer {
 
     /* ========== Actions ========== */
 
-    function buySweep(uint256 sweepAmount, uint256 slippage) external nonReentrant {
-        uint256 buyPrice = _oracleUsdToUsdx(getBuyPrice());
-        uint256 usdxAmount = (sweepAmount * buyPrice) / (10 ** sweep.decimals());
+    function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {
+        sweepAmount = (_oracleUsdxToUsd(usdxAmount) * (10 ** sweep.decimals())) / getBuyPrice();
+        uint256 mintAmount = sweepAmount * (PRECISION + mintFactor) / PRECISION;
 
-        _borrow(sweepAmount * 2);
-        _addLiquidity(usdxAmount, sweepAmount, slippage);
+        _borrow(mintAmount);
+        _addLiquidity(usdxAmount, mintAmount - sweepAmount);
+
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
         emit SweepPurchased(usdxAmount);
@@ -109,7 +115,7 @@ contract BalancerMarketMaker is Stabilizer {
         vault.joinPool(poolId, self, self, request);
     }
 
-    function _addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 slippage) internal {
+    function _addLiquidity(uint256 usdxAmount, uint256 sweepAmount) internal {
         address self = address(this);
 
         TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
@@ -134,7 +140,7 @@ contract BalancerMarketMaker is Stabilizer {
         vault.joinPool(poolId, self, self, request);
     }
 
-    function addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 slippage) external nonReentrant onlyBorrower {
+    function addLiquidity(uint256 usdxAmount, uint256 sweepAmount) external nonReentrant onlyBorrower {
         address self = address(this);
 
         if(sweep.isMintingAllowed()){
@@ -143,12 +149,12 @@ contract BalancerMarketMaker is Stabilizer {
             TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount);
         }
 
-        _addLiquidity(usdxAmount, sweepAmount, slippage);
+        _addLiquidity(usdxAmount, sweepAmount);
 
         emit LiquidityAdded(usdxAmount, sweepAmount);
     }
 
-    function removeLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 slippage) external nonReentrant onlyBorrower {
+    function removeLiquidity(uint256 usdxAmount, uint256 sweepAmount) external nonReentrant onlyBorrower {
         address self = address(this);
 
         uint256 usdxMax = usdxAmount * pool.getTokenRate(address(usdx)) / (10**usdx.decimals());
@@ -173,14 +179,20 @@ contract BalancerMarketMaker is Stabilizer {
         emit LiquidityRemoved(usdxAmount, sweepAmount);
     }
 
+    function setSlippage(uint32 newSlippage) external nonReentrant onlyBorrower {
+        if(newSlippage > PRECISION) revert BadSlippage();
+        slippage = newSlippage;
+    }
 
     function findAssetIndex(address asset, IAsset[] memory assets) internal pure returns (uint8) {
         for (uint8 i = 0; i < assets.length; i++) {
-            if ( address(assets[i]) == asset ) {
-                return i;
-            }
+            if ( address(assets[i]) == asset ) return i;
         }
-        revert BadAddress(asset);
+        revert BadAddress();
     }
 
+    function setMintFactor(uint256 _mintFactor) external nonReentrant onlyBorrower {
+        if(_mintFactor > PRECISION) revert InvalidMintFactor();
+        mintFactor = _mintFactor;
+    }
 }

@@ -8,6 +8,7 @@ pragma solidity 0.8.19;
 import "../Sweep/BaseSweep.sol";
 import "../Stabilizer/IStabilizer.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "../AMM/IAMM.sol";
 
 contract SweepMock is BaseSweep {
     using Math for uint256;
@@ -106,6 +107,7 @@ contract SweepMock is BaseSweep {
      * @return uint256 Sweep price
      */
     function ammPrice() public view returns (uint256) {
+        if(amm != address(0)) return IAMM(amm).getPrice();
         return currentAmmPrice;
     }
 

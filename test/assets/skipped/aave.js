@@ -3,7 +3,8 @@ const { expect } = require("chai");
 const { addresses } = require("../../../utils/address");
 const { impersonate, toBN, Const, sendEth, increaseTime, unpauseAave } = require("../../../utils/helper_functions");
 
-contract.skip('Aave V3 Asset', async () => {
+contract('Aave V3 Asset', async () => {
+    return;
     before(async () => {
         [admin, liquidator, guest, lzEndpoint] = await ethers.getSigners();
         // Variables

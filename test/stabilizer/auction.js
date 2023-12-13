@@ -37,6 +37,8 @@ contract('Stabilizer - Auction', async () => {
     positionManager = await ethers.getContractAt("INonfungiblePositionManager", uniswap.positions_manager);
     LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
     liquidityHelper = await LiquidityHelper.deploy();
+    Oracle = await ethers.getContractFactory("AggregatorMock");
+    usdcOracle = await Oracle.deploy();
 
     WETHAsset = await ethers.getContractFactory("ERC20Asset");
     asset = await WETHAsset.deploy(
@@ -44,7 +46,7 @@ contract('Stabilizer - Auction', async () => {
       sweep.address,
       tokens.usdc,
       tokens.weth,
-      chainlink.usdc_usd,
+      usdcOracle.address,
       chainlink.weth_usd,
       owner.address,
       uniswap.pool_weth
@@ -67,7 +69,7 @@ contract('Stabilizer - Auction', async () => {
         usdx.address,
         chainlink.sequencer,
         pool_address,
-        chainlink.usdc_usd,
+        usdcOracle.address,
         86400,
         liquidityHelper.address
       );

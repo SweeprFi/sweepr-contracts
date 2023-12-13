@@ -128,69 +128,42 @@ contract BalancerAMM {
 
     /**
      * @notice Buy Sweep
-     * @param tokenAddress Token Address to use for buying sweep.
-     * @param tokenAmount Token Amount.
+     * @param usdxAddress Token Address to use for buying sweep.
+     * @param usdxAmount Token Amount.
      * @param amountOutMin Minimum amount out.
      * @dev Increases the sweep balance and decrease collateral balance.
      */
-    function buySweep(
-        address tokenAddress,
-        uint256 tokenAmount,
-        uint256 amountOutMin
-    ) external returns (uint256 sweepAmount) {
-        bool lowerPriceInPool = true;
+    function buySweep(address usdxAddress, uint256 usdxAmount, uint256 amountOutMin) 
+        external returns (uint256 sweepAmount)
+    {
+        emit Bought(usdxAmount);
 
-        if (address(marketMaker) != address(0)) {
-            uint256 buyPrice = marketMaker.getBuyPrice();
-            if (buyPrice < getPrice()) {
-                lowerPriceInPool = false;
-                sweepAmount = (tokenAmount * (10 ** sweep.decimals())) / buyPrice;
-                uint256 slippage =  (sweepAmount * (10 ** base.decimals()) / amountOutMin) - (10 ** base.decimals());
-
-                TransferHelper.safeTransferFrom(address(base), msg.sender, address(this), tokenAmount);
-                TransferHelper.safeApprove(address(base), address(marketMaker), tokenAmount);
-                marketMaker.buySweep(sweepAmount, slippage);
-                TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
-            }
-        }
-
-        if(lowerPriceInPool) {
-            checkRate(tokenAddress, tokenAmount, amountOutMin);
-            sweepAmount = swap(
-                tokenAddress,
-                address(sweep),
-                tokenAmount,
-                amountOutMin,
-                address(pool)
-            );
-        }
-
-        emit Bought(tokenAmount);
+        if (address(marketMaker) != address(0) && marketMaker.getBuyPrice() < getPrice()) {
+            TransferHelper.safeTransferFrom(address(base), msg.sender, address(this), usdxAmount);
+            TransferHelper.safeApprove(address(base), address(marketMaker), usdxAmount);
+            sweepAmount = marketMaker.buySweep(usdxAmount);
+            TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
+        } else {
+            checkRate(usdxAddress, usdxAmount, amountOutMin);
+            sweepAmount = swap(usdxAddress, address(sweep), usdxAmount, amountOutMin, address(pool));
+        }        
     }
 
     /**
      * @notice Sell Sweep
-     * @param tokenAddress Token Address to return after selling sweep.
+     * @param usdxAddress Token Address to return after selling sweep.
      * @param sweepAmount Sweep Amount.
      * @param amountOutMin Minimum amount out.
      * @dev Decreases the sweep balance and increase collateral balance
      */
     function sellSweep(
-        address tokenAddress,
+        address usdxAddress,
         uint256 sweepAmount,
         uint256 amountOutMin
     ) external returns (uint256 tokenAmount) {
-        checkRate(tokenAddress, amountOutMin, sweepAmount);
-
-        tokenAmount = swap(
-            address(sweep),
-            tokenAddress,
-            sweepAmount,
-            amountOutMin,
-            address(pool)
-        );
-
         emit Sold(sweepAmount);
+        checkRate(usdxAddress, amountOutMin, sweepAmount);
+        tokenAmount = swap(address(sweep), usdxAddress, sweepAmount, amountOutMin, address(pool));
     }
 
     /**
@@ -240,13 +213,9 @@ contract BalancerAMM {
      * @param amountOutMin Minimum amount out.
      * @param poolAddress The pool to execute the swap into
      */
-    function swap(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address poolAddress
-    ) public returns (uint256 amountOut) {
+    function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address poolAddress) 
+        private returns (uint256 amountOut)
+    {
         bytes32 poolId = IBalancerPool(poolAddress).getPoolId();
         address vaultAddress = IBalancerPool(poolAddress).getVault();
 
