@@ -96,7 +96,7 @@ module.exports = {
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         distributor: '0x90453f4969420c2DCE4344431303EAE679dB8F0b',
         balancer_pool: '0xef093ccfdd4d5a590b028463e0528049939889c9',
-        balancer_amm: '0x3bB6861c0Be6673809D55b9D346b6774B634a9D7',
+        balancer_amm: '0x72E5b0E088c895ab0d6A86d14943C63aD735B7Cc', // '0x3bB6861c0Be6673809D55b9D346b6774B634a9D7',
         timelock: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         approver: '0x06d94665f02322781303224120326167483F5BD2',
         vesting_approver: '0x483761F16A7c978df09d1e7E22532e9DbD2Ee8D0',
@@ -104,7 +104,7 @@ module.exports = {
         liquidity_helper: '0x7560d15774499386B04A64177E090B33e803493F',
 
         assets: {
-            market_maker: '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',
+            market_maker: '0x30F5623c58bc93dB78FCa53D968B871A129Dfa31', // '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',
             silo: '0x53b5fae6e17c7f9b35952779150446e99a4887d3',
         }
     },

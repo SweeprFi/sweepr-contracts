@@ -17,7 +17,7 @@ import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/Transf
 import { ISweep } from "../Sweep/ISweep.sol";
 import { IAsset, SingleSwap, FundManagement, SwapKind, IBalancerVault, IBalancerPool } from "../Assets/Interfaces/Balancer/IBalancer.sol";
 import { StableMath } from "../Libraries/Balancer/StableMath.sol";
-import "../Balancer/IMarketMaker.sol";
+import { IMarketMaker } from "../Balancer/IMarketMaker.sol";
 
 contract BalancerAMM {
     using Math for uint256;
