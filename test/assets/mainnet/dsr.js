@@ -10,83 +10,54 @@ contract('DSR Asset', async () => {
         [borrower, other, lzEndpoint] = await ethers.getSigners();
 
         depositAmount = 200e6;
-        investAmount = 100e6;
-        divestAmount = 50e6;
-
         sweep = await ethers.getContractAt("SweepCoin", tokens.sweep);
         ERC20 = await ethers.getContractFactory("ERC20");
         usdx = await ERC20.attach(tokens.usdc);
         dai = await ERC20.attach(tokens.dai);
+        sDai = await ERC20.attach(protocols.maker.sdai);
 
-        LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
-        liquidityHelper = await LiquidityHelper.deploy();
-
-        Uniswap = await ethers.getContractFactory("UniswapAMM");
-        amm = await Uniswap.deploy(
-            tokens.sweep,
-            tokens.usdc,
-            chainlink.sequencer,
-            uniswap.pool_sweep,
-            chainlink.usdc_usd,
-            86400,
-            liquidityHelper.address
-        );
-        
         Asset = await ethers.getContractFactory("DsrAsset");
         asset = await Asset.deploy(
             'DSR Asset',
             tokens.sweep,
             tokens.usdc,
             tokens.dai,
-            protocols.dsr_manager,
-            protocols.dss_psm,
+            protocols.maker.sdai,
+            protocols.maker.psm,
             chainlink.usdc_usd,
             chainlink.dai_usd,
             borrower.address
         );
-
-        OWNER = await sweep.owner();
-        await sendEth(OWNER);
-        SWEEP_OWNER = await impersonate(OWNER);
-        await sweep.connect(SWEEP_OWNER).setAMM(amm.address);
 
         HOLDER = await impersonate(wallets.usdc_holder);
         await sendEth(HOLDER.address);
         await usdx.connect(HOLDER).transfer(asset.address, depositAmount);
     });
 
-    describe("Initial Test", async function () {
-        it('invest to the DSR', async () => {
-            await expect(asset.connect(other).invest(depositAmount, 0))
+    describe("sDai/Spark protocol", async function () {
+        it('invests correctly', async () => {
+            await expect(asset.connect(other).invest(depositAmount, 5000))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
 
-            expect(await asset.assetValue()).to.equal(Const.ZERO);
-            await asset.invest(investAmount, Const.SLIPPAGE);
-            expect(await asset.assetValue()).to.above(Const.ZERO);
+            expect(await asset.assetValue()).to.equal(0);
+            await asset.invest(depositAmount, 5000);
+            expect(await asset.assetValue()).to.be.greaterThan(depositAmount * 0.98);
+            expect(await asset.assetValue()).to.be.lessThan(depositAmount * 1.02);
 
-            await asset.invest(depositAmount, Const.SLIPPAGE);
-            await expect(asset.invest(depositAmount, 0))
+            await expect(asset.invest(depositAmount, 5000))
                 .to.be.revertedWithCustomError(asset, "NotEnoughBalance");
         });
 
-        it('divest to the DSR', async () => {
-            assetVal = await asset.assetValue();
-            
-            // Delay 5 days
-            await increaseTime(Const.DAY * 5);
-            
-            await asset.dsrDaiBalance();
-            expect(await asset.assetValue()).to.above(assetVal);
-
-            // Divest usdx
-            await expect(asset.connect(other).divest(divestAmount, 0))
+        it('divests correctly', async () => {
+            await expect(asset.connect(other).divest(depositAmount, 0))
                 .to.be.revertedWithCustomError(asset, 'NotBorrower');
-            await asset.divest(divestAmount, Const.SLIPPAGE);
-            expect(await asset.assetValue()).to.above(Const.ZERO);
-            
-            divestAmount = 250e6;
-            await asset.divest(divestAmount, Const.SLIPPAGE);
-            expect(await asset.assetValue()).to.equal(Const.ZERO);
+
+            await asset.divest(depositAmount, Const.SLIPPAGE);
+
+            expect(await asset.assetValue()).to.eq(0);
+
+            expect(await asset.currentValue()).to.be.greaterThan(depositAmount * 0.98);
+            expect(await asset.currentValue()).to.be.lessThan(depositAmount * 1.02);
         });
     });
 });
