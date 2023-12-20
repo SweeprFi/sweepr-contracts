@@ -95,10 +95,9 @@ contract GlpAsset is Stabilizer {
         onlyBorrower
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256)
     {
         _glpPrice = price;
-        return _divest(usdxAmount, slippage);
+        _divest(usdxAmount, slippage);
     }
 
     /**
@@ -157,7 +156,7 @@ contract GlpAsset is Stabilizer {
     function _divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) internal override returns (uint256 divestedAmount) {
+    ) internal override {
         collect();
         uint256 glpBalance = stakedGlpTracker.balanceOf(address(this));
         if (glpBalance == 0) revert NotEnoughBalance();
@@ -168,7 +167,7 @@ contract GlpAsset is Stabilizer {
             usdxAmount = getUsdAmount(glpAmount);
         }
 
-        divestedAmount = rewardRouter.unstakeAndRedeemGlp(
+        uint256 divestedAmount = rewardRouter.unstakeAndRedeemGlp(
             address(usdx),
             glpAmount,
             OvnMath.subBasisPoints(usdxAmount, slippage),

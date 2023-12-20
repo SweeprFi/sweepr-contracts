@@ -86,9 +86,8 @@ contract ERC20Asset is Stabilizer {
         onlyBorrower
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256)
     {
-        return _divest(usdxAmount, slippage);
+        _divest(usdxAmount, slippage);
     }
 
     /**
@@ -128,14 +127,14 @@ contract ERC20Asset is Stabilizer {
     function _divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) internal override returns (uint256 divestedAmount) {
+    ) internal override {
         uint256 tokenAmount = _oracleUsdxToToken(usdxAmount);
         uint256 tokenBalance = token.balanceOf(address(this));
         if (tokenBalance == 0) revert NotEnoughBalance();
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
 
         uint256 tokenInUsdx = _oracleTokenToUsdx(tokenAmount);
-        divestedAmount = swap(
+        uint256 divestedAmount = swap(
             address(token),
             address(usdx),
             tokenAmount,

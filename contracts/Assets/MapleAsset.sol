@@ -70,17 +70,16 @@ contract MapleAsset is ERC4626Asset {
      */
     function forceDivest() 
         external nonReentrant onlyMultisigOrGov
-        returns (uint256 divestedAmount)
     {
         if (!isDefaulted()) revert NotDefaulted();
-        divestedAmount = _divest(0, 0);
+        _divest(0, 0);
     }
 
     function _divest(
         uint256,
         uint256
-    ) internal override returns (uint256 divestedAmount) {
-        divestedAmount = withdrawalManager.lockedShares(address(this));
+    ) internal override {
+        uint256 divestedAmount = withdrawalManager.lockedShares(address(this));
         asset.redeem(divestedAmount, address(this), address(this));
         emit Divested(divestedAmount);
     }

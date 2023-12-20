@@ -96,9 +96,8 @@ contract ETSAsset is Stabilizer {
         onlyBorrower
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256)
     {
-        return _divest(usdxAmount, 0);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -136,7 +135,7 @@ contract ETSAsset is Stabilizer {
     function _divest(
         uint256 usdxAmount,
         uint256
-    ) internal override returns (uint256 divestedAmount) {
+    ) internal override {
         (, bool redeemable) = status();
         if (!redeemable) revert NotAvailableDivest();
 
@@ -144,7 +143,7 @@ contract ETSAsset is Stabilizer {
             10 ** usdx.decimals();
         uint256 tokenBalance = token.balanceOf(address(this));
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
-        divestedAmount = exchanger.redeem(tokenAmount);
+        uint256 divestedAmount = exchanger.redeem(tokenAmount);
 
         emit Divested(divestedAmount);
     }

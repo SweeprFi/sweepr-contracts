@@ -452,7 +452,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     ) external nonReentrant {
         if (msg.sender != sweep.balancer()) revert NotBalancer();
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-        uint256 repayAmount = sweepAmount.min(sweepBorrowed);
+        uint256 repayAmount = sweepAmount.min(getDebt());
 
         if (callDelay > 0) {
             callTime = block.timestamp + callDelay;
@@ -651,9 +651,9 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function withdraw(address token, uint256 amount) 
         external onlyBorrower whenNotPaused validAmount(amount) nonReentrant
-    {    
-        if (amount > IERC20Metadata(token).balanceOf(address(this)))
-            revert NotEnoughBalance();
+    {
+        uint256 balance = IERC20Metadata(token).balanceOf(address(this));
+        if (amount > balance) amount = balance;
 
         TransferHelper.safeTransfer(token, msg.sender, amount);
 
@@ -700,7 +700,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     /**
      * @notice Divest From Asset.
      */
-    function _divest(uint256, uint256) internal virtual returns (uint256) {}
+    function _divest(uint256, uint256) internal virtual {}
 
     /**
      * @notice Get asset address to liquidate.

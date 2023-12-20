@@ -85,9 +85,8 @@ contract ERC4626Asset is Stabilizer {
         whenNotPaused
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256 divestedAmount)
     {
-        divestedAmount = _divestWithdraw(usdxAmount);
+        _divestWithdraw(usdxAmount);
     }
 
     /**
@@ -100,9 +99,8 @@ contract ERC4626Asset is Stabilizer {
         whenNotPaused
         nonReentrant
         validAmount(sharesAmount)
-        returns (uint256 divestedAmount)
     {
-        divestedAmount = _divestRedeem(sharesAmount);
+        _divestRedeem(sharesAmount);
     }
 
     /**
@@ -130,9 +128,8 @@ contract ERC4626Asset is Stabilizer {
         onlyBorrower
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256)
     {
-        return _divest(usdxAmount, 0);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -168,24 +165,24 @@ contract ERC4626Asset is Stabilizer {
         emit Invested(usdxAmount);
     }
 
-    function _divestWithdraw(uint256 usdxAmount) internal virtual returns (uint256 divestedAmount) {
+    function _divestWithdraw(uint256 usdxAmount) internal virtual {
         uint256 sharesBalance = asset.balanceOf(address(this));
         if (sharesBalance == 0) revert NotEnoughBalance();
         uint256 sharesAmount = asset.convertToShares(usdxAmount);
         if (sharesBalance > sharesAmount) sharesAmount = sharesBalance;
         
-        divestedAmount = asset.convertToAssets(sharesAmount);
+        uint256 divestedAmount = asset.convertToAssets(sharesAmount);
         asset.withdraw(divestedAmount, address(this), address(this));
 
         emit Divested(divestedAmount);
     }
 
-    function _divestRedeem(uint256 sharesAmount) internal virtual returns (uint256 divestedAmount) {
+    function _divestRedeem(uint256 sharesAmount) internal virtual {
         uint256 sharesBalance = asset.balanceOf(address(this));
         if (sharesBalance == 0) revert NotEnoughBalance();
         if (sharesBalance > sharesAmount) sharesAmount = sharesBalance;
 
-        divestedAmount = asset.convertToAssets(sharesAmount);
+        uint256 divestedAmount = asset.convertToAssets(sharesAmount);
         asset.redeem(divestedAmount, address(this), address(this));
      
         emit Divested(divestedAmount);
@@ -195,8 +192,8 @@ contract ERC4626Asset is Stabilizer {
         _investDeposit(usdxAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256) internal virtual override returns (uint256 divestedAmount) {
-        divestedAmount = _divestWithdraw(usdxAmount);
+    function _divest(uint256 usdxAmount, uint256) internal virtual override {
+        _divestWithdraw(usdxAmount);
     }
 
     function _getToken() internal view override returns (address) {

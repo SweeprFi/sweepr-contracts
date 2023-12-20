@@ -64,13 +64,15 @@ contract("Sweep - WriteOff", async function () {
 			uniswap.pool_weth
 		);
 
-		AaveAsset = await ethers.getContractFactory("AaveV3Asset");
+		AaveAsset = await ethers.getContractFactory("AaveAsset");
 		aaveAsset = await AaveAsset.deploy(
 			'Aave Asset',
 			sweep.address,
-			usdx.address,
-			tokens.aave_usdc,
-			protocols.aaveV3_pool,
+			tokens.usdc,
+			tokens.usdc_e,
+			protocols.balancer.bpt_4pool,
+			protocols.aave.usdc,
+			protocols.aave.pool,
 			usdcOracle.address,
 			borrower.address,
 		);

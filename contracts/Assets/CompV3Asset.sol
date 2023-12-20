@@ -70,9 +70,8 @@ contract CompV3Asset is Stabilizer {
         onlyBorrower
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256)
     {
-        return _divest(usdxAmount, 0);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -103,12 +102,12 @@ contract CompV3Asset is Stabilizer {
     function _divest(
         uint256 usdxAmount,
         uint256
-    ) internal override returns (uint256 divestedAmount) {
+    ) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         uint256 cUsdcBalance = cUsdc.balanceOf(address(this));
         if (cUsdcBalance < usdxAmount) usdxAmount = type(uint256).max;
         cUsdc.withdraw(address(usdx), usdxAmount);
-        divestedAmount = usdx.balanceOf(address(this)) - usdxBalance;
+        uint256 divestedAmount = usdx.balanceOf(address(this)) - usdxBalance;
 
         emit Divested(divestedAmount);
     }

@@ -78,9 +78,8 @@ contract GmAsset is Stabilizer {
         onlyBorrower
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256)
     {
-        return _divest(usdxAmount, 0);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -119,7 +118,7 @@ contract GmAsset is Stabilizer {
     function _divest(
         uint256 usdxAmount,
         uint256
-    ) internal override returns (uint256 divestedAmount) {
+    ) internal override {
         uint256 tokenAmount = _oracleUsdxToToken(usdxAmount);
         uint256 tokenBalance = token.balanceOf(address(this));
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
@@ -129,7 +128,7 @@ contract GmAsset is Stabilizer {
         // execute ExchangeRouter.createWithdrawal
         // calculate tokenAmount out
 
-        emit Divested(divestedAmount);
+        emit Divested(usdxAmount);
     }
 
     function _oracleTokenToUsd(

@@ -32,7 +32,7 @@ contract("Stabilizer - Liquidation", async function () {
     Oracle = await ethers.getContractFactory("AggregatorMock");
     Uniswap = await ethers.getContractFactory("UniswapMock");
 
-    Aave = await ethers.getContractFactory("AaveV3Asset");
+    Aave = await ethers.getContractFactory("AaveAsset");
     Compound = await ethers.getContractFactory("CompV3Asset");
     // GDAI = await ethers.getContractFactory("GDAIAsset");
     WETH = await ethers.getContractFactory("ERC20Asset");
@@ -43,20 +43,23 @@ contract("Stabilizer - Liquidation", async function () {
     weth = await TOKEN.attach(tokens.weth);
     // dai = await TOKEN.attach(tokens.dai);
     // gdai = await TOKEN.attach(tokens.gDai);
-    aave_usdx = await TOKEN.attach(tokens.aave_usdc);
+    aave_usdx = await TOKEN.attach(protocols.aave.usdc);
     cusdc = await TOKEN.attach(tokens.comp_cusdc);
 
     wethOracle = await Oracle.deploy();
     amm = await Uniswap.deploy(sweep.address, owner.address);
     // ------------- deploy assets -------------
+
     aave_asset = await Aave.deploy(
       'Aave Asset',
       sweep.address,
       tokens.usdc,
-      tokens.aave_usdc,
-      protocols.aaveV3_pool,
+      tokens.usdc_e,
+      protocols.balancer.bpt_4pool,
+      protocols.aave.usdc,
+      protocols.aave.pool,
       chainlink.usdc_usd,
-      borrower.address
+      borrower.address,
     );
 
     comp_asset = await Compound.deploy(
@@ -148,7 +151,7 @@ contract("Stabilizer - Liquidation", async function () {
         })
       );
 
-      await aave_asset.connect(borrower).invest(INVEST_AMOUNT);
+      await aave_asset.connect(borrower).invest(INVEST_AMOUNT, 2000);
       await comp_asset.connect(borrower).invest(INVEST_AMOUNT);
 
       await amm.setPrice(Const.WETH_AMM);

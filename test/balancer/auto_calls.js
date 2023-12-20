@@ -10,7 +10,7 @@ contract('Balancer - Auto Call', async () => {
     [owner, lzEndpoint, treasury, wallet] = await ethers.getSigners();
     // constants
     BORROWER = owner.address;
-    USDC_ADDRESS = tokens.usdc_e;
+    USDC_ADDRESS = tokens.usdc;
     TREASURY = treasury.address;
     WALLET = wallet.address;
 
@@ -37,7 +37,7 @@ contract('Balancer - Auto Call', async () => {
     Balancer = await ethers.getContractFactory("Balancer");
     balancer = await Balancer.deploy(sweep.address, lzEndpoint.address);
 
-    StabilizerAave = await ethers.getContractFactory("AaveV3Asset");
+    StabilizerAave = await ethers.getContractFactory("AaveAsset");
     OffChainAsset = await ethers.getContractFactory("OffChainAsset");
 
     assets = await Promise.all(
@@ -46,8 +46,10 @@ contract('Balancer - Auto Call', async () => {
           'Aave Asset',
           sweep.address,
           USDC_ADDRESS,
-          tokens.aave_usdc,
-          protocols.aaveV3_pool,
+          tokens.usdc_e,
+          protocols.balancer.bpt_4pool,
+          protocols.aave.usdc,
+          protocols.aave.pool,
           chainlink.usdc_usd,
           BORROWER
         );
@@ -154,13 +156,13 @@ contract('Balancer - Auto Call', async () => {
       await assets[4].connect(user).sellSweepOnAMM(SWEEP_MINT, 2000);
 
       balance2 = await usdc.balanceOf(assets[2].address);
-      await assets[2].connect(user).invest(balance2);
+      await assets[2].connect(user).invest(balance2, 2000);
 
       balance3 = await usdc.balanceOf(assets[3].address);
-      await assets[3].connect(user).invest(balance3.mul(3).div(4));
+      await assets[3].connect(user).invest(balance3.mul(3).div(4), 2000);
 
       balance4 = await usdc.balanceOf(assets[4].address);
-      await assets[4].connect(user).invest(balance4);
+      await assets[4].connect(user).invest(balance4, 2000);
       await assets[5].connect(user).invest(USDC_AMOUNT, SWEEP_MINT);
 
       expect(await usdc.balanceOf(assets[0].address)).to.equal(USDC_AMOUNT);
