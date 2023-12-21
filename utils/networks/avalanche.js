@@ -39,11 +39,11 @@ module.exports = {
         balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         balancer_pool: '0x121b0DfC48444C4d10caddeD9885D90E7453E878',
-        balancer_amm: '0x9693AEea2B32452e0834C860E01C33295d2164a5',
+        balancer_amm: '0x709d075147a10495e5c3bBF3dfc0c138F34C6E72', // '0x9693AEea2B32452e0834C860E01C33295d2164a5',
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
 
         assets: {
-            market_maker: '0x26D68988843197B22AB03c92519b357eCd9c5b5f',
+            market_maker: '0x676524646377A6e66Ca797edF7CCB1B5162a8cE0', // '0x26D68988843197B22AB03c92519b357eCd9c5b5f',
         }
     },
 

@@ -58,12 +58,12 @@ module.exports = {
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         liquidity_helper: '0xaD490d3899A47482E31AF50DdCc5Db31C0eE9eB0',
         balancer_pool: '0xc4EE406970047A70aED14621d97b3B460a7DEA0B',
-        balancer_amm: '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8',
+        balancer_amm: '0x33A48e4aA79A66fc4f7061f5D9E274528C213029', // '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8',
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',  
 
         assets: {
             uniswap: '0xC5f0DE0D8f48E12CcDE9f1902dE15A975b59768d',
-            market_maker: '0xae851449e85b30b104e3155e5f4bb1bfd3a97010',
+            market_maker: '0x78326Ce3be64977658726EEdAd9A35de460E310A', // '0xae851449e85b30b104e3155e5f4bb1bfd3a97010',
             usd_plus: '0xcfce64f865f84144f9e6fa7c574f580b3eb878e6',
         }
     },
