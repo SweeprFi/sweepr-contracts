@@ -8,7 +8,7 @@ contract('Balancer - Auto Invests', async () => {
         [owner, treasury, lzEndpoint] = await ethers.getSigners();
         // Variables
         BORROWER = owner.address;
-        USDC_ADDRESS = tokens.usdc_e;
+        USDC_ADDRESS = tokens.usdc;
         TREASURY = treasury.address;
         OWNER = BORROWER;
         usdxAmount = 1000e6;
@@ -36,15 +36,17 @@ contract('Balancer - Auto Invests', async () => {
         amm = await Uniswap.deploy(sweep.address, uniswap.pool_sweep);
         await sweep.setAMM(amm.address);
 
-        AaveAsset = await ethers.getContractFactory("AaveV3Asset");
+        AaveAsset = await ethers.getContractFactory("AaveAsset");
         assets = await Promise.all(
             Array(6).fill().map(async () => {
                 return await AaveAsset.deploy(
                     'Aave Asset',
                     sweep.address,
                     USDC_ADDRESS,
-                    tokens.aave_usdc,
-                    protocols.aaveV3_pool,
+                    tokens.usdc_e,
+                    protocols.balancer.bpt_4pool,
+                    protocols.aave.usdc,
+                    protocols.aave.pool,
                     chainlink.usdc_usd,
                     BORROWER
                 );
@@ -207,7 +209,7 @@ contract('Balancer - Auto Invests', async () => {
             // Invests
             await Promise.all(
                 assets.map(async (asset) => {
-                    await asset.connect(user).invest(usdxAmount);
+                    await asset.connect(user).invest(usdxAmount, 2000);
                 })
             )
             expect(await usdc.balanceOf(assets[0].address)).to.equal(Const.ZERO);

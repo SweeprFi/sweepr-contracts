@@ -87,9 +87,8 @@ contract SFraxAsset is Stabilizer {
         onlyBorrower
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256)
     {
-        return _divest(usdxAmount, slippage);
+        _divest(usdxAmount, slippage);
     }
 
     /**
@@ -119,7 +118,7 @@ contract SFraxAsset is Stabilizer {
         emit Invested(usdxAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256 slippage) internal virtual override returns (uint256 divestedAmount) {        
+    function _divest(uint256 usdxAmount, uint256 slippage) internal virtual override {
         uint256 sharesBalance = asset.balanceOf(address(this));
         if (sharesBalance == 0) revert NotEnoughBalance();
 
@@ -130,7 +129,7 @@ contract SFraxAsset is Stabilizer {
         uint256 tokenAmount = asset.withdraw(usdxAmount, address(this), address(this));
 
         uint256 tokenInUsdx = _oracleTokenToUsdx(tokenAmount);        
-        divestedAmount = swap(
+        uint256 divestedAmount = swap(
             address(token),
             address(usdx),
             tokenAmount,

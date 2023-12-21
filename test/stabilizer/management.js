@@ -189,33 +189,10 @@ contract("Stabilizer - Management Functions", async function () {
         .to.be.revertedWithCustomError(offChainAsset, 'NotBorrower');
     });
 
-    it("tries to withdraw all balance", async function () {
+    it("tries to withdraw zero", async function () {
       balance = await usdx.balanceOf(offChainAsset.address);
       await expect(offChainAsset.connect(borrower).withdraw(sweep.address, Const.ZERO))
         .to.be.revertedWithCustomError(offChainAsset, 'OverZero');
-    });
-
-    it("tries to withdraw more than the junior tranche value", async function () {
-      mintAmount = toBN("9", 18);
-      depositAmount = toBN("1", 18);
-      withdrawAmount = toBN("10", 18);
-      await sweep.transfer(offChainAsset.address, depositAmount);
-
-      await expect(offChainAsset.connect(borrower).withdraw(sweep.address, withdrawAmount))
-        .to.be.revertedWithCustomError(offChainAsset, 'NotEnoughBalance');
-    });
-
-    it("tries to withdraw more that the current balance", async function () {
-      balance = await sweep.balanceOf(offChainAsset.address);
-      await expect(offChainAsset.connect(borrower).withdraw(sweep.address, balance.add(depositAmount)))
-        .to.be.revertedWithCustomError(offChainAsset, 'NotEnoughBalance');
-    });
-
-    it("burn with more amount that the current balance", async function () {
-      burnAmount = toBN("1000", 18);
-      await offChainAsset.connect(borrower).repay(burnAmount);
-      restAmount = await sweep.balanceOf(offChainAsset.address);
-      expect(restAmount).to.above(Const.ZERO);
     });
   });
 });

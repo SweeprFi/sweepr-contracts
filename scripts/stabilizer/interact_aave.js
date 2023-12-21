@@ -10,7 +10,7 @@ async function main() {
   const pool = addresses.uniswap_pool;
   const sweep = await ethers.getContractAt("SweepCoin", addresses.sweep);
   const usd = await ethers.getContractAt("ERC20", addresses.usdc);
-  const asset = await ethers.getContractAt("AaveV3Asset", addresses.aave_strategy);
+  const asset = await ethers.getContractAt("AaveAsset", addresses.aave_strategy);
   const balancer = await ethers.getContractAt("Balancer", addresses.balancer);
   const treasury = await sweep.treasury();
   const OWNER = await sweep.owner();

@@ -79,9 +79,8 @@ contract SiloAsset is Stabilizer {
      */
     function divest(uint256 usdxAmount, uint256 slippage)
         external onlyBorrower nonReentrant validAmount(usdxAmount)
-        returns (uint256)
     {
-        return _divest(usdxAmount, slippage);
+        _divest(usdxAmount, slippage);
     }
 
     /**
@@ -130,10 +129,7 @@ contract SiloAsset is Stabilizer {
         emit Invested(usdceAmount);
     }
 
-    function _divest(
-        uint256 usdxAmount,
-        uint256 slippage
-    ) internal override returns (uint256 divestedAmount) {
+    function _divest(uint256 usdxAmount, uint256 slippage) internal override  {
         uint256 depositedAmount = getDepositAmount();
         if(depositedAmount < usdxAmount) usdxAmount = depositedAmount;
 
@@ -145,7 +141,7 @@ contract SiloAsset is Stabilizer {
         }
 
         // Swap native USDC.e to USDx
-        divestedAmount = swap(
+        uint256 divestedAmount = swap(
             address(usdc_e),
             address(usdx),
             usdxAmount,

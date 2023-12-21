@@ -78,9 +78,8 @@ contract BackedAsset is Stabilizer {
         onlyBorrower
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256)
     {
-        return _divest(usdxAmount, 0);
+        _divest(usdxAmount, 0);
     }
 
     /**
@@ -110,16 +109,16 @@ contract BackedAsset is Stabilizer {
     function _divest(
         uint256 usdxAmount,
         uint256
-    ) internal override returns (uint256 divestedAmount) {
+    ) internal override {
         uint256 tokenAmount = _oracleUsdxToToken(usdxAmount);
         uint256 tokenBalance = token.balanceOf(address(this));
         if (tokenBalance < tokenAmount) tokenAmount = tokenBalance;
         TransferHelper.safeTransfer(address(token), redeemer, tokenAmount);
 
         // Estimated amount because there are some delays to receive usdc from redeemer.
-        divestedAmount = _oracleTokenToUsdx(tokenAmount);
+        uint256 divestedAmount = _oracleTokenToUsdx(tokenAmount);
 
-        emit Divested(tokenAmount);
+        emit Divested(divestedAmount);
     }
 
     function _oracleTokenToUsd(

@@ -32,7 +32,6 @@ module.exports = {
         usdc: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
         usdc_e: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
         usdt: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
-        aave_usdc: '0x625E7708f30cA75bfd92586e17077590C60eb4cD',
         comp_cusdc: '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA',
         weth: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
         wbtc: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
@@ -43,7 +42,10 @@ module.exports = {
     },
 
     protocols: {
-        aaveV3_pool: '0x794a61358D6845594F94dc1DB02A252b5b4814aD',
+        aave: {
+            pool: '0x794a61358D6845594F94dc1DB02A252b5b4814aD',
+            usdc: '0x625E7708f30cA75bfd92586e17077590C60eb4cD',
+        },
         glp_reward_router: '0xB95DB5B167D75e6d04227CfFFA61069348d271F5',
         gDai_open_trades: '0x990BA9Edd8a9615A23E4c452E63A80e519A4a23D',
         ets_exchanger: '0xc2c84ca763572c6aF596B703Df9232b4313AD4e3',

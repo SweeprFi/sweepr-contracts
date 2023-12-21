@@ -79,6 +79,11 @@ contract Balancer4PoolAsset is Stabilizer {
         gauge.claim_rewards();
     }
 
+    function liquidate() external nonReentrant {
+        if(auctionAllowed) revert ActionNotAllowed();
+        _liquidate(_getToken(), getDebt());
+    }
+
     /**
      * @notice Increases liquidity in the current range
      * @dev Pool must be initialized already to add liquidity
@@ -132,7 +137,7 @@ contract Balancer4PoolAsset is Stabilizer {
         emit Invested(usdxAmount);
     }
 
-    function _divest(uint256 usdxAmount, uint256 slippage) internal override returns (uint256) {
+    function _divest(uint256 usdxAmount, uint256 slippage) internal override {
         address self = address(this);
         uint256 bptAmount = inBPT(usdxAmount);
         uint256 gaugeBalance = gauge.balanceOf(self);
@@ -151,7 +156,6 @@ contract Balancer4PoolAsset is Stabilizer {
         vault.exitPool(poolId, self, self, request);
 
         emit Divested(usdxAmount);
-        return usdxAmount;
     }
 
 

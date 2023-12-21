@@ -92,9 +92,8 @@ contract USDPlusAsset is Stabilizer {
         onlyBorrower
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256)
     {
-        return _divest(usdxAmount, slippage);
+        _divest(usdxAmount, slippage);
     }
 
     /**
@@ -149,7 +148,7 @@ contract USDPlusAsset is Stabilizer {
     function _divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) internal override returns (uint256 divestedAmount) {
+    ) internal override {
         uint256 tokenBalance = token.balanceOf(address(this));
         if (tokenBalance == 0) revert NotEnoughBalance();
         uint256 tokenAmount = _usdxToToken(usdxAmount);
@@ -165,7 +164,7 @@ contract USDPlusAsset is Stabilizer {
         if (usdceAmount < estimatedAmount) revert UnExpectedAmount();
 
         // Swap native USDC.e to USDx
-        divestedAmount = swap(
+        uint256 divestedAmount = swap(
             address(usdc_e),
             address(usdx),
             usdceAmount,

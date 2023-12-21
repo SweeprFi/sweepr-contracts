@@ -104,9 +104,8 @@ contract DsrAsset is Stabilizer {
         onlyBorrower
         nonReentrant
         validAmount(usdxAmount)
-        returns (uint256)
     {
-        return _divest(usdxAmount, slippage);
+        _divest(usdxAmount, slippage);
     }
 
     /**
@@ -168,7 +167,7 @@ contract DsrAsset is Stabilizer {
     function _divest(
         uint256 usdxAmount,
         uint256 slippage
-    ) internal override returns (uint256 divestedAmount) {
+    ) internal override {
         uint256 usdxBalance = usdx.balanceOf(address(this));
         uint256 daiBalance = dai.balanceOf(address(this));
         uint256 daiAmount = _oracleUsdxToDai(usdxAmount);
@@ -199,10 +198,8 @@ contract DsrAsset is Stabilizer {
         psm.buyGem(address(this), daiInUsdx);
 
         // Sanity check && Calculate real divested Usdx amount
-        if (
-            estimatedAmount >
-            (divestedAmount = usdx.balanceOf(address(this)) - usdxBalance)
-        ) revert UnExpectedAmount();
+        uint256 divestedAmount = usdx.balanceOf(address(this)) - usdxBalance;
+        if (estimatedAmount > divestedAmount) revert UnExpectedAmount();
 
         emit Divested(divestedAmount);
     }
