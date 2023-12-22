@@ -11,7 +11,7 @@ pragma solidity 0.8.19;
  */
 
 import "./Interfaces/GDAI/IGToken.sol";
-import "./Interfaces/DAI/IPsm.sol";
+import "./Interfaces/DAI/IPSM.sol";
 import "./Interfaces/GDAI/IOpenTradesPnlFeed.sol";
 import "../Stabilizer/Stabilizer.sol";
 
@@ -20,7 +20,7 @@ contract GDAIAsset is Stabilizer {
     IERC20Metadata private immutable dai;
     IOpenTradesPnlFeed private immutable openTradesPnlFeed;
     IPriceFeed private immutable oracleDai;
-    IPsm private immutable psm;
+    IPSM private immutable psm;
 
     // Variables
     address private immutable gemJoin;
@@ -55,7 +55,7 @@ contract GDAIAsset is Stabilizer {
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         gDai = IGToken(_gDai);
         dai = IERC20Metadata(gDai.asset());
-        psm = IPsm(_dssPsm);
+        psm = IPSM(_dssPsm);
         gemJoin = psm.gemJoin();
         openTradesPnlFeed = IOpenTradesPnlFeed(gDai.openTradesPnlFeed());
         oracleDai = IPriceFeed(_oracleDai);

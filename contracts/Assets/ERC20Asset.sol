@@ -10,7 +10,6 @@ pragma solidity 0.8.19;
  * @dev Representation of an on-chain investment like Wrapped Ether, Wrapped Bitcoin ...
  */
 
-import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import { Stabilizer, IPriceFeed, IAMM, ChainlinkLibrary, OvnMath, TransferHelper, IERC20Metadata } from "../Stabilizer/Stabilizer.sol";
 import { ISwapRouter } from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";

@@ -41,8 +41,10 @@ module.exports = {
     },
 
     protocols: {
-        dsr_manager: '0x373238337Bfe1146fb49989fc222523f83081dDb',
-        dss_psm: '0x89B78CfA322F6C5dE0aBcEecab66Aee45393cC5A',
+        maker: {
+            psm: '0x89B78CfA322F6C5dE0aBcEecab66Aee45393cC5A',
+            sdai: '0x83F20F44975D03b1b09e64809B757c47f942BEeA',
+        },
         maple: {
             usdcPool: '0xfe119e9C24ab79F1bDd5dd884B86Ceea2eE75D92',
             withdrawalManager: '0x1146691782c089bCF0B19aCb8620943a35eebD12',
