@@ -85,12 +85,12 @@ module.exports = {
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         liquidity_helper: '0xC5f0DE0D8f48E12CcDE9f1902dE15A975b59768d',
         balancer_pool: '0xa468570dB143321Bc034BbD74A6Cc2694d15B252',
-        balancer_amm: '0x28d5a9a0B763F219093Eb01056678e8e702Bf58A', // 0xe3E123ED9fec48a6f40A8aC7bE9afEDDAD80F146
+        balancer_amm: '0x9cE2837d6d84bb521A5a3002a2132B9E9E9cc4C8', // '0x28d5a9a0B763F219093Eb01056678e8e702Bf58A', // 0xe3E123ED9fec48a6f40A8aC7bE9afEDDAD80F146
         proposal_executor: '0xCFcE64f865f84144F9e6FA7C574F580B3eB878e6',
 
         assets: {
             uniswap: '0x676524646377A6e66Ca797edF7CCB1B5162a8cE0',
-            market_maker: '0x8adEa764cabd2C61E51cEb6937Fd026fA39d8E64',
+            market_maker: '0x0FbA85De62C85c3cB444ec828b42BbF0a9208318', // '0x8adEa764cabd2C61E51cEb6937Fd026fA39d8E64',
             dai_dsr: '0x7537035fE6fFb0ed72Ee65B5569a5c090729f0Fa',
             maple: '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8',
             sfrax: '0x82f23E915985de7Db7C9463E4d898ccf2ab2fCeF',
