@@ -60,6 +60,7 @@ module.exports = {
 			optimisticEthereum: scanApiKey,
 			mainnet: scanApiKey,
 			avalanche: scanApiKey,
+			polygon: scanApiKey,
 		},
 		customChains: [
 			{

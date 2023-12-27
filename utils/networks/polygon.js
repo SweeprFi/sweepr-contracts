@@ -19,9 +19,9 @@ module.exports = {
     },
 
     tokens: {
-        sweep: '',
-        sweepr: '',
-        usdc: '',
+        sweep: '0xB88a5Ac00917a02d82c7cd6CEBd73E2852d43574',
+        sweepr: '0x89B1e7068bF8E3232dD8f16c35cAc45bDA584f4E',
+        usdc: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
         usdc_e: '',
     },
 
@@ -54,16 +54,16 @@ module.exports = {
     },
 
     deployments: {
-        balancer: '',
-        treasury: '',
-        balancer_pool: '',
-        balancer_amm: '',
-        proposal_executor: '',
+        balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
+        treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
+        balancer_pool: '0x4CD8a3Df2536100EC552a37C813A9414123e1c03',
+        balancer_amm: '0x71Dc6599cbA8d7087725f23c0681308A13A451bB',
+        proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         liquidity_helper: '',
 
         assets: {
             uniswap: '',
-            market_maker: '',
+            market_maker: '0x7685fc882c91936BF94974916cC410028F73C957',
             usd_plus: '',
             maple: '',
         }
