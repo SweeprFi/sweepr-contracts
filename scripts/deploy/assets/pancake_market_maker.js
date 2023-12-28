@@ -4,7 +4,7 @@ const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
     [deployer] = await ethers.getSigners();
-    const assetName = 'Uniswap Market Maker';
+    const assetName = 'Pancake Market Maker';
     const sweep = addresses.sweep;
     const usdc = addresses.usdc;
     const liquidityHelper = addresses.liquidity_helper;
@@ -12,7 +12,7 @@ async function main() {
     const borrower = addresses.multisig;
 
     console.log("===========================================");
-    console.log("UNISWAP MARKET MAKER ASSET DEPLOY");
+    console.log("PANCAKE MARKET MAKER ASSET DEPLOY");
     console.log("===========================================");
     console.log("Network:", network.name);
     console.log("Deployer:", deployer.address);
@@ -28,7 +28,7 @@ async function main() {
     if(answer !== 'y'){ process.exit(); }
     console.log("Deploying...");
 
-    const MarketMaker = await ethers.getContractFactory("UniswapMarketMaker");
+    const MarketMaker = await ethers.getContractFactory("PancakeMarketMaker");
     const stabilizer = await MarketMaker.deploy(
         assetName,
         sweep,
