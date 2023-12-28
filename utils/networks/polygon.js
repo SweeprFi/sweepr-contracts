@@ -25,14 +25,7 @@ module.exports = {
         usdc_e: '',
     },
 
-    assets: {
-        usdPlus_exchanger: '',
-        maple: {
-            usdcPool: '',
-            poolManager: '',
-            withdrawalManager: '',
-        }
-    },
+    protocols: {},
 
     chainlink: {
         usdc_usd: '0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7',
@@ -45,8 +38,6 @@ module.exports = {
         universal_router: '0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD',
         positions_manager: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
         quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
-        observationCardinality: 480,
-        pool: ''
     },
 
     balancer: {
@@ -62,10 +53,7 @@ module.exports = {
         liquidity_helper: '',
 
         assets: {
-            uniswap: '',
             market_maker: '0x7685fc882c91936BF94974916cC410028F73C957',
-            usd_plus: '',
-            maple: '',
         }
     },
 
