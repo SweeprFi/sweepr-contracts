@@ -88,6 +88,13 @@ module.exports = {
         pool_wbtc: '0x0E4831319A50228B9e450861297aB92dee15B44F',
     },
 
+    pancake: {
+        factory: '0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865',
+        router: '0x1b81D678ffb9C0263b24A97847620C99d213eB14',
+        positions_manager: '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364',
+        observationCardinality: 480,
+    },
+
     balancer: {
         factory: '0xA8920455934Da4D853faac1f94Fe7bEf72943eF1',
     },
