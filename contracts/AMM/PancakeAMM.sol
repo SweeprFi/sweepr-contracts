@@ -6,7 +6,7 @@ pragma solidity 0.8.19;
 // ==========================================================
 
 /**
- * @title Uniswap AMM
+ * @title Pancake AMM
  * @dev Interactions with UniswapV3
  */
 
@@ -36,7 +36,6 @@ contract PancakeAMM {
     PancakeLiquidityHelper private immutable liquidityHelper;
     IMarketMaker public marketMaker;
 
-    // Uniswap V3
     uint32 private constant LOOKBACK = 1 days;
     uint16 private constant DEADLINE_GAP = 15 minutes;
 
