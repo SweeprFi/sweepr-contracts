@@ -80,6 +80,11 @@ module.exports = {
         factory: '0xDB8d758BCb971e482B2C45f7F8a7740283A1bd3A',
     },
 
+    curve: {
+        factory: '0x6A8cbed756804B16E05E741eDaBd5cB544AE21bf',
+        router: '0xF0d4c12A5768D806021F80a262B4d39d26C58b8D',
+    },
+
     deployments: {
         balancer: '0x47a393e60DfCF12CA3892dBC2C2E66BCE083BB26',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',

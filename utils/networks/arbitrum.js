@@ -99,6 +99,11 @@ module.exports = {
         factory: '0xA8920455934Da4D853faac1f94Fe7bEf72943eF1',
     },
 
+    curve: {
+        factory: '0x9AF14D26075f142eb3F292D5065EB3faa646167b',
+        router: '0xF0d4c12A5768D806021F80a262B4d39d26C58b8D',
+    },
+
     deployments: {
         governance: '0xC0507cFC6A9E65894C05C1c5b193C7B58b36791f',
         balancer: '0x82f23E915985de7Db7C9463E4d898ccf2ab2fCeF',
@@ -111,9 +116,13 @@ module.exports = {
         vesting_approver: '0x483761F16A7c978df09d1e7E22532e9DbD2Ee8D0',
         proposal_sender: '0xC6c730E0424A01BF6e1A2ff4Ffac8540E29Dd185',
         liquidity_helper: '0x7560d15774499386B04A64177E090B33e803493F',
+        rates_oracle: '0x0a843cC59346EB6e925D6e42263e6148197c96F8',
+        curve_pool: '0x9097065db449a59ce30bec522e1e077292c0d8fc',
+        curve_amm: '0xdd71C400B72e658071aB349F5718CAbDe41dfd11',
 
         assets: {
-            market_maker: '0x30F5623c58bc93dB78FCa53D968B871A129Dfa31', // '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',
+            balancer_market_maker: '0x30F5623c58bc93dB78FCa53D968B871A129Dfa31', // '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',
+            curve_market_maker: '0x6Bed9737Ef82588E91F6fae874a9beb577A3f0BD',
             silo: '0x53b5fae6e17c7f9b35952779150446e99a4887d3',
             balancer4pool: '0x591EcCf1847BF12C7B5F999E33c162dB90cB17C8',
         }
