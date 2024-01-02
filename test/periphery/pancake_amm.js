@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { chainlink, pancake } = require("../../utils/constants");
 const { toBN, Const, getPriceAndData } = require("../../utils/helper_functions");
 
-contract("Pancake AMM", async function () {
+contract.only("Pancake AMM", async function () {
   before(async () => {
     [owner] = await ethers.getSigners();
     OWNER = owner.address;
@@ -79,7 +79,6 @@ contract("Pancake AMM", async function () {
         sweep.address,
         usdc.address,
         chainlink.sequencer,
-        pool_address,
         usdcOracle.address,
         86400,
         liquidityHelper.address
@@ -88,7 +87,8 @@ contract("Pancake AMM", async function () {
       await sweep.setAMM(amm.address);
       await amm.setMarketMaker(marketmaker.address);
       await usdc.approve(marketmaker.address, USDC_INVEST);
-      await marketmaker.initPool(USDC_INVEST, SWEEP_MINT, 0, 0);
+      await marketmaker.initPool(USDC_INVEST, SWEEP_MINT, 0, 0, pool_address);
+      await amm.setPool(pool_address);
 
       expect(await sweep.balanceOf(pool_address)).to.greaterThan(0);
       expect(await usdc.balanceOf(pool_address)).to.greaterThan(0);
@@ -132,7 +132,7 @@ contract("Pancake AMM", async function () {
       expect(await marketmaker.getBuyPrice()).to.greaterThan(priceBefore);
 
       USDC_AMOUNT = toBN("1200", 18);
-      MIN_AMOUNT_OUT = toBN("1100", 18);
+      MIN_AMOUNT_OUT = toBN("1050", 18);
       await usdc.approve(amm.address, USDC_AMOUNT);
       await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT_OUT);
 

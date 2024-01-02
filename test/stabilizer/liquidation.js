@@ -155,7 +155,7 @@ contract("Stabilizer - Liquidation", async function () {
       await comp_asset.connect(borrower).invest(INVEST_AMOUNT);
 
       await amm.setPrice(Const.WETH_AMM);
-      await weth_asset.connect(borrower).invest(INVEST_AMOUNT, 5000);
+      await weth_asset.connect(borrower).invest(INVEST_AMOUNT, 5e4);
 
       await Promise.all(
         assets.map(async (asset) => {

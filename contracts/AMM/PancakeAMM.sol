@@ -30,7 +30,7 @@ contract PancakeAMM {
     ISweep public immutable sweep;
     IPriceFeed public immutable oracleBase;
     IPriceFeed public immutable sequencer;
-    address public immutable pool;
+    address public pool;
     uint256 public immutable oracleBaseUpdateFrequency;
     bool private immutable flag; // The sort status of tokens
     PancakeLiquidityHelper private immutable liquidityHelper;
@@ -44,7 +44,6 @@ contract PancakeAMM {
         address _sweep,
         address _base,
         address _sequencer,
-        address _pool,
         address _oracleBase,
         uint256 _oracleBaseUpdateFrequency,
         address _liquidityHelper
@@ -53,7 +52,6 @@ contract PancakeAMM {
         base = IERC20Metadata(_base);
         oracleBase = IPriceFeed(_oracleBase);
         sequencer = IPriceFeed(_sequencer);
-        pool = _pool;
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
         liquidityHelper = PancakeLiquidityHelper(_liquidityHelper);
         flag = _base < _sweep;
@@ -79,8 +77,7 @@ contract PancakeAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getPrice() public view returns (uint256 amountOut) {
-        uint8 sweepDecimals = sweep.decimals();
-        uint8 baseDecimals = base.decimals();
+        if(address(pool) == address(0)) return 2e6;
 
         (, int24 tick, , , , , ) = IPancakePool(pool).slot0();
 
@@ -95,11 +92,11 @@ contract PancakeAMM {
             sequencer,
             oracleBaseUpdateFrequency
         );
-        uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
-        amountOut = quote.mulDiv(price, 10 ** decimals);
-        if(sweepDecimals == baseDecimals)
-            amountOut = amountOut.mulDiv(PRECISION, 10 ** base.decimals());
+        uint8 quoteDecimals = base.decimals();
+        uint8 priceDecimals = ChainlinkLibrary.getDecimals(oracleBase);
+
+        amountOut = PRECISION.mulDiv(quote * price, 10 ** (quoteDecimals + priceDecimals));
     }
 
     /**
@@ -129,8 +126,7 @@ contract PancakeAMM {
         );
 
         amountOut = quote.mulDiv(price, 10 ** decimals);
-        if(sweepDecimals == baseDecimals)
-            amountOut = amountOut.mulDiv(PRECISION, 10 ** base.decimals());
+        if(sweepDecimals == baseDecimals) amountOut = amountOut.mulDiv(PRECISION, 10 ** baseDecimals);
     }
 
     function getPositions(uint256 tokenId)
@@ -223,5 +219,10 @@ contract PancakeAMM {
         uint256 rate = usdxAmount * sweepFactor * PRECISION / (tokenFactor * sweepAmount);
 
         if(rate > 16e5 || rate < 6e5) revert BadRate();
+    }
+
+    function setPool(address poolAddress) external {
+        require(msg.sender == sweep.owner(), "BalancerAMM: Not Governance");
+        pool = poolAddress;
     }
 }

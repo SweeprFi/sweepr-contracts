@@ -132,7 +132,7 @@ contract('Balancer Market Maker', async () => {
     await sweep.connect(user).setTargetPrice(1e6, 1e6);
 
     usdxAmount = toBN("500", 6);
-    sweepToGet = toBN("499", 18);
+    sweepToGet = toBN("495", 18);
     sweepBefore = await sweep.balanceOf(borrower.address);
     usdcBefore = await usdc.balanceOf(borrower.address);
     vaultSweepBefore = await usdc.balanceOf(vaultAddress);

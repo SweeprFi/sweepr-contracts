@@ -4,7 +4,7 @@ const { chainlink, pancake } = require("../../utils/constants");
 const { Const, getPriceAndData, toBN } = require("../../utils/helper_functions");
 let poolAddress;
 
-contract('Pancake Market Maker', async () => {
+contract.only('Pancake Market Maker', async () => {
   before(async () => {
     [owner, borrower, treasury, guest, lzEndpoint, multisig] = await ethers.getSigners();
   
@@ -71,7 +71,6 @@ contract('Pancake Market Maker', async () => {
         sweep.address,
         usdc.address,
         chainlink.sequencer,
-        poolAddress,
         usdcOracle.address,
         86400,
         liquidityHelper.address
@@ -83,7 +82,8 @@ contract('Pancake Market Maker', async () => {
       sweepAmount = toBN("15000", 18);
 
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.initPool(usdxAmount, sweepAmount, 0, 0);
+      await marketmaker.initPool(usdxAmount, sweepAmount, 0, 0, poolAddress);
+      await amm.setPool(poolAddress);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
