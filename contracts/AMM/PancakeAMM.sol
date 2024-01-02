@@ -38,6 +38,7 @@ contract PancakeAMM {
 
     uint32 private constant LOOKBACK = 1 days;
     uint16 private constant DEADLINE_GAP = 15 minutes;
+    uint256 private constant PRECISION = 1e6;
 
     constructor(
         address _sweep,
@@ -78,6 +79,9 @@ contract PancakeAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getPrice() public view returns (uint256 amountOut) {
+        uint8 sweepDecimals = sweep.decimals();
+        uint8 baseDecimals = base.decimals();
+
         (, int24 tick, , , , , ) = IPancakePool(pool).slot0();
 
         uint256 quote = OracleLibrary.getQuoteAtTick(
@@ -94,6 +98,8 @@ contract PancakeAMM {
         uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
         amountOut = quote.mulDiv(price, 10 ** decimals);
+        if(sweepDecimals == baseDecimals)
+            amountOut = amountOut.mulDiv(PRECISION, 10 ** base.decimals());
     }
 
     /**
@@ -101,6 +107,9 @@ contract PancakeAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getTWAPrice() external view returns (uint256 amountOut) {
+        uint8 sweepDecimals = sweep.decimals();
+        uint8 baseDecimals = base.decimals();
+
         uint256 price = ChainlinkLibrary.getPrice(
             oracleBase,
             sequencer,
@@ -120,6 +129,8 @@ contract PancakeAMM {
         );
 
         amountOut = quote.mulDiv(price, 10 ** decimals);
+        if(sweepDecimals == baseDecimals)
+            amountOut = amountOut.mulDiv(PRECISION, 10 ** base.decimals());
     }
 
     function getPositions(uint256 tokenId)
@@ -209,7 +220,7 @@ contract PancakeAMM {
         if(usdxAmount == 0 || sweepAmount == 0) revert ZeroAmount();
         uint256 tokenFactor = 10 ** IERC20Metadata(usdxAddress).decimals();
         uint256 sweepFactor = 10 ** sweep.decimals();
-        uint256 rate = usdxAmount * sweepFactor * 1e6 / (tokenFactor * sweepAmount);
+        uint256 rate = usdxAmount * sweepFactor * PRECISION / (tokenFactor * sweepAmount);
 
         if(rate > 16e5 || rate < 6e5) revert BadRate();
     }

@@ -358,10 +358,13 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
      * @return maxTick The maximum tick
      */
     function showTicks() internal view returns (int24 minTick, int24 maxTick) {
+        uint8 decimals = sweep.decimals();
+        uint8 baseDecimals = usdx.decimals();
         uint256 sweepPrice = sweep.targetPrice();
+        if(decimals == decimals) sweepPrice = sweepPrice * ((10 ** baseDecimals) / PRECISION);
+
         uint256 minPrice = (sweepPrice * 99) / 100;
         uint256 maxPrice = (sweepPrice * 101) / 100;
-        uint8 decimals = sweep.decimals();
 
         minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, TICK_SPACE, flag);
         maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, TICK_SPACE, flag);

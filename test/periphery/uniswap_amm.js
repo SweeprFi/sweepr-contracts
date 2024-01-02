@@ -22,7 +22,7 @@ contract("Uniswap AMM", async function () {
     sweep = await Proxy.deployed();
 
     ERC20 = await ethers.getContractFactory("USDCMock");
-    usdc = await ERC20.deploy();
+    usdc = await ERC20.deploy(6);
 
     LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
     liquidityHelper = await LiquidityHelper.deploy();

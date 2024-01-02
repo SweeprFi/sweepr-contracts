@@ -52,7 +52,7 @@ contract('Sweepr Governance', async (accounts) => {
 		TokenDistributor = await ethers.getContractFactory("TokenDistributor");
 
 		ERC20 = await ethers.getContractFactory("USDCMock");
-		usdc = await ERC20.deploy();
+		usdc = await ERC20.deploy(6);
 
 		// deploys
 		sweepr = await SWEEPR.deploy(Const.TRUE, LZENDPOINT); // TRUE means governance chain

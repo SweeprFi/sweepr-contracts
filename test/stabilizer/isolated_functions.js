@@ -18,8 +18,8 @@ contract("Stabilizer - Isolated Functions", async function () {
     await sweep.setTreasury(treasury.address);
 
     Token = await ethers.getContractFactory("USDCMock");
-    usdx = await Token.deploy();
-    usdt = await Token.deploy();
+    usdx = await Token.deploy(6);
+    usdt = await Token.deploy(6);
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
     amm = await Uniswap.deploy(sweep.address, owner.address);

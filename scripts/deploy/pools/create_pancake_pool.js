@@ -3,7 +3,8 @@ const { network, tokens, pancake } = require("../../../utils/constants");
 const { getPriceAndData, ask } = require('../../../utils/helper_functions');
 
 async function main() {	
-	const { token0, token1, sqrtPriceX96 } = getPriceAndData(tokens.sweep, tokens.usdc, 0, 0);
+	const { token0, token1 } = getPriceAndData(tokens.sweep, tokens.usdc, 0, 0);
+	const sqrtPriceX96 = toBN("79228162514264337593543950336", 0);
 	const FEE = 500;
 
 	console.log("===========================================");

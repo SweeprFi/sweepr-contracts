@@ -16,7 +16,7 @@ contract("Stabilizer - Management Functions", async function () {
     await sweep.setBalancer(balancer.address);
 
     Token = await ethers.getContractFactory("USDCMock");
-    usdx = await Token.deploy();
+    usdx = await Token.deploy(6);
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
     amm = await Uniswap.deploy(sweep.address, agent.address);

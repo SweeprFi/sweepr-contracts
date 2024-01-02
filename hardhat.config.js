@@ -61,6 +61,7 @@ module.exports = {
 			mainnet: scanApiKey,
 			avalanche: scanApiKey,
 			polygon: scanApiKey,
+			bsc: scanApiKey,
 		},
 		customChains: [
 			{
