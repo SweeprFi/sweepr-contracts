@@ -94,6 +94,7 @@ contract PancakeAMM {
         uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
         amountOut = quote.mulDiv(price, 10 ** decimals);
+        amountOut = amountOut.mulDiv(1e6, 10 ** base.decimals());
     }
 
     /**

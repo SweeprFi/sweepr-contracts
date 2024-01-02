@@ -19,8 +19,8 @@ module.exports = {
     },
 
     tokens: {
-        sweep: '',
-        sweepr: '',
+        sweep: '0xB88a5Ac00917a02d82c7cd6CEBd73E2852d43574',
+        sweepr: '0x89B1e7068bF8E3232dD8f16c35cAc45bDA584f4E',
         usdc: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
     },
 
@@ -46,9 +46,9 @@ module.exports = {
     },
 
     deployments: {
-        balancer: '',
-        treasury: '',
-        proposal_executor: '',
+        balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
+        treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
+        proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         balancer_amm: '',
         liquidity_helper: '',
 

@@ -359,8 +359,8 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
      */
     function showTicks() internal view returns (int24 minTick, int24 maxTick) {
         uint256 sweepPrice = sweep.targetPrice();
-        uint256 minPrice = (sweepPrice * 99) / 100;
-        uint256 maxPrice = (sweepPrice * 101) / 100;
+        uint256 minPrice = (sweepPrice * 99 * 1e12) / 100;
+        uint256 maxPrice = (sweepPrice * 101 * 1e12) / 100;
         uint8 decimals = sweep.decimals();
 
         minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, TICK_SPACE, flag);

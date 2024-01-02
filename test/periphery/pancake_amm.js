@@ -3,18 +3,18 @@ const { ethers } = require("hardhat");
 const { chainlink, pancake } = require("../../utils/constants");
 const { toBN, Const, getPriceAndData } = require("../../utils/helper_functions");
 
-contract("Pancake AMM", async function () {
+contract.only("Pancake AMM", async function () {
   before(async () => {
     [owner] = await ethers.getSigners();
     OWNER = owner.address;
-    USDC_AMOUNT = toBN("100", 6);
+    USDC_AMOUNT = toBN("100", 18);
     SWEEP_AMOUNT = toBN("80", 18);
 
-    USDC_MINT = 10000e6;
+    USDC_MINT = toBN("10000", 18);
     SWEEP_MINT = toBN("10000", 18);
-    USDC_INVEST = 20000e6;
+    USDC_INVEST = toBN("20000", 18);
     SWEEP_INVEST = toBN("20000", 18);
-    usdxAmount = 1000e6;
+    usdxAmount = toBN("1000", 18);
     sweepAmount = toBN("1000", 18);
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
@@ -62,14 +62,16 @@ contract("Pancake AMM", async function () {
 
   describe("main functions", async function () {
     it("initial setup - create and add liquitiy", async function () {
-      const { token0, token1, sqrtPriceX96 } =
-        getPriceAndData(sweep.address, usdc.address, sweepAmount, usdxAmount);
+      const { token0, token1 } = getPriceAndData(sweep.address, usdc.address, 0, 0);
+      expect(await factory.getPool(token0, token1, FEE)).to.equal(Const.ADDRESS_ZERO);
+      expect(await marketmaker.assetValue()).to.equal(0);
+      price = toBN("79228162514264337593543950336", 0)
+      await positionManager.createAndInitializePoolIfNecessary(token0, token1, FEE, price)
+      pool_address = await factory.getPool(token0, token1, FEE);
 
-      await positionManager.createAndInitializePoolIfNecessary(token0, token1, 500, sqrtPriceX96)
-      pool_address = await factory.getPool(token0, token1, 500);
-
+      expect(pool_address).to.not.equal(Const.ADDRESS_ZERO);
       pool = await ethers.getContractAt("IPancakePool", pool_address);
-      await (await pool.increaseObservationCardinalityNext(96)).wait();
+      await(await pool.increaseObservationCardinalityNext(96)).wait();
 
       PancakeAMM = await ethers.getContractFactory("PancakeAMM");
       amm = await PancakeAMM.deploy(
@@ -96,7 +98,7 @@ contract("Pancake AMM", async function () {
       usdcBefore = await usdc.balanceOf(OWNER);
 
       await usdc.approve(amm.address, USDC_AMOUNT);
-      await amm.buySweep(usdc.address, USDC_AMOUNT, USDC_AMOUNT.mul(99e10));
+      await amm.buySweep(usdc.address, USDC_AMOUNT, SWEEP_AMOUNT);
 
       sweepAfter = await sweep.balanceOf(OWNER);
       usdcAfter = await usdc.balanceOf(OWNER);
@@ -110,7 +112,8 @@ contract("Pancake AMM", async function () {
       usdcBefore = await usdc.balanceOf(OWNER);
 
       await sweep.approve(amm.address, SWEEP_AMOUNT);
-      await amm.sellSweep(usdc.address, SWEEP_AMOUNT, SWEEP_AMOUNT.div(11e11));
+      MIN_AMOUNT = toBN("70", 18)
+      await amm.sellSweep(usdc.address, SWEEP_AMOUNT, MIN_AMOUNT);
 
       sweepAfter = await sweep.balanceOf(OWNER);
       usdcAfter = await usdc.balanceOf(OWNER);
@@ -127,8 +130,8 @@ contract("Pancake AMM", async function () {
       
       expect(await marketmaker.getBuyPrice()).to.greaterThan(priceBefore);
 
-      USDC_AMOUNT = toBN("950", 6);
-      MIN_AMOUNT_OUT = toBN("850", 18);
+      USDC_AMOUNT = toBN("1200", 18);
+      MIN_AMOUNT_OUT = toBN("1100", 18);
       await usdc.approve(amm.address, USDC_AMOUNT);
       await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT_OUT);
 

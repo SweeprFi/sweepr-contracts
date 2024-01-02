@@ -10,7 +10,7 @@ contract USDCMock is ERC20PresetFixedSupply {
   ERC20PresetFixedSupply("USDC Mock", "USDC", GENESIS_SUPPLY, msg.sender) {
   }
 
-  function decimals() public pure override returns (uint8) {
-    return 6;
-  }
+  // function decimals() public pure override returns (uint8) {
+  //   return 6;
+  // }
 }
