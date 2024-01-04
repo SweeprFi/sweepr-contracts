@@ -30,7 +30,7 @@ contract PancakeAMM {
     ISweep public immutable sweep;
     IPriceFeed public immutable oracleBase;
     IPriceFeed public immutable sequencer;
-    address public immutable pool;
+    address public pool;
     uint256 public immutable oracleBaseUpdateFrequency;
     bool private immutable flag; // The sort status of tokens
     PancakeLiquidityHelper private immutable liquidityHelper;
@@ -38,12 +38,12 @@ contract PancakeAMM {
 
     uint32 private constant LOOKBACK = 1 days;
     uint16 private constant DEADLINE_GAP = 15 minutes;
+    uint256 private constant PRECISION = 1e6;
 
     constructor(
         address _sweep,
         address _base,
         address _sequencer,
-        address _pool,
         address _oracleBase,
         uint256 _oracleBaseUpdateFrequency,
         address _liquidityHelper
@@ -52,7 +52,6 @@ contract PancakeAMM {
         base = IERC20Metadata(_base);
         oracleBase = IPriceFeed(_oracleBase);
         sequencer = IPriceFeed(_sequencer);
-        pool = _pool;
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
         liquidityHelper = PancakeLiquidityHelper(_liquidityHelper);
         flag = _base < _sweep;
@@ -78,6 +77,8 @@ contract PancakeAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getPrice() public view returns (uint256 amountOut) {
+        if(address(pool) == address(0)) return 2e6;
+
         (, int24 tick, , , , , ) = IPancakePool(pool).slot0();
 
         uint256 quote = OracleLibrary.getQuoteAtTick(
@@ -91,9 +92,11 @@ contract PancakeAMM {
             sequencer,
             oracleBaseUpdateFrequency
         );
-        uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
-        amountOut = quote.mulDiv(price, 10 ** decimals);
+        uint8 quoteDecimals = base.decimals();
+        uint8 priceDecimals = ChainlinkLibrary.getDecimals(oracleBase);
+
+        amountOut = PRECISION.mulDiv(quote * price, 10 ** (quoteDecimals + priceDecimals));
     }
 
     /**
@@ -106,7 +109,6 @@ contract PancakeAMM {
             sequencer,
             oracleBaseUpdateFrequency
         );
-        uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
         // Get the average price tick first
         (int24 arithmeticMeanTick, ) = OracleLibrary.consult(pool, LOOKBACK);
@@ -119,7 +121,10 @@ contract PancakeAMM {
             address(base)
         );
 
-        amountOut = quote.mulDiv(price, 10 ** decimals);
+        uint8 quoteDecimals = base.decimals();
+        uint8 priceDecimals = ChainlinkLibrary.getDecimals(oracleBase);
+
+        amountOut = PRECISION.mulDiv(quote * price, 10 ** (quoteDecimals + priceDecimals));
     }
 
     function getPositions(uint256 tokenId)
@@ -209,8 +214,13 @@ contract PancakeAMM {
         if(usdxAmount == 0 || sweepAmount == 0) revert ZeroAmount();
         uint256 tokenFactor = 10 ** IERC20Metadata(usdxAddress).decimals();
         uint256 sweepFactor = 10 ** sweep.decimals();
-        uint256 rate = usdxAmount * sweepFactor * 1e6 / (tokenFactor * sweepAmount);
+        uint256 rate = usdxAmount * sweepFactor * PRECISION / (tokenFactor * sweepAmount);
 
         if(rate > 16e5 || rate < 6e5) revert BadRate();
+    }
+
+    function setPool(address poolAddress) external {
+        require(msg.sender == sweep.owner(), "PancakeAMM: Not Governance");
+        pool = poolAddress;
     }
 }

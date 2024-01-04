@@ -17,7 +17,7 @@ contract("Test Equity Ratio of Stabilizer", async function () {
     sweep = await Proxy.deployed();
 
     Token = await ethers.getContractFactory("USDCMock");
-    usdx = await Token.deploy();
+    usdx = await Token.deploy(6);
 
     Uniswap = await ethers.getContractFactory("UniswapMock");
     amm = await Uniswap.deploy(sweep.address, owner.address);

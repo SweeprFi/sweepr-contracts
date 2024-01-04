@@ -204,7 +204,8 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint256 usdxAmount,
         uint256 sweepAmount,
         uint256 usdxMinAmount,
-        uint256 sweepMinAmount
+        uint256 sweepMinAmount,
+        address poolAddress
     )
         external onlyBorrower nonReentrant
         returns (
@@ -226,7 +227,6 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
 
         (int24 minTick, int24 maxTick) = showTicks();
-        IAMM _amm = amm();
         (usdxAmount, sweepAmount, usdxMinAmount, sweepMinAmount) = flag
             ? (usdxAmount, sweepAmount, usdxMinAmount, sweepMinAmount)
             : (sweepAmount, usdxAmount, sweepMinAmount, usdxMinAmount);
@@ -236,7 +236,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
                 INonfungiblePositionManager.MintParams({
                     token0: token0,
                     token1: token1,
-                    fee: IPancakePool(_amm.pool()).fee(),
+                    fee: IPancakePool(poolAddress).fee(),
                     tickLower: minTick,
                     tickUpper: maxTick,
                     amount0Desired: usdxAmount,
@@ -358,10 +358,12 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
      * @return maxTick The maximum tick
      */
     function showTicks() internal view returns (int24 minTick, int24 maxTick) {
+        uint8 decimals = sweep.decimals();
         uint256 sweepPrice = sweep.targetPrice();
+        sweepPrice = sweepPrice * ((10 ** decimals) / PRECISION);
+
         uint256 minPrice = (sweepPrice * 99) / 100;
         uint256 maxPrice = (sweepPrice * 101) / 100;
-        uint8 decimals = sweep.decimals();
 
         minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, TICK_SPACE, flag);
         maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, TICK_SPACE, flag);

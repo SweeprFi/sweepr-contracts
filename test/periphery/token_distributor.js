@@ -28,7 +28,7 @@ contract("TokenDistributor", async function () {
 		sweep = await Proxy.deployed();
 
 		ERC20 = await ethers.getContractFactory("USDCMock");
-		usdc = await ERC20.deploy();
+		usdc = await ERC20.deploy(6);
 
 		await usdc.transfer(sender.address, USDC_AMOUNT);
 

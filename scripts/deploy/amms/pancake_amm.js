@@ -6,12 +6,11 @@ async function main() {
     [deployer] = await ethers.getSigners();
 
     const sweep = tokens.sweep;
-    const usdc = tokens.usdc;
-    const oracle = chainlink.usdc_usd;;
+    const base = tokens.usdt;
+    const oracle = chainlink.usdt_usd;;
     const frequency = 86400;
     const sequencer = chainlink.sequencer;
     const helper = deployments.liquidity_helper;
-    const fee = 100;
 
     console.log("===========================================");
     console.log("PANCAKE AMM PLUGIN DEPLOY");
@@ -20,10 +19,9 @@ async function main() {
     console.log("Deployer:", deployer.address);
     console.log("===========================================");
     console.log("SWEEP:", sweep);
-    console.log("USDC:", usdc);
+    console.log("USDT:", base);
     console.log("Sequencer:", sequencer);
-    console.log("Fee:", fee);
-    console.log("USDC/USD Chainlink Oracle:", oracle);
+    console.log("USDT/USD Chainlink Oracle:", oracle);
     console.log("Oracle Frequency:", frequency);
     console.log("Liquidity helper:", helper);
     console.log("===========================================");
@@ -32,11 +30,11 @@ async function main() {
     console.log("Deploying...");
 
     const pancakeAMMInstance = await ethers.getContractFactory("PancakeAMM");
-    const amm = await pancakeAMMInstance.deploy(sweep, usdc, sequencer, fee, oracle, frequency, helper);
+    const amm = await pancakeAMMInstance.deploy(sweep, base, sequencer, oracle, frequency, helper);
 
     console.log("===========================================");
     console.log(`PancakeAMM Deployed to:${amm.address}`);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${usdc} ${sequencer} ${fee} ${oracle} ${frequency} ${helper}`);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${base} ${sequencer} ${oracle} ${frequency} ${helper}`);
 }
 
 main();

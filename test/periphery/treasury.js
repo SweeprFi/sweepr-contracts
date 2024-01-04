@@ -18,7 +18,7 @@ contract('Treasury', async () => {
     sweep = await Proxy.deployed();
 
     Token = await ethers.getContractFactory("USDCMock");
-    usdx = await Token.deploy();
+    usdx = await Token.deploy(6);
 
     Treasury = await ethers.getContractFactory("Treasury");
     treasury = await Treasury.deploy(sweep.address);
