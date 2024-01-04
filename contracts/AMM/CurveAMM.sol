@@ -167,11 +167,6 @@ contract CurveAMM {
         return swap(tokenIn, tokenOut, amountIn, amountOutMin);
     }
 
-    function setPool(address poolAddress) external {
-        require(msg.sender == sweep.owner(), "BalancerAMM: Not Governance");
-        pool = ICurvePool(poolAddress);
-    }
-
     function checkRate(address token, uint256 tokenAmount, uint256 sweepAmount) internal view {
         if(tokenAmount == 0 || sweepAmount == 0) revert ZeroAmount();
         uint256 tokenFactor = 10 ** IERC20Metadata(token).decimals();
@@ -199,6 +194,11 @@ contract CurveAMM {
             amountOutMin,
             msg.sender
         );
+    }
+
+    function setPool(address poolAddress) external {
+        require(msg.sender == sweep.owner(), "BalancerAMM: Not Governance");
+        pool = ICurvePool(poolAddress);
     }
 
     function setMarketMaker(address _marketMaker) external onlyOwner {

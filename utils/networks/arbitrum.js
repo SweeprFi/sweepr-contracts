@@ -118,7 +118,7 @@ module.exports = {
         liquidity_helper: '0x7560d15774499386B04A64177E090B33e803493F',
         rates_oracle: '0x0a843cC59346EB6e925D6e42263e6148197c96F8',
         curve_pool: '0x9097065db449a59ce30bec522e1e077292c0d8fc',
-        curve_amm: '0xdd71C400B72e658071aB349F5718CAbDe41dfd11',
+        curve_amm: '0x70B7db68eA72B77991CE4aE1EfFf7F3E9A94EcF4',
 
         assets: {
             balancer_market_maker: '0x30F5623c58bc93dB78FCa53D968B871A129Dfa31', // '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',
