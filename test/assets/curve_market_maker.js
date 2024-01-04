@@ -4,7 +4,7 @@ const { tokens, wallets, chainlink, curve, deployments } = require('../../utils/
 const { Const, impersonate, toBN, sendEth } = require("../../utils/helper_functions");
 let poolAddress;
 
-contract.only('Curve Market Maker', async () => {
+contract('Curve Market Maker', async () => {
   before(async () => {
     [borrower] = await ethers.getSigners();
 
