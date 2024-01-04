@@ -1,11 +1,10 @@
 const { ethers } = require("hardhat");
-const { network } = require("../../../utils/address");
+const { network } = require("../../../utils/constants");
 const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
 	[deployer] = await ethers.getSigners();
 
-	
 	console.log("===========================================");
 	console.log("PANCAKE LIQUIDITY HELPER DEPLOY"); 
 	console.log("===========================================");
@@ -16,7 +15,6 @@ async function main() {
 	const answer = (await ask("continue? y/n: "));
     if(answer !== 'y'){ process.exit(); }
 	console.log("Creating...");
-
 
 	const LiquidityHelper = await ethers.getContractFactory("PancakeLiquidityHelper");
 	const liquidityHelper = await LiquidityHelper.deploy();

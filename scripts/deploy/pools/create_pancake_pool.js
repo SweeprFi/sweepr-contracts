@@ -1,9 +1,9 @@
 const { ethers } = require('hardhat');
 const { network, tokens, pancake } = require("../../../utils/constants");
-const { getPriceAndData, ask } = require('../../../utils/helper_functions');
+const { getPriceAndData, ask, toBN } = require('../../../utils/helper_functions');
 
 async function main() {	
-	const { token0, token1 } = getPriceAndData(tokens.sweep, tokens.usdc, 0, 0);
+	const { token0, token1 } = getPriceAndData(tokens.sweep, tokens.usdt, 0, 0);
 	const sqrtPriceX96 = toBN("79228162514264337593543950336", 0);
 	const FEE = 500;
 
@@ -12,10 +12,10 @@ async function main() {
 	console.log("===========================================");
 	console.log("Network:", network.name);
 	console.log("===========================================");
-	console.log("SWEEP:", tokens.sweep);
-	console.log("USDC:", tokens.usdc);
-	console.log("UniswapFactory:", pancake.factory);
-	console.log("UniswapPositionManager:", pancake.positions_manager);
+	console.log("TOKEN 0:", token0);
+	console.log("TOKEN 1:", token1);
+	console.log("PancakeFactory:", pancake.factory);
+	console.log("PancakePositionManager:", pancake.positions_manager);
 	console.log("sqrtPriceX96:", sqrtPriceX96);
 	console.log("FEE:", FEE);
 	console.log("Cardinality:", pancake.observationCardinality);

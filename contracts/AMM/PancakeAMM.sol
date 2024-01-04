@@ -104,15 +104,11 @@ contract PancakeAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getTWAPrice() external view returns (uint256 amountOut) {
-        uint8 sweepDecimals = sweep.decimals();
-        uint8 baseDecimals = base.decimals();
-
         uint256 price = ChainlinkLibrary.getPrice(
             oracleBase,
             sequencer,
             oracleBaseUpdateFrequency
         );
-        uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
         // Get the average price tick first
         (int24 arithmeticMeanTick, ) = OracleLibrary.consult(pool, LOOKBACK);
@@ -125,8 +121,10 @@ contract PancakeAMM {
             address(base)
         );
 
-        amountOut = quote.mulDiv(price, 10 ** decimals);
-        if(sweepDecimals == baseDecimals) amountOut = amountOut.mulDiv(PRECISION, 10 ** baseDecimals);
+        uint8 quoteDecimals = base.decimals();
+        uint8 priceDecimals = ChainlinkLibrary.getDecimals(oracleBase);
+
+        amountOut = PRECISION.mulDiv(quote * price, 10 ** (quoteDecimals + priceDecimals));
     }
 
     function getPositions(uint256 tokenId)
@@ -222,7 +220,7 @@ contract PancakeAMM {
     }
 
     function setPool(address poolAddress) external {
-        require(msg.sender == sweep.owner(), "BalancerAMM: Not Governance");
+        require(msg.sender == sweep.owner(), "PancakeAMM: Not Governance");
         pool = poolAddress;
     }
 }

@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { chainlink, pancake } = require("../../utils/constants");
 const { toBN, Const, getPriceAndData } = require("../../utils/helper_functions");
 
-contract.only("Pancake AMM", async function () {
+contract("Pancake AMM", async function () {
   before(async () => {
     [owner] = await ethers.getSigners();
     OWNER = owner.address;

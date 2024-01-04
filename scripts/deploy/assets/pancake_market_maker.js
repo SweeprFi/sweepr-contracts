@@ -1,15 +1,15 @@
 const { ethers } = require("hardhat");
-const { addresses } = require("../../../utils/address");
+const { network, tokens, chainlink, deployments, wallets } = require("../../../utils/constants");
 const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
     [deployer] = await ethers.getSigners();
     const assetName = 'Pancake Market Maker';
-    const sweep = addresses.sweep;
-    const usdc = addresses.usdc;
-    const liquidityHelper = addresses.liquidity_helper;
-    const oracleUsdc = addresses.oracle_usdc_usd;
-    const borrower = addresses.multisig;
+    const sweep = tokens.sweep;
+    const base = tokens.usdt;
+    const liquidityHelper = deployments.liquidity_helper;
+    const oracle = chainlink.usdt_usd;
+    const borrower = wallets.multisig;
 
     console.log("===========================================");
     console.log("PANCAKE MARKET MAKER ASSET DEPLOY");
@@ -19,9 +19,9 @@ async function main() {
     console.log("===========================================");
     console.log("Asset Name:", assetName);
     console.log("SWEEP:", sweep);
-    console.log("USDC:", usdc);
+    console.log("USDC:", base);
     console.log("Liquidity Helper:", liquidityHelper);
-    console.log("USDC/USD Chainlink Oracle:", oracleUsdc);
+    console.log("BASE/USD Chainlink Oracle:", oracle);
     console.log("Borrower:", borrower);
     console.log("===========================================");
     const answer = (await ask("continue? y/n: "));
@@ -32,15 +32,15 @@ async function main() {
     const stabilizer = await MarketMaker.deploy(
         assetName,
         sweep,
-        usdc,
+        base,
         liquidityHelper,
-        oracleUsdc,
+        oracle,
         borrower
     );
 
     console.log("===========================================");
     console.log("MarketMaker deployed to: ", stabilizer.address);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${usdc} ${liquidityHelper} ${oracleUsdc} ${borrower}`);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${base} ${liquidityHelper} ${oracle} ${borrower}`);
 }
 
 main();
