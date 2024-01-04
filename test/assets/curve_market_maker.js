@@ -4,7 +4,7 @@ const { tokens, wallets, chainlink, curve, deployments } = require('../../utils/
 const { Const, impersonate, toBN, sendEth } = require("../../utils/helper_functions");
 let poolAddress;
 
-contract('Curve Market Maker', async () => {
+contract.only('Curve Market Maker', async () => {
   before(async () => {
     [borrower] = await ethers.getSigners();
 
@@ -236,6 +236,11 @@ contract('Curve Market Maker', async () => {
 
     expect(lpBefore).to.be.greaterThan(lpAfter);
     expect(usdcBefore).to.be.lessThan(usdcAfter);
+  });
+
+  it('fetches Sweep prices correctly', async () => {
+    price = await amm.getPrice();
+    twaPrice = await amm.getTWAPrice();
   });
 
 });

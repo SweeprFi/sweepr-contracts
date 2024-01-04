@@ -93,7 +93,7 @@ contract CurveAMM {
         uint256 quoteFactor = 1e18;
         uint256 priceFactor = 10 ** ChainlinkLibrary.getDecimals(oracleBase);
 
-        uint256 quote = pool.price_oracle(SWEEP_IDX);
+        uint256 quote = pool.price_oracle(USDX_IDX);
         uint256 price = ChainlinkLibrary.getPrice(oracleBase, sequencer, frequency);
 
         return quote * price * returnFactor / (priceFactor * quoteFactor);
