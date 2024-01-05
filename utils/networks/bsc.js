@@ -53,7 +53,7 @@ module.exports = {
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         pancake_amm: '0xa5Dd492674f8C68C89b403BDFd0e794db42f2b92',
         liquidity_helper: '0xD50DC42d95407F271c1380AE2aCa3F327F4C1cca',
-        pancake_pool: '0x05668AcDa068038d4bb34cF1ee17b264099afB80',
+        pancake_pool: '0x0A5b6346B01092126FdFf8757864352843252864',
 
         assets: {
             uniswap: '',
