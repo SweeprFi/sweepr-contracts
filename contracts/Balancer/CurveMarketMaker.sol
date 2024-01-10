@@ -86,6 +86,7 @@ contract CurveMarketMaker is Stabilizer {
         _addLiquidity(usdxAmount, sweepAmount);
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
+        if (getEquityRatio() < minEquityRatio) revert EquityRatioExcessed();
         emit SweepPurchased(usdxAmount);
     }
 

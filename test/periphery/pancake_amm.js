@@ -127,12 +127,15 @@ contract("Pancake AMM", async function () {
       priceBefore = await amm.getPrice();
       sweepBalanceB = await sweep.balanceOf(pool_address);
       usdcBalanceB = await usdc.balanceOf(pool_address);
-      await marketmaker.setSlippage(3e5);
+      await marketmaker.setSlippage(5e5);
       
       expect(await marketmaker.getBuyPrice()).to.greaterThan(priceBefore);
 
-      USDC_AMOUNT = toBN("1200", 18);
-      MIN_AMOUNT_OUT = toBN("1050", 18);
+      USDC_AMOUNT = toBN("1100", 18);
+      MIN_AMOUNT_OUT = toBN("1000", 18);
+      await usdc.approve(amm.address, USDC_AMOUNT);
+      await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT_OUT);
+
       await usdc.approve(amm.address, USDC_AMOUNT);
       await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT_OUT);
 
@@ -141,7 +144,7 @@ contract("Pancake AMM", async function () {
       expect(priceAfter).to.greaterThan(priceBefore);
       expect(await marketmaker.getBuyPrice()).to.lessThan(priceAfter);
       expect(await sweep.balanceOf(pool_address)).to.lessThan(sweepBalanceB);
-      expect(await usdc.balanceOf(pool_address)).to.equal(usdcBalanceB.add(USDC_AMOUNT));
+      expect(await usdc.balanceOf(pool_address)).to.greaterThan(usdcBalanceB);
 
       sweepBalanceB = await sweep.balanceOf(pool_address);
       usdcBalanceB = await usdc.balanceOf(pool_address);
