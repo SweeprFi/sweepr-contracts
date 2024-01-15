@@ -41,6 +41,8 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     error BadSlippage();
 
     event Collected(uint256 amount0, uint256 amount1);
+    event LiquidityAdded(uint256 usdxAmount, uint256 sweepAmount);
+    event SweepPurchased(uint256 sweeAmount);
 
     /* ========== Modifies ========== */
     modifier isMinted() {
@@ -148,6 +150,9 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
 
         _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
+
+        if (getEquityRatio() < minEquityRatio) revert EquityRatioExcessed();
+        emit SweepPurchased(usdxAmount);
     }
 
     /**
@@ -289,6 +294,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
             );
 
         positionIds.push(_tokenId);
+        emit LiquidityAdded(usdxAmount, sweepAmount);
     }
 
     function removePosition(uint256 positionId)  external onlyBorrower nonReentrant {
@@ -338,6 +344,8 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
                 deadline: block.timestamp + 60 // Expiration: 1 hour from now
             })
         );
+
+        emit LiquidityAdded(usdxAmount, sweepAmount);
     }
 
     function _collect(uint256 id) internal {

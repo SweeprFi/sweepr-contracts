@@ -82,9 +82,9 @@ contract BalancerMarketMaker is Stabilizer {
 
         _borrow(sweepAmount * 2);
         _addLiquidity(usdxAmount, sweepAmount);
-
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
+        if (getEquityRatio() < minEquityRatio) revert EquityRatioExcessed();
         emit SweepPurchased(usdxAmount);
     }
 

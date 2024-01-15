@@ -48,7 +48,7 @@ contract('Pancake Market Maker', async () => {
 
     // config market maker
     await marketmaker.configure(
-      0, Const.spreadFee, sweepAmount, Const.ZERO, Const.DAY, Const.RATIO,
+      3e5, Const.spreadFee, sweepAmount, Const.ZERO, Const.DAY, Const.RATIO,
       minAutoSweepAmount, Const.ZERO, Const.TRUE, Const.FALSE, Const.URL
     );
   });
@@ -149,11 +149,18 @@ contract('Pancake Market Maker', async () => {
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
       await marketmaker.setSlippage(5e5);
       
-      buyAmount = toBN("5000", 18);
-      sweepToGet = toBN("4900", 18);
+      buyAmount = toBN("150000", 18);
+      sweepToGet = toBN("148000", 18);
 
       await usdc.transfer(borrower.address, buyAmount)
       await usdc.connect(borrower).approve(marketmaker.address, buyAmount);
+
+      await expect(marketmaker.connect(borrower).buySweep(buyAmount))
+        .to.be.revertedWithCustomError(marketmaker, 'EquityRatioExcessed');
+
+      buyAmount = toBN("5000", 18);
+      sweepToGet = toBN("4900", 18);
+
       await marketmaker.connect(borrower).buySweep(buyAmount);
 
       expect(await sweep.balanceOf(borrower.address)).to.be.greaterThan(sweepToGet);

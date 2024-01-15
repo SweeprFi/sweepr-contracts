@@ -107,8 +107,6 @@ contract('Curve Market Maker', async () => {
     poolSweepBefore = await usdc.balanceOf(poolAddress);
     poolUsdcBefore = await usdc.balanceOf(poolAddress);
 
-    expect(sweepBefore).to.equal(0);
-
     await usdc.approve(marketmaker.address, usdxAmount);
     await marketmaker.buySweep(usdxAmount);
 

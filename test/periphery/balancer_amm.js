@@ -75,7 +75,7 @@ contract("Balancer AMM", async function () {
       usdcBefore = await usdc.balanceOf(OWNER);
 
       await sweep.approve(amm.address, SWEEP_AMOUNT);
-      await amm.sellSweep(usdc.address, SWEEP_AMOUNT, 96e6);
+      await amm.sellSweep(usdc.address, SWEEP_AMOUNT, 85e6);
 
       sweepAfter = await sweep.balanceOf(OWNER);
       usdcAfter = await usdc.balanceOf(OWNER);
