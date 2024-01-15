@@ -117,6 +117,7 @@ contract('Balancer Market Maker', async () => {
   it('Removes liquidity correctly', async () => {
     usdcToRemove = toBN("250", 6);
     sweepToRemove = toBN("250", 18);
+    await marketmaker.setSlippage(1e4);
 
     price = await sweep.ammPrice();
     sweepBefore = await sweep.balanceOf(vaultAddress);

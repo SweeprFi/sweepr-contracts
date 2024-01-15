@@ -140,6 +140,8 @@ contract("Stabilizer - Management Functions", async function () {
       expect(await offChainAsset.settingsEnabled()).to.equal(Const.FALSE);
       await offChainAsset.connect(owner).reject();
       expect(await offChainAsset.settingsEnabled()).to.equal(Const.TRUE);
+      expect(await offChainAsset.paused()).to.equal(Const.TRUE);
+      await offChainAsset.connect(multisig).unpause();
     });
 
     it("set pause correctly", async function () {
