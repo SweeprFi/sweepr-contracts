@@ -354,6 +354,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function reject() external onlyGov {
         settingsEnabled = true;
+        _pause();
 
         emit Rejected(borrower);
     }
