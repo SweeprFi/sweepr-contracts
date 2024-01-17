@@ -149,7 +149,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
 
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
-        if (getEquityRatio() < minEquityRatio) revert EquityRatioExcessed();
+        _checkRatio();
         emit SweepPurchased(usdxAmount);
     }
 
