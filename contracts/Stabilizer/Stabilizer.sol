@@ -377,10 +377,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         nonReentrant
     {
         _borrow(sweepAmount);
-
-        if (getEquityRatio() < minEquityRatio) {
-            revert EquityRatioExcessed();
-        }
+        _checkRatio();
     }
 
     /**
@@ -622,10 +619,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         }
 
         _invest(usdxAmount, 0, slippage);
-
-        if (getEquityRatio() < minEquityRatio){
-            revert EquityRatioExcessed();
-        }
+        _checkRatio();
     }
 
     function oneStepDivest(uint256 usdxAmount, uint256 slippage, bool useAMM)
@@ -658,9 +652,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
         TransferHelper.safeTransfer(token, msg.sender, amount);
 
-        if (sweepBorrowed > 0 && getEquityRatio() < minEquityRatio) {
-            revert EquityRatioExcessed();
-        }
+        if (sweepBorrowed > 0) _checkRatio();
 
         emit Withdrawn(token, amount);
     }
@@ -897,5 +889,9 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
                 usdx.decimals(),
                 oracleUsdx
             );
+    }
+
+    function _checkRatio() internal view {
+        if (getEquityRatio() < minEquityRatio) revert EquityRatioExcessed();
     }
 }

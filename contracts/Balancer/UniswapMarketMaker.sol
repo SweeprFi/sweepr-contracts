@@ -32,6 +32,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     int24 public constant TICK_SPACE = 10; // TICK_SPACE are 10, 60, 200
     uint256 private constant PRECISION = 1e6;
     uint256[] public positionIds;
+    uint256 public growPosition;
     uint32 public slippage; 
 
     // Errors
@@ -151,7 +152,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
-        if (getEquityRatio() < minEquityRatio) revert EquityRatioExcessed();
+        _checkRatio();
         emit SweepPurchased(usdxAmount);
     }
 
@@ -258,60 +259,25 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function addSingleLiquidity(uint256 usdxAmount, uint256 tickSpread) external onlyBorrower nonReentrant {
-        address self = address(this);
-        address poolAddress = IAMM(amm()).pool();
-        uint8 decimals = sweep.decimals();
-        uint256 targetPrice = sweep.targetPrice();
-        uint256 minPrice = ((PRECISION - tickSpread) * targetPrice) / PRECISION;
-
-        uint256 sweepAmount;
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
+        TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
         TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
-
-        int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
-        int24 minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, tickSpacing, flag);
-        int24 maxTick = liquidityHelper.getTickFromPrice(targetPrice, decimals, tickSpacing, flag);
-        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
-
-        (uint256 amount0Mint, uint256 amount1Mint) = flag
-            ? (usdxAmount, sweepAmount)
-            : (sweepAmount, usdxAmount);
-
-        (uint256 _tokenId,,,) = nonfungiblePositionManager.mint(
-                INonfungiblePositionManager.MintParams({
-                    token0: token0,
-                    token1: token1,
-                    fee: IUniswapV3Pool(poolAddress).fee(),
-                    tickLower: minTick,
-                    tickUpper: maxTick,
-                    amount0Desired: amount0Mint,
-                    amount1Desired: amount1Mint,
-                    amount0Min: amount0Mint,
-                    amount1Min: amount1Mint,
-                    recipient: self,
-                    deadline: block.timestamp
-                })
-            );
-
-        positionIds.push(_tokenId);
-        emit LiquidityAdded(usdxAmount, sweepAmount);
+        positionIds.push(_addSingleLiquidity(tickSpread, usdxAmount, 0));
     }
 
-    function removePosition(uint256 positionId)  external onlyBorrower nonReentrant {
-        (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(positionId);
-        nonfungiblePositionManager.decreaseLiquidity(
-            INonfungiblePositionManager.DecreaseLiquidityParams({
-                tokenId: positionId,
-                liquidity: _liquidity,
-                amount0Min: 0,
-                amount1Min: 0,
-                deadline: block.timestamp
-            })
-        );
-        _collect(positionId);
+    function lpGrow(uint256 sweepAmount, uint256 tickSpread) external onlyBorrower nonReentrant {
+        if(growPosition > 0) _removePosition(growPosition);
+        uint256 sweepBalance = sweep.balanceOf(address(this));
+        if(sweepAmount > sweepBalance) _borrow(sweepAmount - sweepBalance);
 
-        nonfungiblePositionManager.burn(positionId);
+        TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
+
+        growPosition = _addSingleLiquidity(tickSpread, 0, sweepAmount);
+        _checkRatio();
+    }
+
+    function removePosition(uint256 positionId) external onlyBorrower nonReentrant {
         _removePosition(positionId);
+        _removeId(positionId);
     }
 
     function setSlippage(uint32 newSlippage) external nonReentrant onlyBorrower {
@@ -348,6 +314,47 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         emit LiquidityAdded(usdxAmount, sweepAmount);
     }
 
+    function _addSingleLiquidity(
+        uint256 tickSpread,
+        uint256 usdxAmount,
+        uint256 sweepAmount
+    ) internal returns (uint256) {
+        address poolAddress = IAMM(amm()).pool();
+        uint8 decimals = sweep.decimals();
+        uint256 targetPrice = sweep.targetPrice();
+        uint256 maxPrice = ((PRECISION + tickSpread) * targetPrice) / PRECISION;
+
+        int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
+        uint24 fee = IUniswapV3Pool(poolAddress).fee();
+        int24 minTick = liquidityHelper.getTickFromPrice(targetPrice, decimals, tickSpacing, flag);
+        int24 maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, tickSpacing, flag);
+        // (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
+
+        (uint256 amount0Mint, uint256 amount1Mint) = flag
+            ? (usdxAmount, sweepAmount) : (sweepAmount, usdxAmount);
+
+        uint256 amount0Min = OvnMath.subBasisPoints(amount0Mint, slippage);
+        uint256 amount1Min = OvnMath.subBasisPoints(amount1Mint, slippage);
+
+        (uint256 _tokenId,,,) = nonfungiblePositionManager.mint(
+                INonfungiblePositionManager.MintParams({
+                    token0: token0,
+                    token1: token1,
+                    fee: fee,
+                    tickLower: minTick,
+                    tickUpper: maxTick,
+                    amount0Desired: amount0Mint,
+                    amount1Desired: amount1Mint,
+                    amount0Min: amount0Min,
+                    amount1Min: amount1Min,
+                    recipient: address(this),
+                    deadline: block.timestamp
+                })
+            );
+
+        return _tokenId;
+    }
+
     function _collect(uint256 id) internal {
         (uint256 amount0, uint256 amount1) = nonfungiblePositionManager.collect(
             INonfungiblePositionManager.CollectParams({
@@ -379,6 +386,26 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function _removePosition(uint256 positionId) internal {
+        (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(positionId);
+        nonfungiblePositionManager.decreaseLiquidity(
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: positionId,
+                liquidity: _liquidity,
+                amount0Min: 0,
+                amount1Min: 0,
+                deadline: block.timestamp
+            })
+        );
+        _collect(positionId);
+        nonfungiblePositionManager.burn(positionId);
+    }
+
+    function _removeId(uint256 positionId) internal {
+        if(positionId == growPosition) {
+            growPosition = 0;
+            return;
+        }
+
         uint256 len = positionIds.length;
         for (uint256 i = 0; i < len; ) {
             if(positionIds[i] == positionId) {

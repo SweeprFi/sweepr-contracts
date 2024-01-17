@@ -159,7 +159,7 @@ contract('Uniswap Market Maker', async () => {
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
     });
 
-    it('adds single side liquidty correctly', async () => {
+    it('adds single side liquidty for USDx correctly', async () => {
       usdcPoolBalance = await usdc.balanceOf(poolAddress);
       assetValue = await marketmaker.assetValue();
       singleAmount0 = toBN("3000", 6);
@@ -208,12 +208,51 @@ contract('Uniswap Market Maker', async () => {
       pUBB = await usdc.balanceOf(poolAddress);
       sUBB = await sweep.balanceOf(poolAddress);
 
-      await(marketmaker.buySweepOnAMM(amount, 3e5));
+      await marketmaker.buySweepOnAMM(amount, 3e5);
 
       expect(await usdc.balanceOf(marketmaker.address)).to.equal(mmUBB.sub(amount));
       expect(await sweep.balanceOf(marketmaker.address)).to.greaterThan(mmSBB);
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(pUBB);
       expect(await sweep.balanceOf(poolAddress)).to.lessThan(sUBB);
+    })
+
+    it('adds single side liquidty for SWEEP correctly', async () => {
+      singleAmount0 = toBN("1000", 18);
+      amount = toBN("35000", 18);
+      tickSpread = 750;
+
+      await marketmaker.sellSweepOnAMM(amount, 2e5);
+      assetValue = await marketmaker.assetValue();
+      sweepPoolBalance = await sweep.balanceOf(poolAddress);
+
+      expect(await sweep.ammPrice()).to.lessThan(await sweep.targetPrice());
+      expect(await marketmaker.growPosition()).to.equal(0);
+      await marketmaker.lpGrow(singleAmount0, tickSpread);
+
+      sweepBalance = await sweep.balanceOf(poolAddress);
+      expect(sweepBalance).to.greaterThan(sweepPoolBalance);
+      growPosition = await marketmaker.growPosition();
+      expect(growPosition).to.greaterThan(0);
+
+      singleAmount1 = toBN("2000", 18);
+      await marketmaker.lpGrow(singleAmount1, tickSpread);
+      expect(await marketmaker.growPosition()).to.not.equal(growPosition);
+    });
+
+    it('removes the grow position id', async () => {
+      positionId = await marketmaker.growPosition();
+      sweepBalance = await sweep.balanceOf(marketmaker.address);
+      tickSpread = 1000;
+
+      expect(positionId).to.not.equal(0);
+      await marketmaker.removePosition(positionId);
+
+      expect(await marketmaker.growPosition()).to.equal(0);
+      expect(await sweep.balanceOf(marketmaker.address)).to.greaterThan(sweepBalance);
+
+      singleAmount2 = toBN("2000", 18);
+      await marketmaker.lpGrow(singleAmount2, tickSpread);
+      expect(await marketmaker.growPosition()).to.greaterThan(0);
     })
   })
 });
