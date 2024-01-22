@@ -123,12 +123,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     /**
      * @notice Implementing `onERC721Received` so this contract can receive custody of erc721 tokens
      */
-    function onERC721Received(address, address, uint256 _tokenId, bytes calldata) external override returns (bytes4) {
-        if (msg.sender != address(nonfungiblePositionManager))
-            revert OnlyPositionManager();
-        if (tradePosition > 0) revert AlreadyMinted();
-        tradePosition = _tokenId;
-
+    function onERC721Received(address, address, uint256, bytes calldata) external override pure returns (bytes4) {
         return this.onERC721Received.selector;
     }
 
@@ -245,7 +240,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         if(usdxAmount > usdxBalance)
             TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount - usdxBalance);
         TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
-        redeemPosition = _addSingleLiquidity(tickSpread, usdxAmount, 0);
+        redeemPosition = _addSingleSidedLiquidity(tickSpread, usdxAmount, 0);
     }
 
     function lpGrow(uint256 sweepAmount, uint256 tickSpread) external onlyBorrower nonReentrant {
@@ -255,7 +250,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
 
         TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
 
-        growPosition = _addSingleLiquidity(tickSpread, 0, sweepAmount);
+        growPosition = _addSingleSidedLiquidity(tickSpread, 0, sweepAmount);
         _checkRatio();
     }
 
@@ -304,7 +299,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         emit LiquidityAdded(usdxAmount, sweepAmount);
     }
 
-    function _addSingleLiquidity(
+    function _addSingleSidedLiquidity(
         uint256 tickSpread,
         uint256 usdxAmount,
         uint256 sweepAmount
@@ -387,14 +382,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         );
         _collect(positionId);
         nonfungiblePositionManager.burn(positionId);
-    }
-
-    function _addToPosition(uint256 position, uint256 usdxAmount, uint256 sweepAmount) internal view {
-        if (position > 0) {
-            (uint256 amount0, uint256 amount1,) = amm().getPositions(position);
-            usdxAmount += amount0;
-            sweepAmount += amount1;
-        }
     }
 
     function _getLiquidity(uint256 position) internal view returns(uint128 liquidity) {

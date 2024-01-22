@@ -106,7 +106,7 @@ contract.only('Uniswap Market Maker', async () => {
       expect(await marketmaker.tradePosition()).to.not.equal(tradeId);
     });
 
-    it('changes the price swaping and add liquidity again', async () => {
+    it('changes the price by swaping and adding liquidity again', async () => {
       ammPrice = await sweep.ammPrice()
       usdcBefore = await usdc.balanceOf(marketmaker.address);
       sweepBefore = await sweep.balanceOf(marketmaker.address);
@@ -162,7 +162,7 @@ contract.only('Uniswap Market Maker', async () => {
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
     });
 
-    it('adds single side liquidty for USDx correctly', async () => {
+    it('adds single sided liquidty for USDx correctly', async () => {
       usdcPoolBalance = await usdc.balanceOf(poolAddress);
       assetValue = await marketmaker.assetValue();
       singleAmount0 = toBN("3000", 6);
@@ -216,7 +216,7 @@ contract.only('Uniswap Market Maker', async () => {
       expect(await sweep.balanceOf(poolAddress)).to.lessThan(sUBB);
     })
 
-    it('adds single side liquidty for SWEEP correctly', async () => {
+    it('adds single side liquidity for SWEEP correctly', async () => {
       singleAmount0 = toBN("1000", 18);
       amount = toBN("10000", 18);
       tickSpread = 750;
