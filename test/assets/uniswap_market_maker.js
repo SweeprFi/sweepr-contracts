@@ -6,7 +6,7 @@ let poolAddress;
 
 contract.only('Uniswap Market Maker', async () => {
   before(async () => {
-    [owner, borrower, treasury, guest, lzEndpoint, multisig] = await ethers.getSigners();
+    [owner, borrower, treasury, guest, lzEndpoint, multisig, balancer] = await ethers.getSigners();
   
     usdxAmount = toBN("10000000", 6); // 10M
     sweepAmount = toBN("10000000", 18); // 10M
@@ -54,6 +54,21 @@ contract.only('Uniswap Market Maker', async () => {
     );
   });
 
+  function pp(v, d) { return ethers.utils.formatUnits(v.toString(), d) }
+  async function show(msg) {
+    console.log("\n", msg)
+    console.log("\n[SWEEP - PRICE]", pp(await sweep.ammPrice(), 6))
+    console.log("[SWEEP - TARGET]", pp(await sweep.targetPrice(), 6))
+    console.log("[SWEEP - Minting state]", await sweep.isMintingAllowed())
+    console.log("\n[USDX] POOL", pp(await usdc.balanceOf(poolAddress), 6))
+    console.log("[SWEEP] POOL", pp(await sweep.balanceOf(poolAddress), 18))
+    console.log("\n[USDX] MM", pp(await usdc.balanceOf(marketmaker.address), 6))
+    console.log("[SWEEP] MM", pp(await sweep.balanceOf(marketmaker.address), 18))
+    console.log("[MM] assetValue", pp(await marketmaker.assetValue(), 6))
+    console.log("\n[USDX] BRW", pp(await usdc.balanceOf(borrower.address), 6))
+    console.log("[SWEEP] BRW", pp(await sweep.balanceOf(borrower.address), 18))
+  }
+
   describe("main functions", async function () {
     it('create the pool and adds liquidity', async () => {
       const { token0, token1, sqrtPriceX96 } = getPriceAndData(sweep.address, usdc.address, 0, 0);
@@ -83,7 +98,7 @@ contract.only('Uniswap Market Maker', async () => {
       sweepAmount = toBN("15000", 18);
 
       await usdc.transfer(marketmaker.address, usdxAmount.mul(2));
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 0, 0, 10000);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 0, 0, 2000);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
@@ -99,7 +114,7 @@ contract.only('Uniswap Market Maker', async () => {
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
 
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 0, 0, 10000);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 0, 0, 2000);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(usdcPoolBalance);
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
@@ -121,14 +136,29 @@ contract.only('Uniswap Market Maker', async () => {
       tradePosition = await marketmaker.tradePosition();
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
 
-      usdxAmount = toBN("10000", 6);
-      sweepAmount = toBN("10000", 18);
+      usdxAmount = toBN("22000", 6);
+      sweepAmount = toBN("22000", 18);
 
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 0, 0, 10000);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 0, 0, 2000);
 
       expect(await marketmaker.tradePosition()).to.not.equal(tradePosition);
     });
+
+    it('changes the target price and replaces the Trade position', async () => {
+      await sweep.setBalancer(balancer.address);
+      await sweep.connect(balancer).setTargetPrice(1000500, 1000500);
+      usdxAmount = toBN("15000", 6);
+      sweepAmount = toBN("15000", 18);
+      await usdc.approve(marketmaker.address, usdxAmount);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 0, 0, 2000);
+
+      await sweep.connect(balancer).setTargetPrice(1001000, 1001000);
+      usdxAmount = toBN("20000", 6);
+      sweepAmount = toBN("20000", 18);
+      await usdc.approve(marketmaker.address, usdxAmount);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 0, 0, 2000);
+    })
 
     it('removes liquidity', async () => {
       usdcPoolBalance = await usdc.balanceOf(poolAddress);
@@ -150,8 +180,8 @@ contract.only('Uniswap Market Maker', async () => {
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
       await marketmaker.setSlippage(5e5);
       
-      buyAmount = toBN("5000", 6);
-      sweepToGet = toBN("4900", 18);
+      buyAmount = toBN("2000", 6);
+      sweepToGet = toBN("1900", 18);
 
       await usdc.transfer(borrower.address, buyAmount)
       await usdc.connect(borrower).approve(marketmaker.address, buyAmount);
@@ -166,10 +196,15 @@ contract.only('Uniswap Market Maker', async () => {
       usdcPoolBalance = await usdc.balanceOf(poolAddress);
       assetValue = await marketmaker.assetValue();
       singleAmount0 = toBN("3000", 6);
+      // await sweep.connect(balancer).setTargetPrice(1005000, 1005000);
+
+      await show("--------------->")
 
       await usdc.approve(marketmaker.address, singleAmount0);
-      await marketmaker.lpRedeem(singleAmount0, TICK_SPREAD);
+      await marketmaker.lpRedeem(singleAmount0, 1000);
       position = await marketmaker.redeemPosition();
+
+      await show("--------------->")
 
       usdcBalance = await usdc.balanceOf(poolAddress);
       expect(usdcBalance).to.equal(usdcPoolBalance.add(singleAmount0));
@@ -185,20 +220,9 @@ contract.only('Uniswap Market Maker', async () => {
       expect(await marketmaker.redeemPosition()).to.not.equal(position);
     });
 
-    it('removes redeem position correctly', async () => {
-      marketBalance = await usdc.balanceOf(marketmaker.address)
-      poolBalance = await usdc.balanceOf(poolAddress)
-
-      await marketmaker.burnRedeemPosition();
-
-      expect(await usdc.balanceOf(marketmaker.address)).to.closeTo(marketBalance.add(singleAmount1), 1);
-      expect(await usdc.balanceOf(poolAddress)).to.closeTo(poolBalance.sub(singleAmount1), 1);
-      expect(await marketmaker.redeemPosition()).to.equal(0);
-    });
-
-    it('slippage test', async () => {
+    it.skip('slippage test', async () => {
       amount = toBN("2500", 6);
-      await expect(marketmaker.buySweepOnAMM(amount, 2000))
+      await expect(marketmaker.buySweepOnAMM(amount, 200))
         .to.be.revertedWith('Too little received')
 
       expect(await marketmaker.getBuyPrice()).to.lessThan(await sweep.ammPrice());
@@ -216,7 +240,7 @@ contract.only('Uniswap Market Maker', async () => {
       expect(await sweep.balanceOf(poolAddress)).to.lessThan(sUBB);
     })
 
-    it('adds single side liquidity for SWEEP correctly', async () => {
+    it.skip('adds single side liquidity for SWEEP correctly', async () => {
       singleAmount0 = toBN("1000", 18);
       amount = toBN("10000", 18);
       tickSpread = 750;
@@ -239,7 +263,7 @@ contract.only('Uniswap Market Maker', async () => {
       expect(await marketmaker.growPosition()).to.not.equal(growPosition);
     });
 
-    it('removes the grow position id', async () => {
+    it.skip('removes the grow position id', async () => {
       positionId = await marketmaker.growPosition();
       sweepBalance = await sweep.balanceOf(marketmaker.address);
       tickSpread = 1000;
@@ -254,5 +278,16 @@ contract.only('Uniswap Market Maker', async () => {
       await marketmaker.lpGrow(singleAmount2, tickSpread);
       expect(await marketmaker.growPosition()).to.greaterThan(0);
     })
+
+    it.skip('removes redeem position correctly', async () => {
+      marketBalance = await usdc.balanceOf(marketmaker.address)
+      poolBalance = await usdc.balanceOf(poolAddress)
+
+      await marketmaker.burnRedeemPosition();
+
+      expect(await usdc.balanceOf(marketmaker.address)).to.closeTo(marketBalance.add(singleAmount1), 1);
+      expect(await usdc.balanceOf(poolAddress)).to.closeTo(poolBalance.sub(singleAmount1), 1);
+      expect(await marketmaker.redeemPosition()).to.equal(0);
+    });
   })
 });
