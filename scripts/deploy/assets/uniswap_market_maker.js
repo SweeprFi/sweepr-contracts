@@ -1,15 +1,15 @@
 const { ethers } = require("hardhat");
-const { addresses } = require("../../../utils/address");
+const { tokens, network, wallets, deployments, chainlink } = require("../../../utils/constants");
 const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
     [deployer] = await ethers.getSigners();
     const assetName = 'Uniswap Market Maker';
-    const sweep = addresses.sweep;
-    const usdc = addresses.usdc;
-    const liquidityHelper = addresses.liquidity_helper;
-    const oracleUsdc = addresses.oracle_usdc_usd;
-    const borrower = addresses.multisig;
+    const sweep = tokens.sweep;
+    const usdc = tokens.usdc;
+    const liquidityHelper = deployments.liquidity_helper;
+    const oracleUsdc = chainlink.usdc_usd;
+    const borrower = wallets.multisig;
 
     console.log("===========================================");
     console.log("UNISWAP MARKET MAKER ASSET DEPLOY");

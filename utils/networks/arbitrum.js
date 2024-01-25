@@ -116,17 +116,17 @@ module.exports = {
         approver: '0x06d94665f02322781303224120326167483F5BD2',
         vesting_approver: '0x483761F16A7c978df09d1e7E22532e9DbD2Ee8D0',
         proposal_sender: '0xC6c730E0424A01BF6e1A2ff4Ffac8540E29Dd185',
-        liquidity_helper: '0x7560d15774499386B04A64177E090B33e803493F',
+        liquidity_helper: '0x11601A39307f2600a3650CA890cbaD253cdE1E38',
         rates_oracle: '0x0a843cC59346EB6e925D6e42263e6148197c96F8',
         curve_pool: '0x9097065db449a59ce30bec522e1e077292c0d8fc',
         curve_amm: '0x06128C0948b36eEBB863C34398e6E3043C879A9f',
         uniswap_pool: '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
-        uniswap_amm: '0x83e8D13C807863B35d2DE6D45d0f52487366e269',
+        uniswap_amm: '0xdA65daC88104ae4011C731d7DB0b5a04A683d550',
 
         assets: {
             balancer_market_maker: '0x30F5623c58bc93dB78FCa53D968B871A129Dfa31', // '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',
             curve_market_maker: '0x97f159A0b17f2808fd5cbFf4Fa2B35cEA710373A', // '0x6Bed9737Ef82588E91F6fae874a9beb577A3f0BD',
-            uniswap_market_maker: '0xBAd1ac2433ffA6EEeD9f27067eF4FdD148d911F1',
+            uniswap_market_maker: '0xBAd1ac2433ffA6EEeD9f27067eF4FdD148d911F1', // New: 0xD1209Da55A5BD569311Adb6b12e7B27cb93d9cd2
             silo: '0x53b5fae6e17c7f9b35952779150446e99a4887d3',
             balancer4pool: '0x591EcCf1847BF12C7B5F999E33c162dB90cB17C8',
         }

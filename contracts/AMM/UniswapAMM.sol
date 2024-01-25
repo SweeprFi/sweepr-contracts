@@ -36,7 +36,6 @@ contract UniswapAMM {
     LiquidityHelper private immutable liquidityHelper;
     IMarketMaker public marketMaker;
 
-    uint8 private constant USD_DECIMALS = 6;
     // Uniswap V3
     uint32 private constant LOOKBACK = 1 days;
     uint16 private constant DEADLINE_GAP = 15 minutes;
