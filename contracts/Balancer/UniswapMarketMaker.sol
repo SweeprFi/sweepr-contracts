@@ -27,6 +27,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     // Variables
     address public token0;
     address public token1;
+    address public ammAddress;
     bool private immutable flag; // The sort status of tokens
     int24 public constant TICK_SPACE = 10; // TICK_SPACE are 10, 60, 200
     uint256 private constant PRECISION = 1e6;
@@ -70,6 +71,10 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         return _getLiquidity(redeemPosition);
     }
 
+    function amm() public view override returns (IAMM) {
+        return IAMM(ammAddress);
+    }
+
     /**
     /**
      * @notice Gets the asset price of AMM
@@ -100,6 +105,11 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     function setSlippage(uint32 newSlippage) external nonReentrant onlyBorrower {
         if(newSlippage > PRECISION) revert BadSlippage();
         slippage = newSlippage;
+    }
+
+    function setAMM(address newAmm) external nonReentrant onlyBorrower {
+        if(newAmm == address(0)) revert ZeroAddressDetected();
+        ammAddress = newAmm;
     }
 
     /**
@@ -285,7 +295,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 minPrice,
         uint256 maxPrice
     ) internal returns (uint256) {
-        address poolAddress = IAMM(amm()).pool();
+        address poolAddress = amm().pool();
         uint8 decimals = sweep.decimals();
 
         int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();

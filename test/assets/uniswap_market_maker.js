@@ -78,6 +78,7 @@ contract.only('Uniswap Market Maker', async () => {
         liquidityHelper.address
       );
       await sweep.setAMM(amm.address);
+      await marketmaker.setAMM(amm.address);
 
       usdxAmount = toBN("15000", 6);
       sweepAmount = toBN("15000", 18);
