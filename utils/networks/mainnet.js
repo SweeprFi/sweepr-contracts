@@ -92,6 +92,8 @@ module.exports = {
         balancer_pool: '0xa468570dB143321Bc034BbD74A6Cc2694d15B252',
         balancer_amm: '0x9cE2837d6d84bb521A5a3002a2132B9E9E9cc4C8', // '0x28d5a9a0B763F219093Eb01056678e8e702Bf58A', // 0xe3E123ED9fec48a6f40A8aC7bE9afEDDAD80F146
         proposal_executor: '0xCFcE64f865f84144F9e6FA7C574F580B3eB878e6',
+        curve_pool: '0x128a8d3081c64a7673234d236b78bb7dbc056a2b',
+        curve_gauge: '0x6700cCF3404ef67d1abB7763c65749F62A762545',
 
         assets: {
             uniswap: '0x676524646377A6e66Ca797edF7CCB1B5162a8cE0',

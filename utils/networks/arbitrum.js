@@ -110,6 +110,7 @@ module.exports = {
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         distributor: '0x90453f4969420c2DCE4344431303EAE679dB8F0b',
         balancer_pool: '0xef093ccfdd4d5a590b028463e0528049939889c9',
+        balancer_gauge: '0x38E434d74eabaf27169aC1c934886F344e332ba8',
         balancer_amm: '0x72E5b0E088c895ab0d6A86d14943C63aD735B7Cc', // '0x3bB6861c0Be6673809D55b9D346b6774B634a9D7',
         timelock: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         approver: '0x06d94665f02322781303224120326167483F5BD2',
