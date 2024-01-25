@@ -208,7 +208,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
 
         uint256 targetPrice = sweep.targetPrice();
-        uint256 ammPrice = sweep.ammPrice();
+        uint256 ammPrice = amm().getPrice();
         uint256 minimum = targetPrice < ammPrice ? targetPrice : ammPrice;
         uint256 maxPrice = minimum - 300;
         uint256 minPrice = ((PRECISION - tickSpread) * maxPrice) / PRECISION;
@@ -224,7 +224,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
 
         uint256 targetPrice = sweep.targetPrice();
-        uint256 ammPrice = sweep.ammPrice();
+        uint256 ammPrice = amm().getPrice();
 
         uint256 maximum = targetPrice > ammPrice ? targetPrice : ammPrice;
         uint256 minPrice = maximum + 300;
