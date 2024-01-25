@@ -11,7 +11,7 @@ async function main() {
     const frequency = 86400;
     const sequencer = chainlink.sequencer;
     const helper = deployments.liquidity_helper;
-    const fee = 100;
+    const pool = deployments.uniswap_pool;
 
     console.log("===========================================");
     console.log("UNISWAP AMM PLUGIN DEPLOY");
@@ -22,7 +22,7 @@ async function main() {
     console.log("SWEEP:", sweep);
     console.log("USDC:", usdc);
     console.log("Sequencer:", sequencer);
-    console.log("Fee:", fee);
+    console.log("Pool:", pool);
     console.log("USDC/USD Chainlink Oracle:", oracle);
     console.log("Oracle Frequency:", frequency);
     console.log("Liquidity helper:", helper);
@@ -32,11 +32,11 @@ async function main() {
     console.log("Deploying...");
 
     const uniswapAMMInstance = await ethers.getContractFactory("UniswapAMM");
-    const amm = await uniswapAMMInstance.deploy(sweep, usdc, sequencer, fee, oracle, frequency, helper);
+    const amm = await uniswapAMMInstance.deploy(sweep, usdc, sequencer, pool, oracle, frequency, helper);
 
     console.log("===========================================");
     console.log(`UniswapAMM Deployed to:${amm.address}`);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${usdc} ${sequencer} ${fee} ${oracle} ${frequency} ${helper}`);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${usdc} ${sequencer} ${pool} ${oracle} ${frequency} ${helper}`);
 }
 
 main();
