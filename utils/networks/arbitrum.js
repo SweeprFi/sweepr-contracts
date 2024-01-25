@@ -123,6 +123,7 @@ module.exports = {
         assets: {
             balancer_market_maker: '0x30F5623c58bc93dB78FCa53D968B871A129Dfa31', // '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',
             curve_market_maker: '0x97f159A0b17f2808fd5cbFf4Fa2B35cEA710373A', // '0x6Bed9737Ef82588E91F6fae874a9beb577A3f0BD',
+            uniswap_market_maker: '0xFb139e0E8477a7EEF62083CF4d1a17bB3bD750Cd',
             silo: '0x53b5fae6e17c7f9b35952779150446e99a4887d3',
             balancer4pool: '0x591EcCf1847BF12C7B5F999E33c162dB90cB17C8',
         }
