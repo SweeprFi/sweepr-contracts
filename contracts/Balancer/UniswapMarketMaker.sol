@@ -18,6 +18,8 @@ import "../Stabilizer/Stabilizer.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
+import "hardhat/console.sol";
+
 contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     // Uniswap V3 Position Manager
     INonfungiblePositionManager public constant nonfungiblePositionManager =
@@ -219,11 +221,20 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
 
         uint256 targetPrice = sweep.targetPrice();
         uint256 ammPrice = amm().getPrice();
-        uint256 minimum = targetPrice < ammPrice ? targetPrice : ammPrice;
-        uint256 maxPrice = minimum - 300;
+        uint256 maxPrice = targetPrice < ammPrice ? targetPrice : ammPrice;
         uint256 minPrice = ((PRECISION - tickSpread) * maxPrice) / PRECISION;
+        address poolAddress = amm().pool();
 
-        redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minPrice, maxPrice);
+        int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
+        int24 currentTick = liquidityHelper.getCurrentTick(poolAddress);
+
+        (int24 minTick, int24 maxTick) = _calculateTicks(minPrice, maxPrice, tickSpacing);
+        if(maxTick == currentTick) {
+            minTick += tickSpacing;
+            maxTick += tickSpacing;
+        }
+
+        redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minTick, maxTick);
     }
 
     function lpGrow(uint256 sweepAmount, uint256 tickSpread, uint256 sweepSlippage) external onlyBorrower nonReentrant {
@@ -236,11 +247,22 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 targetPrice = sweep.targetPrice();
         uint256 ammPrice = amm().getPrice();
 
-        uint256 maximum = targetPrice > ammPrice ? targetPrice : ammPrice;
-        uint256 minPrice = maximum + 300;
+        uint256 minPrice = targetPrice > ammPrice ? targetPrice : ammPrice;
         uint256 maxPrice = ((PRECISION + tickSpread) * minPrice) / PRECISION;
+        address poolAddress = amm().pool();
 
-        growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minPrice, maxPrice);
+        int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
+        int24 currentTick = liquidityHelper.getCurrentTick(poolAddress);
+
+        (int24 minTick, int24 maxTick) = _calculateTicks(minPrice, maxPrice, tickSpacing);
+        if(currentTick < 0) tickSpacing = -tickSpacing;
+
+        if(minTick == currentTick) {
+            minTick += tickSpacing;
+            maxTick += tickSpacing;
+        }
+
+        growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minTick, maxTick);
         _checkRatio();
     }
 
@@ -292,17 +314,9 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 usdxAmount,
         uint256 sweepAmount,
         uint256 _slippage,
-        uint256 minPrice,
-        uint256 maxPrice
+        int24 minTick,
+        int24 maxTick
     ) internal returns (uint256) {
-        address poolAddress = amm().pool();
-        uint8 decimals = sweep.decimals();
-
-        int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
-        int24 minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, tickSpacing, flag);
-        int24 maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, tickSpacing, flag);
-        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
-
         (uint256 amount0Mint, uint256 amount1Mint) = flag
             ? (usdxAmount, sweepAmount) : (sweepAmount, usdxAmount);
 
@@ -393,5 +407,14 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
                 deadline: block.timestamp
             })
         );
+    }
+
+    function _calculateTicks(uint256 minPrice, uint256 maxPrice, int24 tickSpacing)
+        internal view returns (int24 minTick, int24 maxTick)
+    {
+        uint8 decimals = sweep.decimals();
+        minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, tickSpacing, flag);
+        maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, tickSpacing, flag);
+        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
     }
 }

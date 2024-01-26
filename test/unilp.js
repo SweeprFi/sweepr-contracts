@@ -36,29 +36,34 @@ contract.only("===============", async function () {
         // end ==============================================
     });
 
+    function pp(v, d) { return ethers.utils.formatUnits(v.toString(), d) }
+
     it("lp actions", async function () {
         sweep35 = toBN("35", 18);
         sweep90 = toBN("90", 18);
 
-        console.log("POOL USDC:", await usdc.balanceOf(POOL));
-        console.log("POOL SWEEP:", await sweep.balanceOf(POOL));
-        console.log("MM USDC:", await usdc.balanceOf(market.address));
-        console.log("MM SWEEP:", await sweep.balanceOf(market.address));
+        console.log("INIT ===============================")
+        console.log("POOL USDC:", pp(await usdc.balanceOf(POOL),6));
+        console.log("POOL SWEEP:", pp(await sweep.balanceOf(POOL),18));
+        console.log("MM USDC:", pp(await usdc.balanceOf(market.address),6));
+        console.log("MM SWEEP:", pp(await sweep.balanceOf(market.address),18));
 
-        await market.connect(multisig).lpGrow(sweep90, 1000000, 2000);
+        await market.connect(multisig).lpGrow(sweep90, 1000, 1000);
 
-        console.log("POOL USDC:", await usdc.balanceOf(POOL));
-        console.log("POOL SWEEP:", await sweep.balanceOf(POOL));
-        console.log("MM USDC:", await usdc.balanceOf(market.address));
-        console.log("MM SWEEP:", await sweep.balanceOf(market.address));
+        console.log("\nGROW POSITION ===============================")
+        console.log("POOL USDC:", pp(await usdc.balanceOf(POOL),6));
+        console.log("POOL SWEEP:", pp(await sweep.balanceOf(POOL),18));
+        console.log("MM USDC:", pp(await usdc.balanceOf(market.address),6));
+        console.log("MM SWEEP:", pp(await sweep.balanceOf(market.address),18));
 
-        await market.connect(multisig).lpRedeem(90e6, 1000000, 2000);
+        await market.connect(multisig).lpRedeem(90e6, 1000, 1000);
 
-        console.log("POOL USDC:", await usdc.balanceOf(POOL));
-        console.log("POOL SWEEP:", await sweep.balanceOf(POOL));
-        console.log("MM USDC:", await usdc.balanceOf(market.address));
-        console.log("MM SWEEP:", await sweep.balanceOf(market.address));
-        
+        console.log("\nREDEEM POSITION ===============================")
+        console.log("POOL USDC:", pp(await usdc.balanceOf(POOL),6));
+        console.log("POOL SWEEP:", pp(await sweep.balanceOf(POOL),18));
+        console.log("MM USDC:", pp(await usdc.balanceOf(market.address),6));
+        console.log("MM SWEEP:", pp(await sweep.balanceOf(market.address),18));
+
         // await market.connect(multisig).burnTradePosition();
         // await sweep.connect(owner).approve(amm.address, amount);
         // await amm.connect(owner).sellSweep(usdc.address, amount, minAmount);
