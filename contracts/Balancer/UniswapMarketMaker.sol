@@ -301,7 +301,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
         int24 minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, tickSpacing, flag);
         int24 maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, tickSpacing, flag);
-        // (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
+        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
 
         (uint256 amount0Mint, uint256 amount1Mint) = flag
             ? (usdxAmount, sweepAmount) : (sweepAmount, usdxAmount);
