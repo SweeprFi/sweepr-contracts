@@ -18,6 +18,7 @@ import "../Stabilizer/Stabilizer.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
+import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 import "hardhat/console.sol";
 
 contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
@@ -171,71 +172,81 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         _decreaseLiquidity(tokenId, uint128(liquidityAmount), amountOut0, amountOut1);
     }
 
-    /**
-     * @notice Increases liquidity in the current range
-     * @dev Pool must be initialized already to add liquidity
-     * @param usdxAmount USDX Amount of asset to be deposited
-     * @param sweepAmount Sweep Amount of asset to be deposited
-     * @param usdxSlippage Min USDX amount to be used for liquidity.
-     * @param sweepSlippage Min Sweep amount to be used for liquidity.
-     */
-    function lpTrade(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxSlippage, uint256 sweepSlippage, uint256 spread)
-        external onlyBorrower whenNotPaused nonReentrant
-    {
-        address self = address(this);
-        if(tradePosition > 0) _removePosition(tradePosition);
-        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
+    // /**
+    //  * @notice Increases liquidity in the current range
+    //  * @dev Pool must be initialized already to add liquidity
+    //  * @param usdxAmount USDX Amount of asset to be deposited
+    //  * @param sweepAmount Sweep Amount of asset to be deposited
+    //  * @param usdxSlippage Min USDX amount to be used for liquidity.
+    //  * @param sweepSlippage Min Sweep amount to be used for liquidity.
+    //  */
+    // function lpTrade(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxSlippage, uint256 sweepSlippage, uint256 spread)
+    //     external onlyBorrower whenNotPaused nonReentrant
+    // {
+    //     address self = address(this);
+    //     if(tradePosition > 0) _removePosition(tradePosition);
+    //     (uint256 usdxBalance, uint256 sweepBalance) = _balances();
 
-        if(sweepAmount > sweepBalance) {
-            if (sweep.isMintingAllowed()) {
-                _borrow(sweepAmount - sweepBalance);
-            } else {
-                TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount - sweepBalance);
-            }
-        }
+    //     if(sweepAmount > sweepBalance) {
+    //         if (sweep.isMintingAllowed()) {
+    //             _borrow(sweepAmount - sweepBalance);
+    //         } else {
+    //             TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount - sweepBalance);
+    //         }
+    //     }
 
-        if(usdxAmount > usdxBalance)
-            TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount - usdxBalance);
+    //     if(usdxAmount > usdxBalance)
+    //         TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount - usdxBalance);
 
-        _approveNFTManager(usdxAmount, sweepAmount);
-        (int24 minTick, int24 maxTick) = showTicks(spread);
+    //     _approveNFTManager(usdxAmount, sweepAmount);
+    //     (int24 minTick, int24 maxTick) = showTicks(spread);
 
-        uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, usdxSlippage);
-        uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, sweepSlippage);
+    //     uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, usdxSlippage);
+    //     uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, sweepSlippage);
 
-        (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn) = flag
-            ? (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn)
-            : (sweepAmount, usdxAmount, sweepMinIn, usdxMinIn);
+    //     (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn) = flag
+    //         ? (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn)
+    //         : (sweepAmount, usdxAmount, sweepMinIn, usdxMinIn);
 
-        tradePosition = _mintPosition(minTick, maxTick, usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
-        _checkRatio();
-    }
+    //     tradePosition = _mintPosition(minTick, maxTick, usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
+    //     _checkRatio();
+    // }
 
-    function lpRedeem(uint256 usdxAmount, uint256 tickSpread, uint256 usdxSlippage) external onlyBorrower nonReentrant {
-        if(redeemPosition > 0) _removePosition(redeemPosition);
+    // function lpRedeem(uint256 usdxAmount, uint256 tickSpread, uint256 usdxSlippage) external onlyBorrower nonReentrant {
+    //     if(redeemPosition > 0) _removePosition(redeemPosition);
 
-        uint256 usdxBalance = usdx.balanceOf(address(this));
-        if(usdxAmount > usdxBalance)
-            TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount - usdxBalance);
-        TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
+    //     uint256 usdxBalance = usdx.balanceOf(address(this));
+    //     if(usdxAmount > usdxBalance)
+    //         TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount - usdxBalance);
+    //     TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
 
-        uint256 targetPrice = sweep.targetPrice();
-        uint256 ammPrice = amm().getPrice();
-        uint256 maxPrice = targetPrice < ammPrice ? targetPrice : ammPrice;
-        uint256 minPrice = ((PRECISION - tickSpread) * maxPrice) / PRECISION;
-        address poolAddress = amm().pool();
+    //     uint256 targetPrice = sweep.targetPrice();
+    //     uint256 ammPrice = amm().getPrice();
+    //     uint256 maxPrice = targetPrice < ammPrice ? targetPrice : ammPrice;
+    //     uint256 minPrice = ((PRECISION - tickSpread) * maxPrice) / PRECISION;
+    //     address poolAddress = amm().pool();
 
-        int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
-        int24 currentTick = liquidityHelper.getCurrentTick(poolAddress);
+    //     int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
 
-        (int24 minTick, int24 maxTick) = _calculateTicks(minPrice, maxPrice, tickSpacing);
-        if(maxTick == currentTick) {
-            minTick += tickSpacing;
-            maxTick += tickSpacing;
-        }
+        
 
-        redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minTick, maxTick);
-    }
+    //     (int24 minTick, int24 maxTick) = _calculateTicks(minPrice, maxPrice, tickSpacing);
+    //     minTick -= tickSpacing;
+    //     maxTick -= tickSpacing;
+
+    //     // int24 currentTick = liquidityHelper.getCurrentTick(poolAddress);
+    //     // console.log("CurrentTick:");
+    //     // console.log(uint256(uint24(currentTick)));
+    //     // console.log("MinTick:");
+    //     // console.log(uint256(uint24(minTick)));
+    //     // console.log("MaxTick:");
+    //     // console.log(uint256(uint24(maxTick)));
+
+    //     minTick = 276340;
+    //     maxTick = 276350;
+
+    //     redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minTick, maxTick);
+    // }
 
     function lpGrow(uint256 sweepAmount, uint256 tickSpread, uint256 sweepSlippage) external onlyBorrower nonReentrant {
         if(growPosition > 0) _removePosition(growPosition);
@@ -252,15 +263,42 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         address poolAddress = amm().pool();
 
         int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
-        int24 currentTick = liquidityHelper.getCurrentTick(poolAddress);
 
         (int24 minTick, int24 maxTick) = _calculateTicks(minPrice, maxPrice, tickSpacing);
-        if(currentTick < 0) tickSpacing = -tickSpacing;
+        minTick += tickSpacing;
+        maxTick += tickSpacing;
 
-        if(minTick == currentTick) {
-            minTick += tickSpacing;
-            maxTick += tickSpacing;
-        }
+        int24 currentTick = liquidityHelper.getCurrentTick(poolAddress);
+        console.log("CurrentTick:");
+        console.log(uint256(uint24(currentTick)));
+        console.log("MinTick:");
+        console.log(uint256(uint24(minTick)));
+        console.log("MaxTick:");
+        console.log(uint256(uint24(maxTick)));
+
+        console.log("CurrentPrice:");
+        console.log(ammPrice);
+        console.log("minPrice:");
+        console.log(minPrice);
+        console.log("maxPrice:");
+        console.log(maxPrice);
+
+        uint256 ttp = OracleLibrary.getQuoteAtTick(
+            currentTick,
+            uint128(10 ** usdx.decimals()),
+            address(usdx),
+            address(sweep)
+        );
+
+        console.log("CurrentTickToPrice:");
+        console.log(ttp);
+        
+        console.log("getSqrtRatioAtTick:");
+        console.log(TickMath.getSqrtRatioAtTick(276140));
+
+
+        minTick = 276340;
+        maxTick = 276350;
 
         growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minTick, maxTick);
         _checkRatio();

@@ -48,7 +48,7 @@ contract.only("===============", async function () {
         console.log("MM USDC:", pp(await usdc.balanceOf(market.address),6));
         console.log("MM SWEEP:", pp(await sweep.balanceOf(market.address),18));
 
-        await market.connect(multisig).lpGrow(sweep90, 1000, 1000);
+        await market.connect(multisig).lpGrow(sweep90, 1000, 1000000);
 
         console.log("\nGROW POSITION ===============================")
         console.log("POOL USDC:", pp(await usdc.balanceOf(POOL),6));
@@ -56,9 +56,9 @@ contract.only("===============", async function () {
         console.log("MM USDC:", pp(await usdc.balanceOf(market.address),6));
         console.log("MM SWEEP:", pp(await sweep.balanceOf(market.address),18));
 
-        await market.connect(multisig).lpRedeem(90e6, 1000, 1000);
+        await market.connect(multisig).lpRedeem(90e6, 1000, 1000000);
 
-        console.log("\nREDEEM POSITION ===============================")
+        console.log("\nREDEEM POSITION ===============================");
         console.log("POOL USDC:", pp(await usdc.balanceOf(POOL),6));
         console.log("POOL SWEEP:", pp(await sweep.balanceOf(POOL),18));
         console.log("MM USDC:", pp(await usdc.balanceOf(market.address),6));
