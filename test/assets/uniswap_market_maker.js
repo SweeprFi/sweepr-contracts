@@ -12,7 +12,7 @@ contract('Uniswap Market Maker', async () => {
     sweepAmount = toBN("10000000", 18); // 10M
     minAutoSweepAmount = toBN("100", 18);
     BORROWER = owner.address;
-    FEE = 500;
+    FEE = 100;
     TICK_SPREAD = 1000;
 
     Sweep = await ethers.getContractFactory("SweepCoin");

@@ -16,7 +16,7 @@ contract("Pancake AMM", async function () {
     SWEEP_INVEST = toBN("20000", 18);
     usdxAmount = toBN("1000", 18);
     sweepAmount = toBN("1000", 18);
-    FEE = 500;
+    FEE = 100;
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [OWNER, OWNER, 2500]);

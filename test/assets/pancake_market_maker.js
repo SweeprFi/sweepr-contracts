@@ -12,7 +12,7 @@ contract('Pancake Market Maker', async () => {
     sweepAmount = toBN("10000000", 18); // 10M
     minAutoSweepAmount = toBN("100", 18);
     BORROWER = owner.address;
-    FEE = 500;
+    FEE = 100;
 
     Sweep = await ethers.getContractFactory("SweepCoin");
     const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, multisig.address, 2500]);

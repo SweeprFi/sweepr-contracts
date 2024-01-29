@@ -120,8 +120,8 @@ module.exports = {
         rates_oracle: '0x0a843cC59346EB6e925D6e42263e6148197c96F8',
         curve_pool: '0x9097065db449a59ce30bec522e1e077292c0d8fc',
         curve_amm: '0x06128C0948b36eEBB863C34398e6E3043C879A9f',
-        uniswap_pool: '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
-        uniswap_amm: '0xdA65daC88104ae4011C731d7DB0b5a04A683d550',
+        uniswap_pool: '0xA59B4cfAa5EA1506178e82D53a768FcF69945D65', // '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
+        uniswap_amm: '0x6Ba9bebb3cF606e2514857581c8641bE31B9A59b', // '0xdA65daC88104ae4011C731d7DB0b5a04A683d550',
 
         assets: {
             balancer_market_maker: '0x30F5623c58bc93dB78FCa53D968B871A129Dfa31', // '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',

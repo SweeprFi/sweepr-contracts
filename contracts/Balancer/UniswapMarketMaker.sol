@@ -18,18 +18,21 @@ import "../Stabilizer/Stabilizer.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
+import "hardhat/console.sol";
+
 contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     // Uniswap V3 Position Manager
-    INonfungiblePositionManager public constant nonfungiblePositionManager =
-        INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
+    INonfungiblePositionManager private constant nonfungiblePositionManager = INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     LiquidityHelper private immutable liquidityHelper;
+    uint8 private constant TICKS_DELTA = 201;
+    int24 private constant TICK_SPACE = 1;
 
     // Variables
     address public token0;
     address public token1;
     address public ammAddress;
     bool private immutable flag; // The sort status of tokens
-    int24 public constant TICK_SPACE = 10; // TICK_SPACE are 10, 60, 200
+
     uint256 private constant PRECISION = 1e6;
     uint256 public tradePosition;
     uint256 public growPosition;
@@ -169,14 +172,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         _decreaseLiquidity(tokenId, uint128(liquidityAmount), amountOut0, amountOut1);
     }
 
-    /**
-     * @notice Increases liquidity in the current range
-     * @dev Pool must be initialized already to add liquidity
-     * @param usdxAmount USDX Amount of asset to be deposited
-     * @param sweepAmount Sweep Amount of asset to be deposited
-     * @param usdxSlippage Min USDX amount to be used for liquidity.
-     * @param sweepSlippage Min Sweep amount to be used for liquidity.
-     */
     function lpTrade(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxSlippage, uint256 sweepSlippage, uint256 spread)
         external onlyBorrower whenNotPaused nonReentrant
     {
@@ -209,7 +204,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         _checkRatio();
     }
 
-    function lpRedeem(uint256 usdxAmount, uint256 tickSpread, uint256 usdxSlippage) external onlyBorrower nonReentrant {
+    function lpRedeem(uint256 usdxAmount, uint256 priceSpread, uint256 usdxSlippage) external onlyBorrower nonReentrant {
         if(redeemPosition > 0) _removePosition(redeemPosition);
 
         uint256 usdxBalance = usdx.balanceOf(address(this));
@@ -219,14 +214,19 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
 
         uint256 targetPrice = sweep.targetPrice();
         uint256 ammPrice = amm().getPrice();
-        uint256 minimum = targetPrice < ammPrice ? targetPrice : ammPrice;
-        uint256 maxPrice = minimum - 300;
-        uint256 minPrice = ((PRECISION - tickSpread) * maxPrice) / PRECISION;
+        uint256 maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
+        uint256 minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
+
+        console.log("============================");
+        console.log("targetPrice:", targetPrice);
+        console.log("ammPrice:", ammPrice);
+        console.log("minPrice:", minPrice);
+        console.log("maxPrice:", maxPrice);
 
         redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minPrice, maxPrice);
     }
 
-    function lpGrow(uint256 sweepAmount, uint256 tickSpread, uint256 sweepSlippage) external onlyBorrower nonReentrant {
+    function lpGrow(uint256 sweepAmount, uint256 priceSpread, uint256 sweepSlippage) external onlyBorrower nonReentrant {
         if(growPosition > 0) _removePosition(growPosition);
         uint256 sweepBalance = sweep.balanceOf(address(this));
         if(sweepAmount > sweepBalance) _borrow(sweepAmount - sweepBalance);
@@ -236,9 +236,13 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 targetPrice = sweep.targetPrice();
         uint256 ammPrice = amm().getPrice();
 
-        uint256 maximum = targetPrice > ammPrice ? targetPrice : ammPrice;
-        uint256 minPrice = maximum + 300;
-        uint256 maxPrice = ((PRECISION + tickSpread) * minPrice) / PRECISION;
+        uint256 minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
+        uint256 maxPrice = ((PRECISION + priceSpread) * minPrice) / PRECISION;
+
+        console.log("targetPrice:", targetPrice);
+        console.log("ammPrice:", ammPrice);
+        console.log("minPrice:", minPrice);
+        console.log("maxPrice:", maxPrice);
 
         growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minPrice, maxPrice);
         _checkRatio();
@@ -281,7 +285,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
                 amount1Desired: sweepAmount,
                 amount0Min: usdxMinIn,
                 amount1Min: sweepMinIn,
-                deadline: block.timestamp + 60 // Expiration: 1 hour from now
+                deadline: block.timestamp + 60
             })
         );
 
@@ -301,13 +305,16 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         int24 tickSpacing = IUniswapV3Pool(poolAddress).tickSpacing();
         int24 minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, tickSpacing, flag);
         int24 maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, tickSpacing, flag);
-        // (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
+        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
 
-        (uint256 amount0Mint, uint256 amount1Mint) = flag
-            ? (usdxAmount, sweepAmount) : (sweepAmount, usdxAmount);
-
+        (uint256 amount0Mint, uint256 amount1Mint) = flag ? (usdxAmount, sweepAmount) : (sweepAmount, usdxAmount);
         uint256 amount0Min = OvnMath.subBasisPoints(amount0Mint, _slippage);
         uint256 amount1Min = OvnMath.subBasisPoints(amount1Mint, _slippage);
+
+        int24 currentTick = liquidityHelper.getCurrentTick(poolAddress);
+        console.log("CurrentTick:", uint256(uint24(currentTick)));
+        console.log("MinTick:", uint256(uint24(minTick)));
+        console.log("MaxTick:", uint256(uint24(maxTick)));
 
         return _mintPosition(minTick, maxTick, amount0Mint, amount1Mint, amount0Min, amount1Min);
     }
