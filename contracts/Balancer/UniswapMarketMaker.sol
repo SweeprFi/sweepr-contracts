@@ -25,7 +25,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     INonfungiblePositionManager private constant nonfungiblePositionManager = INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     LiquidityHelper private immutable liquidityHelper;
     uint8 private constant TICKS_DELTA = 201;
-    int24 private constant TICK_SPACE = 1;
 
     // Variables
     address public token0;
@@ -37,7 +36,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     uint256 public tradePosition;
     uint256 public growPosition;
     uint256 public redeemPosition;
-    uint32 public slippage; 
+    uint32 public slippage;
 
     // Errors
     error NotMinted();
@@ -342,8 +341,10 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 sweepPrice = sweep.targetPrice();
         uint256 minPrice = ((PRECISION - spread) * sweepPrice) / PRECISION;
         uint256 maxPrice = ((PRECISION + spread) * sweepPrice) / PRECISION;
-        minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, TICK_SPACE, flag);
-        maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, TICK_SPACE, flag);
+
+        int24 tickSpacing = IUniswapV3Pool(amm().pool()).tickSpacing();
+        minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, tickSpacing, flag);
+        maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, tickSpacing, flag);
 
         (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
     }

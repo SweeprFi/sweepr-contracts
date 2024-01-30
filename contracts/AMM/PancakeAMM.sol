@@ -30,7 +30,7 @@ contract PancakeAMM {
     ISweep public immutable sweep;
     IPriceFeed public immutable oracleBase;
     IPriceFeed public immutable sequencer;
-    address public pool;
+    address public immutable pool;
     uint256 public immutable oracleBaseUpdateFrequency;
     bool private immutable flag; // The sort status of tokens
     PancakeLiquidityHelper private immutable liquidityHelper;
@@ -44,6 +44,7 @@ contract PancakeAMM {
         address _sweep,
         address _base,
         address _sequencer,
+        address _pool,
         address _oracleBase,
         uint256 _oracleBaseUpdateFrequency,
         address _liquidityHelper
@@ -52,6 +53,7 @@ contract PancakeAMM {
         base = IERC20Metadata(_base);
         oracleBase = IPriceFeed(_oracleBase);
         sequencer = IPriceFeed(_sequencer);
+        pool = _pool;
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
         liquidityHelper = PancakeLiquidityHelper(_liquidityHelper);
         flag = _base < _sweep;
@@ -77,8 +79,6 @@ contract PancakeAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getPrice() public view returns (uint256 amountOut) {
-        if(address(pool) == address(0)) return 2e6;
-
         (, int24 tick, , , , , ) = IPancakePool(pool).slot0();
 
         uint256 quote = OracleLibrary.getQuoteAtTick(
@@ -217,10 +217,5 @@ contract PancakeAMM {
         uint256 rate = usdxAmount * sweepFactor * PRECISION / (tokenFactor * sweepAmount);
 
         if(rate > 16e5 || rate < 6e5) revert BadRate();
-    }
-
-    function setPool(address poolAddress) external {
-        require(msg.sender == sweep.owner(), "PancakeAMM: Not Governance");
-        pool = poolAddress;
     }
 }

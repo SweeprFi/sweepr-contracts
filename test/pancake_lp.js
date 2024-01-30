@@ -10,11 +10,11 @@ contract.only("===============", async function () {
         MULTISIG = wallets.multisig;
         OWNER = wallets.owner;
         USDC_HOLDER = wallets.usdc_holder;
-        POOL = deployments.uniswap_pool;
+        POOL = deployments.pancake_pool;
 
         sweep = await ethers.getContractAt("SweepCoin", tokens.sweep);
         usdc = await ethers.getContractAt("ERC20", tokens.usdc);
-        amm = await ethers.getContractAt("UniswapAMM", deployments.uniswap_amm);
+        amm = await ethers.getContractAt("PancakeAMM", deployments.pancake_amm);
 
         // fund accounts =====================================
         await sendEth(MULTISIG);
@@ -26,7 +26,7 @@ contract.only("===============", async function () {
         // end =====================================
 
         // new MM depoyment ==================================
-        market = await (await ethers.getContractFactory("UniswapMarketMaker")).deploy('UniMM', tokens.sweep, tokens.usdc, deployments.liquidity_helper, chainlink.usdc_usd, MULTISIG);
+        market = await (await ethers.getContractFactory("PancakeMarketMaker")).deploy('PancakeMM', tokens.sweep, tokens.usdc, deployments.liquidity_helper, chainlink.usdc_usd, MULTISIG);
         sweep100000 = toBN("100000", 18);
         await usdc.connect(usdc_holder).transfer(market.address, 100e6);
         await market.connect(multisig).configure(2000, Const.spreadFee, sweep100000, Const.ZERO, Const.DAY, Const.RATIO, Const.ZERO, Const.ZERO, Const.TRUE, Const.FALSE, Const.URL);
