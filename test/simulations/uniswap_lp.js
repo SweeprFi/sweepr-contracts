@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
-const { tokens, deployments, wallets, chainlink } = require("../utils/constants");
-const { impersonate, toBN, resetNetwork, sendEth, Const } = require("../utils/helper_functions");
+const { tokens, deployments, wallets, chainlink } = require("../../utils/constants");
+const { impersonate, toBN, resetNetwork, sendEth, Const } = require("../../utils/helper_functions");
 
 contract.skip("Uniswap Market Maker", async function () {
     before(async () => {
