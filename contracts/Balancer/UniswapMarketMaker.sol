@@ -18,8 +18,6 @@ import "../Stabilizer/Stabilizer.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-import "hardhat/console.sol";
-
 contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     // Uniswap V3 Position Manager
     INonfungiblePositionManager private constant nonfungiblePositionManager = INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
@@ -191,7 +189,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
 
         _approveNFTManager(usdxAmount, sweepAmount);
         (int24 minTick, int24 maxTick) = showTicks(spread);
-
         uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, usdxSlippage);
         uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, sweepSlippage);
 
@@ -216,12 +213,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
         uint256 minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
 
-        console.log("============================");
-        console.log("targetPrice:", targetPrice);
-        console.log("ammPrice:", ammPrice);
-        console.log("minPrice:", minPrice);
-        console.log("maxPrice:", maxPrice);
-
         redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minPrice, maxPrice);
     }
 
@@ -237,11 +228,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
 
         uint256 minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
         uint256 maxPrice = ((PRECISION + priceSpread) * minPrice) / PRECISION;
-
-        console.log("targetPrice:", targetPrice);
-        console.log("ammPrice:", ammPrice);
-        console.log("minPrice:", minPrice);
-        console.log("maxPrice:", maxPrice);
 
         growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minPrice, maxPrice);
         _checkRatio();
@@ -309,11 +295,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         (uint256 amount0Mint, uint256 amount1Mint) = flag ? (usdxAmount, sweepAmount) : (sweepAmount, usdxAmount);
         uint256 amount0Min = OvnMath.subBasisPoints(amount0Mint, _slippage);
         uint256 amount1Min = OvnMath.subBasisPoints(amount1Mint, _slippage);
-
-        int24 currentTick = liquidityHelper.getCurrentTick(poolAddress);
-        console.log("CurrentTick:", uint256(uint24(currentTick)));
-        console.log("MinTick:", uint256(uint24(minTick)));
-        console.log("MaxTick:", uint256(uint24(maxTick)));
 
         return _mintPosition(minTick, maxTick, amount0Mint, amount1Mint, amount0Min, amount1Min);
     }
