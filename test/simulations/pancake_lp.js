@@ -3,10 +3,10 @@ const { tokens, deployments, wallets, chainlink, network } = require("../../util
 const { impersonate, toBN, resetNetwork, sendEth, Const } = require("../../utils/helper_functions");
 
 contract.skip("Pancake Market Maker", async function () {
+    if (Number(network.id) !== 56) return;
     before(async () => {
-        if (Number(network.id) !== 56) return;
         [borrower] = await ethers.getSigners();
-        await resetNetwork(35698031);
+        await resetNetwork(35703450);
 
         MULTISIG = wallets.multisig;
         OWNER = wallets.owner;
@@ -42,9 +42,20 @@ contract.skip("Pancake Market Maker", async function () {
     function pp(v, d) { return ethers.utils.formatUnits(v.toString(), d) }
 
     it("lp actions", async function () {
-        sweep35 = toBN("35", 18);
+        sweep35 = toBN("100", 18);
         sweep50 = toBN("50", 18);
         usdc50 = toBN("50", 18);
+
+        // isMintingAllowed: false ==================================
+        isMintingAllowed = await sweep.isMintingAllowed();
+        if(!isMintingAllowed) {
+            usdt100 = toBN("400", 18);
+            sweepMin = toBN("380", 18);
+            await usdt.connect(usdt_holder).approve(amm.address, usdt100);
+            await amm.connect(usdt_holder).buySweep(usdt.address, usdt100, sweepMin);
+        }
+        // end ==============================================
+        await usdt.connect(usdt_holder).transfer(market.address, sweep35);
 
         console.log("INIT ===============================")
         console.log("\tPOOL USDT:", pp(await usdt.balanceOf(POOL),18));
@@ -70,7 +81,7 @@ contract.skip("Pancake Market Maker", async function () {
         console.log("\tMM USDT:", pp(await usdt.balanceOf(market.address),18));
         console.log("\tMM SWEEP:", pp(await sweep.balanceOf(market.address),18));
 
-        await market.connect(multisig).lpTrade(usdc50, sweep50, 50000, 2000, 1e5);
+        await market.connect(multisig).lpTrade(usdc50, sweep50, 2000, 1e5, 1e5);
         console.log("\nTRADE POSITION ===============================");
         console.log(`\tAmount: ${pp(usdc50, 18)} USDT ~ ${pp(sweep50, 18)} SWEEP`)
         console.log("\tPOOL USDT:", pp(await usdt.balanceOf(POOL),18));

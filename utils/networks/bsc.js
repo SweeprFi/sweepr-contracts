@@ -10,7 +10,7 @@ module.exports = {
         endpoint: '0x3c2269811836af69497E5F486A85D7316753cf62',
     },
 
-    alchemyLink: 'https://bsc-dataseed.binance.org/',
+    alchemyLink: 'https://bsc-dataseed1.defibit.io/',
     scanApiKey: process.env.BSCSCAN_API_KEY,
 
     wallets: {

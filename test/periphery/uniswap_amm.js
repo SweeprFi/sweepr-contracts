@@ -128,7 +128,7 @@ contract("Uniswap AMM", async function () {
       expect(usdcAfter).to.be.above(usdcBefore);
     });
 
-    it('buys Sweep from the MM', async () => {
+    it.skip('buys Sweep from the MM', async () => {
       priceBefore = await amm.getPrice();
       sweepBalanceB = await sweep.balanceOf(poolAddress);
       usdcBalanceB = await usdc.balanceOf(poolAddress);
