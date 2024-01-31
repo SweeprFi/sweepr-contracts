@@ -19,36 +19,30 @@ import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.s
 import { PancakeLiquidityHelper, IPancakePool } from "../Utils/PancakeLiquidityHelper.sol";
 
 contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
-    INonfungiblePositionManager public constant nonfungiblePositionManager =
-        INonfungiblePositionManager(0x46A15B0b27311cedF172AB29E4f4766fbE7F4364);
+    INonfungiblePositionManager public constant nonfungiblePositionManager = 
+       INonfungiblePositionManager(0x46A15B0b27311cedF172AB29E4f4766fbE7F4364);
     PancakeLiquidityHelper private immutable liquidityHelper;
+    uint8 private constant TICKS_DELTA = 201;
 
     // Variables
-    uint256 public tokenId;
+    address public ammAddress;
     address public token0;
     address public token1;
     bool private immutable flag; // The sort status of tokens
-    int24 public constant TICK_SPACE = 10; // TICK_SPACE are 10, 60, 200
+
     uint256 private constant PRECISION = 1e6;
-    uint256[] public positionIds;
-    uint32 public slippage; 
+    uint256 public tradePosition;
+    uint256 public growPosition;
+    uint256 public redeemPosition;
+    uint32 public slippage;
 
     // Errors
     error NotMinted();
-    error AlreadyMinted();
-    error OnlyPositionManager();
     error BadSlippage();
 
     event Collected(uint256 amount0, uint256 amount1);
     event LiquidityAdded(uint256 usdxAmount, uint256 sweepAmount);
-    event LiquidityRemoved(uint256 usdxAmount, uint256 sweepAmount);
     event SweepPurchased(uint256 sweeAmount);
-
-    /* ========== Modifies ========== */
-    modifier isMinted() {
-        if (tokenId == 0) revert NotMinted();
-        _;
-    }
 
     constructor(
         string memory _name,
@@ -65,29 +59,34 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     /* ========== Views ========== */
-
-    function liquidity() external view returns (uint128) {
-        (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(tokenId);
-        return _liquidity;
+    /* ========== Views ========== */
+    function tradeLiquidity() external view returns (uint128) {
+        return _getLiquidity(tradePosition);
     }
 
-    /**
-    /**
-     * @notice Gets the asset price of AMM
-     * @return the amm usdx amount
-     */
+    function growLiquidity() external view returns (uint128) {
+        return _getLiquidity(growPosition);
+    }
+
+    function redeemLiquidity() external view returns (uint128) {
+        return _getLiquidity(redeemPosition);
+    }
+
+    function amm() public view override returns (IAMM) {
+        return IAMM(ammAddress);
+    }
+
     function assetValue() public view override returns (uint256) {
-        if (tokenId == 0) return 0;
-        (uint256 usdxAmount, uint256 sweepAmount,) = amm().getPositions(tokenId);
+        uint256 usdxAmount;
+        uint256 sweepAmount;
+        uint256[3] memory positions = [tradePosition, growPosition, redeemPosition];
 
-        uint256 len = positionIds.length;
-        for (uint256 i = 0; i < len; ) {
-            uint256 id = positionIds[i];
-            (uint256 amount0, uint256 amount1,) = amm().getPositions(id);
-            usdxAmount += amount0;
-            sweepAmount += amount1;
-
-            unchecked { ++i; }
+        for (uint i = 0; i < 3; i++) {
+            if (positions[i] > 0) {
+                (uint256 amount0, uint256 amount1,) = amm().getPositions(positions[i]);
+                usdxAmount += amount0;
+                sweepAmount += amount1;
+            }
         }
 
         return _oracleUsdxToUsd(usdxAmount) + sweep.convertToUSD(sweepAmount);
@@ -99,223 +98,145 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     /* ========== Actions ========== */
-
-    /**
-     * @notice Implementing `onERC721Received` so this contract can receive custody of erc721 tokens
-     */
-    function onERC721Received(
-        address,
-        address,
-        uint256 _tokenId,
-        bytes calldata
-    ) external override returns (bytes4) {
-        if (msg.sender != address(nonfungiblePositionManager))
-            revert OnlyPositionManager();
-        if (tokenId > 0) revert AlreadyMinted();
-        tokenId = _tokenId;
-
-        return this.onERC721Received.selector;
+    function setSlippage(uint32 newSlippage) external nonReentrant onlyBorrower {
+        if(newSlippage > PRECISION) revert BadSlippage();
+        slippage = newSlippage;
     }
 
-    /**
-     * @notice Increases liquidity in the current range
-     * @dev Pool must be initialized already to add liquidity
-     * @param usdxAmount USDX Amount of asset to be deposited
-     * @param sweepAmount Sweep Amount of asset to be deposited
-     * @param usdxMinIn Min USDX amount to be used for liquidity.
-     * @param sweepMinIn Min Sweep amount to be used for liquidity.
-     */
-    function addLiquidity(
-        uint256 usdxAmount,
-        uint256 sweepAmount,
-        uint256 usdxMinIn,
-        uint256 sweepMinIn
-    )
-        external
-        onlyBorrower
-        whenNotPaused
-        nonReentrant
-    {
-        _borrow(sweepAmount);
-        _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
-    }
-
-    function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {
-        sweepAmount = (_oracleUsdxToUsd(usdxAmount) * (10 ** sweep.decimals())) / getBuyPrice();
-
-        _borrow(sweepAmount * 2);
-        uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, slippage);
-        uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, slippage);
-        _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
-
-        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
-        _checkRatio();
-        emit SweepPurchased(usdxAmount);
-    }
-
-    /**
-     * @notice A function that decreases the current liquidity.
-     * @param liquidityAmount Liquidity Amount to decrease
-     */
-    function removeLiquidity(
-        uint256 liquidityAmount,
-        uint256 amountOut0,
-        uint256 amountOut1
-    )
-        external
-        onlyBorrower
-        isMinted
-        nonReentrant
-        validAmount(liquidityAmount)
-    {
-        // if the amount received after burning is not greater than these minimums, transaction will fail
-        nonfungiblePositionManager.decreaseLiquidity(
-            INonfungiblePositionManager.DecreaseLiquidityParams({
-                tokenId: tokenId,
-                liquidity: uint128(liquidityAmount),
-                amount0Min: amountOut0,
-                amount1Min: amountOut1,
-                deadline: block.timestamp
-            })
-        );
-
-        _collect(tokenId);
-        emit LiquidityRemoved(amountOut0, amountOut1);
+    function setAMM(address newAmm) external nonReentrant onlyBorrower {
+        if(newAmm == address(0)) revert ZeroAddressDetected();
+        ammAddress = newAmm;
     }
 
     /**
      * @notice Collects the fees associated with provided liquidity
      * @dev The contract must hold the erc721 token before it can collect fees
      */
-    function collect()
-        external
-        onlyBorrower
-        whenNotPaused
-        nonReentrant
-        isMinted
-    {
-        _collect(tokenId);
+    function collectFees(uint256 position) external onlyBorrower whenNotPaused nonReentrant {
+        _collect(position);
     }
 
     /**
-     * @notice Burn NFT
+     * @notice Implementing `onERC721Received` so this contract can receive custody of erc721 tokens
      */
-    function burnNFT() external onlyBorrower nonReentrant isMinted {
-        nonfungiblePositionManager.burn(tokenId);
-        tokenId = 0;
+    function onERC721Received(address, address, uint256, bytes calldata) external override pure returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 
-    function initPool(
-        uint256 usdxAmount,
-        uint256 sweepAmount,
-        uint256 usdxMinAmount,
-        uint256 sweepMinAmount,
-        address poolAddress
+    function burnTradePosition() external onlyBorrower nonReentrant {
+        if(tradePosition == 0) revert NotMinted();
+        _removePosition(tradePosition);
+        tradePosition = 0;
+    }
+
+    /**
+     * @notice Burn redeem NFT
+     */
+    function burnRedeemPosition() external onlyBorrower nonReentrant {
+        if(redeemPosition == 0) revert NotMinted();
+        _removePosition(redeemPosition);
+        redeemPosition = 0;
+    }
+
+    /**
+     * @notice Burn grow NFT
+     */
+    function burnGrowPosition() external onlyBorrower nonReentrant {
+        if(growPosition == 0) revert NotMinted();
+        _removePosition(growPosition);
+        growPosition = 0;
+    }
+
+    function removeLiquidity(
+        uint256 tokenId,
+        uint256 liquidityAmount,
+        uint256 amountOut0,
+        uint256 amountOut1
     )
-        external onlyBorrower nonReentrant
-        returns (
-            uint256 _tokenId,
-            uint128 _liquidity,
-            uint256 _amount0,
-            uint256 _amount1
-        )
+        external onlyBorrower nonReentrant validAmount(liquidityAmount)
+    {
+        _decreaseLiquidity(tokenId, uint128(liquidityAmount), amountOut0, amountOut1);
+    }
+
+    function lpTrade(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxSlippage, uint256 sweepSlippage, uint256 spread)
+        external onlyBorrower whenNotPaused nonReentrant
     {
         address self = address(this);
-        if (sweep.isMintingAllowed()) {
-            _borrow(sweepAmount);
-        } else {
-            TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount);
+        if(tradePosition > 0) _removePosition(tradePosition);
+        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
+
+        if(sweepAmount > sweepBalance) {
+            if (sweep.isMintingAllowed()) {
+                _borrow(sweepAmount - sweepBalance);
+            } else {
+                TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount - sweepBalance);
+            }
         }
 
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
+        if(usdxAmount > usdxBalance)
+            TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount - usdxBalance);
+
+        _approveNFTManager(usdxAmount, sweepAmount);
+        (int24 minTick, int24 maxTick) = showTicks(spread);
+
+        uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, usdxSlippage);
+        uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, sweepSlippage);
+
+        (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn) = flag
+            ? (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn)
+            : (sweepAmount, usdxAmount, sweepMinIn, usdxMinIn);
+
+        tradePosition = _mintPosition(minTick, maxTick, usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
+        _checkRatio();
+    }
+
+    function lpRedeem(uint256 usdxAmount, uint256 priceSpread, uint256 usdxSlippage) external onlyBorrower nonReentrant {
+        if(redeemPosition > 0) _removePosition(redeemPosition);
+
+        uint256 usdxBalance = usdx.balanceOf(address(this));
+        if(usdxAmount > usdxBalance)
+            TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount - usdxBalance);
         TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
+
+        uint256 targetPrice = sweep.targetPrice();
+        uint256 ammPrice = amm().getPrice();
+        uint256 maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
+        uint256 minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
+
+        redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minPrice, maxPrice);
+    }
+
+    function lpGrow(uint256 sweepAmount, uint256 priceSpread, uint256 sweepSlippage) external onlyBorrower nonReentrant {
+        if(growPosition > 0) _removePosition(growPosition);
+        uint256 sweepBalance = sweep.balanceOf(address(this));
+        if(sweepAmount > sweepBalance) _borrow(sweepAmount - sweepBalance);
+
         TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
 
-        (int24 minTick, int24 maxTick) = showTicks();
-        (usdxAmount, sweepAmount, usdxMinAmount, sweepMinAmount) = flag
-            ? (usdxAmount, sweepAmount, usdxMinAmount, sweepMinAmount)
-            : (sweepAmount, usdxAmount, sweepMinAmount, usdxMinAmount);
-
-        (_tokenId, _liquidity, _amount0, _amount1) = nonfungiblePositionManager
-            .mint(
-                INonfungiblePositionManager.MintParams({
-                    token0: token0,
-                    token1: token1,
-                    fee: IPancakePool(poolAddress).fee(),
-                    tickLower: minTick,
-                    tickUpper: maxTick,
-                    amount0Desired: usdxAmount,
-                    amount1Desired: sweepAmount,
-                    amount0Min: usdxMinAmount,
-                    amount1Min: sweepMinAmount,
-                    recipient: address(this),
-                    deadline: block.timestamp
-                })
-            );
-
-        tokenId = _tokenId;
-    }
-
-    function addSingleLiquidity(uint256 usdxAmount, uint256 tickSpread) external onlyBorrower nonReentrant {
-        address self = address(this);
-        address poolAddress = IAMM(amm()).pool();
-        uint8 decimals = sweep.decimals();
         uint256 targetPrice = sweep.targetPrice();
-        uint256 minPrice = ((PRECISION - tickSpread) * targetPrice) / PRECISION;
+        uint256 ammPrice = amm().getPrice();
 
-        uint256 sweepAmount;
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
-        TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
+        uint256 minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
+        uint256 maxPrice = ((PRECISION + priceSpread) * minPrice) / PRECISION;
 
-        int24 tickSpacing = IPancakePool(poolAddress).tickSpacing();
-        int24 minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, tickSpacing, flag);
-        int24 maxTick = liquidityHelper.getTickFromPrice(targetPrice, decimals, tickSpacing, flag);
-        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
-
-        (uint256 amount0Mint, uint256 amount1Mint) = flag
-            ? (usdxAmount, sweepAmount)
-            : (sweepAmount, usdxAmount);
-
-        (uint256 _tokenId,,,) = nonfungiblePositionManager.mint(
-                INonfungiblePositionManager.MintParams({
-                    token0: token0,
-                    token1: token1,
-                    fee: IPancakePool(poolAddress).fee(),
-                    tickLower: minTick,
-                    tickUpper: maxTick,
-                    amount0Desired: amount0Mint,
-                    amount1Desired: amount1Mint,
-                    amount0Min: amount0Mint,
-                    amount1Min: amount1Mint,
-                    recipient: self,
-                    deadline: block.timestamp
-                })
-            );
-
-        positionIds.push(_tokenId);
-        emit LiquidityAdded(usdxAmount, sweepAmount);
+        growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minPrice, maxPrice);
+        _checkRatio();
     }
 
-    function removePosition(uint256 positionId)  external onlyBorrower nonReentrant {
-        (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(positionId);
-        nonfungiblePositionManager.decreaseLiquidity(
-            INonfungiblePositionManager.DecreaseLiquidityParams({
-                tokenId: positionId,
-                liquidity: _liquidity,
-                amount0Min: 0,
-                amount1Min: 0,
-                deadline: block.timestamp
-            })
-        );
-        _collect(positionId);
+    function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {
+        if(tradePosition == 0) revert NotMinted();
+        sweepAmount = (_oracleUsdxToUsd(usdxAmount) * (10 ** sweep.decimals())) / getBuyPrice();
 
-        nonfungiblePositionManager.burn(positionId);
-        _removePosition(positionId);
-    }
+        _borrow(sweepAmount * 2);
 
-    function setSlippage(uint32 newSlippage) external nonReentrant onlyBorrower {
-        if(newSlippage > PRECISION) revert BadSlippage();
-        slippage = newSlippage;
+        uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, slippage);
+        uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, slippage);
+
+        _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
+        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
+
+        _checkRatio();
+        emit SweepPurchased(usdxAmount);
     }
 
     /* ========== Internals ========== */
@@ -326,8 +247,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint256 sweepMinIn
     ) internal {
         TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
-        TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
-        TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
+        _approveNFTManager(usdxAmount, sweepAmount);
 
         (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn) = flag
             ? (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn)
@@ -335,16 +255,32 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
 
         nonfungiblePositionManager.increaseLiquidity(
             INonfungiblePositionManager.IncreaseLiquidityParams({
-                tokenId: tokenId,
+                tokenId: tradePosition,
                 amount0Desired: usdxAmount,
                 amount1Desired: sweepAmount,
                 amount0Min: usdxMinIn,
                 amount1Min: sweepMinIn,
-                deadline: block.timestamp + 60 // Expiration: 1 hour from now
+                deadline: block.timestamp + 60
             })
         );
 
         emit LiquidityAdded(usdxAmount, sweepAmount);
+    }
+
+    function _addSingleSidedLiquidity(
+        uint256 usdxAmount,
+        uint256 sweepAmount,
+        uint256 _slippage,
+        uint256 minPrice,
+        uint256 maxPrice
+    ) internal returns (uint256) {
+        (int24 minTick, int24 maxTick) = _getTicks(minPrice, maxPrice);
+
+        (uint256 amount0Mint, uint256 amount1Mint) = flag ? (usdxAmount, sweepAmount) : (sweepAmount, usdxAmount);
+        uint256 amount0Min = OvnMath.subBasisPoints(amount0Mint, _slippage);
+        uint256 amount1Min = OvnMath.subBasisPoints(amount1Mint, _slippage);
+
+        return _mintPosition(minTick, maxTick, amount0Mint, amount1Mint, amount0Min, amount1Min);
     }
 
     function _collect(uint256 id) internal {
@@ -365,29 +301,72 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
      * @return minTick The minimum tick
      * @return maxTick The maximum tick
      */
-    function showTicks() internal view returns (int24 minTick, int24 maxTick) {
-        uint8 decimals = sweep.decimals();
+    function showTicks(uint256 spread) internal view returns (int24 minTick, int24 maxTick) {
         uint256 sweepPrice = sweep.targetPrice();
-        sweepPrice = sweepPrice * ((10 ** decimals) / PRECISION);
-
-        uint256 minPrice = (sweepPrice * 99) / 100;
-        uint256 maxPrice = (sweepPrice * 101) / 100;
-
-        minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, TICK_SPACE, flag);
-        maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, TICK_SPACE, flag);
-
-        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
+        uint256 minPrice = ((PRECISION - spread) * sweepPrice) / PRECISION;
+        uint256 maxPrice = ((PRECISION + spread) * sweepPrice) / PRECISION;
+        (minTick, maxTick) = _getTicks(minPrice, maxPrice);
     }
 
     function _removePosition(uint256 positionId) internal {
-        uint256 len = positionIds.length;
-        for (uint256 i = 0; i < len; ) {
-            if(positionIds[i] == positionId) {
-                positionIds[i] = positionIds[len-1];
-                positionIds.pop();
-                return;
-            }
-            unchecked { ++i; }
-        }
+        (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(positionId);
+        _decreaseLiquidity(positionId, _liquidity, 0, 0);
+        nonfungiblePositionManager.burn(positionId);
+    }
+
+    function _getLiquidity(uint256 position) internal view returns(uint128 liquidity) {
+        if(position > 0)
+            (,,,,,,, liquidity,,,,) = nonfungiblePositionManager.positions(position);
+    }
+
+    function _decreaseLiquidity(uint256 positionId, uint128 liquidity, uint256 amount0Min, uint256 amount1Min) internal {
+        nonfungiblePositionManager.decreaseLiquidity(
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: positionId,
+                liquidity: liquidity,
+                amount0Min: amount0Min,
+                amount1Min: amount1Min,
+                deadline: block.timestamp
+            })
+        );
+        _collect(positionId);
+    }
+
+    function _approveNFTManager(uint256 usdxAmount, uint256 sweepAmount) internal {
+        TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
+        TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
+    }
+
+    function _mintPosition(
+        int24 minTick,
+        int24 maxTick,
+        uint256 amount0Desired,
+        uint256 amount1Desired,
+        uint256 amount0Min,
+        uint256 amount1Min
+    ) internal returns (uint256 tokenId){
+        (tokenId,,,) = nonfungiblePositionManager.mint(
+            INonfungiblePositionManager.MintParams({
+                token0: token0,
+                token1: token1,
+                fee: IPancakePool(amm().pool()).fee(),
+                tickLower: minTick,
+                tickUpper: maxTick,
+                amount0Desired: amount0Desired,
+                amount1Desired: amount1Desired,
+                amount0Min: amount0Min,
+                amount1Min: amount1Min,
+                recipient: address(this),
+                deadline: block.timestamp
+            })
+        );
+    }
+
+    function _getTicks(uint256 minPrice, uint256 maxPrice) internal view returns(int24 minTick, int24 maxTick) {
+        int24 tickSpacing = IPancakePool(amm().pool()).tickSpacing();
+        minTick = liquidityHelper.getTickFromPrice(minPrice, 6, tickSpacing, flag);
+        maxTick = liquidityHelper.getTickFromPrice(maxPrice, 6, tickSpacing, flag);
+
+        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
     }
 }

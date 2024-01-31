@@ -10,12 +10,13 @@ module.exports = {
         endpoint: '0x3c2269811836af69497E5F486A85D7316753cf62',
     },
 
-    alchemyLink: 'https://bsc-dataseed.binance.org/',
+    alchemyLink: 'https://bsc-dataseed1.defibit.io/',
     scanApiKey: process.env.BSCSCAN_API_KEY,
 
     wallets: {
         multisig: '0xEB0A2Dc76893c436306266fe6F98257Ed40D5DC2',
         owner: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
+        usdt_holder: '0xD183F2BBF8b28d9fec8367cb06FE72B88778C86B',
     },
 
     tokens: {
@@ -51,13 +52,13 @@ module.exports = {
         balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
-        pancake_amm: '0xa5Dd492674f8C68C89b403BDFd0e794db42f2b92',
+        pancake_amm: '0xff368E106EA8782FaB6B2D4AD69739a60C66400E', // '0xa5Dd492674f8C68C89b403BDFd0e794db42f2b92',
         liquidity_helper: '0xD50DC42d95407F271c1380AE2aCa3F327F4C1cca',
         pancake_pool: '0x0A5b6346B01092126FdFf8757864352843252864',
 
         assets: {
             uniswap: '',
-            market_maker: '0x7685fc882c91936BF94974916cC410028F73C957',
+            market_maker: '0x47a393e60DfCF12CA3892dBC2C2E66BCE083BB26', // '0x7685fc882c91936BF94974916cC410028F73C957',
             usd_plus: '',
             maple: '',
         }

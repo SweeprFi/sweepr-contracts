@@ -120,13 +120,13 @@ module.exports = {
         rates_oracle: '0x0a843cC59346EB6e925D6e42263e6148197c96F8',
         curve_pool: '0x9097065db449a59ce30bec522e1e077292c0d8fc',
         curve_amm: '0x06128C0948b36eEBB863C34398e6E3043C879A9f',
-        uniswap_pool: '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
-        uniswap_amm: '0xdA65daC88104ae4011C731d7DB0b5a04A683d550',
+        uniswap_pool: '0xA59B4cfAa5EA1506178e82D53a768FcF69945D65', // '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
+        uniswap_amm: '0x6Ba9bebb3cF606e2514857581c8641bE31B9A59b', // '0xdA65daC88104ae4011C731d7DB0b5a04A683d550',
 
         assets: {
             balancer_market_maker: '0x30F5623c58bc93dB78FCa53D968B871A129Dfa31', // '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',
             curve_market_maker: '0x97f159A0b17f2808fd5cbFf4Fa2B35cEA710373A', // '0x6Bed9737Ef82588E91F6fae874a9beb577A3f0BD',
-            uniswap_market_maker: '0xBAd1ac2433ffA6EEeD9f27067eF4FdD148d911F1', // New: 0xD1209Da55A5BD569311Adb6b12e7B27cb93d9cd2
+            uniswap_market_maker: '0xE7d1391DAeBE68E8d48B40948bA914602134A786', // 0xBAd1ac2433ffA6EEeD9f27067eF4FdD148d911F1
             silo: '0x53b5fae6e17c7f9b35952779150446e99a4887d3',
             balancer4pool: '0x591EcCf1847BF12C7B5F999E33c162dB90cB17C8',
         }

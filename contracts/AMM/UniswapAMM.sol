@@ -39,6 +39,7 @@ contract UniswapAMM {
     // Uniswap V3
     uint32 private constant LOOKBACK = 1 days;
     uint16 private constant DEADLINE_GAP = 15 minutes;
+    uint256 private constant PRECISION = 1e6;
 
     constructor(
         address _sweep,
@@ -92,9 +93,11 @@ contract UniswapAMM {
             sequencer,
             oracleBaseUpdateFrequency
         );
-        uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
 
-        amountOut = quote.mulDiv(price, 10 ** decimals);
+        uint8 quoteDecimals = base.decimals();
+        uint8 priceDecimals = ChainlinkLibrary.getDecimals(oracleBase);
+
+        amountOut = PRECISION.mulDiv(quote * price, 10 ** (quoteDecimals + priceDecimals));
     }
 
     /**
@@ -107,8 +110,6 @@ contract UniswapAMM {
             sequencer,
             oracleBaseUpdateFrequency
         );
-        uint8 decimals = ChainlinkLibrary.getDecimals(oracleBase);
-
         // Get the average price tick first
         (int24 arithmeticMeanTick, ) = OracleLibrary.consult(pool, LOOKBACK);
 
@@ -120,7 +121,10 @@ contract UniswapAMM {
             address(base)
         );
 
-        amountOut = quote.mulDiv(price, 10 ** decimals);
+        uint8 quoteDecimals = base.decimals();
+        uint8 priceDecimals = ChainlinkLibrary.getDecimals(oracleBase);
+
+        amountOut = PRECISION.mulDiv(quote * price, 10 ** (quoteDecimals + priceDecimals));
     }
 
     function getPositions(uint256 tokenId)
@@ -210,7 +214,7 @@ contract UniswapAMM {
         if(usdxAmount == 0 || sweepAmount == 0) revert ZeroAmount();
         uint256 tokenFactor = 10 ** IERC20Metadata(usdxAddress).decimals();
         uint256 sweepFactor = 10 ** sweep.decimals();
-        uint256 rate = usdxAmount * sweepFactor * 1e6 / (tokenFactor * sweepAmount);
+        uint256 rate = usdxAmount * sweepFactor * PRECISION / (tokenFactor * sweepAmount);
 
         if(rate > 16e5 || rate < 6e5) revert BadRate();
     }

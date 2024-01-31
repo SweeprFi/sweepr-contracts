@@ -4,7 +4,7 @@ const { getPriceAndData, ask } = require('../../../utils/helper_functions');
 
 async function main() {	
 	const { token0, token1, sqrtPriceX96 } = getPriceAndData(tokens.sweep, tokens.usdc, 0, 0);
-	const FEE = 500;
+	const FEE = 100;
 
 	console.log("===========================================");
 	console.log("CREATING UNISWAP POOL");

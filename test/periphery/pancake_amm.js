@@ -16,13 +16,14 @@ contract("Pancake AMM", async function () {
     SWEEP_INVEST = toBN("20000", 18);
     usdxAmount = toBN("1000", 18);
     sweepAmount = toBN("1000", 18);
-    FEE = 500;
+    FEE = 100;
     // ------------- Deployment of contracts -------------
     Sweep = await ethers.getContractFactory("SweepMock");
     const Proxy = await upgrades.deployProxy(Sweep, [OWNER, OWNER, 2500]);
     sweep = await Proxy.deployed();
 
     ERC20 = await ethers.getContractFactory("USDCMock");
+    usdt = await ERC20.deploy(18);
     usdc = await ERC20.deploy(18);
 
     LiquidityHelper = await ethers.getContractFactory("PancakeLiquidityHelper");
@@ -62,11 +63,12 @@ contract("Pancake AMM", async function () {
   });
 
   describe("main functions", async function () {
-    it("initial setup - create and add liquitiy", async function () {
+    it('create the pool and adds liquidity', async () => {
       const { token0, token1 } = getPriceAndData(sweep.address, usdc.address, 0, 0);
       expect(await factory.getPool(token0, token1, FEE)).to.equal(Const.ADDRESS_ZERO);
       expect(await marketmaker.assetValue()).to.equal(0);
-      price = toBN("79228162514264337593543950336", 0)
+      expect(await marketmaker.tradePosition()).to.equal(0);
+      price = toBN("79267766696949822870343647232", 0)
       await positionManager.createAndInitializePoolIfNecessary(token0, token1, FEE, price)
       pool_address = await factory.getPool(token0, token1, FEE);
 
@@ -74,24 +76,29 @@ contract("Pancake AMM", async function () {
       pool = await ethers.getContractAt("IPancakePool", pool_address);
       await(await pool.increaseObservationCardinalityNext(96)).wait();
 
-      PancakeAMM = await ethers.getContractFactory("PancakeAMM");
-      amm = await PancakeAMM.deploy(
+      Pancake = await ethers.getContractFactory("PancakeAMM");
+      amm = await Pancake.deploy(
         sweep.address,
         usdc.address,
         chainlink.sequencer,
+        pool_address,
         usdcOracle.address,
         86400,
         liquidityHelper.address
       );
-
       await sweep.setAMM(amm.address);
-      await amm.setMarketMaker(marketmaker.address);
-      await usdc.approve(marketmaker.address, USDC_INVEST);
-      await marketmaker.initPool(USDC_INVEST, SWEEP_MINT, 0, 0, pool_address);
-      await amm.setPool(pool_address);
+      await marketmaker.setAMM(amm.address);
 
-      expect(await sweep.balanceOf(pool_address)).to.greaterThan(0);
-      expect(await usdc.balanceOf(pool_address)).to.greaterThan(0);
+      usdxAmount = toBN("15000", 18);
+      sweepAmount = toBN("15000", 18);
+
+      await usdc.transfer(marketmaker.address, usdxAmount.mul(2));
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 4e4, 5000, 3e4);
+
+      expect(await usdc.balanceOf(pool_address)).to.greaterThan(Const.ZERO);
+      expect(await sweep.balanceOf(pool_address)).to.greaterThan(Const.ZERO);
+      expect(await marketmaker.assetValue()).to.greaterThan(Const.ZERO);
+      expect(await marketmaker.tradePosition()).to.greaterThan(Const.ZERO);
     });
 
     it("buys sweep correctly", async function () {
@@ -152,7 +159,7 @@ contract("Pancake AMM", async function () {
       await usdc.approve(amm.address, USDC_AMOUNT);
       await amm.buySweep(usdc.address, USDC_AMOUNT, MIN_AMOUNT_OUT);
 
-      expect(await sweep.balanceOf(pool_address)).to.greaterThan(sweepBalanceB)
+      expect(await sweep.balanceOf(pool_address)).to.lessThan(sweepBalanceB)
       expect(await usdc.balanceOf(pool_address)).to.greaterThan(usdcBalanceB)
     });
   });

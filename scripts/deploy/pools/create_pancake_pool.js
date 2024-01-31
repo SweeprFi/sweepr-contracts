@@ -5,7 +5,7 @@ const { getPriceAndData, ask, toBN } = require('../../../utils/helper_functions'
 async function main() {	
 	const { token0, token1 } = getPriceAndData(tokens.sweep, tokens.usdt, 0, 0);
 	const sqrtPriceX96 = toBN("79228162514264337593543950336", 0);
-	const FEE = 500;
+	const FEE = 100;
 
 	console.log("===========================================");
 	console.log("CREATING PANCAKE POOL");

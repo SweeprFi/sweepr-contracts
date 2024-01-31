@@ -12,7 +12,7 @@ contract('Uniswap Market Maker', async () => {
     sweepAmount = toBN("10000000", 18); // 10M
     minAutoSweepAmount = toBN("100", 18);
     BORROWER = owner.address;
-    FEE = 500;
+    FEE = 100;
     TICK_SPREAD = 1000;
 
     Sweep = await ethers.getContractFactory("SweepCoin");
@@ -84,7 +84,7 @@ contract('Uniswap Market Maker', async () => {
       sweepAmount = toBN("15000", 18);
 
       await usdc.transfer(marketmaker.address, usdxAmount.mul(2));
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 340000, 5000, 2000);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 30000, 7000);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
@@ -100,7 +100,7 @@ contract('Uniswap Market Maker', async () => {
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
 
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 340000, 5000, 2000);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 30000, 7000);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(usdcPoolBalance);
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
@@ -126,7 +126,7 @@ contract('Uniswap Market Maker', async () => {
       sweepAmount = toBN("22000", 18);
 
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 340000, 2000);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 2e5, 1e5);
 
       expect(await marketmaker.tradePosition()).to.not.equal(tradePosition);
     });
@@ -137,13 +137,13 @@ contract('Uniswap Market Maker', async () => {
       usdxAmount = toBN("15000", 6);
       sweepAmount = toBN("15000", 18);
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 340000, 2000);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 2e5, 1e5);
 
       await sweep.connect(balancer).setTargetPrice(1001000, 1001000);
       usdxAmount = toBN("20000", 6);
       sweepAmount = toBN("20000", 18);
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 550000, 5000, 2000);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 2e5, 1e5);
     })
 
     it('removes liquidity', async () => {
@@ -214,6 +214,7 @@ contract('Uniswap Market Maker', async () => {
       pUBB = await usdc.balanceOf(poolAddress);
       sUBB = await sweep.balanceOf(poolAddress);
 
+      amount = toBN("900", 6);
       await marketmaker.buySweepOnAMM(amount, 1e4);
 
       expect(await usdc.balanceOf(marketmaker.address)).to.equal(mmUBB.sub(amount));
