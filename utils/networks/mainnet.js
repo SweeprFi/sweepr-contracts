@@ -16,11 +16,11 @@ module.exports = {
     wallets: {
         multisig: '0x3afd8feED6Bbd1D8254d92eAFA1F695Dce16387a',
         wallet: '0x0000000000000000000000000000000000000000',
+        borrower: '0xF2D3Ba4Ad843Ac0842Baf487660FCb3B208c988c',
         agent: '0x0000000000000000000000000000000000000000',
 
         // tests
         owner: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
-        borrower: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
         usdc_holder: '0xDa9CE944a37d218c3302F6B82a094844C6ECEb17',
         backed_holder: '0x1A8c53147E7b61C015159723408762fc60A34D17',
     },

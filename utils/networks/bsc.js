@@ -16,6 +16,7 @@ module.exports = {
     wallets: {
         multisig: '0xEB0A2Dc76893c436306266fe6F98257Ed40D5DC2',
         owner: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
+        borrower: '0xF2D3Ba4Ad843Ac0842Baf487660FCb3B208c988c',
         usdt_holder: '0xD183F2BBF8b28d9fec8367cb06FE72B88778C86B',
     },
 
