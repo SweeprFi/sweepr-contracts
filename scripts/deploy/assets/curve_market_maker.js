@@ -9,7 +9,7 @@ async function main() {
     const usdc = tokens.usdc;
     const oracleUsdc = chainlink.usdc_usd;
     const poolAddress = deployments.curve_pool;
-    const borrower = wallets.multisig;
+    const borrower = wallets.borrower;
 
 
     console.log("===========================================");
