@@ -279,6 +279,11 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         _unpause();
     }
 
+    function changeBorrower(address newBorrower) external onlyGov {
+        if(newBorrower == address(0)) revert ZeroAddressDetected();
+        borrower = newBorrower;
+    }
+
     /**
      * @notice Configure intial settings
      * @param _minEquityRatio The minimum equity ratio can be negative.
