@@ -61,7 +61,7 @@ contract("Stabilizer - Management Functions", async function () {
     it("set a new configuration", async function () {
       expect(await offChainAsset.settingsEnabled()).to.equal(Const.TRUE);
       expect(await offChainAsset.minEquityRatio()).to.equal(Const.ZERO);
-      expect(await offChainAsset.spreadFee()).to.equal(Const.ZERO);
+      expect(await offChainAsset.protocolFee()).to.equal(Const.ZERO);
       expect(await offChainAsset.loanLimit()).to.equal(Const.ZERO);
       expect(await offChainAsset.decreaseFactor()).to.equal(Const.ZERO);
       expect(await offChainAsset.callDelay()).to.equal(Const.ZERO);
@@ -99,7 +99,7 @@ contract("Stabilizer - Management Functions", async function () {
         );
 
       expect(await offChainAsset.minEquityRatio()).to.equal(Const.RATIO);
-      expect(await offChainAsset.spreadFee()).to.equal(Const.RATIO);
+      expect(await offChainAsset.protocolFee()).to.equal(Const.RATIO);
       expect(await offChainAsset.loanLimit()).to.equal(maxBorrow);
       expect(await offChainAsset.decreaseFactor()).to.equal(Const.RATIO);
       expect(await offChainAsset.callDelay()).to.equal(500);
@@ -195,6 +195,20 @@ contract("Stabilizer - Management Functions", async function () {
       balance = await usdx.balanceOf(offChainAsset.address);
       await expect(offChainAsset.connect(borrower).withdraw(sweep.address, Const.ZERO))
         .to.be.revertedWithCustomError(offChainAsset, 'OverZero');
+    });
+
+    it("only governance can change the borrower", async function () {
+      await expect(offChainAsset.connect(wallet).changeBorrower(wallet.address))
+        .to.be.revertedWithCustomError(offChainAsset, 'NotGovernance');
+    });
+
+    it("changes the borrower correctly", async function () {
+      expect(await offChainAsset.borrower()).to.equal(borrower.address)
+      await offChainAsset.changeBorrower(wallet.address);
+
+      expect(await offChainAsset.borrower()).to.equal(wallet.address)
+      await expect(offChainAsset.connect(borrower).withdraw(sweep.address, autoInvestAmount))
+        .to.be.revertedWithCustomError(offChainAsset, 'NotBorrower');
     });
   });
 });
