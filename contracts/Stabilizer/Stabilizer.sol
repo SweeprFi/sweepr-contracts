@@ -44,7 +44,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     uint256 public callDelay; // 86400 is 1 day
     uint256 public callAmount;
 
-    uint256 public spreadFee; // 10000 is 1%
+    uint256 public protocolFee; // 10000 is 1%
     uint256 public spreadDate;
     string public link;
 
@@ -89,7 +89,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     event ConfigurationChanged(
         int256 indexed minEquityRatio,
-        uint256 indexed spreadFee,
+        uint256 indexed protocolFee,
         uint256 loanLimit,
         uint256 decreaseFactor,
         uint256 callDelay,
@@ -98,7 +98,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         uint256 minLiquidationRatio,
         bool autoInvestEnabled,
         bool _auctionAllowed,
-        string url
+        string link
     );
 
     /* ========== Errors ========== */
@@ -195,7 +195,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         if (sweepBorrowed > 0) {
             uint256 period = (block.timestamp - spreadDate) / DAY_SECONDS;
             return
-                (sweepBorrowed * spreadFee * period) /
+                (sweepBorrowed * protocolFee * period) /
                 (DAYS_ONE_YEAR * PRECISION);
         }
 
@@ -287,7 +287,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     /**
      * @notice Configure intial settings
      * @param _minEquityRatio The minimum equity ratio can be negative.
-     * @param _spreadFee The fee that the protocol will get for providing the loan when the stabilizer takes debt
+     * @param _protocolFee The fee that the protocol will get for providing the loan when the stabilizer takes debt
      * @param _loanLimit How much debt a Stabilizer can take in SWEEP.
      * @param _decreaseFactor A percentage that will be discounted from the price as time passes from the auction start.
      * @param _callDelay Time in seconds after AutoCall until the Stabilizer gets defaulted if the debt is not paid in that period
@@ -295,7 +295,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @param _autoInvestMinAmount Minimum amount to be invested to allow the execution of an auto invest
      * @param _autoInvestEnabled Represents if an auto invest execution is allowed or not
      * @param _auctionAllowed Represents if an auction is allowed or not
-     * @param _url A URL link to a Web page that describes the borrower and the asset
+     * @param _link A URL link to a Web page that describes the borrower and the asset
      * @dev Sets the initial configuration of the Stabilizer.
      * This configuration will be analyzed by the protocol and if accepted,
      * used to include the Stabilizer in the minter's whitelist of Sweep.
@@ -303,7 +303,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      */
     function configure(
         int256 _minEquityRatio,
-        uint256 _spreadFee,
+        uint256 _protocolFee,
         uint256 _loanLimit,
         uint256 _decreaseFactor,
         uint256 _callDelay,
@@ -312,10 +312,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         uint256 _minLiquidationRatio,
         bool _autoInvestEnabled,
         bool _auctionAllowed,
-        string calldata _url
+        string calldata _link
     ) external onlyBorrower onlySettingsEnabled {
         minEquityRatio = _minEquityRatio;
-        spreadFee = _spreadFee;
+        protocolFee = _protocolFee;
         loanLimit = _loanLimit;
         decreaseFactor = _decreaseFactor;
         callDelay = _callDelay;
@@ -324,11 +324,11 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         minLiquidationRatio = _minLiquidationRatio;
         autoInvestEnabled = _autoInvestEnabled;
         auctionAllowed = _auctionAllowed;
-        link = _url;
+        link = _link;
 
         emit ConfigurationChanged(
             _minEquityRatio,
-            _spreadFee,
+            _protocolFee,
             _loanLimit,
             decreaseFactor,
             _callDelay,
@@ -337,7 +337,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
             _minLiquidationRatio,
             _autoInvestEnabled,
             _auctionAllowed,
-            _url
+            _link
         );
     }
 
@@ -399,21 +399,21 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @notice Pay the spread to the treasury
      */
     function payFee() external onlyBorrower nonReentrant {
-        uint256 spreadAmount = accruedFee();
+        uint256 feeAmount = accruedFee();
         spreadDate = block.timestamp;
 
         uint256 sweepBalance = sweep.balanceOf(address(this));
 
-        if (spreadAmount > sweepBalance) revert SpreadNotEnough();
+        if (feeAmount > sweepBalance) revert SpreadNotEnough();
 
-        if (spreadAmount > 0) {
+        if (feeAmount > 0) {
             TransferHelper.safeTransfer(
                 address(sweep),
                 sweep.treasury(),
-                spreadAmount
+                feeAmount
             );
 
-            emit PayFee(spreadAmount);
+            emit PayFee(feeAmount);
         }
     }
 
@@ -813,8 +813,8 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     }
 
     function _repay(uint256 sweepAmount) internal {
-        uint256 sweepBalance = sweep.balanceOf(address(this));
-        sweepAmount = sweepAmount.min(sweepBalance);
+        sweepAmount = sweepAmount.min(sweep.balanceOf(address(this)));
+        sweepAmount = sweepAmount.min(getDebt());
 
         if (sweepAmount == 0) revert NotEnoughBalance();
 

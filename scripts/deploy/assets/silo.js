@@ -10,7 +10,7 @@ async function main() {
     const usdc = tokens.usdc;
     const usdcE = tokens.usdc_e;
     const oracleUsdc = chainlink.usdc_usd;
-    const borrower = wallets.multisig;
+    const borrower = wallets.borrower;
     const poolAddress = protocols.balancer.bpt_4pool;
 
     console.log("===========================================");
