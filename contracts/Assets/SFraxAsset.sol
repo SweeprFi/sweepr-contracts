@@ -96,7 +96,7 @@ contract SFraxAsset is Stabilizer {
      */
     function liquidate() external nonReentrant {
         if(auctionAllowed) revert ActionNotAllowed();
-        _liquidate(address(asset), getDebt());
+        _liquidate(_getToken(), getDebt());
     }
 
     function _invest(uint256 usdxAmount, uint256, uint256 slippage) internal virtual override {    

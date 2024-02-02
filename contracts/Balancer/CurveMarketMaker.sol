@@ -68,6 +68,14 @@ contract CurveMarketMaker is Stabilizer {
     }
 
     /* ========== Actions ========== */
+    function liquidate() external nonReentrant {
+        if(auctionAllowed) revert ActionNotAllowed();
+        _liquidate(_getToken(), getDebt());
+    }
+
+    function _getToken() internal view override returns (address) {
+        return address(pool);
+    }
 
     function initPool(uint256 usdxAmount, uint256 sweepAmount) external nonReentrant onlyBorrower {
         if(sweep.isMintingAllowed()){

@@ -105,7 +105,7 @@ contract ETSAsset is Stabilizer {
      */
     function liquidate() external nonReentrant {
         if(auctionAllowed) revert ActionNotAllowed();
-        _liquidate(address(token), getDebt());
+        _liquidate(_getToken(), getDebt());
     }
 
     /* ========== Internals ========== */
