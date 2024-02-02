@@ -137,7 +137,7 @@ contract ERC4626Asset is Stabilizer {
      */
     function liquidate() external nonReentrant {
         if(auctionAllowed) revert ActionNotAllowed();
-        _liquidate(address(asset), getDebt());
+        _liquidate(_getToken(), getDebt());
     }
 
     /* ========== Internals ========== */

@@ -77,6 +77,15 @@ contract BalancerMarketMaker is Stabilizer {
 
     /* ========== Actions ========== */
 
+    function liquidate() external nonReentrant {
+        if(auctionAllowed) revert ActionNotAllowed();
+        _liquidate(_getToken(), getDebt());
+    }
+
+    function _getToken() internal view override returns (address) {
+        return address(pool);
+    }
+
     function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {
         sweepAmount = (_oracleUsdxToUsd(usdxAmount) * (10 ** sweep.decimals())) / getBuyPrice();
 
