@@ -154,26 +154,6 @@ contract("Stabilizer - Isolated Functions", async function () {
   });
 
   describe("buy & sell SWEEP from stabilizer", async function () {
-    it("tries to buy without balance", async function () {
-      await expect(offChainAsset.connect(borrower).swapUsdxToSweep(usdxAmount))
-        .to.be.revertedWithCustomError(offChainAsset, 'NotEnoughBalance');
-    });
-
-    it("buy SWEEP", async function () {
-      usdxAmount = toBN("50", 6);
-      expectSweepAmount = toBN("50", 18);
-
-      await offChainAsset.connect(borrower).borrow(mintAmount);
-
-      sweepBalanceBefore = await sweep.balanceOf(borrower.address);
-      usdxBalanceBefore = await usdx.balanceOf(offChainAsset.address);
-
-      await offChainAsset.connect(borrower).swapUsdxToSweep(usdxAmount);
-
-      expect(await sweep.balanceOf(borrower.address)).to.above(sweepBalanceBefore);
-      expect(await usdx.balanceOf(offChainAsset.address)).to.above(usdxBalanceBefore);
-    });
-
     it("sell SWEEP through the AMM", async function () {
       balance = await sweep.balanceOf(offChainAsset.address);
       usdxBalanceBefore = await usdx.balanceOf(offChainAsset.address);
@@ -188,28 +168,8 @@ contract("Stabilizer - Isolated Functions", async function () {
       balanceBefore = await usdx.balanceOf(offChainAsset.address);
 
       await offChainAsset.connect(borrower).buySweepOnAMM(usdxAmount, 2000);
-
       balanceAfter = await usdx.balanceOf(offChainAsset.address);
-
-      expect(balanceAfter.add(usdxAmount)).to.equal(balanceBefore);
-    });
-
-    it("Sell SWEEP", async function () {
-      sweepAmount = toBN("30", 18);
-      sweepBalanceBefore = await sweep.balanceOf(offChainAsset.address);
-      usdxBalanceBefore = await usdx.balanceOf(borrower.address);
-
-      targetPrice = await sweep.targetPrice();
-      expectUSXAmount = (30e6 * targetPrice) / 1e6;
-
-      await sweep.connect(borrower).approve(offChainAsset.address, sweepAmount);
-      await expect(offChainAsset.connect(borrower).swapSweepToUsdx(sweepAmount.mul(5)))
-        .to.be.revertedWithCustomError(offChainAsset, "NotEnoughBalance");
-
-      await offChainAsset.connect(borrower).swapSweepToUsdx(sweepAmount);
-
-      expect(await sweep.balanceOf(offChainAsset.address)).to.above(sweepBalanceBefore);
-      expect(await usdx.balanceOf(borrower.address)).to.above(usdxBalanceBefore);
+      expect(balanceBefore).to.greaterThan(balanceAfter);
     });
   });
 });

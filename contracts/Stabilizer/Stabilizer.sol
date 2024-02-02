@@ -562,65 +562,16 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
         emit Sold(sweepAmount);
     }
 
-    /**
-     * @notice Buy Sweep with Stabilizer
-     * Buys sweep amount from the stabilizer's balance to the Borrower (swaps USDX to SWEEP).
-     * @param usdxAmount.
-     * @dev Decreases the sweep balance and increase usdx balance
-     */
-    function swapUsdxToSweep(uint256 usdxAmount)
-        public onlyBorrower whenNotPaused validAmount(usdxAmount) nonReentrant
-        returns (uint256 sweepAmount)
-
-    {
-        uint256 usdxInUsd = _oracleUsdxToUsd(usdxAmount);
-        sweepAmount = sweep.convertToSWEEP(usdxInUsd);
-        uint256 sweepBalance = sweep.balanceOf(address(this));
-        if (sweepAmount > sweepBalance) revert NotEnoughBalance();
-
-        TransferHelper.safeTransferFrom(
-            address(usdx),
-            msg.sender,
-            address(this),
-            usdxAmount
-        );
-        TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
-
-        emit BoughtSWEEP(sweepAmount);
-    }
-
-    /**
-     * @notice Sell Sweep with Stabilizer
-     * Sells sweep amount to the stabilizer (swaps SWEEP to USDX).
-     * @param sweepAmount.
-     * @dev Decreases the sweep balance and increase usdx balance
-     */
-    function swapSweepToUsdx(uint256 sweepAmount)
-        public onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant
-        returns (uint256 usdxAmount)
-    {
-        uint256 sweepInUsd = sweep.convertToUSD(sweepAmount);
-        usdxAmount = _oracleUsdToUsdx(sweepInUsd);
-        uint256 usdxBalance = usdx.balanceOf(address(this));
-
-        if (usdxAmount > usdxBalance) revert NotEnoughBalance();
-
-        TransferHelper.safeTransferFrom(address(sweep), msg.sender, address(this), sweepAmount);
-        TransferHelper.safeTransfer(address(usdx), msg.sender, usdxAmount);
-
-        emit SoldSWEEP(usdxAmount);
-    }
-
     function oneStepInvest(uint256 sweepAmount, uint256 slippage, bool useAMM) 
         external onlyBorrower whenNotPaused validAmount(sweepAmount) nonReentrant
         returns(uint256 usdxAmount)
     {
         _borrow(sweepAmount);
         
-        if(useAMM){
+        if(useAMM) {
             usdxAmount = _sell(sweepAmount, slippage);
         } else {
-            usdxAmount = swapSweepToUsdx(sweepAmount);
+            usdxAmount = sweep.convertToUSD(sweepAmount);
         }
 
         _invest(usdxAmount, 0, slippage);
@@ -633,10 +584,10 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     {
         _divest(usdxAmount, slippage);
 
-        if(useAMM){
+        if(useAMM) {
             sweepAmount = _buy(usdxAmount, slippage);
         } else {
-            sweepAmount = swapUsdxToSweep(usdxAmount);
+            sweepAmount = sweep.convertToSWEEP(usdxAmount);
         }
 
         _repay(sweepAmount);
