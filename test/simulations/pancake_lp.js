@@ -2,7 +2,8 @@ const { ethers } = require("hardhat");
 const { tokens, deployments, wallets, chainlink, network } = require("../../utils/constants");
 const { impersonate, toBN, resetNetwork, sendEth, Const } = require("../../utils/helper_functions");
 
-contract.skip("Pancake Market Maker", async function () {
+contract("Pancake Market Maker", async function () {
+    return;
     if (Number(network.id) !== 56) return;
     before(async () => {
         [borrower] = await ethers.getSigners();

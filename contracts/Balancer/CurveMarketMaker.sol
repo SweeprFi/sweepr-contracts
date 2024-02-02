@@ -23,7 +23,7 @@ contract CurveMarketMaker is Stabilizer {
 
     event LiquidityAdded(uint256 usdxAmount, uint256 sweepAmount);
     event LiquidityRemoved(uint256 usdxAmount, uint256 sweepAmount);
-    event LiquidityRemoved(uint256 burnAmount);
+    event SingleLiquidityRemoved(uint256 burnAmount);
     event SweepPurchased(uint256 usdxAmount, uint256 sweepAmount);
 
     ICurvePool public pool;
@@ -129,7 +129,7 @@ contract CurveMarketMaker is Stabilizer {
 
     function removeSingleSidedLiquidity(uint256 burnAmount, int128 index, uint256 minAmountOut) external nonReentrant onlyBorrower {
         pool.remove_liquidity_one_coin(burnAmount, index, minAmountOut);
-        emit LiquidityRemoved(burnAmount);
+        emit SingleLiquidityRemoved(burnAmount);
     }
 
     function removeLiquidityImbalance(uint256[] memory amounts, uint256 maxBurnAmount) external nonReentrant onlyBorrower {

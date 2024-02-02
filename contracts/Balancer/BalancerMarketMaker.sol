@@ -64,6 +64,8 @@ contract BalancerMarketMaker is Stabilizer {
      */
     function assetValue() public view override returns (uint256) {    
         uint256 bpt = pool.balanceOf(address(this));
+        if(bpt == 0) return 0;
+
         uint256 rate = pool.getRate();
 
         uint256 usdcAmount = (bpt * rate * (10 ** usdx.decimals())) / (10 ** (pool.decimals() * 2));

@@ -1,11 +1,12 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { addresses } = require("../../utils/address");
-const { impersonate, Const, toBN, resetNetwork, sendEth } = require("../../utils/helper_functions");
+const { addresses } = require("../../../utils/address");
+const { impersonate, Const, toBN, resetNetwork, sendEth } = require("../../../utils/helper_functions");
 
-const { network, tokens, chainlink, balancer, protocols, wallets } = require("../../utils/constants");
+const { network, tokens, chainlink, balancer, protocols, wallets } = require("../../../utils/constants");
 
-contract.skip("USDPlus Asset", async function () {
+contract("USDPlus Asset", async function () {
+    return;
     before(async () => {
         if (Number(network.id) !== 42161) return;
 
