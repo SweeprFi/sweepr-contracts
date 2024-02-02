@@ -22,9 +22,9 @@ contract CurveMarketMaker is Stabilizer {
     error BadAmountReceived();
 
     event LiquidityAdded(uint256 usdxAmount, uint256 sweepAmount);
-    event PoolInitialized(uint256 usdxAmount, uint256 sweepAmount);
     event LiquidityRemoved(uint256 usdxAmount, uint256 sweepAmount);
-    event SweepPurchased(uint256 sweeAmount);
+    event LiquidityRemoved(uint256 burnAmount);
+    event SweepPurchased(uint256 usdxAmount, uint256 sweepAmount);
 
     ICurvePool public pool;
     // IBalancerVault public vault;
@@ -77,15 +77,6 @@ contract CurveMarketMaker is Stabilizer {
         return address(pool);
     }
 
-    function initPool(uint256 usdxAmount, uint256 sweepAmount) external nonReentrant onlyBorrower {
-        if(sweep.isMintingAllowed()){
-            if(sweepAmount > 0) _borrow(sweepAmount);
-        }
-
-        _addLiquidity(usdxAmount, sweepAmount);
-        emit PoolInitialized(usdxAmount, sweepAmount);
-    }
-
     function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {
         sweepAmount = (_oracleUsdxToUsd(usdxAmount) * (10 ** sweep.decimals())) / getBuyPrice();
 
@@ -95,7 +86,7 @@ contract CurveMarketMaker is Stabilizer {
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
         _checkRatio();
-        emit SweepPurchased(usdxAmount);
+        emit SweepPurchased(usdxAmount, sweepAmount);
     }
 
     function _addLiquidity(uint256 usdxAmount, uint256 sweepAmount) internal {
@@ -119,10 +110,6 @@ contract CurveMarketMaker is Stabilizer {
     }
 
     function addLiquidity(uint256 usdxAmount, uint256 sweepAmount) public nonReentrant onlyBorrower {
-        if(sweep.isMintingAllowed()){
-            if(sweepAmount > 0) _borrow(sweepAmount);
-        }
-
         _addLiquidity(usdxAmount, sweepAmount);
         emit LiquidityAdded(usdxAmount, sweepAmount);
     }
@@ -130,22 +117,24 @@ contract CurveMarketMaker is Stabilizer {
     function removeLiquidity(uint256 burnAmont, uint256[] memory minAmounts) external nonReentrant onlyBorrower {    
         uint256 usdxBalanceBefore = usdx.balanceOf(address(this));
         uint256 sweepBalanceBefore = sweep.balanceOf(address(this));
-        uint256[] memory receivedAmounts = pool.remove_liquidity(burnAmont, minAmounts);
+        uint256[] memory amounts = pool.remove_liquidity(burnAmont, minAmounts);
         uint256 usdxBalanceAfter = usdx.balanceOf(address(this));
         uint256 sweepBalanceAfter = sweep.balanceOf(address(this));
 
-        if(usdxBalanceAfter < usdxBalanceBefore + receivedAmounts[USDX_IDX]) revert BadAmountReceived();
-        if(sweepBalanceAfter < sweepBalanceBefore + receivedAmounts[SWEEP_IDX]) revert BadAmountReceived();
+        if(usdxBalanceAfter < usdxBalanceBefore + amounts[USDX_IDX]) revert BadAmountReceived();
+        if(sweepBalanceAfter < sweepBalanceBefore + amounts[SWEEP_IDX]) revert BadAmountReceived();
 
-        emit LiquidityRemoved(receivedAmounts[USDX_IDX], receivedAmounts[SWEEP_IDX]);
+        emit LiquidityRemoved(amounts[USDX_IDX], amounts[SWEEP_IDX]);
     }
 
-    function removeSingleSidedLiquidity(uint256 burnAmont, int128 index, uint256 minAmountOut) external nonReentrant onlyBorrower {
-        pool.remove_liquidity_one_coin(burnAmont, index, minAmountOut);
+    function removeSingleSidedLiquidity(uint256 burnAmount, int128 index, uint256 minAmountOut) external nonReentrant onlyBorrower {
+        pool.remove_liquidity_one_coin(burnAmount, index, minAmountOut);
+        emit LiquidityRemoved(burnAmount);
     }
 
     function removeLiquidityImbalance(uint256[] memory amounts, uint256 maxBurnAmount) external nonReentrant onlyBorrower {
         pool.remove_liquidity_imbalance(amounts, maxBurnAmount);
+        emit LiquidityRemoved(amounts[USDX_IDX], amounts[SWEEP_IDX]);
     }
 
     function setSlippage(uint32 newSlippage) external nonReentrant onlyBorrower {

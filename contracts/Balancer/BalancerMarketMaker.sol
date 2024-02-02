@@ -19,9 +19,10 @@ contract BalancerMarketMaker is Stabilizer {
     error BadAddress();
     error BadSlippage();
 
+    event PoolInitialized(uint256 usdxAmount, uint256 sweepAmount);
     event LiquidityAdded(uint256 usdxAmount, uint256 sweepAmount);
     event LiquidityRemoved(uint256 usdxAmount, uint256 sweepAmount);
-    event SweepPurchased(uint256 sweeAmount);
+    event SweepPurchased(uint256 usdxAmount, uint256 sweepAmount);
 
     IBalancerPool public pool;
     IBalancerVault public vault;
@@ -89,26 +90,18 @@ contract BalancerMarketMaker is Stabilizer {
     function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {
         sweepAmount = (_oracleUsdxToUsd(usdxAmount) * (10 ** sweep.decimals())) / getBuyPrice();
 
+        TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
         _borrow(sweepAmount * 2);
         _addLiquidity(usdxAmount, sweepAmount);
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
         _checkRatio();
-        emit SweepPurchased(usdxAmount);
+        emit SweepPurchased(usdxAmount, sweepAmount);
     }
 
     function initPool(uint256 usdxAmount, uint256 sweepAmount) external nonReentrant onlyBorrower {
-        address self = address(this);
-
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
         TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
         TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
-
-        if(sweep.isMintingAllowed()){
-            _borrow(sweepAmount);
-        } else {
-            TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount);
-        }
 
         uint256[] memory amounts = new uint256[](3);
         amounts[bptIndex] = 2**112;
@@ -118,13 +111,14 @@ contract BalancerMarketMaker is Stabilizer {
         bytes memory userData = abi.encode(JoinKind.INIT, amounts);
 
         IBalancerVault.JoinPoolRequest memory request = IBalancerVault.JoinPoolRequest(poolAssets, amounts, userData, false);
-        vault.joinPool(poolId, self, self, request);
+        vault.joinPool(poolId, address(this), address(this), request);
+
+        emit PoolInitialized(usdxAmount, sweepAmount);
     }
 
     function _addLiquidity(uint256 usdxAmount, uint256 sweepAmount) internal {
         address self = address(this);
 
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount);
         TransferHelper.safeApprove(address(usdx), address(vault), usdxAmount);
         TransferHelper.safeApprove(address(sweep), address(vault), sweepAmount);
         
@@ -147,16 +141,7 @@ contract BalancerMarketMaker is Stabilizer {
     }
 
     function addLiquidity(uint256 usdxAmount, uint256 sweepAmount) external nonReentrant onlyBorrower {
-        address self = address(this);
-
-        if(sweep.isMintingAllowed()){
-            if(sweepAmount > 0) _borrow(sweepAmount);
-        } else {
-            TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount);
-        }
-
         _addLiquidity(usdxAmount, sweepAmount);
-
         emit LiquidityAdded(usdxAmount, sweepAmount);
     }
 
@@ -179,8 +164,6 @@ contract BalancerMarketMaker is Stabilizer {
 
         IBalancerVault.ExitPoolRequest memory request = IBalancerVault.ExitPoolRequest(poolAssets, amounts, userData, false);
         vault.exitPool(poolId, self, self, request);
-
-        if(sweepAmount > 0) _repay(sweepAmount);
 
         emit LiquidityRemoved(usdxAmount, sweepAmount);
     }
