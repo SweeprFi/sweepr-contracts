@@ -13,6 +13,7 @@ contract('Balancer Market Maker', async () => {
     HOLDER = wallets.usdc_holder;
     BORROWER = borrower.address;
     USDC_ORACLE = chainlink.usdc_usd;
+    SLIPPAGE = 1e4;
 
     sweepAmount = toBN("100000000000000", 18);
     usdcAmount = toBN("10000", 6);
@@ -84,7 +85,9 @@ contract('Balancer Market Maker', async () => {
   });
 
   it('Inits the pool correctly', async () => {
-    await usdc.approve(marketmaker.address, usdcAmount);
+    await usdc.transfer(marketmaker.address, 2e6);
+    await marketmaker.borrow(toBN("1", 18));
+
     await marketmaker.initPool(2e6, toBN("1", 18));
     await amm.connect(user).setPool(poolAddress);
 
@@ -108,7 +111,8 @@ contract('Balancer Market Maker', async () => {
     usdcBefore = await usdc.balanceOf(vaultAddress);
 
     await usdc.transfer(marketmaker.address, usdcToAdd);
-    await marketmaker.addLiquidity(usdcToAdd, sweepToAdd);
+    await marketmaker.borrow(sweepToAdd);
+    await marketmaker.addLiquidity(usdcToAdd, sweepToAdd, SLIPPAGE);
 
     expect(await usdc.balanceOf(vaultAddress)).to.equal(usdcBefore.add(usdcToAdd));
     expect(await sweep.balanceOf(vaultAddress)).to.equal(sweepBefore.add(sweepToAdd));
@@ -117,13 +121,12 @@ contract('Balancer Market Maker', async () => {
   it('Removes liquidity correctly', async () => {
     usdcToRemove = toBN("250", 6);
     sweepToRemove = toBN("250", 18);
-    await marketmaker.setSlippage(1e4);
 
     price = await sweep.ammPrice();
     sweepBefore = await sweep.balanceOf(vaultAddress);
     usdcBefore = await usdc.balanceOf(vaultAddress);
 
-    await marketmaker.removeLiquidity(usdcToRemove, sweepToRemove);
+    await marketmaker.removeLiquidity(usdcToRemove, sweepToRemove, SLIPPAGE);
     expect(await sweep.balanceOf(vaultAddress)).to.equal(sweepBefore.sub(sweepToRemove));
     expect(await usdc.balanceOf(vaultAddress)).to.equal(usdcBefore.sub(usdcToRemove));
   });
@@ -140,7 +143,7 @@ contract('Balancer Market Maker', async () => {
     vaultUsdcBefore = await usdc.balanceOf(vaultAddress);
 
     expect(sweepBefore).to.equal(0);
-
+    await usdc.approve(marketmaker.address, usdxAmount);
     await marketmaker.buySweep(usdxAmount);
 
     expect(await usdc.balanceOf(borrower.address)).to.equal(usdcBefore.sub(usdxAmount));

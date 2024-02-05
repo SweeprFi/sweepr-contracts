@@ -104,7 +104,8 @@ contract("Stabilizer - One step invest/divest", async function () {
       await usdc.connect(user).transfer(weth_asset.address, depositAmount);
       await usdc.connect(user).transfer(owner.address, usdcAmount);
 
-      await usdc.approve(marketmaker.address, usdcAmount);
+      await usdc.transfer(marketmaker.address, usdcAmount);
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.initPool(usdcAmount, sweepAmount);
 
       await amm.setPool(poolAddress);

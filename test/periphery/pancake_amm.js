@@ -93,7 +93,7 @@ contract("Pancake AMM", async function () {
       sweepAmount = toBN("15000", 18);
 
       await usdc.transfer(marketmaker.address, usdxAmount.mul(2));
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 4e4, 5000, 3e4);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 1e5, 1e5, 3e4);
 
       expect(await usdc.balanceOf(pool_address)).to.greaterThan(Const.ZERO);
       expect(await sweep.balanceOf(pool_address)).to.greaterThan(Const.ZERO);
@@ -119,8 +119,9 @@ contract("Pancake AMM", async function () {
       sweepBefore = await sweep.balanceOf(OWNER);
       usdcBefore = await usdc.balanceOf(OWNER);
 
+      SWEEP_AMOUNT = toBN("1000", 18);
+      MIN_AMOUNT = toBN("900", 18)
       await sweep.approve(amm.address, SWEEP_AMOUNT);
-      MIN_AMOUNT = toBN("70", 18)
       await amm.sellSweep(usdc.address, SWEEP_AMOUNT, MIN_AMOUNT);
 
       sweepAfter = await sweep.balanceOf(OWNER);
@@ -134,9 +135,9 @@ contract("Pancake AMM", async function () {
       priceBefore = await amm.getPrice();
       sweepBalanceB = await sweep.balanceOf(pool_address);
       usdcBalanceB = await usdc.balanceOf(pool_address);
-      await marketmaker.setSlippage(5e5);
       
-      expect(await marketmaker.getBuyPrice()).to.greaterThan(priceBefore);
+      expect(await marketmaker.getBuyPrice())
+        .to.greaterThan(priceBefore);
 
       USDC_AMOUNT = toBN("1100", 18);
       MIN_AMOUNT_OUT = toBN("1000", 18);

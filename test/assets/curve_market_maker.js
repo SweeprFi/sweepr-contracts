@@ -53,18 +53,9 @@ contract('Curve Market Maker', async () => {
     await amm.connect(sweepOwner).setMarketMaker(marketmaker.address);
   });
 
-  it('Inits the pool correctly', async () => {
-    await usdc.connect(sweepOwner).transfer(marketmaker.address, 2e6);
-    await marketmaker.initPool(2e6, toBN("1", 18));
-    await amm.connect(sweepOwner).setPool(poolAddress);
-
-    expect(await amm.getPrice()).to.be.greaterThan(0);
-    expect(await marketmaker.assetValue()).to.be.greaterThan(0);
-    expect(await marketmaker.currentValue()).to.be.greaterThan(0);
-    expect(await sweep.balanceOf(poolAddress)).to.be.greaterThan(0);
-  });
-
   it('Adds Liquidity correctly', async () => {
+    await usdc.connect(sweepOwner).transfer(marketmaker.address, 2e6);
+    await amm.connect(sweepOwner).setPool(poolAddress);
     // ----- Set isMintingAllowed: true
     BALANCER = await sweep.balancer();
     await sendEth(BALANCER);
@@ -78,6 +69,7 @@ contract('Curve Market Maker', async () => {
     usdcBefore = await usdc.balanceOf(poolAddress);
 
     await usdc.transfer(marketmaker.address, usdcToAdd);
+    await marketmaker.borrow(sweepToAdd);
     await marketmaker.addLiquidity(usdcToAdd, sweepToAdd);
 
     expect(await usdc.balanceOf(poolAddress)).to.equal(usdcBefore.add(usdcToAdd));

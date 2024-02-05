@@ -2,7 +2,8 @@ const { ethers } = require("hardhat");
 const { tokens, deployments, wallets, chainlink } = require("../../utils/constants");
 const { impersonate, toBN, resetNetwork, sendEth, Const } = require("../../utils/helper_functions");
 
-contract.skip("Uniswap Market Maker", async function () {
+contract("Uniswap Market Maker", async function () {
+    return;
     before(async () => {
         [borrower] = await ethers.getSigners();
         await resetNetwork(175451864);
