@@ -7,7 +7,7 @@ contract("Pancake Market Maker", async function () {
     if (Number(network.id) !== 56) return;
     before(async () => {
         [borrower] = await ethers.getSigners();
-        await resetNetwork(35703450);
+        await resetNetwork(35880349);
 
         MULTISIG = wallets.multisig;
         OWNER = wallets.owner;
@@ -66,7 +66,7 @@ contract("Pancake Market Maker", async function () {
         console.log("\tSWEEP AMM PRICE:", pp(await sweep.ammPrice(),6));
         console.log("\tSWEEP TARGET PRICE:", pp(await sweep.targetPrice(),6));
 
-        await market.connect(multisig).lpGrow(sweep50, 1000, 1000);
+        await market.connect(multisig).lpGrow(sweep50, 5, 1000);
         console.log("\nGROW POSITION ===============================")
         console.log(`\tAmount: ${pp(sweep50, 18)} SWEEP`)
         console.log("\tPOOL USDT:", pp(await usdt.balanceOf(POOL),18));
@@ -74,7 +74,7 @@ contract("Pancake Market Maker", async function () {
         console.log("\tMM USDT:", pp(await usdt.balanceOf(market.address),18));
         console.log("\tMM SWEEP:", pp(await sweep.balanceOf(market.address),18));
 
-        await market.connect(multisig).lpRedeem(usdc50, 1000, 1000);
+        await market.connect(multisig).lpRedeem(usdc50, 5, 1000);
         console.log("\nREDEEM POSITION ===============================");
         console.log(`\tAmount: ${pp(usdc50, 18)} USDT`)
         console.log("\tPOOL USDT:", pp(await usdt.balanceOf(POOL),18));

@@ -21,8 +21,6 @@ import { PancakeLiquidityHelper, IPancakePool } from "../Utils/PancakeLiquidityH
 contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
     INonfungiblePositionManager public constant nonfungiblePositionManager = 
        INonfungiblePositionManager(0x46A15B0b27311cedF172AB29E4f4766fbE7F4364);
-    PancakeLiquidityHelper private immutable liquidityHelper;
-    uint8 private constant TICKS_DELTA = 201;
 
     // Variables
     address public ammAddress;
@@ -48,14 +46,12 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         string memory _name,
         address _sweep,
         address _usdx,
-        address _liquidityHelper,
         address _oracleUsdx,
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         slippage = 5000; // 0.5%
         flag = _usdx < _sweep;
         (token0, token1) = flag ? (_usdx, _sweep) : (_sweep, _usdx);
-        liquidityHelper = PancakeLiquidityHelper(_liquidityHelper);
     }
 
     /* ========== Views ========== */
@@ -158,7 +154,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         _decreaseLiquidity(tokenId, uint128(liquidityAmount), amountOut0, amountOut1);
     }
 
-    function lpTrade(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxSlippage, uint256 sweepSlippage, uint256 spread)
+    function lpTrade(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxSlippage, uint256 sweepSlippage, int24 spread)
         external onlyBorrower whenNotPaused nonReentrant
     {
         address self = address(this);
@@ -190,7 +186,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         _checkRatio();
     }
 
-    function lpRedeem(uint256 usdxAmount, uint256 priceSpread, uint256 usdxSlippage) external onlyBorrower nonReentrant {
+    function lpRedeem(uint256 usdxAmount, int24 multiplier, uint256 usdxSlippage) external onlyBorrower nonReentrant {
         if(redeemPosition > 0) _removePosition(redeemPosition);
 
         uint256 usdxBalance = usdx.balanceOf(address(this));
@@ -198,28 +194,18 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
             TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount - usdxBalance);
         TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
 
-        uint256 targetPrice = sweep.targetPrice();
-        uint256 ammPrice = amm().getPrice();
-        uint256 maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
-        uint256 minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
-
-        redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minPrice, maxPrice);
+        (int24 minTick, int24 maxTick) = _getPrices(!flag, multiplier);
+        redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minTick, maxTick);
     }
 
-    function lpGrow(uint256 sweepAmount, uint256 priceSpread, uint256 sweepSlippage) external onlyBorrower nonReentrant {
+    function lpGrow(uint256 sweepAmount, int24 multiplier, uint256 sweepSlippage) external onlyBorrower nonReentrant {
         if(growPosition > 0) _removePosition(growPosition);
         uint256 sweepBalance = sweep.balanceOf(address(this));
         if(sweepAmount > sweepBalance) _borrow(sweepAmount - sweepBalance);
 
         TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
-
-        uint256 targetPrice = sweep.targetPrice();
-        uint256 ammPrice = amm().getPrice();
-
-        uint256 minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
-        uint256 maxPrice = ((PRECISION + priceSpread) * minPrice) / PRECISION;
-
-        growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minPrice, maxPrice);
+        (int24 minTick, int24 maxTick) = _getPrices(flag, multiplier);
+        growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minTick, maxTick);
         _checkRatio();
     }
 
@@ -271,11 +257,9 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint256 usdxAmount,
         uint256 sweepAmount,
         uint256 _slippage,
-        uint256 minPrice,
-        uint256 maxPrice
+        int24 minTick,
+        int24 maxTick
     ) internal returns (uint256) {
-        (int24 minTick, int24 maxTick) = _getTicks(minPrice, maxPrice);
-
         (uint256 amount0Mint, uint256 amount1Mint) = flag ? (usdxAmount, sweepAmount) : (sweepAmount, usdxAmount);
         uint256 amount0Min = OvnMath.subBasisPoints(amount0Mint, _slippage);
         uint256 amount1Min = OvnMath.subBasisPoints(amount1Mint, _slippage);
@@ -294,18 +278,6 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         );
 
         emit Collected(amount0, amount1);
-    }
-
-     /**
-     * @notice Get the ticks which will be used in the creating LP
-     * @return minTick The minimum tick
-     * @return maxTick The maximum tick
-     */
-    function showTicks(uint256 spread) internal view returns (int24 minTick, int24 maxTick) {
-        uint256 sweepPrice = sweep.targetPrice();
-        uint256 minPrice = ((PRECISION - spread) * sweepPrice) / PRECISION;
-        uint256 maxPrice = ((PRECISION + spread) * sweepPrice) / PRECISION;
-        (minTick, maxTick) = _getTicks(minPrice, maxPrice);
     }
 
     function _removePosition(uint256 positionId) internal {
@@ -362,11 +334,29 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         );
     }
 
-    function _getTicks(uint256 minPrice, uint256 maxPrice) internal view returns(int24 minTick, int24 maxTick) {
+    /**
+     * @notice Get the ticks which will be used in the creating LP
+     * @return minTick The minimum tick
+     * @return maxTick The maximum tick
+     */
+    function showTicks(int24 multiplier) internal view returns (int24 minTick, int24 maxTick) {
         int24 tickSpacing = IPancakePool(amm().pool()).tickSpacing();
-        minTick = liquidityHelper.getTickFromPrice(minPrice, 6, tickSpacing, flag);
-        maxTick = liquidityHelper.getTickFromPrice(maxPrice, 6, tickSpacing, flag);
+        (, int24 currentTick,,,,,) = IPancakePool(amm().pool()).slot0();
 
-        (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
+        minTick = currentTick - (tickSpacing * multiplier);
+        maxTick = currentTick + (tickSpacing * multiplier);
+    }
+
+    function _getPrices(bool isSellingSweep, int24 multiplier) internal view returns (int24 minTick, int24 maxTick) {
+        int24 tickSpacing = IPancakePool(amm().pool()).tickSpacing();
+        (, int24 currentTick,,,,,) = IPancakePool(amm().pool()).slot0();
+ 
+        if(isSellingSweep) {
+            maxTick = currentTick - tickSpacing;
+            minTick = currentTick - (tickSpacing * multiplier);
+        } else {
+            minTick = currentTick + tickSpacing;
+            maxTick = currentTick + (tickSpacing * multiplier);
+        }
     }
 }
