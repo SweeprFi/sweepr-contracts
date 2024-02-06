@@ -39,7 +39,6 @@ contract('Uniswap Market Maker', async () => {
       'Uniswap Market Maker',
       sweep.address,
       usdc.address,
-      liquidityHelper.address,
       chainlink.usdc_usd,
       BORROWER
     );

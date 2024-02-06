@@ -112,6 +112,10 @@ contract UniswapAMM {
         amountOut = PRECISION.mulDiv(quote, 10 ** quoteDecimals);
     }
 
+    function getTickFromPrice(uint256 price, uint8 decimals, int24 tickSpacing) public view returns (int24) {
+        return liquidityHelper.getTickFromPrice(price, decimals, tickSpacing, flag);
+    }
+
     /**
      * @notice Get TWA Price
      * @dev Get the quote for selling 1 unit of a token.

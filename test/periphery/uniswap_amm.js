@@ -40,7 +40,6 @@ contract("Uniswap AMM", async function () {
       'Uniswap Market Maker',
       sweep.address,
       usdc.address,
-      liquidityHelper.address,
       chainlink.usdc_usd,
       OWNER
     );

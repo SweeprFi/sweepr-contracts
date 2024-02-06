@@ -43,7 +43,6 @@ contract('Pancake Market Maker', async () => {
       'Pancake Market Maker',
       sweep.address,
       usdc.address,
-      liquidityHelper.address,
       chainlink.usdc_usd,
       BORROWER
     );

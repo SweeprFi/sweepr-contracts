@@ -40,7 +40,6 @@ contract("Pancake AMM", async function () {
       'Pancake Market Maker',
       sweep.address,
       usdc.address,
-      liquidityHelper.address,
       chainlink.usdc_usd,
       OWNER
     );

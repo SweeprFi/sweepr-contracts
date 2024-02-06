@@ -16,12 +16,11 @@ pragma solidity 0.8.19;
 import "../Stabilizer/Stabilizer.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
-import { PancakeLiquidityHelper, IPancakePool } from "../Utils/PancakeLiquidityHelper.sol";
+import { IPancakePool } from "../Utils/PancakeLiquidityHelper.sol";
 
 contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
     INonfungiblePositionManager public constant nonfungiblePositionManager = 
        INonfungiblePositionManager(0x46A15B0b27311cedF172AB29E4f4766fbE7F4364);
-    PancakeLiquidityHelper private immutable liquidityHelper;
     uint8 private constant TICKS_DELTA = 201;
 
     // Variables
@@ -48,14 +47,12 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         string memory _name,
         address _sweep,
         address _usdx,
-        address _liquidityHelper,
         address _oracleUsdx,
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         slippage = 5000; // 0.5%
         flag = _usdx < _sweep;
         (token0, token1) = flag ? (_usdx, _sweep) : (_sweep, _usdx);
-        liquidityHelper = PancakeLiquidityHelper(_liquidityHelper);
     }
 
     /* ========== Views ========== */
@@ -199,7 +196,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
 
         uint256 targetPrice = sweep.targetPrice();
-        int24 currentTick = liquidityHelper.getCurrentTick(amm().pool());
+        (, int24 currentTick,,,,,) = IPancakePool(amm().pool()).slot0();
         uint256 ammPrice = amm().getPriceAtTick(currentTick);
         uint256 maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
         uint256 minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
@@ -214,7 +211,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
 
         TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
         uint256 targetPrice = sweep.targetPrice();
-        int24 currentTick = liquidityHelper.getCurrentTick(amm().pool());
+        (, int24 currentTick,,,,,) = IPancakePool(amm().pool()).slot0();
         uint256 ammPrice = amm().getPriceAtTick(currentTick);
 
         uint256 minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
@@ -368,8 +365,8 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint8 baseDecimals = usdx.decimals();
         uint8 sweepDecimals = sweep.decimals();
 
-        minTick = liquidityHelper.getTickFromPrice((minPrice * 10 ** baseDecimals) / PRECISION, sweepDecimals, tickSpacing, flag);
-        maxTick = liquidityHelper.getTickFromPrice((maxPrice * 10 ** baseDecimals) / PRECISION, sweepDecimals, tickSpacing, flag);
+        minTick = amm().getTickFromPrice(((minPrice * 10 ** baseDecimals) / PRECISION), sweepDecimals, tickSpacing);
+        maxTick = amm().getTickFromPrice(((maxPrice * 10 ** baseDecimals) / PRECISION), sweepDecimals, tickSpacing);
         (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
     }
 }

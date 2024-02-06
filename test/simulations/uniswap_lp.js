@@ -30,7 +30,7 @@ contract("Uniswap Market Maker", async function () {
         pancakeAMMInstance = await ethers.getContractFactory("UniswapAMM");
         amm = await pancakeAMMInstance.deploy(sweep.address, usdc.address, chainlink.sequencer, deployments.uniswap_pool, chainlink.usdc_usd, 86400, deployments.liquidity_helper);
         market = await (await ethers.getContractFactory("UniswapMarketMaker"))
-            .deploy('UniMM', tokens.sweep, tokens.usdc, deployments.liquidity_helper, chainlink.usdc_usd, MULTISIG);
+            .deploy('UniMM', tokens.sweep, tokens.usdc, chainlink.usdc_usd, MULTISIG);
         sweep100000 = toBN("100000", 18);
         await usdc.connect(usdc_holder).transfer(market.address, 100e6);
         await market.connect(multisig)

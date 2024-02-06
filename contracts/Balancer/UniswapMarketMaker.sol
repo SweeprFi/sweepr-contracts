@@ -13,7 +13,7 @@ pragma solidity 0.8.19;
  * Collects fees from the LP.
  */
 
-import "../Utils/LiquidityHelper.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "../Stabilizer/Stabilizer.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
@@ -22,7 +22,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     // Uniswap V3 Position Manager
     INonfungiblePositionManager private constant nonfungiblePositionManager =
         INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
-    LiquidityHelper private immutable liquidityHelper;
     uint8 private constant TICKS_DELTA = 201;
 
     // Variables
@@ -49,14 +48,12 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         string memory _name,
         address _sweep,
         address _usdx,
-        address _liquidityHelper,
         address _oracleUsdx,
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         slippage = 5000; // 0.5%
         flag = _usdx < _sweep;
         (token0, token1) = flag ? (_usdx, _sweep) : (_sweep, _usdx);
-        liquidityHelper = LiquidityHelper(_liquidityHelper);
     }
 
     /* ========== Views ========== */
@@ -210,7 +207,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
 
         uint256 targetPrice = sweep.targetPrice();
-        int24 currentTick = liquidityHelper.getCurrentTick(amm().pool());
+        (, int24 currentTick,,,,,) = IUniswapV3Pool(amm().pool()).slot0();
         uint256 ammPrice = amm().getPriceAtTick(currentTick);
         uint256 maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
         uint256 minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
@@ -226,7 +223,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
 
         uint256 targetPrice = sweep.targetPrice();
-        int24 currentTick = liquidityHelper.getCurrentTick(amm().pool());
+        (, int24 currentTick,,,,,) = IUniswapV3Pool(amm().pool()).slot0();
         uint256 ammPrice = amm().getPriceAtTick(currentTick);
 
         uint256 minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
@@ -376,8 +373,8 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint8 baseDecimals = usdx.decimals();
         uint8 sweepDecimals = sweep.decimals();
 
-        minTick = liquidityHelper.getTickFromPrice((minPrice * 10 ** baseDecimals) / PRECISION, sweepDecimals, tickSpacing, flag);
-        maxTick = liquidityHelper.getTickFromPrice((maxPrice * 10 ** baseDecimals) / PRECISION, sweepDecimals, tickSpacing, flag);
+        minTick = amm().getTickFromPrice(((minPrice * 10 ** baseDecimals) / PRECISION), sweepDecimals, tickSpacing);
+        maxTick = amm().getTickFromPrice(((maxPrice * 10 ** baseDecimals) / PRECISION), sweepDecimals, tickSpacing);
         (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
     }
 }

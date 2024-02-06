@@ -33,7 +33,7 @@ contract("Pancake Market Maker", async function () {
         // amm = await ethers.getContractAt("PancakeAMM", deployments.pancake_amm);
 
         market = await (await ethers.getContractFactory("PancakeMarketMaker"))
-            .deploy('PancakeMM', tokens.sweep, tokens.usdt, deployments.liquidity_helper, chainlink.usdt_usd, MULTISIG);
+            .deploy('PancakeMM', tokens.sweep, tokens.usdt, chainlink.usdt_usd, MULTISIG);
         sweep100000 = toBN("100000", 18);
         await usdt.connect(usdt_holder).transfer(market.address, 100e6);
         await market.connect(multisig)
