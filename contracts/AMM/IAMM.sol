@@ -41,4 +41,10 @@ interface IAMM {
     function getRate() external view returns (uint256 rate);
 
     function getPositions(uint256) external view returns (uint256 usdxAmount, uint256 sweepAmount, uint256 lp);
+
+    function getPriceAtTick(int24) external view returns (uint256 price);
+
+    function getPriceAtCurrentTick() external view returns (uint256 price);
+
+    function getTickFromPrice(uint256 price, uint8 decimals, int24 tickSpacing) external view returns (int24);
 }

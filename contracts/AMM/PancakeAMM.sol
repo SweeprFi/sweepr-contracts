@@ -79,7 +79,7 @@ contract PancakeAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getPrice() public view returns (uint256 amountOut) {
-        (, int24 tick, , , , , ) = IPancakePool(pool).slot0();
+        int24 tick = liquidityHelper.getCurrentTick(pool);
 
         uint256 quote = OracleLibrary.getQuoteAtTick(
             tick,
@@ -97,6 +97,26 @@ contract PancakeAMM {
         uint8 priceDecimals = ChainlinkLibrary.getDecimals(oracleBase);
 
         amountOut = PRECISION.mulDiv(quote * price, 10 ** (quoteDecimals + priceDecimals));
+    }
+
+    function getPriceAtCurrentTick() public view returns (uint256) {
+        int24 tick = liquidityHelper.getCurrentTick(pool);
+        return getPriceAtTick(tick);
+    }
+
+    function getPriceAtTick(int24 tick) public view returns (uint256 price) {
+        uint256 quote = OracleLibrary.getQuoteAtTick(
+            tick,
+            uint128(10 ** sweep.decimals()),
+            address(sweep),
+            address(base)
+        );
+        uint8 quoteDecimals = base.decimals();
+        price = PRECISION.mulDiv(quote, 10 ** quoteDecimals);
+    }
+
+    function getTickFromPrice(uint256 price, uint8 decimals, int24 tickSpacing) public view returns (int24) {
+        return liquidityHelper.getTickFromPrice(price, decimals, tickSpacing, flag);
     }
 
     /**

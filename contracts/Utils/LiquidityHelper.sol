@@ -21,20 +21,7 @@ contract LiquidityHelper {
     ) external view returns (uint256 amount0, uint256 amount1) {
         IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
         (uint160 sqrtPriceX96, int24 tickCurrent, , , , , ) = pool.slot0();
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            int24 tickLower,
-            int24 tickUpper,
-            uint128 liquidity,
-            ,
-            ,
-            ,
-
-        ) = NFPS.positions(tokenId);
+        (,,,,, int24 tickLower, int24 tickUpper, uint128 liquidity,,,,) = NFPS.positions(tokenId);
 
         if (tickCurrent < tickLower) {
             amount0 = SqrtPriceMath.getAmount0Delta(

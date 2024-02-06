@@ -7,7 +7,7 @@ contract("Pancake Market Maker", async function () {
     if (Number(network.id) !== 56) return;
     before(async () => {
         [borrower] = await ethers.getSigners();
-        await resetNetwork(35703450);
+        await resetNetwork(35906194);
 
         MULTISIG = wallets.multisig;
         OWNER = wallets.owner;
@@ -28,8 +28,12 @@ contract("Pancake Market Maker", async function () {
         // end =====================================
 
         // new MM depoyment ==================================
+        pancakeAMMInstance = await ethers.getContractFactory("PancakeAMM");
+        amm = await pancakeAMMInstance.deploy(sweep.address, usdt.address, chainlink.sequencer, deployments.pancake_pool, chainlink.usdt_usd, 86400, deployments.liquidity_helper);
+        // amm = await ethers.getContractAt("PancakeAMM", deployments.pancake_amm);
+
         market = await (await ethers.getContractFactory("PancakeMarketMaker"))
-            .deploy('PancakeMM', tokens.sweep, tokens.usdt, deployments.liquidity_helper, chainlink.usdt_usd, MULTISIG);
+            .deploy('PancakeMM', tokens.sweep, tokens.usdt, chainlink.usdt_usd, MULTISIG);
         sweep100000 = toBN("100000", 18);
         await usdt.connect(usdt_holder).transfer(market.address, 100e6);
         await market.connect(multisig)
@@ -48,13 +52,13 @@ contract("Pancake Market Maker", async function () {
         usdc50 = toBN("50", 18);
 
         // isMintingAllowed: false ==================================
-        isMintingAllowed = await sweep.isMintingAllowed();
-        if(!isMintingAllowed) {
-            usdt100 = toBN("400", 18);
-            sweepMin = toBN("380", 18);
-            await usdt.connect(usdt_holder).approve(amm.address, usdt100);
-            await amm.connect(usdt_holder).buySweep(usdt.address, usdt100, sweepMin);
-        }
+        // isMintingAllowed = await sweep.isMintingAllowed();
+        // if(!isMintingAllowed) {
+        //     usdt100 = toBN("400", 18);
+        //     sweepMin = toBN("380", 18);
+        //     await usdt.connect(usdt_holder).approve(amm.address, usdt100);
+        //     await amm.connect(usdt_holder).buySweep(usdt.address, usdt100, sweepMin);
+        // }
         // end ==============================================
         await usdt.connect(usdt_holder).transfer(market.address, sweep35);
 
@@ -82,7 +86,7 @@ contract("Pancake Market Maker", async function () {
         console.log("\tMM USDT:", pp(await usdt.balanceOf(market.address),18));
         console.log("\tMM SWEEP:", pp(await sweep.balanceOf(market.address),18));
 
-        await market.connect(multisig).lpTrade(usdc50, sweep50, 2000, 1e5, 1e5);
+        await market.connect(multisig).lpTrade(usdc50, sweep50, 2e5, 2e5, 1e5);
         console.log("\nTRADE POSITION ===============================");
         console.log(`\tAmount: ${pp(usdc50, 18)} USDT ~ ${pp(sweep50, 18)} SWEEP`)
         console.log("\tPOOL USDT:", pp(await usdt.balanceOf(POOL),18));

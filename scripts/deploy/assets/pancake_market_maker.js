@@ -7,7 +7,6 @@ async function main() {
     const assetName = 'Pancake Market Maker';
     const sweep = tokens.sweep;
     const base = tokens.usdt;
-    const liquidityHelper = deployments.liquidity_helper;
     const oracle = chainlink.usdt_usd;
     const borrower = wallets.multisig;
 
@@ -19,8 +18,7 @@ async function main() {
     console.log("===========================================");
     console.log("Asset Name:", assetName);
     console.log("SWEEP:", sweep);
-    console.log("USDC:", base);
-    console.log("Liquidity Helper:", liquidityHelper);
+    console.log("USDC:", base);    
     console.log("BASE/USD Chainlink Oracle:", oracle);
     console.log("Borrower:", borrower);
     console.log("===========================================");
@@ -33,14 +31,13 @@ async function main() {
         assetName,
         sweep,
         base,
-        liquidityHelper,
         oracle,
         borrower
     );
 
     console.log("===========================================");
     console.log("MarketMaker deployed to: ", stabilizer.address);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${base} ${liquidityHelper} ${oracle} ${borrower}`);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${base} ${oracle} ${borrower}`);
 }
 
 main();

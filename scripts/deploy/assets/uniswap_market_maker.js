@@ -7,7 +7,6 @@ async function main() {
     const assetName = 'Uniswap Market Maker';
     const sweep = tokens.sweep;
     const usdc = tokens.usdc;
-    const liquidityHelper = deployments.liquidity_helper;
     const oracleUsdc = chainlink.usdc_usd;
     const borrower = wallets.multisig;
 
@@ -20,7 +19,6 @@ async function main() {
     console.log("Asset Name:", assetName);
     console.log("SWEEP:", sweep);
     console.log("USDC:", usdc);
-    console.log("Liquidity Helper:", liquidityHelper);
     console.log("USDC/USD Chainlink Oracle:", oracleUsdc);
     console.log("Borrower:", borrower);
     console.log("===========================================");
@@ -33,14 +31,13 @@ async function main() {
         assetName,
         sweep,
         usdc,
-        liquidityHelper,
         oracleUsdc,
         borrower
     );
 
     console.log("===========================================");
     console.log("MarketMaker deployed to: ", stabilizer.address);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${usdc} ${liquidityHelper} ${oracleUsdc} ${borrower}`);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${usdc} ${oracleUsdc} ${borrower}`);
 }
 
 main();

@@ -16,12 +16,11 @@ pragma solidity 0.8.19;
 import "../Stabilizer/Stabilizer.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
-import { PancakeLiquidityHelper, IPancakePool } from "../Utils/PancakeLiquidityHelper.sol";
+import { IPancakePool } from "../Utils/PancakeLiquidityHelper.sol";
 
 contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
     INonfungiblePositionManager public constant nonfungiblePositionManager = 
        INonfungiblePositionManager(0x46A15B0b27311cedF172AB29E4f4766fbE7F4364);
-    PancakeLiquidityHelper private immutable liquidityHelper;
     uint8 private constant TICKS_DELTA = 201;
 
     // Variables
@@ -48,14 +47,12 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         string memory _name,
         address _sweep,
         address _usdx,
-        address _liquidityHelper,
         address _oracleUsdx,
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         slippage = 5000; // 0.5%
         flag = _usdx < _sweep;
         (token0, token1) = flag ? (_usdx, _sweep) : (_sweep, _usdx);
-        liquidityHelper = PancakeLiquidityHelper(_liquidityHelper);
     }
 
     /* ========== Views ========== */
@@ -147,12 +144,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         growPosition = 0;
     }
 
-    function removeLiquidity(
-        uint256 tokenId,
-        uint256 liquidityAmount,
-        uint256 amountOut0,
-        uint256 amountOut1
-    )
+    function removeLiquidity(uint256 tokenId, uint256 liquidityAmount, uint256 amountOut0, uint256 amountOut1)
         external onlyBorrower nonReentrant validAmount(liquidityAmount)
     {
         _decreaseLiquidity(tokenId, uint128(liquidityAmount), amountOut0, amountOut1);
@@ -161,23 +153,13 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
     function lpTrade(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxSlippage, uint256 sweepSlippage, uint256 spread)
         external onlyBorrower whenNotPaused nonReentrant
     {
-        address self = address(this);
         if(tradePosition > 0) _removePosition(tradePosition);
-        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-
-        if(sweepAmount > sweepBalance) {
-            if (sweep.isMintingAllowed()) {
-                _borrow(sweepAmount - sweepBalance);
-            } else {
-                TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount - sweepBalance);
-            }
-        }
-
-        if(usdxAmount > usdxBalance)
-            TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount - usdxBalance);
-
         _approveNFTManager(usdxAmount, sweepAmount);
-        (int24 minTick, int24 maxTick) = showTicks(spread);
+
+        uint256 sweepPrice = sweep.targetPrice();
+        uint256 minPrice = ((PRECISION - spread) * sweepPrice) / PRECISION;
+        uint256 maxPrice = ((PRECISION + spread) * sweepPrice) / PRECISION;
+        (int24 minTick, int24 maxTick) = _getTicks(minPrice, maxPrice);
 
         uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, usdxSlippage);
         uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, sweepSlippage);
@@ -190,32 +172,28 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         _checkRatio();
     }
 
-    function lpRedeem(uint256 usdxAmount, uint256 priceSpread, uint256 usdxSlippage) external onlyBorrower nonReentrant {
+    function lpRedeem(uint256 usdxAmount, uint256 priceSpread, uint256 usdxSlippage)
+        external onlyBorrower nonReentrant
+    {
         if(redeemPosition > 0) _removePosition(redeemPosition);
-
-        uint256 usdxBalance = usdx.balanceOf(address(this));
-        if(usdxAmount > usdxBalance)
-            TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount - usdxBalance);
-        TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
+        _approveNFTManager(usdxAmount, 0);
 
         uint256 targetPrice = sweep.targetPrice();
-        uint256 ammPrice = amm().getPrice();
+        uint256 ammPrice = amm().getPriceAtCurrentTick();
         uint256 maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
         uint256 minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
 
         redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minPrice, maxPrice);
     }
 
-    function lpGrow(uint256 sweepAmount, uint256 priceSpread, uint256 sweepSlippage) external onlyBorrower nonReentrant {
+    function lpGrow(uint256 sweepAmount, uint256 priceSpread, uint256 sweepSlippage)
+        external onlyBorrower nonReentrant
+    {
         if(growPosition > 0) _removePosition(growPosition);
-        uint256 sweepBalance = sweep.balanceOf(address(this));
-        if(sweepAmount > sweepBalance) _borrow(sweepAmount - sweepBalance);
-
-        TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
+        _approveNFTManager(0, sweepAmount);
 
         uint256 targetPrice = sweep.targetPrice();
-        uint256 ammPrice = amm().getPrice();
-
+        uint256 ammPrice = amm().getPriceAtCurrentTick();
         uint256 minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
         uint256 maxPrice = ((PRECISION + priceSpread) * minPrice) / PRECISION;
 
@@ -232,6 +210,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, slippage);
         uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, slippage);
 
+        TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
         _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
@@ -239,14 +218,16 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         emit SweepPurchased(usdxAmount);
     }
 
+    function addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxMinIn, uint256 sweepMinIn)
+        external onlyBorrower nonReentrant
+    {
+        _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
+    }
+
     /* ========== Internals ========== */
-    function _addLiquidity(
-        uint256 usdxAmount,
-        uint256 sweepAmount,
-        uint256 usdxMinIn,
-        uint256 sweepMinIn
-    ) internal {
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
+    function _addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxMinIn, uint256 sweepMinIn)
+        internal 
+    {
         _approveNFTManager(usdxAmount, sweepAmount);
 
         (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn) = flag
@@ -275,7 +256,6 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint256 maxPrice
     ) internal returns (uint256) {
         (int24 minTick, int24 maxTick) = _getTicks(minPrice, maxPrice);
-
         (uint256 amount0Mint, uint256 amount1Mint) = flag ? (usdxAmount, sweepAmount) : (sweepAmount, usdxAmount);
         uint256 amount0Min = OvnMath.subBasisPoints(amount0Mint, _slippage);
         uint256 amount1Min = OvnMath.subBasisPoints(amount1Mint, _slippage);
@@ -294,18 +274,6 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         );
 
         emit Collected(amount0, amount1);
-    }
-
-     /**
-     * @notice Get the ticks which will be used in the creating LP
-     * @return minTick The minimum tick
-     * @return maxTick The maximum tick
-     */
-    function showTicks(uint256 spread) internal view returns (int24 minTick, int24 maxTick) {
-        uint256 sweepPrice = sweep.targetPrice();
-        uint256 minPrice = ((PRECISION - spread) * sweepPrice) / PRECISION;
-        uint256 maxPrice = ((PRECISION + spread) * sweepPrice) / PRECISION;
-        (minTick, maxTick) = _getTicks(minPrice, maxPrice);
     }
 
     function _removePosition(uint256 positionId) internal {
@@ -333,8 +301,8 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function _approveNFTManager(uint256 usdxAmount, uint256 sweepAmount) internal {
-        TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
-        TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
+        if(usdxAmount > 0) TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
+        if(sweepAmount > 0) TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
     }
 
     function _mintPosition(
@@ -362,11 +330,13 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         );
     }
 
-    function _getTicks(uint256 minPrice, uint256 maxPrice) internal view returns(int24 minTick, int24 maxTick) {
+    function _getTicks(uint256 minPrice, uint256 maxPrice) internal view returns (int24 minTick, int24 maxTick) {
         int24 tickSpacing = IPancakePool(amm().pool()).tickSpacing();
-        minTick = liquidityHelper.getTickFromPrice(minPrice, 6, tickSpacing, flag);
-        maxTick = liquidityHelper.getTickFromPrice(maxPrice, 6, tickSpacing, flag);
+        uint8 baseDecimals = usdx.decimals();
+        uint8 sweepDecimals = sweep.decimals();
 
+        minTick = amm().getTickFromPrice(((minPrice * 10 ** baseDecimals) / PRECISION), sweepDecimals, tickSpacing);
+        maxTick = amm().getTickFromPrice(((maxPrice * 10 ** baseDecimals) / PRECISION), sweepDecimals, tickSpacing);
         (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
     }
 }
