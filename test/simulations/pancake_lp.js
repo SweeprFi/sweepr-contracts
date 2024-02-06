@@ -7,7 +7,7 @@ contract("Pancake Market Maker", async function () {
     if (Number(network.id) !== 56) return;
     before(async () => {
         [borrower] = await ethers.getSigners();
-        await resetNetwork(35905398);
+        await resetNetwork(35906194);
 
         MULTISIG = wallets.multisig;
         OWNER = wallets.owner;

@@ -210,7 +210,8 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
 
         uint256 targetPrice = sweep.targetPrice();
-        uint256 ammPrice = amm().getPrice();
+        int24 currentTick = liquidityHelper.getCurrentTick(amm().pool());
+        uint256 ammPrice = amm().getPriceAtTick(currentTick);
         uint256 maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
         uint256 minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
 
@@ -225,7 +226,8 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
 
         uint256 targetPrice = sweep.targetPrice();
-        uint256 ammPrice = amm().getPrice();
+        int24 currentTick = liquidityHelper.getCurrentTick(amm().pool());
+        uint256 ammPrice = amm().getPriceAtTick(currentTick);
 
         uint256 minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
         uint256 maxPrice = ((PRECISION + priceSpread) * minPrice) / PRECISION;
@@ -307,19 +309,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         emit Collected(amount0, amount1);
     }
 
-     /**
-     * @notice Get the ticks which will be used in the creating LP
-     * @return minTick The minimum tick
-     * @return maxTick The maximum tick
-     */
-    function showTicks(uint256 spread) internal view returns (int24 minTick, int24 maxTick) {
-        uint256 sweepPrice = sweep.targetPrice();
-        uint256 minPrice = ((PRECISION - spread) * sweepPrice) / PRECISION;
-        uint256 maxPrice = ((PRECISION + spread) * sweepPrice) / PRECISION;
-
-        (minTick, maxTick) = _getTicks(minPrice, maxPrice);
-    }
-
     function _removePosition(uint256 positionId) internal {
         (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(positionId);
         _decreaseLiquidity(positionId, _liquidity, 0, 0);
@@ -374,12 +363,21 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         );
     }
 
-    function _getTicks(uint256 minPrice, uint256 maxPrice) internal view returns(int24 minTick, int24 maxTick) {
-        uint8 decimals = sweep.decimals();
-        int24 tickSpacing = IUniswapV3Pool(amm().pool()).tickSpacing();
-        minTick = liquidityHelper.getTickFromPrice(minPrice, decimals, tickSpacing, flag);
-        maxTick = liquidityHelper.getTickFromPrice(maxPrice, decimals, tickSpacing, flag);
+    function showTicks(uint256 spread) internal view returns (int24 minTick, int24 maxTick) {
+        uint256 sweepPrice = sweep.targetPrice();
+        uint256 minPrice = ((PRECISION - spread) * sweepPrice) / PRECISION;
+        uint256 maxPrice = ((PRECISION + spread) * sweepPrice) / PRECISION;
 
+        return _getTicks(minPrice, maxPrice);
+    }
+
+    function _getTicks(uint256 minPrice, uint256 maxPrice) internal view returns (int24 minTick, int24 maxTick) {
+        int24 tickSpacing = IUniswapV3Pool(amm().pool()).tickSpacing();
+        uint8 baseDecimals = usdx.decimals();
+        uint8 sweepDecimals = sweep.decimals();
+
+        minTick = liquidityHelper.getTickFromPrice((minPrice * 10 ** baseDecimals) / PRECISION, sweepDecimals, tickSpacing, flag);
+        maxTick = liquidityHelper.getTickFromPrice((maxPrice * 10 ** baseDecimals) / PRECISION, sweepDecimals, tickSpacing, flag);
         (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
     }
 }

@@ -203,9 +203,8 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint256 ammPrice = amm().getPriceAtTick(currentTick);
         uint256 maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
         uint256 minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
-        (int24 minTick, int24 maxTick) = _getTicks(minPrice, maxPrice);
 
-        redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minTick, maxTick);
+        redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minPrice, maxPrice);
     }
 
     function lpGrow(uint256 sweepAmount, uint256 priceSpread, uint256 sweepSlippage) external onlyBorrower nonReentrant {
@@ -217,19 +216,11 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint256 targetPrice = sweep.targetPrice();
         int24 currentTick = liquidityHelper.getCurrentTick(amm().pool());
         uint256 ammPrice = amm().getPriceAtTick(currentTick);
-        uint256 minPrice;
-        uint256 maxPrice;
- 
-        // if(flag) { // USDx = token0, SWEEP = token1
-            // maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
-            // minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
-        // } else { // USDx = token1, SWEEP = token0
-        minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
-        maxPrice = ((PRECISION + priceSpread) * minPrice) / PRECISION;
-        // }
 
-        (int24 minTick, int24 maxTick) = _getTicks(minPrice, maxPrice);
-        growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minTick, maxTick);
+        uint256 minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
+        uint256 maxPrice = ((PRECISION + priceSpread) * minPrice) / PRECISION;
+
+        growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minPrice, maxPrice);
         _checkRatio();
     }
 
@@ -281,9 +272,10 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint256 usdxAmount,
         uint256 sweepAmount,
         uint256 _slippage,
-        int24 minTick,
-        int24 maxTick
+        uint256 minPrice,
+        uint256 maxPrice
     ) internal returns (uint256) {
+        (int24 minTick, int24 maxTick) = _getTicks(minPrice, maxPrice);
         (uint256 amount0Mint, uint256 amount1Mint) = flag ? (usdxAmount, sweepAmount) : (sweepAmount, usdxAmount);
         uint256 amount0Min = OvnMath.subBasisPoints(amount0Mint, _slippage);
         uint256 amount1Min = OvnMath.subBasisPoints(amount1Mint, _slippage);
@@ -376,7 +368,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint8 baseDecimals = usdx.decimals();
         uint8 sweepDecimals = sweep.decimals();
 
-        minTick = liquidityHelper.getTickFromPrice((minPrice * 10 ** baseDecimals)/ PRECISION, sweepDecimals, tickSpacing, flag);
+        minTick = liquidityHelper.getTickFromPrice((minPrice * 10 ** baseDecimals) / PRECISION, sweepDecimals, tickSpacing, flag);
         maxTick = liquidityHelper.getTickFromPrice((maxPrice * 10 ** baseDecimals) / PRECISION, sweepDecimals, tickSpacing, flag);
         (minTick, maxTick) = minTick < maxTick ? (minTick, maxTick) : (maxTick, minTick);
     }

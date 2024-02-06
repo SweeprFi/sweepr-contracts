@@ -6,7 +6,7 @@ contract("Uniswap Market Maker", async function () {
     return;
     before(async () => {
         [borrower] = await ethers.getSigners();
-        await resetNetwork(175451864);
+        await resetNetwork(178095238);
 
         MULTISIG = wallets.multisig;
         OWNER = wallets.owner;
@@ -15,7 +15,7 @@ contract("Uniswap Market Maker", async function () {
 
         sweep = await ethers.getContractAt("SweepCoin", tokens.sweep);
         usdc = await ethers.getContractAt("ERC20", tokens.usdc);
-        amm = await ethers.getContractAt("UniswapAMM", deployments.uniswap_amm);
+        // amm = await ethers.getContractAt("UniswapAMM", deployments.uniswap_amm);
 
         // fund accounts =====================================
         await sendEth(MULTISIG);
@@ -27,6 +27,8 @@ contract("Uniswap Market Maker", async function () {
         // end =====================================
 
         // new MM depoyment ==================================
+        pancakeAMMInstance = await ethers.getContractFactory("UniswapAMM");
+        amm = await pancakeAMMInstance.deploy(sweep.address, usdc.address, chainlink.sequencer, deployments.uniswap_pool, chainlink.usdc_usd, 86400, deployments.liquidity_helper);
         market = await (await ethers.getContractFactory("UniswapMarketMaker"))
             .deploy('UniMM', tokens.sweep, tokens.usdc, deployments.liquidity_helper, chainlink.usdc_usd, MULTISIG);
         sweep100000 = toBN("100000", 18);
@@ -70,7 +72,7 @@ contract("Uniswap Market Maker", async function () {
         console.log("\tMM USDC:", pp(await usdc.balanceOf(market.address),6));
         console.log("\tMM SWEEP:", pp(await sweep.balanceOf(market.address),18));
 
-        await market.connect(multisig).lpTrade(usdc50, sweep50, 50000, 2000, 1e5);
+        await market.connect(multisig).lpTrade(usdc50, sweep50, 500000, 500000, 1e5);
         console.log("\nTRADE POSITION ===============================");
         console.log(`\tAmount: ${pp(usdc50, 6)} USDC ~ ${pp(sweep50, 18)} SWEEP`)
         console.log("\tPOOL USDC:", pp(await usdc.balanceOf(POOL),6));
