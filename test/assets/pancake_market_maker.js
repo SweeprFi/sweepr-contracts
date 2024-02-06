@@ -4,7 +4,7 @@ const { chainlink, pancake } = require("../../utils/constants");
 const { Const, getPriceAndData, toBN } = require("../../utils/helper_functions");
 let poolAddress;
 
-contract.skip('Pancake Market Maker', async () => {
+contract('Pancake Market Maker', async () => {
   before(async () => {
     [owner, borrower, treasury, guest, lzEndpoint, multisig, balancer] = await ethers.getSigners();
   
@@ -15,13 +15,17 @@ contract.skip('Pancake Market Maker', async () => {
     FEE = 100;
     TICK_SPREAD = 1000;
 
+    // SWEEP = token0
+    ERC20 = await ethers.getContractFactory("USDCMock");
+    usdc = await ERC20.deploy(18);
+
     Sweep = await ethers.getContractFactory("SweepCoin");
     const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, multisig.address, 2500]);
     sweep = await Proxy.deployed();
     await sweep.setTreasury(treasury.address);
-
-    ERC20 = await ethers.getContractFactory("USDCMock");
-    usdc = await ERC20.deploy(18);
+    // SWEEP = token1
+    // ERC20 = await ethers.getContractFactory("USDCMock");
+    // usdc = await ERC20.deploy(18);
 
     LiquidityHelper = await ethers.getContractFactory("PancakeLiquidityHelper");
     liquidityHelper = await LiquidityHelper.deploy();
@@ -52,6 +56,9 @@ contract.skip('Pancake Market Maker', async () => {
       3e5, Const.spreadFee, sweepAmount, Const.ZERO, Const.DAY, Const.RATIO,
       minAutoSweepAmount, Const.ZERO, Const.TRUE, Const.FALSE, Const.URL
     );
+
+    console.log("USDTM ADDRESS:", usdc.address);
+    console.log("SWEEP ADDRESS:", sweep.address);
   });
 
   describe("main functions", async function () {
@@ -60,7 +67,8 @@ contract.skip('Pancake Market Maker', async () => {
       expect(await factory.getPool(token0, token1, FEE)).to.equal(Const.ADDRESS_ZERO);
       expect(await marketmaker.assetValue()).to.equal(0);
       expect(await marketmaker.tradePosition()).to.equal(0);
-      price = toBN("79267766696949822870343647232", 0)
+      price = toBN("79623317895830908422001262592", 0) // SWEEP = token0
+      // price = toBN("78831026366734653132768280576", 0) // SWEEP = token1
       await positionManager.createAndInitializePoolIfNecessary(token0, token1, FEE, price)
       poolAddress = await factory.getPool(token0, token1, FEE);
 
@@ -85,7 +93,7 @@ contract.skip('Pancake Market Maker', async () => {
       sweepAmount = toBN("15000", 18);
 
       await usdc.transfer(marketmaker.address, usdxAmount.mul(2));
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 1e5, 1e5, 1e4);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 3e5, 3e5, 2e5);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
@@ -101,7 +109,7 @@ contract.skip('Pancake Market Maker', async () => {
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
 
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 1e5, 1e5, 1e4);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 3e5, 3e5, 2e5);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(usdcPoolBalance);
       expect(await sweep.balanceOf(poolAddress)).to.greaterThan(sweepPoolBalance);
@@ -114,7 +122,7 @@ contract.skip('Pancake Market Maker', async () => {
       sweepBefore = await sweep.balanceOf(marketmaker.address);
 
       usdxAmount = toBN("5000", 18);
-      await marketmaker.buySweepOnAMM(usdxAmount, 10000)
+      await marketmaker.buySweepOnAMM(usdxAmount, 200000)
 
       expect(await sweep.ammPrice()).to.greaterThan(ammPrice)
       expect(await usdc.balanceOf(marketmaker.address)).to.equal(usdcBefore.sub(usdxAmount))
@@ -127,7 +135,7 @@ contract.skip('Pancake Market Maker', async () => {
       sweepAmount = toBN("22000", 18);
 
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 41e4, 41e4, 3e5);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 9e5, 9e5, 2e5);
 
       expect(await marketmaker.tradePosition()).to.not.equal(tradePosition);
     });
@@ -138,13 +146,13 @@ contract.skip('Pancake Market Maker', async () => {
       usdxAmount = toBN("15000", 18);
       sweepAmount = toBN("15000", 18);
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 41e4, 41e4, 3e5);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 9e5, 9e5, 3e5);
 
       await sweep.connect(balancer).setTargetPrice(1001000, 1001000);
       usdxAmount = toBN("20000", 18);
       sweepAmount = toBN("20000", 18);
       await usdc.approve(marketmaker.address, usdxAmount);
-      await marketmaker.lpTrade(usdxAmount, sweepAmount, 41e4, 41e4, 3e5);
+      await marketmaker.lpTrade(usdxAmount, sweepAmount, 9e5, 9e5, 3e5);
     })
 
     it('removes liquidity', async () => {
@@ -165,10 +173,10 @@ contract.skip('Pancake Market Maker', async () => {
       expect(await sweep.balanceOf(borrower.address)).to.equal(0);
       usdcPoolBalance = await usdc.balanceOf(poolAddress);
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
-      await marketmaker.setSlippage(5e5);
+      await marketmaker.setSlippage(6e5);
       
       buyAmount = toBN("2000", 18);
-      sweepToGet = toBN("1900", 18);
+      sweepToGet = toBN("600", 18);
 
       await usdc.transfer(borrower.address, buyAmount)
       await usdc.connect(borrower).approve(marketmaker.address, buyAmount);
@@ -215,8 +223,8 @@ contract.skip('Pancake Market Maker', async () => {
       pUBB = await usdc.balanceOf(poolAddress);
       sUBB = await sweep.balanceOf(poolAddress);
 
-      amount = toBN("900", 18);
-      await marketmaker.buySweepOnAMM(amount, 5e4);
+      amount = toBN("500", 18);
+      await marketmaker.buySweepOnAMM(amount, 1e5);
 
       expect(await usdc.balanceOf(marketmaker.address)).to.equal(mmUBB.sub(amount));
       expect(await sweep.balanceOf(marketmaker.address)).to.greaterThan(mmSBB);
@@ -227,7 +235,7 @@ contract.skip('Pancake Market Maker', async () => {
     it('adds single side liquidity for SWEEP correctly', async () => {
       sweepSingleAmount0 = toBN("1000", 18);
       amount = toBN("10000", 18);
-      tickSpread = 750;
+      tickSpread = 10000;
 
       assetValue = await marketmaker.assetValue();
       sweepPoolBalance = await sweep.balanceOf(poolAddress);

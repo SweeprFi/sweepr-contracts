@@ -99,6 +99,18 @@ contract PancakeAMM {
         amountOut = PRECISION.mulDiv(quote * price, 10 ** (quoteDecimals + priceDecimals));
     }
 
+    function getPriceAtTick(int24 tick) public view returns (uint256 amountOut) {
+        uint256 quote = OracleLibrary.getQuoteAtTick(
+            tick,
+            uint128(10 ** sweep.decimals()),
+            address(sweep),
+            address(base)
+        );
+        uint8 quoteDecimals = base.decimals();
+
+        amountOut = PRECISION.mulDiv(quote, 10 ** quoteDecimals);
+    }
+
     /**
      * @notice Get TWA Price
      * @dev Get the quote for selling 1 unit of a token.
