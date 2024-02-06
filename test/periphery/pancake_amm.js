@@ -92,6 +92,7 @@ contract("Pancake AMM", async function () {
       sweepAmount = toBN("15000", 18);
 
       await usdc.transfer(marketmaker.address, usdxAmount.mul(2));
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.lpTrade(usdxAmount, sweepAmount, 1e5, 1e5, 3e4);
 
       expect(await usdc.balanceOf(pool_address)).to.greaterThan(Const.ZERO);

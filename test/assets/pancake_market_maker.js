@@ -92,6 +92,7 @@ contract('Pancake Market Maker', async () => {
       sweepAmount = toBN("15000", 18);
 
       await usdc.transfer(marketmaker.address, usdxAmount.mul(2));
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.lpTrade(usdxAmount, sweepAmount, 3e5, 3e5, 2e5);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
@@ -107,7 +108,8 @@ contract('Pancake Market Maker', async () => {
       usdcPoolBalance = await usdc.balanceOf(poolAddress);
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
 
-      await usdc.approve(marketmaker.address, usdxAmount);
+      await usdc.transfer(marketmaker.address, usdxAmount);
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.lpTrade(usdxAmount, sweepAmount, 3e5, 3e5, 2e5);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(usdcPoolBalance);
@@ -133,7 +135,8 @@ contract('Pancake Market Maker', async () => {
       usdxAmount = toBN("22000", 18);
       sweepAmount = toBN("22000", 18);
 
-      await usdc.approve(marketmaker.address, usdxAmount);
+      await usdc.transfer(marketmaker.address, usdxAmount);
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.lpTrade(usdxAmount, sweepAmount, 9e5, 9e5, 2e5);
 
       expect(await marketmaker.tradePosition()).to.not.equal(tradePosition);

@@ -83,6 +83,7 @@ contract('Uniswap Market Maker', async () => {
       sweepAmount = toBN("15000", 18);
 
       await usdc.transfer(marketmaker.address, usdxAmount.mul(2));
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 30000, 7000);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
@@ -98,7 +99,8 @@ contract('Uniswap Market Maker', async () => {
       usdcPoolBalance = await usdc.balanceOf(poolAddress);
       sweepPoolBalance = await sweep.balanceOf(poolAddress);
 
-      await usdc.approve(marketmaker.address, usdxAmount);
+      await usdc.transfer(marketmaker.address, usdxAmount);
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 30000, 7000);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(usdcPoolBalance);
@@ -124,7 +126,8 @@ contract('Uniswap Market Maker', async () => {
       usdxAmount = toBN("22000", 6);
       sweepAmount = toBN("22000", 18);
 
-      await usdc.approve(marketmaker.address, usdxAmount);
+      await usdc.transfer(marketmaker.address, usdxAmount);
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 2e5, 1e5);
 
       expect(await marketmaker.tradePosition()).to.not.equal(tradePosition);
@@ -135,13 +138,15 @@ contract('Uniswap Market Maker', async () => {
       await sweep.connect(balancer).setTargetPrice(1000500, 1000500);
       usdxAmount = toBN("15000", 6);
       sweepAmount = toBN("15000", 18);
-      await usdc.approve(marketmaker.address, usdxAmount);
+      await usdc.transfer(marketmaker.address, usdxAmount);
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 2e5, 1e5);
 
       await sweep.connect(balancer).setTargetPrice(1001000, 1001000);
       usdxAmount = toBN("20000", 6);
       sweepAmount = toBN("20000", 18);
-      await usdc.approve(marketmaker.address, usdxAmount);
+      await usdc.transfer(marketmaker.address, usdxAmount);
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 2e5, 1e5);
     })
 

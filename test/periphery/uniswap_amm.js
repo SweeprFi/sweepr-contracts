@@ -91,6 +91,7 @@ contract("Uniswap AMM", async function () {
       sweepAmount = toBN("15000", 18);
 
       await usdc.transfer(marketmaker.address, usdxAmount.mul(2));
+      await marketmaker.borrow(sweepAmount);
       await marketmaker.lpTrade(usdxAmount, sweepAmount, 5000, 30000, 7000);
 
       expect(await usdc.balanceOf(poolAddress)).to.greaterThan(Const.ZERO);
