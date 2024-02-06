@@ -44,5 +44,7 @@ interface IAMM {
 
     function getPriceAtTick(int24) external view returns (uint256 price);
 
+    function getPriceAtCurrentTick() external view returns (uint256 price);
+
     function getTickFromPrice(uint256 price, uint8 decimals, int24 tickSpacing) external view returns (int24);
 }

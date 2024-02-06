@@ -156,12 +156,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
      * @notice A function that decreases the current liquidity.
      * @param liquidityAmount Liquidity Amount to decrease
      */
-    function removeLiquidity(
-        uint256 tokenId,
-        uint256 liquidityAmount,
-        uint256 amountOut0,
-        uint256 amountOut1
-    )
+    function removeLiquidity(uint256 tokenId, uint256 liquidityAmount, uint256 amountOut0, uint256 amountOut1)
         external onlyBorrower nonReentrant validAmount(liquidityAmount)
     {
         _decreaseLiquidity(tokenId, uint128(liquidityAmount), amountOut0, amountOut1);
@@ -170,23 +165,14 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     function lpTrade(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxSlippage, uint256 sweepSlippage, uint256 spread)
         external onlyBorrower whenNotPaused nonReentrant
     {
-        address self = address(this);
-        if(tradePosition > 0) _removePosition(tradePosition);
-        (uint256 usdxBalance, uint256 sweepBalance) = _balances();
-
-        if(sweepAmount > sweepBalance) {
-            if (sweep.isMintingAllowed()) {
-                _borrow(sweepAmount - sweepBalance);
-            } else {
-                TransferHelper.safeTransferFrom(address(sweep), msg.sender, self, sweepAmount - sweepBalance);
-            }
-        }
-
-        if(usdxAmount > usdxBalance)
-            TransferHelper.safeTransferFrom(address(usdx), msg.sender, self, usdxAmount - usdxBalance);
-
+        if(tradePosition > 0) _removePosition(tradePosition);   
         _approveNFTManager(usdxAmount, sweepAmount);
-        (int24 minTick, int24 maxTick) = showTicks(spread);
+        
+        uint256 sweepPrice = sweep.targetPrice();
+        uint256 minPrice = ((PRECISION - spread) * sweepPrice) / PRECISION;
+        uint256 maxPrice = ((PRECISION + spread) * sweepPrice) / PRECISION;
+        (int24 minTick, int24 maxTick) = _getTicks(minPrice, maxPrice);
+
         uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, usdxSlippage);
         uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, sweepSlippage);
 
@@ -198,34 +184,28 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         _checkRatio();
     }
 
-    function lpRedeem(uint256 usdxAmount, uint256 priceSpread, uint256 usdxSlippage) external onlyBorrower nonReentrant {
+    function lpRedeem(uint256 usdxAmount, uint256 priceSpread, uint256 usdxSlippage)
+        external onlyBorrower nonReentrant
+    {
         if(redeemPosition > 0) _removePosition(redeemPosition);
-
-        uint256 usdxBalance = usdx.balanceOf(address(this));
-        if(usdxAmount > usdxBalance)
-            TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount - usdxBalance);
-        TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
+        _approveNFTManager(usdxAmount, 0);
 
         uint256 targetPrice = sweep.targetPrice();
-        (, int24 currentTick,,,,,) = IUniswapV3Pool(amm().pool()).slot0();
-        uint256 ammPrice = amm().getPriceAtTick(currentTick);
+        uint256 ammPrice = amm().getPriceAtCurrentTick();
         uint256 maxPrice = (targetPrice < ammPrice ? targetPrice : ammPrice) - TICKS_DELTA;
         uint256 minPrice = ((PRECISION - priceSpread) * maxPrice) / PRECISION;
 
         redeemPosition = _addSingleSidedLiquidity(usdxAmount, 0, usdxSlippage, minPrice, maxPrice);
     }
 
-    function lpGrow(uint256 sweepAmount, uint256 priceSpread, uint256 sweepSlippage) external onlyBorrower nonReentrant {
+    function lpGrow(uint256 sweepAmount, uint256 priceSpread, uint256 sweepSlippage)
+        external onlyBorrower nonReentrant
+    {
         if(growPosition > 0) _removePosition(growPosition);
-        uint256 sweepBalance = sweep.balanceOf(address(this));
-        if(sweepAmount > sweepBalance) _borrow(sweepAmount - sweepBalance);
-
-        TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
+        _approveNFTManager(0, sweepAmount);
 
         uint256 targetPrice = sweep.targetPrice();
-        (, int24 currentTick,,,,,) = IUniswapV3Pool(amm().pool()).slot0();
-        uint256 ammPrice = amm().getPriceAtTick(currentTick);
-
+        uint256 ammPrice = amm().getPriceAtCurrentTick();
         uint256 minPrice = (targetPrice > ammPrice ? targetPrice : ammPrice) + TICKS_DELTA;
         uint256 maxPrice = ((PRECISION + priceSpread) * minPrice) / PRECISION;
 
@@ -242,6 +222,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 usdxMinIn = OvnMath.subBasisPoints(usdxAmount, slippage);
         uint256 sweepMinIn = OvnMath.subBasisPoints(sweepAmount, slippage);
 
+        TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
         _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
         TransferHelper.safeTransfer(address(sweep), msg.sender, sweepAmount);
 
@@ -249,14 +230,14 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         emit SweepPurchased(usdxAmount);
     }
 
+    function addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxMinIn, uint256 sweepMinIn)
+        external onlyBorrower nonReentrant
+    {
+        _addLiquidity(usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
+    }
+
     /* ========== Internals ========== */
-    function _addLiquidity(
-        uint256 usdxAmount,
-        uint256 sweepAmount,
-        uint256 usdxMinIn,
-        uint256 sweepMinIn
-    ) internal {
-        TransferHelper.safeTransferFrom(address(usdx), msg.sender, address(this), usdxAmount);
+    function _addLiquidity(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxMinIn, uint256 sweepMinIn) internal {
         _approveNFTManager(usdxAmount, sweepAmount);
 
         (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn) = flag
@@ -331,8 +312,8 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function _approveNFTManager(uint256 usdxAmount, uint256 sweepAmount) internal {
-        TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
-        TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
+        if(usdxAmount > 0) TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
+        if(sweepAmount > 0) TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
     }
 
     function _mintPosition(
@@ -358,14 +339,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
                 deadline: block.timestamp
             })
         );
-    }
-
-    function showTicks(uint256 spread) internal view returns (int24 minTick, int24 maxTick) {
-        uint256 sweepPrice = sweep.targetPrice();
-        uint256 minPrice = ((PRECISION - spread) * sweepPrice) / PRECISION;
-        uint256 maxPrice = ((PRECISION + spread) * sweepPrice) / PRECISION;
-
-        return _getTicks(minPrice, maxPrice);
     }
 
     function _getTicks(uint256 minPrice, uint256 maxPrice) internal view returns (int24 minTick, int24 maxTick) {
