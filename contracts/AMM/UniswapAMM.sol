@@ -24,7 +24,7 @@ import "../Sweep/ISweep.sol";
 contract UniswapAMM {
     using Math for uint256;
 
-    ISwapRouter private immutable ROUTER;
+    ISwapRouter private immutable router;
 
     IERC20Metadata public immutable base;
     ISweep public immutable sweep;
@@ -59,7 +59,7 @@ contract UniswapAMM {
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
         liquidityHelper = LiquidityHelper(_liquidityHelper);
         flag = _base < _sweep;
-        ROUTER = ISwapRouter(_router);
+        router = ISwapRouter(_router);
     }
 
     // Events
@@ -215,7 +215,7 @@ contract UniswapAMM {
     {
         // Approval
         TransferHelper.safeTransferFrom(tokenA, msg.sender, address(this), amountIn);
-        TransferHelper.safeApprove(tokenA, address(ROUTER), amountIn);
+        TransferHelper.safeApprove(tokenA, address(router), amountIn);
 
         ISwapRouter.ExactInputSingleParams memory swapParams = ISwapRouter
             .ExactInputSingleParams({
@@ -229,7 +229,7 @@ contract UniswapAMM {
                 sqrtPriceLimitX96: 0
             });
 
-        amountOut = ROUTER.exactInputSingle(swapParams);
+        amountOut = router.exactInputSingle(swapParams);
     }
 
     function checkRate(address usdxAddress, uint256 usdxAmount, uint256 sweepAmount) internal view {

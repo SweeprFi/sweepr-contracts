@@ -22,7 +22,7 @@ contract("ERC20 Asset (WETH)", async function () {
         weth = await Token.attach(tokens.weth);
 
         LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
-        liquidityHelper = await LiquidityHelper.deploy();
+        liquidityHelper = await LiquidityHelper.deploy(uniswap.positions_manager);
 
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(

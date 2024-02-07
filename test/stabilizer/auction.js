@@ -36,7 +36,7 @@ contract('Stabilizer - Auction', async () => {
     factory = await ethers.getContractAt("IUniswapV3Factory", uniswap.factory);
     positionManager = await ethers.getContractAt("INonfungiblePositionManager", uniswap.positions_manager);
     LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
-    liquidityHelper = await LiquidityHelper.deploy();
+    liquidityHelper = await LiquidityHelper.deploy(uniswap.positions_manager);
     Oracle = await ethers.getContractFactory("AggregatorMock");
     usdcOracle = await Oracle.deploy();
 

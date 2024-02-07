@@ -24,7 +24,7 @@ contract('Uniswap Market Maker', async () => {
     usdc = await ERC20.deploy(6);
 
     LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
-    liquidityHelper = await LiquidityHelper.deploy();
+    liquidityHelper = await LiquidityHelper.deploy(uniswap.positions_manager);
 
     Oracle = await ethers.getContractFactory("AggregatorMock");
     usdcOracle = await Oracle.deploy();

@@ -28,7 +28,7 @@ contract('Pancake Market Maker', async () => {
     // usdc = await ERC20.deploy(18);
 
     LiquidityHelper = await ethers.getContractFactory("PancakeLiquidityHelper");
-    liquidityHelper = await LiquidityHelper.deploy();
+    liquidityHelper = await LiquidityHelper.deploy(pancake.positions_manager);
 
     Oracle = await ethers.getContractFactory("AggregatorMock");
     usdcOracle = await Oracle.deploy();

@@ -27,7 +27,7 @@ contract("Pancake AMM", async function () {
     usdc = await ERC20.deploy(18);
 
     LiquidityHelper = await ethers.getContractFactory("PancakeLiquidityHelper");
-    liquidityHelper = await LiquidityHelper.deploy();
+    liquidityHelper = await LiquidityHelper.deploy(pancake.positions_manager);
 
     factory = await ethers.getContractAt("IUniswapV3Factory", pancake.factory);
     positionManager = await ethers.getContractAt("INonfungiblePositionManager", pancake.positions_manager);

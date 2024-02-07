@@ -28,8 +28,8 @@ contract("Baseswap AMM", async function () {
     usdt = await ERC20.deploy(6);
     usdc = await ERC20.deploy(6);
 
-    LiquidityHelper = await ethers.getContractFactory("BaseswapLiquidityHelper");
-    liquidityHelper = await LiquidityHelper.deploy();
+    LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
+    liquidityHelper = await LiquidityHelper.deploy(baseswap.positions_manager);
 
     factory = await ethers.getContractAt("IUniswapV3Factory", baseswap.factory);
     positionManager = await ethers.getContractAt("INonfungiblePositionManager", baseswap.positions_manager);

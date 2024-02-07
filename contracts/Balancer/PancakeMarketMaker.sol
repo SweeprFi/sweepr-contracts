@@ -19,7 +19,7 @@ import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.s
 import { IPancakePool } from "../Utils/PancakeLiquidityHelper.sol";
 
 contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
-    INonfungiblePositionManager public constant nonfungiblePositionManager = 
+    INonfungiblePositionManager public constant nftpm = 
        INonfungiblePositionManager(0x46A15B0b27311cedF172AB29E4f4766fbE7F4364);
     uint8 private constant TICKS_DELTA = 201;
 
@@ -234,7 +234,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
             ? (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn)
             : (sweepAmount, usdxAmount, sweepMinIn, usdxMinIn);
 
-        nonfungiblePositionManager.increaseLiquidity(
+        nftpm.increaseLiquidity(
             INonfungiblePositionManager.IncreaseLiquidityParams({
                 tokenId: tradePosition,
                 amount0Desired: usdxAmount,
@@ -264,7 +264,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function _collect(uint256 id) internal {
-        (uint256 amount0, uint256 amount1) = nonfungiblePositionManager.collect(
+        (uint256 amount0, uint256 amount1) = nftpm.collect(
             INonfungiblePositionManager.CollectParams({
                 tokenId: id,
                 recipient: address(this),
@@ -277,18 +277,18 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function _removePosition(uint256 positionId) internal {
-        (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(positionId);
+        (,,,,,,,uint128 _liquidity,,,,) = nftpm.positions(positionId);
         _decreaseLiquidity(positionId, _liquidity, 0, 0);
-        nonfungiblePositionManager.burn(positionId);
+        nftpm.burn(positionId);
     }
 
     function _getLiquidity(uint256 position) internal view returns(uint128 liquidity) {
         if(position > 0)
-            (,,,,,,, liquidity,,,,) = nonfungiblePositionManager.positions(position);
+            (,,,,,,, liquidity,,,,) = nftpm.positions(position);
     }
 
     function _decreaseLiquidity(uint256 positionId, uint128 liquidity, uint256 amount0Min, uint256 amount1Min) internal {
-        nonfungiblePositionManager.decreaseLiquidity(
+        nftpm.decreaseLiquidity(
             INonfungiblePositionManager.DecreaseLiquidityParams({
                 tokenId: positionId,
                 liquidity: liquidity,
@@ -301,8 +301,8 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function _approveNFTManager(uint256 usdxAmount, uint256 sweepAmount) internal {
-        if(usdxAmount > 0) TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
-        if(sweepAmount > 0) TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
+        if(usdxAmount > 0) TransferHelper.safeApprove(address(usdx), address(nftpm), usdxAmount);
+        if(sweepAmount > 0) TransferHelper.safeApprove(address(sweep), address(nftpm), sweepAmount);
     }
 
     function _mintPosition(
@@ -313,7 +313,7 @@ contract PancakeMarketMaker is IERC721Receiver, Stabilizer {
         uint256 amount0Min,
         uint256 amount1Min
     ) internal returns (uint256 tokenId){
-        (tokenId,,,) = nonfungiblePositionManager.mint(
+        (tokenId,,,) = nftpm.mint(
             INonfungiblePositionManager.MintParams({
                 token0: token0,
                 token1: token1,

@@ -13,15 +13,18 @@ import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.s
 import "abdk-libraries-solidity/ABDKMath64x64.sol";
 
 contract LiquidityHelper {
-    INonfungiblePositionManager internal constant NFPS = INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
+    INonfungiblePositionManager internal immutable nfpm;
+
+    constructor(address _positionManager) {
+        nfpm = INonfungiblePositionManager(_positionManager);
+    }
 
     function getTokenAmountsFromLP(
         uint256 tokenId,
         address poolAddress
     ) external view returns (uint256 amount0, uint256 amount1) {
-        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
-        (uint160 sqrtPriceX96, int24 tickCurrent, , , , , ) = pool.slot0();
-        (,,,,, int24 tickLower, int24 tickUpper, uint128 liquidity,,,,) = NFPS.positions(tokenId);
+        (uint160 sqrtPriceX96, int24 tickCurrent) = _getPriceAndTick(poolAddress);
+        (,,,,, int24 tickLower, int24 tickUpper, uint128 liquidity,,,,) = nfpm.positions(tokenId);
 
         if (tickCurrent < tickLower) {
             amount0 = SqrtPriceMath.getAmount0Delta(
@@ -78,10 +81,18 @@ contract LiquidityHelper {
         tick = (tick / tickSpacing) * tickSpacing;
     }
 
-    function getCurrentTick(
-        address poolAddress
-    ) external view returns (int24 tickCurrent) {
+    function getCurrentTick(address poolAddress) external view returns (int24) {
+        return _getCurrentTick(poolAddress);
+    }
+
+    // *********** Virtual functions
+    function _getCurrentTick(address poolAddress) internal view virtual returns (int24 tickCurrent) {
         IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
         (, tickCurrent, , , , , ) = pool.slot0();
+    }
+
+    function _getPriceAndTick(address poolAddress) internal view virtual returns (uint160 sqrtPriceX96, int24 tickCurrent) {
+        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
+        (sqrtPriceX96, tickCurrent, , , , , ) = pool.slot0();
     }
 }

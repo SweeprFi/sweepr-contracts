@@ -25,8 +25,8 @@ contract('Baseswap Market Maker', async () => {
     ERC20 = await ethers.getContractFactory("USDCMock");
     usdc = await ERC20.deploy(6);
 
-    LiquidityHelper = await ethers.getContractFactory("BaseswapLiquidityHelper");
-    liquidityHelper = await LiquidityHelper.deploy();
+    LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
+    liquidityHelper = await LiquidityHelper.deploy(baseswap.positions_manager);
 
     Oracle = await ethers.getContractFactory("AggregatorMock");
     usdcOracle = await Oracle.deploy();
