@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { tokens, network, wallets, deployments, chainlink } = require("../../../utils/constants");
+const { tokens, network, wallets, uniswap, chainlink } = require("../../../utils/constants");
 const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
@@ -8,6 +8,7 @@ async function main() {
     const sweep = tokens.sweep;
     const usdc = tokens.usdc;
     const oracleUsdc = chainlink.usdc_usd;
+    const positionManager = uniswap.positions_manager;
     const borrower = wallets.multisig;
 
     console.log("===========================================");
@@ -20,6 +21,7 @@ async function main() {
     console.log("SWEEP:", sweep);
     console.log("USDC:", usdc);
     console.log("USDC/USD Chainlink Oracle:", oracleUsdc);
+    console.log("USDC/USD Chainlink Oracle:", positionManager);
     console.log("Borrower:", borrower);
     console.log("===========================================");
     const answer = (await ask("continue? y/n: "));
@@ -32,12 +34,13 @@ async function main() {
         sweep,
         usdc,
         oracleUsdc,
+        positionManager,
         borrower
     );
 
     console.log("===========================================");
     console.log("MarketMaker deployed to: ", stabilizer.address);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${usdc} ${oracleUsdc} ${borrower}`);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${stabilizer.address} "${assetName}" ${sweep} ${usdc} ${oracleUsdc} ${positionManager} ${borrower}`);
 }
 
 main();

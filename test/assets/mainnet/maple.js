@@ -39,7 +39,8 @@ contract('Maple Asset', async () => {
             uniswap.pool_sweep,
             chainlink.usdc_usd,
             86400,
-            liquidityHelper.address
+            liquidityHelper.address,
+            uniswap.router
         );
 
         Asset = await ethers.getContractFactory("MapleAsset");

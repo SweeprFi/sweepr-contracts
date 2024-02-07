@@ -50,7 +50,15 @@ module.exports = {
         router: '',
         universal_router: '0xeC8B0F7Ffe3ae75d7FfAb09429e3675bb63503e4',
         positions_manager: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
-        quoter: '',
+        observationCardinality: 480,
+        pool: ''
+    },
+
+    baseswap: {
+        factory: '0x38015D05f4fEC8AFe15D7cc0386a126574e8077B',
+        router: '0x1B8eea9315bE495187D873DA7773a874545D9D48',
+        universal_router: '',
+        positions_manager: '0xDe151D5c92BfAA288Db4B67c21CD55d5826bCc93',
         observationCardinality: 480,
         pool: ''
     },

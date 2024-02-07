@@ -20,8 +20,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     // Uniswap V3 Position Manager
-    INonfungiblePositionManager private constant nonfungiblePositionManager =
-        INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
+    INonfungiblePositionManager private immutable nonfungiblePositionManager;
     uint8 private constant TICKS_DELTA = 201;
 
     // Variables
@@ -49,11 +48,13 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         address _sweep,
         address _usdx,
         address _oracleUsdx,
+        address _positionManager,
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         slippage = 5000; // 0.5%
         flag = _usdx < _sweep;
         (token0, token1) = flag ? (_usdx, _sweep) : (_sweep, _usdx);
+        nonfungiblePositionManager = INonfungiblePositionManager(_positionManager);
     }
 
     /* ========== Views ========== */

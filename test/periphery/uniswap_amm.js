@@ -41,6 +41,7 @@ contract("Uniswap AMM", async function () {
       sweep.address,
       usdc.address,
       chainlink.usdc_usd,
+      uniswap.positions_manager,
       OWNER
     );
 
@@ -82,7 +83,8 @@ contract("Uniswap AMM", async function () {
         poolAddress,
         usdcOracle.address,
         86400,
-        liquidityHelper.address
+        liquidityHelper.address,
+        uniswap.router
       );
       await sweep.setAMM(amm.address);
       await marketmaker.setAMM(amm.address);

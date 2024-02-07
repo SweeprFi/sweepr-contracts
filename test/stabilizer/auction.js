@@ -71,7 +71,8 @@ contract('Stabilizer - Auction', async () => {
         pool_address,
         usdcOracle.address,
         86400,
-        liquidityHelper.address
+        liquidityHelper.address,
+        uniswap.router
       );
       await sweep.setAMM(amm.address);
 

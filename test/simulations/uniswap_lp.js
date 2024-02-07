@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { tokens, deployments, wallets, chainlink } = require("../../utils/constants");
+const { tokens, deployments, wallets, chainlink, uniswap } = require("../../utils/constants");
 const { impersonate, toBN, resetNetwork, sendEth, Const } = require("../../utils/helper_functions");
 
 contract("Uniswap Market Maker", async function () {
@@ -27,14 +27,23 @@ contract("Uniswap Market Maker", async function () {
         // end =====================================
 
         // new MM depoyment ==================================
-        pancakeAMMInstance = await ethers.getContractFactory("UniswapAMM");
-        amm = await pancakeAMMInstance.deploy(sweep.address, usdc.address, chainlink.sequencer, deployments.uniswap_pool, chainlink.usdc_usd, 86400, deployments.liquidity_helper);
+        AMMInstance = await ethers.getContractFactory("UniswapAMM");
+        amm = await AMMInstance.deploy(
+            sweep.address,
+            usdc.address,
+            chainlink.sequencer,
+            deployments.uniswap_pool,
+            chainlink.usdc_usd,
+            86400,
+            deployments.liquidity_helper,
+            uniswap.router
+        );
         market = await (await ethers.getContractFactory("UniswapMarketMaker"))
-            .deploy('UniMM', tokens.sweep, tokens.usdc, chainlink.usdc_usd, MULTISIG);
+            .deploy('UniMM', tokens.sweep, tokens.usdc, chainlink.usdc_usd, uniswap.positions_manager, MULTISIG);
         sweep100000 = toBN("100000", 18);
         await usdc.connect(usdc_holder).transfer(market.address, 100e6);
         await market.connect(multisig)
-            .configure(2000, Const.spreadFee, sweep100000, Const.ZERO, Const.DAY, Const.RATIO, Const.ZERO, Const.ZERO, Const.TRUE, Const.FALSE, Const.URL);
+            .configure(2000, Const.spreadFee, sweep100000, 0, 86400, Const.RATIO, 0, 0, true, false, '');
         await market.connect(multisig).propose();
         await market.connect(multisig).setAMM(amm.address);
         await sweep.connect(multisig).addMinter(market.address, sweep100000);

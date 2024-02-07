@@ -24,7 +24,7 @@ import "../Sweep/ISweep.sol";
 contract UniswapAMM {
     using Math for uint256;
 
-    ISwapRouter private constant ROUTER = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    ISwapRouter private immutable ROUTER;
 
     IERC20Metadata public immutable base;
     ISweep public immutable sweep;
@@ -48,7 +48,8 @@ contract UniswapAMM {
         address _pool,
         address _oracleBase,
         uint256 _oracleBaseUpdateFrequency,
-        address _liquidityHelper
+        address _liquidityHelper,
+        address _router
     ) {
         sweep = ISweep(_sweep);
         base = IERC20Metadata(_base);
@@ -58,6 +59,7 @@ contract UniswapAMM {
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
         liquidityHelper = LiquidityHelper(_liquidityHelper);
         flag = _base < _sweep;
+        ROUTER = ISwapRouter(_router);
     }
 
     // Events

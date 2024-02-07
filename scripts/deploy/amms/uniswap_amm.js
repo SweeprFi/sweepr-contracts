@@ -12,6 +12,7 @@ async function main() {
     const sequencer = chainlink.sequencer;
     const helper = deployments.liquidity_helper;
     const pool = deployments.uniswap_pool;
+    const router = uniswap.router;
 
     console.log("===========================================");
     console.log("UNISWAP AMM PLUGIN DEPLOY");
@@ -26,17 +27,18 @@ async function main() {
     console.log("USDC/USD Chainlink Oracle:", oracle);
     console.log("Oracle Frequency:", frequency);
     console.log("Liquidity helper:", helper);
+    console.log("Uniswap Router:", router);
     console.log("===========================================");
     const answer = (await ask("continue? y/n: "));
     if (answer !== 'y') { process.exit(); }
     console.log("Deploying...");
 
     const uniswapAMMInstance = await ethers.getContractFactory("UniswapAMM");
-    const amm = await uniswapAMMInstance.deploy(sweep, usdc, sequencer, pool, oracle, frequency, helper);
+    const amm = await uniswapAMMInstance.deploy(sweep, usdc, sequencer, pool, oracle, frequency, helper, router);
 
     console.log("===========================================");
     console.log(`UniswapAMM Deployed to:${amm.address}`);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${usdc} ${sequencer} ${pool} ${oracle} ${frequency} ${helper}`);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${usdc} ${sequencer} ${pool} ${oracle} ${frequency} ${helper} ${router}`);
 }
 
 main();

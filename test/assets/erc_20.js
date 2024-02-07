@@ -32,7 +32,8 @@ contract("ERC20 Asset (WETH)", async function () {
             uniswap.pool_sweep,
             chainlink.usdc_usd,
             86400,
-            liquidityHelper.address
+            liquidityHelper.address,
+            uniswap.router
         );
 
         WETHAsset = await ethers.getContractFactory("ERC20Asset");
