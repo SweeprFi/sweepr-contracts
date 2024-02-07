@@ -6,7 +6,7 @@ async function main() {
 	[deployer] = await ethers.getSigners();
 
 	console.log("===========================================");
-	console.log("UNISWAP LIQUIDITY HELPER DEPLOY");
+	console.log("BASESWAP LIQUIDITY HELPER DEPLOY"); 
 	console.log("===========================================");
 	console.log("Network:", network.name);
 	console.log("Deployer:", deployer.address);
@@ -16,7 +16,7 @@ async function main() {
     if(answer !== 'y'){ process.exit(); }
 	console.log("Creating...");
 
-	const LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
+	const LiquidityHelper = await ethers.getContractFactory("BaseswapLiquidityHelper");
 	const liquidityHelper = await LiquidityHelper.deploy();
 
 	console.log("===========================================");
