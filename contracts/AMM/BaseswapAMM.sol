@@ -2,17 +2,17 @@
 pragma solidity 0.8.19;
 
 // ==========================================================
-// ====================== PancakeAMM.sol ====================
+// ====================== BaseswapAMM.sol ===================
 // ==========================================================
 
 /**
- * @title Pancake AMM
- * @dev Interactions with PancakeSwap
+ * @title Baseswap AMM
+ * @dev Interactions with BaseSwap
  */
 
-import { UniswapAMM } from "./UniswapAMM.sol";
+import "./UniswapAMM.sol";
 
-contract PancakeAMM is UniswapAMM {
+contract BaseswapAMM is UniswapAMM {
 
     constructor(
         address _sweep,
@@ -21,11 +21,10 @@ contract PancakeAMM is UniswapAMM {
         address _pool,
         address _oracleBase,
         uint256 _oracleBaseUpdateFrequency,
-        address _pancakeLiquidityHelper,
+        address _liquidityHelper,
         address _router
     ) UniswapAMM(
         _sweep, _base, _sequencer, _pool, _oracleBase,
-        _oracleBaseUpdateFrequency, _pancakeLiquidityHelper, _router
+        _oracleBaseUpdateFrequency, _liquidityHelper, _router
     ) {}
-
 }

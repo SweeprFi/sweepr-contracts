@@ -18,7 +18,7 @@ contract('sFrax Asset', async () => {
         sFrax = await ethers.getContractAt("IERC4626", tokens.sfrax);
 
         LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
-        liquidityHelper = await LiquidityHelper.deploy();
+        liquidityHelper = await LiquidityHelper.deploy(uniswap.positions_manager);
 
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(
@@ -28,7 +28,8 @@ contract('sFrax Asset', async () => {
             uniswap.pool_sweep,
             chainlink.usdc_usd,
             86400,
-            liquidityHelper.address
+            liquidityHelper.address,
+            uniswap.router
         );
 
         Asset = await ethers.getContractFactory("SFraxAsset");

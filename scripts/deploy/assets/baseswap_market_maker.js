@@ -1,18 +1,18 @@
 const { ethers } = require("hardhat");
-const { tokens, network, wallets, uniswap, chainlink } = require("../../../utils/constants");
+const { tokens, network, wallets, baseswap, chainlink } = require("../../../utils/constants");
 const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
     [deployer] = await ethers.getSigners();
-    const assetName = 'Uniswap Market Maker';
+    const assetName = 'Baseswap Market Maker';
     const sweep = tokens.sweep;
     const usdc = tokens.usdc;
     const oracleUsdc = chainlink.usdc_usd;
-    const positionManager = uniswap.positions_manager;
+    const positionManager = baseswap.positions_manager;
     const borrower = wallets.multisig;
 
     console.log("===========================================");
-    console.log("UNISWAP MARKET MAKER ASSET DEPLOY");
+    console.log("BASESWAP MARKET MAKER ASSET DEPLOY");
     console.log("===========================================");
     console.log("Network:", network.name);
     console.log("Deployer:", deployer.address);
@@ -28,7 +28,7 @@ async function main() {
     if(answer !== 'y'){ process.exit(); }
     console.log("Deploying...");
 
-    const MarketMaker = await ethers.getContractFactory("UniswapMarketMaker");
+    const MarketMaker = await ethers.getContractFactory("BaseswapMarketMaker");
     const stabilizer = await MarketMaker.deploy(
         assetName,
         sweep,

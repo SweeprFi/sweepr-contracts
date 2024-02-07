@@ -27,7 +27,7 @@ contract("USDPlus Asset", async function () {
         usdPlus = await Token.attach(protocols.overnight.usd_plus);
 
         LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
-        liquidityHelper = await LiquidityHelper.deploy();
+        liquidityHelper = await LiquidityHelper.deploy(uniswap.positions_manager);
 
         // Uniswap Contract
         AMM = await ethers.getContractFactory("BalancerAMM");

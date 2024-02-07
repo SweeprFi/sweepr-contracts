@@ -29,7 +29,7 @@ contract('Maple Asset', async () => {
         mapleManager = await ethers.getContractAt("IMapplePoolManager", POOL_MANAGER);
         mapleWithdrawal = await ethers.getContractAt("IWithdrawalManager", WITHDRAWAL_MANAGER);
         LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
-        liquidityHelper = await LiquidityHelper.deploy();
+        liquidityHelper = await LiquidityHelper.deploy(uniswap.positions_manager);
 
         Uniswap = await ethers.getContractFactory("UniswapAMM");
         amm = await Uniswap.deploy(
@@ -39,7 +39,8 @@ contract('Maple Asset', async () => {
             uniswap.pool_sweep,
             chainlink.usdc_usd,
             86400,
-            liquidityHelper.address
+            liquidityHelper.address,
+            uniswap.router
         );
 
         Asset = await ethers.getContractFactory("MapleAsset");

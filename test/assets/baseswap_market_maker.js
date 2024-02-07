@@ -1,10 +1,12 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { chainlink, uniswap } = require("../../utils/constants");
+const { network, chainlink, baseswap } = require("../../utils/constants");
 const { Const, getPriceAndData, toBN } = require("../../utils/helper_functions");
 let poolAddress;
 
-contract('Uniswap Market Maker', async () => {
+contract('Baseswap Market Maker', async () => {
+  if (Number(network.id) !== 8453) return;
+
   before(async () => {
     [owner, borrower, treasury, guest, lzEndpoint, multisig, balancer] = await ethers.getSigners();
   
@@ -12,7 +14,7 @@ contract('Uniswap Market Maker', async () => {
     sweepAmount = toBN("10000000", 18); // 10M
     minAutoSweepAmount = toBN("100", 18);
     BORROWER = owner.address;
-    FEE = 100;
+    FEE = 80;
     TICK_SPREAD = 1000;
 
     Sweep = await ethers.getContractFactory("SweepCoin");
@@ -24,23 +26,23 @@ contract('Uniswap Market Maker', async () => {
     usdc = await ERC20.deploy(6);
 
     LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
-    liquidityHelper = await LiquidityHelper.deploy(uniswap.positions_manager);
+    liquidityHelper = await LiquidityHelper.deploy(baseswap.positions_manager);
 
     Oracle = await ethers.getContractFactory("AggregatorMock");
     usdcOracle = await Oracle.deploy();
     await usdcOracle.setPrice(Const.USDC_PRICE);
 
-    positionManager = await ethers.getContractAt("INonfungiblePositionManager", uniswap.positions_manager);
-    factory = await ethers.getContractAt("IUniswapV3Factory", uniswap.factory);
-    swapRouter = await ethers.getContractAt("ISwapRouter", uniswap.router);
+    positionManager = await ethers.getContractAt("INonfungiblePositionManager", baseswap.positions_manager);
+    factory = await ethers.getContractAt("IUniswapV3Factory", baseswap.factory);
+    swapRouter = await ethers.getContractAt("ISwapRouter", baseswap.router);
 
-    MarketMaker = await ethers.getContractFactory("UniswapMarketMaker");
+    MarketMaker = await ethers.getContractFactory("BaseswapMarketMaker");
     marketmaker = await MarketMaker.deploy(
-      'Uniswap Market Maker',
+      'Baseswap Market Maker',
       sweep.address,
       usdc.address,
       chainlink.usdc_usd,
-      uniswap.positions_manager,
+      baseswap.positions_manager,
       BORROWER
     );
 
@@ -67,8 +69,8 @@ contract('Uniswap Market Maker', async () => {
       pool = await ethers.getContractAt("IUniswapV3Pool", poolAddress);
       await(await pool.increaseObservationCardinalityNext(96)).wait();
 
-      Uniswap = await ethers.getContractFactory("UniswapAMM");
-      amm = await Uniswap.deploy(
+      AMM = await ethers.getContractFactory("BaseswapAMM");
+      amm = await AMM.deploy(
         sweep.address,
         usdc.address,
         chainlink.sequencer,
@@ -76,7 +78,7 @@ contract('Uniswap Market Maker', async () => {
         usdcOracle.address,
         86400,
         liquidityHelper.address,
-        uniswap.router
+        baseswap.router
       );
       await sweep.setAMM(amm.address);
       await marketmaker.setAMM(amm.address);

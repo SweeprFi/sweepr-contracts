@@ -28,7 +28,7 @@ contract('Pancake Market Maker', async () => {
     // usdc = await ERC20.deploy(18);
 
     LiquidityHelper = await ethers.getContractFactory("PancakeLiquidityHelper");
-    liquidityHelper = await LiquidityHelper.deploy();
+    liquidityHelper = await LiquidityHelper.deploy(pancake.positions_manager);
 
     Oracle = await ethers.getContractFactory("AggregatorMock");
     usdcOracle = await Oracle.deploy();
@@ -44,6 +44,7 @@ contract('Pancake Market Maker', async () => {
       sweep.address,
       usdc.address,
       chainlink.usdc_usd,
+      pancake.positions_manager,
       BORROWER
     );
 
@@ -83,7 +84,8 @@ contract('Pancake Market Maker', async () => {
         poolAddress,
         usdcOracle.address,
         86400,
-        liquidityHelper.address
+        liquidityHelper.address,
+        pancake.router
       );
       await sweep.setAMM(amm.address);
       await marketmaker.setAMM(amm.address);

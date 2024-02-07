@@ -1,14 +1,14 @@
 const { ethers } = require("hardhat");
-const { network, pancake } = require("../../../utils/constants");
+const { network, baseswap } = require("../../../utils/constants");
 const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
 	[deployer] = await ethers.getSigners();
 
-	const nfpm = pancake.positions_manager;
+	const nfpm = baseswap.positions_manager;
 
 	console.log("===========================================");
-	console.log("PANCAKE LIQUIDITY HELPER DEPLOY"); 
+	console.log("BASESWAP LIQUIDITY HELPER DEPLOY"); 
 	console.log("===========================================");
 	console.log("Network:", network.name);
 	console.log("Deployer:", deployer.address);
@@ -19,8 +19,8 @@ async function main() {
     if(answer !== 'y'){ process.exit(); }
 	console.log("Creating...");
 
-	const LiquidityHelper = await ethers.getContractFactory("PancakeLiquidityHelper");
-	const liquidityHelper = await LiquidityHelper.deploy(nftpm);
+	const LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
+	const liquidityHelper = await LiquidityHelper.deploy(nfpm);
 
 	console.log("===========================================");
 	console.log("Liquidity Helper deployed to:", liquidityHelper.address);

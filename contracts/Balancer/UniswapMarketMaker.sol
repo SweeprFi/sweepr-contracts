@@ -13,15 +13,18 @@ pragma solidity 0.8.19;
  * Collects fees from the LP.
  */
 
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "../Stabilizer/Stabilizer.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import { Stabilizer } from "../Stabilizer/Stabilizer.sol";
+import { INonfungiblePositionManager } from "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
+import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import { IAMM } from "../AMM/IAMM.sol";
+import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import { OvnMath } from "../Libraries/OvnMath.sol";
+
 
 contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     // Uniswap V3 Position Manager
-    INonfungiblePositionManager private constant nonfungiblePositionManager =
-        INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
+    INonfungiblePositionManager private immutable nfpm;
     uint8 private constant TICKS_DELTA = 201;
 
     // Variables
@@ -49,11 +52,13 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         address _sweep,
         address _usdx,
         address _oracleUsdx,
+        address _positionManager,
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         slippage = 5000; // 0.5%
         flag = _usdx < _sweep;
         (token0, token1) = flag ? (_usdx, _sweep) : (_sweep, _usdx);
+        nfpm = INonfungiblePositionManager(_positionManager);
     }
 
     /* ========== Views ========== */
@@ -244,7 +249,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
             ? (usdxAmount, sweepAmount, usdxMinIn, sweepMinIn)
             : (sweepAmount, usdxAmount, sweepMinIn, usdxMinIn);
 
-        nonfungiblePositionManager.increaseLiquidity(
+        nfpm.increaseLiquidity(
             INonfungiblePositionManager.IncreaseLiquidityParams({
                 tokenId: tradePosition,
                 amount0Desired: usdxAmount,
@@ -275,7 +280,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function _collect(uint256 id) internal {
-        (uint256 amount0, uint256 amount1) = nonfungiblePositionManager.collect(
+        (uint256 amount0, uint256 amount1) = nfpm.collect(
             INonfungiblePositionManager.CollectParams({
                 tokenId: id,
                 recipient: address(this),
@@ -288,18 +293,18 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function _removePosition(uint256 positionId) internal {
-        (,,,,,,,uint128 _liquidity,,,,) = nonfungiblePositionManager.positions(positionId);
+        (,,,,,,,uint128 _liquidity,,,,) = nfpm.positions(positionId);
         _decreaseLiquidity(positionId, _liquidity, 0, 0);
-        nonfungiblePositionManager.burn(positionId);
+        nfpm.burn(positionId);
     }
 
     function _getLiquidity(uint256 position) internal view returns(uint128 liquidity) {
         if(position > 0)
-            (,,,,,,, liquidity,,,,) = nonfungiblePositionManager.positions(position);
+            (,,,,,,, liquidity,,,,) = nfpm.positions(position);
     }
 
     function _decreaseLiquidity(uint256 positionId, uint128 liquidity, uint256 amount0Min, uint256 amount1Min) internal {
-        nonfungiblePositionManager.decreaseLiquidity(
+        nfpm.decreaseLiquidity(
             INonfungiblePositionManager.DecreaseLiquidityParams({
                 tokenId: positionId,
                 liquidity: liquidity,
@@ -312,8 +317,8 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     }
 
     function _approveNFTManager(uint256 usdxAmount, uint256 sweepAmount) internal {
-        if(usdxAmount > 0) TransferHelper.safeApprove(address(usdx), address(nonfungiblePositionManager), usdxAmount);
-        if(sweepAmount > 0) TransferHelper.safeApprove(address(sweep), address(nonfungiblePositionManager), sweepAmount);
+        if(usdxAmount > 0) TransferHelper.safeApprove(address(usdx), address(nfpm), usdxAmount);
+        if(sweepAmount > 0) TransferHelper.safeApprove(address(sweep), address(nfpm), sweepAmount);
     }
 
     function _mintPosition(
@@ -324,7 +329,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 amount0Min,
         uint256 amount1Min
     ) internal returns (uint256 tokenId){
-        (tokenId,,,) = nonfungiblePositionManager.mint(
+        (tokenId,,,) = nfpm.mint(
             INonfungiblePositionManager.MintParams({
                 token0: token0,
                 token1: token1,

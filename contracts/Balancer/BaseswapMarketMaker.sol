@@ -2,11 +2,11 @@
 pragma solidity 0.8.19;
 
 // ====================================================================
-// ===================== PancakeMarketMaker.sol =======================
+// ===================== BaseswapMarketMaker.sol ======================
 // ====================================================================
 
 /**
- * @title Pancake Market Maker
+ * @title Baseswap Market Maker
  * @dev Implementation:
  * Mints a new LP.
  * Increases and decreases the liquidity for the LP created.
@@ -15,7 +15,7 @@ pragma solidity 0.8.19;
 
 import { UniswapMarketMaker } from "./UniswapMarketMaker.sol";
 
-contract PancakeMarketMaker is UniswapMarketMaker {
+contract BaseswapMarketMaker is UniswapMarketMaker {
 
     constructor(
         string memory _name,

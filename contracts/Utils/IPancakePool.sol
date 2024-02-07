@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity 0.8.19;
 
 interface IPancakePool {
     function slot0()
@@ -14,10 +14,6 @@ interface IPancakePool {
             uint32 feeProtocol,
             bool unlocked
         );
-
-    function fee() external view returns (uint24);
-
-    function tickSpacing() external view returns (int24);
 
     function increaseObservationCardinalityNext(uint16 observationCardinalityNext) external;
 }

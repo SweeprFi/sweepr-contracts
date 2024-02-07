@@ -11,7 +11,8 @@ pragma solidity 0.8.19;
  * Increases and decreases the liquidity
  */
 
-import { Stabilizer, TransferHelper, ISweep } from "../Stabilizer/Stabilizer.sol";
+import { Stabilizer } from "../Stabilizer/Stabilizer.sol";
+import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import { IBalancerPool, IBalancerVault, IAsset, JoinKind, ExitKind } from "../Assets/Interfaces/Balancer/IBalancer.sol";
 
 contract BalancerMarketMaker is Stabilizer {

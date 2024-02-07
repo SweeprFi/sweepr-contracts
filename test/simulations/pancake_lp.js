@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { tokens, deployments, wallets, chainlink, network } = require("../../utils/constants");
+const { tokens, deployments, wallets, chainlink, network, pancake } = require("../../utils/constants");
 const { impersonate, toBN, resetNetwork, sendEth, Const } = require("../../utils/helper_functions");
 
 contract("Pancake Market Maker", async function () {
@@ -33,7 +33,7 @@ contract("Pancake Market Maker", async function () {
         // amm = await ethers.getContractAt("PancakeAMM", deployments.pancake_amm);
 
         market = await (await ethers.getContractFactory("PancakeMarketMaker"))
-            .deploy('PancakeMM', tokens.sweep, tokens.usdt, chainlink.usdt_usd, MULTISIG);
+            .deploy('PancakeMM', tokens.sweep, tokens.usdt, chainlink.usdt_usd, pancake.positions_manager, MULTISIG);
         sweep100000 = toBN("100000", 18);
         await usdt.connect(usdt_holder).transfer(market.address, 100e6);
         await market.connect(multisig)

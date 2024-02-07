@@ -49,8 +49,16 @@ module.exports = {
         factory: '0x33128a8fC17869897dcE68Ed026d694621f6FDfD',
         router: '',
         universal_router: '0xeC8B0F7Ffe3ae75d7FfAb09429e3675bb63503e4',
-        positions_manager: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
-        quoter: '',
+        nfpm: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
+        observationCardinality: 480,
+        pool: ''
+    },
+
+    baseswap: {
+        factory: '0x38015D05f4fEC8AFe15D7cc0386a126574e8077B',
+        router: '0x1B8eea9315bE495187D873DA7773a874545D9D48',
+        universal_router: '',
+        positions_manager: '0xDe151D5c92BfAA288Db4B67c21CD55d5826bCc93',
         observationCardinality: 480,
         pool: ''
     },
@@ -66,11 +74,14 @@ module.exports = {
         balancer_amm: '0xff368E106EA8782FaB6B2D4AD69739a60C66400E', // '0x8843b5Dd4A0757eE4ab639b34BA972686f9aCCD6', // old 0x709d075147a10495e5c3bBF3dfc0c138F34C6E72
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         liquidity_helper: '0xC5f0DE0D8f48E12CcDE9f1902dE15A975b59768d',
+        baseswap_pool: '',
+        baseswap_amm: '',
 
         assets: {
-            market_maker: '0x47a393e60DfCF12CA3892dBC2C2E66BCE083BB26', // '0x7560d15774499386B04A64177E090B33e803493F',
+            balancer_market_maker: '0x47a393e60DfCF12CA3892dBC2C2E66BCE083BB26', // '0x7560d15774499386B04A64177E090B33e803493F',
             maple: '0xe55D44783D8DB0684fe992e87d4703632f66cBB3',
             usd_plus: '0x7537035fE6fFb0ed72Ee65B5569a5c090729f0Fa', // '0x05910e7B7A749b1c33d9EB63CE91B63F2ec1cD2A',
+            baseswap_market_maker: '',
         }
     },
 

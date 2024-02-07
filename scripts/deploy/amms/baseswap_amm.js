@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { network, tokens, chainlink, uniswap, deployments } = require("../../../utils/constants");
+const { network, tokens, chainlink, baseswap, deployments } = require("../../../utils/constants");
 const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
@@ -11,11 +11,11 @@ async function main() {
     const frequency = 86400;
     const sequencer = chainlink.sequencer;
     const helper = deployments.liquidity_helper;
-    const pool = deployments.uniswap_pool;
-    const router = uniswap.router;
+    const pool = deployments.baseswap_pool;
+    const router = baseswap.router;
 
     console.log("===========================================");
-    console.log("UNISWAP AMM PLUGIN DEPLOY");
+    console.log("BASESWAP AMM PLUGIN DEPLOY");
     console.log("===========================================");
     console.log("Network:", network.name);
     console.log("Deployer:", deployer.address);
@@ -27,17 +27,17 @@ async function main() {
     console.log("USDC/USD Chainlink Oracle:", oracle);
     console.log("Oracle Frequency:", frequency);
     console.log("Liquidity helper:", helper);
-    console.log("Uniswap Router:", router);
+    console.log("Baseswap Router:", router);
     console.log("===========================================");
     const answer = (await ask("continue? y/n: "));
     if (answer !== 'y') { process.exit(); }
     console.log("Deploying...");
 
-    const uniswapAMMInstance = await ethers.getContractFactory("UniswapAMM");
-    const amm = await uniswapAMMInstance.deploy(sweep, usdc, sequencer, pool, oracle, frequency, helper, router);
+    const AMMInstance = await ethers.getContractFactory("BaseswapAMM");
+    const amm = await AMMInstance.deploy(sweep, usdc, sequencer, pool, oracle, frequency, helper, router);
 
     console.log("===========================================");
-    console.log(`UniswapAMM Deployed to:${amm.address}`);
+    console.log(`BaseswapAMM Deployed to:${amm.address}`);
     console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${usdc} ${sequencer} ${pool} ${oracle} ${frequency} ${helper} ${router}`);
 }
 

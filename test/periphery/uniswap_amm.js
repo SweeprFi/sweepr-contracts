@@ -27,7 +27,7 @@ contract("Uniswap AMM", async function () {
     usdc = await ERC20.deploy(6);
 
     LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
-    liquidityHelper = await LiquidityHelper.deploy();
+    liquidityHelper = await LiquidityHelper.deploy(uniswap.positions_manager);
 
     factory = await ethers.getContractAt("IUniswapV3Factory", uniswap.factory);
     positionManager = await ethers.getContractAt("INonfungiblePositionManager", uniswap.positions_manager);
@@ -41,6 +41,7 @@ contract("Uniswap AMM", async function () {
       sweep.address,
       usdc.address,
       chainlink.usdc_usd,
+      uniswap.positions_manager,
       OWNER
     );
 
@@ -82,7 +83,8 @@ contract("Uniswap AMM", async function () {
         poolAddress,
         usdcOracle.address,
         86400,
-        liquidityHelper.address
+        liquidityHelper.address,
+        uniswap.router
       );
       await sweep.setAMM(amm.address);
       await marketmaker.setAMM(amm.address);
