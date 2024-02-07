@@ -12,6 +12,7 @@ async function main() {
     const sequencer = chainlink.sequencer;
     const helper = deployments.liquidity_helper;
     const pool = deployments.pancake_pool;
+    const router = pancake.router;
 
     console.log("===========================================");
     console.log("PANCAKE AMM PLUGIN DEPLOY");
@@ -26,6 +27,7 @@ async function main() {
     console.log("USDT/USD Chainlink Oracle:", oracle);
     console.log("Oracle Frequency:", frequency);
     console.log("Liquidity helper:", helper);
+    console.log("Pancake Router:", router);
     console.log("===========================================");
     const answer = (await ask("continue? y/n: "));
     if (answer !== 'y') { process.exit(); }
@@ -36,7 +38,7 @@ async function main() {
 
     console.log("===========================================");
     console.log(`PancakeAMM Deployed to:${amm.address}`);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${base} ${sequencer} ${pool} ${oracle} ${frequency} ${helper}`);
+    console.log(`\nnpx hardhat verify --network ${network.name} ${amm.address} ${sweep} ${base} ${sequencer} ${pool} ${oracle} ${frequency} ${helper} ${router}`);
 }
 
 main();

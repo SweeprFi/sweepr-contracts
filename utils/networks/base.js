@@ -49,7 +49,7 @@ module.exports = {
         factory: '0x33128a8fC17869897dcE68Ed026d694621f6FDfD',
         router: '',
         universal_router: '0xeC8B0F7Ffe3ae75d7FfAb09429e3675bb63503e4',
-        positions_manager: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
+        nfpm: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
         observationCardinality: 480,
         pool: ''
     },

@@ -5,14 +5,14 @@ const { ask } = require("../../../utils/helper_functions");
 async function main() {
 	[deployer] = await ethers.getSigners();
 
-	const nftpm = uniswap.positions_manager;
+	const nfpm = uniswap.positions_manager;
 
 	console.log("===========================================");
 	console.log("UNISWAP LIQUIDITY HELPER DEPLOY");
 	console.log("===========================================");
 	console.log("Network:", network.name);
 	console.log("Deployer:", deployer.address);
-	console.log("Position Manager:", nftpm);
+	console.log("Position Manager:", nfpm);
 	console.log("===========================================");
 	
 	const answer = (await ask("continue? y/n: "));
@@ -20,11 +20,11 @@ async function main() {
 	console.log("Creating...");
 
 	const LiquidityHelper = await ethers.getContractFactory("LiquidityHelper");
-	const liquidityHelper = await LiquidityHelper.deploy(nftpm);
+	const liquidityHelper = await LiquidityHelper.deploy(nfpm);
 
 	console.log("===========================================");
 	console.log("Liquidity Helper deployed to:", liquidityHelper.address);
-	console.log(`\nnpx hardhat verify --network ${network.name} ${liquidityHelper.address} ${nftpm}`);
+	console.log(`\nnpx hardhat verify --network ${network.name} ${liquidityHelper.address} ${nfpm}`);
 }
 
 main();

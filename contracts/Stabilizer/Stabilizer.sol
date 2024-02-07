@@ -17,15 +17,15 @@ pragma solidity 0.8.19;
  * EquityRatio = Junior / (Junior + Senior)
  */
 
-import "../AMM/IAMM.sol";
-import "../Common/Owned.sol";
-import "../Libraries/Chainlink.sol";
-import "../Libraries/OvnMath.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { IAMM } from "../AMM/IAMM.sol";
+import { Owned } from "../Common/Owned.sol";
+import { ChainlinkLibrary, IPriceFeed } from "../Libraries/Chainlink.sol";
+import { OvnMath } from "../Libraries/OvnMath.sol";
+import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Stabilizer is Owned, Pausable, ReentrancyGuard {
     using Math for uint256;

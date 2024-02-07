@@ -41,6 +41,7 @@ contract("Pancake AMM", async function () {
       sweep.address,
       usdc.address,
       chainlink.usdc_usd,
+      pancake.positions_manager,
       OWNER
     );
 
@@ -83,7 +84,8 @@ contract("Pancake AMM", async function () {
         pool_address,
         usdcOracle.address,
         86400,
-        liquidityHelper.address
+        liquidityHelper.address,
+        pancake.router
       );
       await sweep.setAMM(amm.address);
       await marketmaker.setAMM(amm.address);

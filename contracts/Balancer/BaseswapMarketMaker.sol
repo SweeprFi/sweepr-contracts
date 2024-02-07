@@ -13,7 +13,7 @@ pragma solidity 0.8.19;
  * Collects fees from the LP.
  */
 
-import "./UniswapMarketMaker.sol";
+import { UniswapMarketMaker } from "./UniswapMarketMaker.sol";
 
 contract BaseswapMarketMaker is UniswapMarketMaker {
 

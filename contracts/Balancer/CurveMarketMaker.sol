@@ -11,8 +11,8 @@ pragma solidity 0.8.19;
  * Increases and decreases the liquidity
  */
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Stabilizer, TransferHelper, ISweep } from "../Stabilizer/Stabilizer.sol";
+import { Stabilizer } from "../Stabilizer/Stabilizer.sol";
+import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import { ICurvePool } from "../Assets/Interfaces/Curve/ICurve.sol";
 
 contract CurveMarketMaker is Stabilizer {

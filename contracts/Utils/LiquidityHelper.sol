@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity 0.8.19;
 
 // ====================================================================
 // ====================== LiquidityHelper.sol =========================
@@ -15,15 +15,21 @@ import "abdk-libraries-solidity/ABDKMath64x64.sol";
 contract LiquidityHelper {
     INonfungiblePositionManager internal immutable nfpm;
 
-    constructor(address _positionManager) {
-        nfpm = INonfungiblePositionManager(_positionManager);
+    constructor(address _nfpm) {
+        nfpm = INonfungiblePositionManager(_nfpm);
+    }
+
+    function _slot0(address pool)
+        internal view virtual returns (uint160 sqrtPriceX96, int24 tickCurrent)
+    {
+        (sqrtPriceX96, tickCurrent, , , , , ) = IUniswapV3Pool(pool).slot0();
     }
 
     function getTokenAmountsFromLP(
         uint256 tokenId,
-        address poolAddress
+        address pool
     ) external view returns (uint256 amount0, uint256 amount1) {
-        (uint160 sqrtPriceX96, int24 tickCurrent) = _getPriceAndTick(poolAddress);
+        (uint160 sqrtPriceX96, int24 tickCurrent) = _slot0(pool);
         (,,,,, int24 tickLower, int24 tickUpper, uint128 liquidity,,,,) = nfpm.positions(tokenId);
 
         if (tickCurrent < tickLower) {
@@ -70,29 +76,12 @@ contract LiquidityHelper {
         if (flag) {
             value = ABDKMath64x64.div(value1, value2);
         }
-        tick = TickMath.getTickAtSqrtRatio(
-            uint160(
-                int160(
-                    ABDKMath64x64.sqrt(value) << (FixedPoint96.RESOLUTION - 64)
-                )
-            )
-        );
-
+        tick = TickMath.getTickAtSqrtRatio(uint160(int160(ABDKMath64x64.sqrt(value) << (FixedPoint96.RESOLUTION - 64))));
         tick = (tick / tickSpacing) * tickSpacing;
     }
 
-    function getCurrentTick(address poolAddress) external view returns (int24) {
-        return _getCurrentTick(poolAddress);
+    function getCurrentTick(address pool) external view returns (int24 tickCurrent) {
+        (, tickCurrent) = _slot0(pool);
     }
 
-    // *********** Virtual functions
-    function _getCurrentTick(address poolAddress) internal view virtual returns (int24 tickCurrent) {
-        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
-        (, tickCurrent, , , , , ) = pool.slot0();
-    }
-
-    function _getPriceAndTick(address poolAddress) internal view virtual returns (uint160 sqrtPriceX96, int24 tickCurrent) {
-        IUniswapV3Pool pool = IUniswapV3Pool(poolAddress);
-        (sqrtPriceX96, tickCurrent, , , , , ) = pool.slot0();
-    }
 }

@@ -10,22 +10,21 @@ pragma solidity 0.8.19;
  * @dev Interactions with UniswapV3
  */
 
-import "../Libraries/Chainlink.sol";
-import "../Utils/LiquidityHelper.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
-import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
-import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
-import "../Balancer/IMarketMaker.sol";
-import "../Sweep/ISweep.sol";
+import { IPriceFeed, ChainlinkLibrary } from  "../Libraries/Chainlink.sol";
+import { ILiquidityHelper } from "../Utils/ILiquidityHelper.sol";
+import { ISwapRouter } from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import { OracleLibrary } from "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
+import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { IMarketMaker } from "../Balancer/IMarketMaker.sol";
+import { ISweep } from "../Sweep/ISweep.sol";
 
 contract UniswapAMM {
     using Math for uint256;
 
     ISwapRouter private immutable router;
-
     IERC20Metadata public immutable base;
     ISweep public immutable sweep;
     IPriceFeed public immutable oracleBase;
@@ -33,7 +32,7 @@ contract UniswapAMM {
     address public immutable pool;
     uint256 public immutable oracleBaseUpdateFrequency;
     bool private immutable flag; // The sort status of tokens
-    LiquidityHelper private immutable liquidityHelper;
+    ILiquidityHelper private immutable liquidityHelper;
     IMarketMaker public marketMaker;
 
     // Uniswap V3
@@ -57,7 +56,7 @@ contract UniswapAMM {
         sequencer = IPriceFeed(_sequencer);
         pool = _pool;
         oracleBaseUpdateFrequency = _oracleBaseUpdateFrequency;
-        liquidityHelper = LiquidityHelper(_liquidityHelper);
+        liquidityHelper = ILiquidityHelper(_liquidityHelper);
         flag = _base < _sweep;
         router = ISwapRouter(_router);
     }
