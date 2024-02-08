@@ -11,7 +11,6 @@ async function main() {
     const poolAddress = deployments.balancer_pool;
     const borrower = wallets.multisig;
 
-
     console.log("===========================================");
     console.log("BALANCER MARKET MAKER ASSET DEPLOY");
     console.log("===========================================");
@@ -28,7 +27,6 @@ async function main() {
     const answer = (await ask("continue? y/n: "));
     if(answer !== 'y'){ process.exit(); }
     console.log("Deploying...");
-
 
     const MarketMaker = await ethers.getContractFactory("BalancerMarketMaker");
     const stabilizer = await MarketMaker.deploy(
