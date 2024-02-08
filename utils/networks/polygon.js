@@ -52,7 +52,7 @@ module.exports = {
         balancer_amm: '0x71Dc6599cbA8d7087725f23c0681308A13A451bB',
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         liquidity_helper: '',
-        curve_pool: '0x4e8b87931ea06376546b2bfb45d168d63c421947',
+        curve_pool: '0xcfde19f1a09206bb024f5c4bf61c40670fdff449',
         curve_amm: '0xe55D44783D8DB0684fe992e87d4703632f66cBB3',
 
         assets: {
