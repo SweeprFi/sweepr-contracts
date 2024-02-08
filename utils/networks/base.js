@@ -74,14 +74,14 @@ module.exports = {
         balancer_amm: '0xff368E106EA8782FaB6B2D4AD69739a60C66400E', // '0x8843b5Dd4A0757eE4ab639b34BA972686f9aCCD6', // old 0x709d075147a10495e5c3bBF3dfc0c138F34C6E72
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         liquidity_helper: '0xC5f0DE0D8f48E12CcDE9f1902dE15A975b59768d',
-        baseswap_pool: '',
-        baseswap_amm: '',
+        baseswap_pool: '0x2313f60D9E0f33d65A22006DD3f661c373AA2c66',
+        baseswap_amm: '0x33A48e4aA79A66fc4f7061f5D9E274528C213029',
 
         assets: {
             balancer_market_maker: '0x47a393e60DfCF12CA3892dBC2C2E66BCE083BB26', // '0x7560d15774499386B04A64177E090B33e803493F',
             maple: '0xe55D44783D8DB0684fe992e87d4703632f66cBB3',
             usd_plus: '0x7537035fE6fFb0ed72Ee65B5569a5c090729f0Fa', // '0x05910e7B7A749b1c33d9EB63CE91B63F2ec1cD2A',
-            baseswap_market_maker: '',
+            baseswap_market_maker: '0x82f23E915985de7Db7C9463E4d898ccf2ab2fCeF',
         }
     },
 
