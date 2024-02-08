@@ -53,13 +53,13 @@ module.exports = {
         balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
-        pancake_amm: '0xff368E106EA8782FaB6B2D4AD69739a60C66400E', // '0xa5Dd492674f8C68C89b403BDFd0e794db42f2b92',
+
         liquidity_helper: '0xD50DC42d95407F271c1380AE2aCa3F327F4C1cca',
+        pancake_amm: '0xb86d3eea67A8bcaF232Ee9643d5ae5C44525c57e',
         pancake_pool: '0x0A5b6346B01092126FdFf8757864352843252864',
 
         assets: {
-            uniswap: '',
-            market_maker: '0x47a393e60DfCF12CA3892dBC2C2E66BCE083BB26', // '0x7685fc882c91936BF94974916cC410028F73C957',
+            pancake_market_maker: '0xe3E123ED9fec48a6f40A8aC7bE9afEDDAD80F146',
             usd_plus: '',
             maple: '',
         }

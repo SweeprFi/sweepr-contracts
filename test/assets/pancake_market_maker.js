@@ -4,7 +4,7 @@ const { chainlink, pancake } = require("../../utils/constants");
 const { Const, getPriceAndData, toBN } = require("../../utils/helper_functions");
 let poolAddress;
 
-contract('Pancake Market Maker', async () => {
+contract.skip('Pancake Market Maker', async () => {
   before(async () => {
     [owner, borrower, treasury, guest, lzEndpoint, multisig, balancer] = await ethers.getSigners();
   

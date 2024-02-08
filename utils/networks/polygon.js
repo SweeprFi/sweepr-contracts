@@ -48,17 +48,22 @@ module.exports = {
     deployments: {
         balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
+        proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
+
         balancer_pool: '0x4CD8a3Df2536100EC552a37C813A9414123e1c03',
         balancer_amm: '0x71Dc6599cbA8d7087725f23c0681308A13A451bB',
-        proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
-        liquidity_helper: '',
+
+        liquidity_helper: '0xaD490d3899A47482E31AF50DdCc5Db31C0eE9eB0',
+        uniswap_pool: '0xB15b5AEa14D01b97532F9E7920583E11638be626',
+        uniswap_amm: '0x7560d15774499386B04A64177E090B33e803493F',
+
         curve_pool: '0xcfde19f1a09206bb024f5c4bf61c40670fdff449',
         curve_amm: '0xe55D44783D8DB0684fe992e87d4703632f66cBB3',
 
         assets: {
             balancer_market_maker: '0x7685fc882c91936BF94974916cC410028F73C957',
+            uniswap_market_maker: '0xFB66e1922675c8Cc53F7Da7143DA7d4172E0A9f6',
             curve_market_maker: '0x8843b5Dd4A0757eE4ab639b34BA972686f9aCCD6',
         }
     },
-
 };

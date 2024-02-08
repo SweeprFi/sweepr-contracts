@@ -51,6 +51,13 @@ contract('Curve Market Maker', async () => {
     await marketmaker.configure(0, 0, sweepAmount, 0, 0, 0, 0, 0, false, false, Const.URL)
     await sweep.connect(sweepOwner).addMinter(marketmaker.address, sweepAmount);
     await amm.connect(sweepOwner).setMarketMaker(marketmaker.address);
+
+    SWEEP_HOLDER = "0xc7b145ad8f3ad68587efca54024f342de825ad9d";
+    await sendEth(SWEEP_HOLDER);
+    user = await impersonate(SWEEP_HOLDER);
+    await sweep.connect(user).transfer(marketmaker.address, toBN("5", 18));
+    await usdc.connect(usdcHolder).transfer(marketmaker.address, toBN("5", 6));
+    await marketmaker.addLiquidity(toBN("5", 6), toBN("5", 18));
   });
 
   it('Adds Liquidity correctly', async () => {
@@ -78,8 +85,6 @@ contract('Curve Market Maker', async () => {
 
   it('Removes liquidity correctly', async () => {
     lpToBurn = toBN("500", 18);
-
-    //TODO: slippage would be too big, something is wrong with this
     minimums = [toBN("150", 6), toBN("150", 18)];
 
     price = await sweep.ammPrice();
@@ -190,12 +195,6 @@ contract('Curve Market Maker', async () => {
         expect(usdcAfter).to.be.above(usdcBefore);
       });
     });
-  
-    describe('fetches Sweep price correctly', async () => {
-      price = await amm.getPrice();
-      twaPrice = await amm.getTWAPrice();
-    });
-  
   });
 
   it('Removes single sided liquidity correctly USDC', async () => {
@@ -227,10 +226,4 @@ contract('Curve Market Maker', async () => {
     expect(lpBefore).to.be.greaterThan(lpAfter);
     expect(usdcBefore).to.be.lessThan(usdcAfter);
   });
-
-  it('fetches Sweep prices correctly', async () => {
-    price = await amm.getPrice();
-    twaPrice = await amm.getTWAPrice();
-  });
-
 });

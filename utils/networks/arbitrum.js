@@ -109,25 +109,28 @@ module.exports = {
         balancer: '0x82f23E915985de7Db7C9463E4d898ccf2ab2fCeF',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
         distributor: '0x90453f4969420c2DCE4344431303EAE679dB8F0b',
-        balancer_pool: '0xef093ccfdd4d5a590b028463e0528049939889c9',
-        balancer_gauge: '0x38E434d74eabaf27169aC1c934886F344e332ba8',
-        balancer_amm: '0x72E5b0E088c895ab0d6A86d14943C63aD735B7Cc', // '0x3bB6861c0Be6673809D55b9D346b6774B634a9D7',
         timelock: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         approver: '0x06d94665f02322781303224120326167483F5BD2',
         vesting_approver: '0x483761F16A7c978df09d1e7E22532e9DbD2Ee8D0',
         proposal_sender: '0xC6c730E0424A01BF6e1A2ff4Ffac8540E29Dd185',
-        liquidity_helper: '0x11601A39307f2600a3650CA890cbaD253cdE1E38',
+
         rates_oracle: '0x0a843cC59346EB6e925D6e42263e6148197c96F8',
+        balancer_pool: '0xef093ccfdd4d5a590b028463e0528049939889c9',
+        balancer_gauge: '0x38E434d74eabaf27169aC1c934886F344e332ba8',
+        balancer_amm: '0x72E5b0E088c895ab0d6A86d14943C63aD735B7Cc', // '0x3bB6861c0Be6673809D55b9D346b6774B634a9D7',
+
+        liquidity_helper: '0x11601A39307f2600a3650CA890cbaD253cdE1E38',
+        uniswap_pool: '0xA59B4cfAa5EA1506178e82D53a768FcF69945D65', // '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
+        uniswap_amm: '0x2766fEBa83A87c5EB12422eeA3F8506d779a30ec', // '0xdA65daC88104ae4011C731d7DB0b5a04A683d550',
+
         curve_pool: '0x9097065db449a59ce30bec522e1e077292c0d8fc',
         curve_amm: '0x06128C0948b36eEBB863C34398e6E3043C879A9f',
-        uniswap_pool: '0xA59B4cfAa5EA1506178e82D53a768FcF69945D65', // '0xa7F4BC4689ed386F2cCa716207A1EbBb1172aaCB',
-        uniswap_amm: '0x6Ba9bebb3cF606e2514857581c8641bE31B9A59b', // '0xdA65daC88104ae4011C731d7DB0b5a04A683d550',
 
         assets: {
-            balancer_market_maker: '0x30F5623c58bc93dB78FCa53D968B871A129Dfa31', // '0xA014cCE13ECB3d92BB6D253b74Bb6E7Ed2418276',
-            curve_market_maker: '0xA29584042275ADd34821B0f7A747c53301051D4B', // '0x97f159A0b17f2808fd5cbFf4Fa2B35cEA710373A', // '0x6Bed9737Ef82588E91F6fae874a9beb577A3f0BD',
-            uniswap_market_maker: '0xE7d1391DAeBE68E8d48B40948bA914602134A786', // 0xBAd1ac2433ffA6EEeD9f27067eF4FdD148d911F1
-            silo: '0xB90E767baB53e96ED5cd36C77Aa6b1986Bcf7007', // '0x53b5fae6e17c7f9b35952779150446e99a4887d3',
+            balancer_market_maker: '0xC564860ae2042Db0E57CFa3249829AD83EE198d5',
+            curve_market_maker: '0xA29584042275ADd34821B0f7A747c53301051D4B',
+            uniswap_market_maker: '0x68cE70CbC62fa54f96a83d0Ce2a2Cf1A514609F1',
+            silo: '0x4d7e78Be344ab35ceD92213c348C11a1214Db78E',
             balancer4pool: '0x591EcCf1847BF12C7B5F999E33c162dB90cB17C8',
         }
     },

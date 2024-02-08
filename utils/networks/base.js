@@ -49,9 +49,8 @@ module.exports = {
         factory: '0x33128a8fC17869897dcE68Ed026d694621f6FDfD',
         router: '',
         universal_router: '0xeC8B0F7Ffe3ae75d7FfAb09429e3675bb63503e4',
-        nfpm: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
+        positions_manager: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
         observationCardinality: 480,
-        pool: ''
     },
 
     baseswap: {
@@ -60,7 +59,6 @@ module.exports = {
         universal_router: '',
         positions_manager: '0xDe151D5c92BfAA288Db4B67c21CD55d5826bCc93',
         observationCardinality: 480,
-        pool: ''
     },
 
     balancer: {
@@ -70,19 +68,25 @@ module.exports = {
     deployments: {
         balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
-        balancer_pool: '0x15D9D108437B17d1FA70392f9eD086306229ec91',
-        balancer_amm: '0xff368E106EA8782FaB6B2D4AD69739a60C66400E', // '0x8843b5Dd4A0757eE4ab639b34BA972686f9aCCD6', // old 0x709d075147a10495e5c3bBF3dfc0c138F34C6E72
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
-        liquidity_helper: '0xC5f0DE0D8f48E12CcDE9f1902dE15A975b59768d',
+
+        balancer_pool: '0x15D9D108437B17d1FA70392f9eD086306229ec91',
+        balancer_amm: '0xff368E106EA8782FaB6B2D4AD69739a60C66400E',
+
+        liquidity_helper: '0xCFcE64f865f84144F9e6FA7C574F580B3eB878e6',
         baseswap_pool: '0x2313f60D9E0f33d65A22006DD3f661c373AA2c66',
         baseswap_amm: '0x33A48e4aA79A66fc4f7061f5D9E274528C213029',
 
         assets: {
-            balancer_market_maker: '0x47a393e60DfCF12CA3892dBC2C2E66BCE083BB26', // '0x7560d15774499386B04A64177E090B33e803493F',
+            balancer_market_maker: '0x47a393e60DfCF12CA3892dBC2C2E66BCE083BB26',
             maple: '0xe55D44783D8DB0684fe992e87d4703632f66cBB3',
-            usd_plus: '0x7537035fE6fFb0ed72Ee65B5569a5c090729f0Fa', // '0x05910e7B7A749b1c33d9EB63CE91B63F2ec1cD2A',
+            usd_plus: '0x7537035fE6fFb0ed72Ee65B5569a5c090729f0Fa',
             baseswap_market_maker: '0x82f23E915985de7Db7C9463E4d898ccf2ab2fCeF',
         }
     },
 
 };
+
+/*
+    NEW BALANCER MARKET MAKER: 0x11C8eC8B0DFD355C9931cB47ADd0F635dAE062ad
+*/
