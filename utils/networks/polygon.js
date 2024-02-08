@@ -57,7 +57,7 @@ module.exports = {
 
         assets: {
             balancer_market_maker: '0x7685fc882c91936BF94974916cC410028F73C957',
-            curve_market_maker: '0x85d3C22F56c68122f41Df3bFA1990a630139867b',
+            curve_market_maker: '0x8843b5Dd4A0757eE4ab639b34BA972686f9aCCD6',
         }
     },
 
