@@ -36,6 +36,11 @@ module.exports = {
         factory: '0xE42FFA682A26EF8F25891db4882932711D42e467',
     },
 
+    trader_joe: {
+        router: '0xb4315e873dBcf96Ffd0acd8EA43f689D8c20fB30',
+        factory: '0x8e42f2F4101563bF679975178e880FD87d3eFd4e',
+    },
+
     deployments: {
         balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
@@ -43,8 +48,12 @@ module.exports = {
         balancer_amm: '0x709d075147a10495e5c3bBF3dfc0c138F34C6E72',
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
 
+        trader_joe_pool: '0xE07a515fb3BAfcc0f1E92dDeDFC53F7Dc7e5a0EB',
+        trader_joe_amm: '',
+
         assets: {
             balancer_market_maker: '0x676524646377A6e66Ca797edF7CCB1B5162a8cE0',
+            trader_joe_market_maker: '',
         }
     },
 
