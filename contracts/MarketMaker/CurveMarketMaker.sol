@@ -14,6 +14,7 @@ pragma solidity 0.8.19;
 import { Stabilizer } from "../Stabilizer/Stabilizer.sol";
 import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import { ICurvePool } from "../Assets/Interfaces/Curve/ICurve.sol";
+import { IAMM } from "../AMM/IAMM.sol";
 
 contract CurveMarketMaker is Stabilizer {
 
@@ -27,6 +28,7 @@ contract CurveMarketMaker is Stabilizer {
     event SweepPurchased(uint256 usdxAmount, uint256 sweepAmount);
 
     ICurvePool public pool;
+    address public ammAddress;
     // IBalancerVault public vault;
     uint32 public slippage;
     uint24 private constant PRECISION = 1e6;
@@ -67,6 +69,10 @@ contract CurveMarketMaker is Stabilizer {
         return targetPrice + ((sweep.arbSpread() * targetPrice) / PRECISION);
     }
 
+    function amm() public view override returns (IAMM) {
+        return IAMM(ammAddress);
+    }
+
     /* ========== Actions ========== */
     function liquidate() external nonReentrant {
         if(auctionAllowed) revert ActionNotAllowed();
@@ -75,6 +81,16 @@ contract CurveMarketMaker is Stabilizer {
 
     function _getToken() internal view override returns (address) {
         return address(pool);
+    }
+
+    function setSlippage(uint32 newSlippage) external nonReentrant onlyBorrower {
+        if(newSlippage > PRECISION) revert BadSlippage();
+        slippage = newSlippage;
+    }
+
+    function setAMM(address newAmm) external nonReentrant onlyBorrower {
+        if(newAmm == address(0)) revert ZeroAddressDetected();
+        ammAddress = newAmm;
     }
 
     function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {
@@ -135,10 +151,5 @@ contract CurveMarketMaker is Stabilizer {
     function removeLiquidityImbalance(uint256[] memory amounts, uint256 maxBurnAmount) external nonReentrant onlyBorrower {
         pool.remove_liquidity_imbalance(amounts, maxBurnAmount);
         emit LiquidityRemoved(amounts[USDX_IDX], amounts[SWEEP_IDX]);
-    }
-
-    function setSlippage(uint32 newSlippage) external nonReentrant onlyBorrower {
-        if(newSlippage > PRECISION) revert BadSlippage();
-        slippage = newSlippage;
     }
 }

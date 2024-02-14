@@ -170,7 +170,7 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
     function lpTrade(uint256 usdxAmount, uint256 sweepAmount, uint256 usdxSlippage, uint256 sweepSlippage, uint256 spread)
         external onlyBorrower whenNotPaused nonReentrant
     {
-        if(tradePosition > 0) _removePosition(tradePosition);   
+        if(tradePosition > 0) _removePosition(tradePosition);
         _approveNFTManager(usdxAmount, sweepAmount);
         
         uint256 sweepPrice = sweep.targetPrice();
@@ -186,7 +186,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
             : (sweepAmount, usdxAmount, sweepMinIn, usdxMinIn);
 
         tradePosition = _mintPosition(minTick, maxTick, usdxAmount, sweepAmount, usdxMinIn, sweepMinIn);
-        _checkRatio();
     }
 
     function lpRedeem(uint256 usdxAmount, uint256 priceSpread, uint256 usdxSlippage)
@@ -215,7 +214,6 @@ contract UniswapMarketMaker is IERC721Receiver, Stabilizer {
         uint256 maxPrice = ((PRECISION + priceSpread) * minPrice) / PRECISION;
 
         growPosition = _addSingleSidedLiquidity(0, sweepAmount, sweepSlippage, minPrice, maxPrice);
-        _checkRatio();
     }
 
     function buySweep(uint256 usdxAmount) external nonReentrant returns (uint256 sweepAmount) {

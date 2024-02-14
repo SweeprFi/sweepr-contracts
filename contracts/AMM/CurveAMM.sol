@@ -15,7 +15,7 @@ import { IERC20Metadata } from "@openzeppelin/contracts/interfaces/IERC20Metadat
 import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import { ISweep } from "../Sweep/ISweep.sol";
 import { ICurvePool } from "../Assets/Interfaces/Curve/ICurve.sol";
-import { IMarketMaker } from "../Balancer/IMarketMaker.sol";
+import { IMarketMaker } from "../MarketMaker/IMarketMaker.sol";
 
 contract CurveAMM {
 
@@ -176,7 +176,7 @@ contract CurveAMM {
     }
 
     /**
-     * @notice Swap tokenIn for tokenOut using balancer exact input swap
+     * @notice Swap tokenIn for tokenOut using curve exact input swap
      * @param tokenIn Address to in
      * @param tokenOut Address to out
      * @param amountIn Amount of _tokenA
@@ -197,7 +197,7 @@ contract CurveAMM {
     }
 
     function setPool(address poolAddress) external {
-        require(msg.sender == sweep.owner(), "BalancerAMM: Not Governance");
+        require(msg.sender == sweep.owner(), "CurveAMM: Not Governance");
         pool = ICurvePool(poolAddress);
     }
 
