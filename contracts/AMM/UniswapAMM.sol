@@ -18,7 +18,7 @@ import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/Transf
 import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
-import { IMarketMaker } from "../Balancer/IMarketMaker.sol";
+import { IMarketMaker } from "../MarketMaker/IMarketMaker.sol";
 import { ISweep } from "../Sweep/ISweep.sol";
 
 contract UniswapAMM {
@@ -29,7 +29,7 @@ contract UniswapAMM {
     ISweep public immutable sweep;
     IPriceFeed public immutable oracleBase;
     IPriceFeed public immutable sequencer;
-    address public immutable pool;
+    address public pool;
     uint256 public immutable oracleBaseUpdateFrequency;
     bool private immutable flag; // The sort status of tokens
     ILiquidityHelper private immutable liquidityHelper;
@@ -199,6 +199,11 @@ contract UniswapAMM {
 
     function setMarketMaker(address _marketMaker) external onlyOwner {
         marketMaker = IMarketMaker(_marketMaker);
+    }
+
+    function setPool(address poolAddress) external {
+        require(msg.sender == sweep.owner(), "UniswapAMM: Not Governance");
+        pool = poolAddress;
     }
 
     /**

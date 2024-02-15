@@ -2,42 +2,50 @@
 pragma solidity 0.8.19;
 
 // ==========================================================
-// ====================== CurveAMM.sol ====================
+// ====================== TraderJoeAMM.sol ==================
 // ==========================================================
 
 /**
- * @title Curve AMM
- * @dev Interactions with Curve Pool
+ * @title TradeJoe AMM
+ * @dev Interactions with TradeJoe Pool
  */
 
-import { ChainlinkLibrary, IPriceFeed } from "../Libraries/Chainlink.sol";
-import { IERC20Metadata } from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
-import { TransferHelper } from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import { ISweep } from "../Sweep/ISweep.sol";
-import { ICurvePool } from "../Assets/Interfaces/Curve/ICurve.sol";
-import { IMarketMaker } from "../MarketMaker/IMarketMaker.sol";
+import {ChainlinkLibrary, IPriceFeed} from "../Libraries/Chainlink.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
+import {TransferHelper} from "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ISweep} from "../Sweep/ISweep.sol";
 
-contract CurveAMM {
+import {IMarketMaker} from "../MarketMaker/IMarketMaker.sol";
+import {ILBRouter, ILBPair, IERC20} from "../Assets/Interfaces/TraderJoe/ITraderJoe.sol";
+import {JoeQuoter} from "../Libraries/TraderJoe/JoeQuoter.sol";
 
-    ICurvePool public pool;
+contract TraderJoeAMM {
+    using Math for uint256;
+
+    ILBPair public pool;
+    JoeQuoter private immutable quoter;
+    ILBRouter public immutable router;
     IMarketMaker public marketMaker;
-    mapping(address => uint8) public assetIndex;
-
-    uint8 public constant USDX_IDX = 0;
-    uint8 public constant SWEEP_IDX = 1;
 
     IERC20Metadata public immutable base;
     ISweep public immutable sweep;
     IPriceFeed public immutable oracleBase;
     IPriceFeed public immutable sequencer;
     uint256 public immutable frequency;
+    bool private immutable flag;
+
+    uint24 private constant PRECISION = 1e6;
 
     constructor(
         address _sweep,
         address _base,
         address _sequencer,
         address _oracleBase,
-        uint256 _frequency
+        uint256 _frequency,
+        address _router,
+        address _pool,
+        address quoterLibray
     ) {
         sweep = ISweep(_sweep);
         base = IERC20Metadata(_base);
@@ -45,8 +53,10 @@ contract CurveAMM {
         sequencer = IPriceFeed(_sequencer);
         frequency = _frequency;
 
-        assetIndex[_base] = USDX_IDX;
-        assetIndex[_sweep] = SWEEP_IDX;
+        router = ILBRouter(_router);
+        pool = ILBPair(_pool);
+        quoter = JoeQuoter(quoterLibray);
+        flag = pool.getTokenX() == address(_base);
     }
 
     // Events
@@ -57,31 +67,27 @@ contract CurveAMM {
     error ZeroAmount();
     error BadRate();
     error NotOwnerOrGov();
+    error SlippageCheck();
 
-    modifier onlyOwner () {
+    modifier onlyOwner() {
         if (msg.sender != sweep.fastMultisig() && msg.sender != sweep.owner())
             revert NotOwnerOrGov();
         _;
-    }
-
-    function getSpotPrice() public view returns (uint256) {
-        uint256 returnFactor = 1e6;
-        uint256 quoteFactor = 1e18;
-        uint256 priceFactor = 10 ** ChainlinkLibrary.getDecimals(oracleBase);
-
-        uint256 quote = pool.last_price(USDX_IDX);
-        uint256 price = ChainlinkLibrary.getPrice(oracleBase, sequencer, frequency);
-
-        return quote * price * returnFactor / (priceFactor * quoteFactor);
     }
 
     /**
      * @notice Get Price
      * @dev Get the quote for selling 1 unit of a token.
      */
-    function getPrice() public view returns (uint256) {
-        if(address(pool) == address(0)) return 2e6;
-        return getSpotPrice();
+    function getPrice() public view returns (uint256 amountOut) {
+        uint24 activeId = pool.getActiveId();
+        uint256 poolPrice = pool.getPriceFromId(activeId);
+        uint128 quote = quoter._getV2Quote(poolPrice, !flag);
+
+        uint256 price = ChainlinkLibrary.getPrice(oracleBase, sequencer, frequency);
+        uint8 priceDecimals = ChainlinkLibrary.getDecimals(oracleBase);
+
+        amountOut = uint256(quote).mulDiv(price, 10 ** (priceDecimals));
     }
 
     /**
@@ -89,23 +95,17 @@ contract CurveAMM {
      * @dev Get the quote for selling 1 unit of a token.
      */
     function getTWAPrice() external view returns (uint256) {
-        uint256 returnFactor = 1e6;
-        uint256 quoteFactor = 1e18;
-        uint256 priceFactor = 10 ** ChainlinkLibrary.getDecimals(oracleBase);
-
-        uint256 quote = pool.price_oracle(USDX_IDX);
-        uint256 price = ChainlinkLibrary.getPrice(oracleBase, sequencer, frequency);
-
-        return quote * price * returnFactor / (priceFactor * quoteFactor);
+        return getPrice();
     }
 
-    function getPositions(uint256)
-        public view
+    function getPositions(uint256) public view
         returns (uint256 usdxAmount, uint256 sweepAmount, uint256 lp)
     {
-        usdxAmount = pool.balances(USDX_IDX);
-        sweepAmount = pool.balances(SWEEP_IDX);
-        lp = pool.balanceOf(address(marketMaker));
+        if (address(pool) != address(0)) {
+            usdxAmount = base.balanceOf(address(pool));
+            sweepAmount = sweep.balanceOf(address(pool));
+            lp = 0;
+        }
     }
 
     /* ========== Actions ========== */
@@ -117,9 +117,11 @@ contract CurveAMM {
      * @param amountOutMin Minimum amount out.
      * @dev Increases the sweep balance and decrease collateral balance.
      */
-    function buySweep(address usdxAddress, uint256 usdxAmount, uint256 amountOutMin) 
-        external returns (uint256 sweepAmount)
-    {
+    function buySweep(
+        address usdxAddress,
+        uint256 usdxAmount,
+        uint256 amountOutMin
+    ) external returns (uint256 sweepAmount) {
         emit Bought(usdxAmount);
 
         if (address(marketMaker) != address(0) && marketMaker.getBuyPrice() < getPrice()) {
@@ -130,7 +132,7 @@ contract CurveAMM {
         } else {
             checkRate(usdxAddress, usdxAmount, amountOutMin);
             sweepAmount = swap(usdxAddress, address(sweep), usdxAmount, amountOutMin);
-        }        
+        }
     }
 
     /**
@@ -167,38 +169,65 @@ contract CurveAMM {
         return swap(tokenIn, tokenOut, amountIn, amountOutMin);
     }
 
-    function checkRate(address token, uint256 tokenAmount, uint256 sweepAmount) internal view {
-        if(tokenAmount == 0 || sweepAmount == 0) revert ZeroAmount();
+    function checkRate(
+        address token,
+        uint256 tokenAmount,
+        uint256 sweepAmount
+    ) internal view {
+        if (tokenAmount == 0 || sweepAmount == 0) revert ZeroAmount();
         uint256 tokenFactor = 10 ** IERC20Metadata(token).decimals();
         uint256 sweepFactor = 10 ** sweep.decimals();
-        uint256 rate = tokenAmount * sweepFactor * 1e6 / (tokenFactor * sweepAmount);
-        if(rate > 16e5 || rate < 6e5) revert BadRate();
+        uint256 rate = (tokenAmount * sweepFactor * 1e6) /
+            (tokenFactor * sweepAmount);
+        if (rate > 16e5 || rate < 6e5) revert BadRate();
     }
 
     /**
-     * @notice Swap tokenIn for tokenOut using curve exact input swap
+     * @notice Swap tokenIn for tokenOut using balancer exact input swap
      * @param tokenIn Address to in
      * @param tokenOut Address to out
      * @param amountIn Amount of _tokenA
      * @param amountOutMin Minimum amount out.
      */
-    function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin) 
-        private returns (uint256 amountOut)
-    {
-        TransferHelper.safeTransferFrom(tokenIn, msg.sender, address(pool), amountIn);
+    function swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOutMin
+    ) private returns (uint256 amountOut) {
+        TransferHelper.safeTransferFrom(tokenIn, msg.sender, address(this), amountIn);
+        TransferHelper.safeApprove(tokenIn, address(router), amountIn);
 
-        amountOut = pool.exchange_received(
-            int8(assetIndex[tokenIn]),
-            int8(assetIndex[tokenOut]),
+        IERC20[] memory tokenPath = new IERC20[](2);
+        tokenPath[0] = IERC20(tokenIn);
+        tokenPath[1] = IERC20(tokenOut);
+
+        uint256[] memory pairBinSteps = new uint256[](1);
+        pairBinSteps[0] = pool.getBinStep();
+
+        ILBRouter.Version[] memory versions = new ILBRouter.Version[](1);
+        versions[0] = ILBRouter.Version.V2_1;
+
+        ILBRouter.Path memory path;
+        path.pairBinSteps = pairBinSteps;
+        path.versions = versions;
+        path.tokenPath = tokenPath;
+
+        (, amountOut, ) = pool.getSwapOut(uint128(amountIn), pool.getTokenY() == tokenOut);
+        if (amountOut < amountOutMin) revert SlippageCheck();
+
+        amountOut = router.swapExactTokensForTokens(
             amountIn,
             amountOutMin,
-            msg.sender
+            path,
+            msg.sender,
+            block.timestamp + 1
         );
     }
 
     function setPool(address poolAddress) external {
-        require(msg.sender == sweep.owner(), "CurveAMM: Not Governance");
-        pool = ICurvePool(poolAddress);
+        require(msg.sender == sweep.owner(), "TraderJoeAMM: Not Governance");
+        pool = ILBPair(poolAddress);
     }
 
     function setMarketMaker(address _marketMaker) external onlyOwner {
