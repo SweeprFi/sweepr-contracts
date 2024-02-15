@@ -218,7 +218,7 @@ contract TraderJoeAMM {
 
         amountOut = router.swapExactTokensForTokens(
             amountIn,
-            0,
+            amountOutMin,
             path,
             msg.sender,
             block.timestamp + 1
