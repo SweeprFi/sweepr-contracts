@@ -49,6 +49,7 @@ module.exports = {
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
 
         trader_joe_pool: '0xE07a515fb3BAfcc0f1E92dDeDFC53F7Dc7e5a0EB',
+        trader_joe_quoter: '',
         trader_joe_amm: '',
 
         assets: {
