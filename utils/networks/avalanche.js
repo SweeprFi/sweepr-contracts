@@ -49,12 +49,12 @@ module.exports = {
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
 
         trader_joe_pool: '0xE07a515fb3BAfcc0f1E92dDeDFC53F7Dc7e5a0EB',
-        trader_joe_quoter: '',
-        trader_joe_amm: '',
+        trader_joe_quoter: '0x7560d15774499386B04A64177E090B33e803493F',
+        trader_joe_amm: '0xFB66e1922675c8Cc53F7Da7143DA7d4172E0A9f6',
 
         assets: {
             balancer_market_maker: '0x676524646377A6e66Ca797edF7CCB1B5162a8cE0',
-            trader_joe_market_maker: '',
+            trader_joe_market_maker: '0x06d94665f02322781303224120326167483F5BD2',
         }
     },
 
