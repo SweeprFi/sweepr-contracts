@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { network, chainlink, trader_joe } = require("../../utils/constants");
 const { toBN, impersonate, sendEth } = require("../../utils/helper_functions");
 
-contract.only("Trader Joe AMM", async function () {
+contract("Trader Joe AMM", async function () {
   if (Number(network.id) !== 43114) return;
 
   before(async () => {

@@ -4,7 +4,7 @@ const { network, trader_joe, chainlink } = require("../../utils/constants");
 const { toBN, impersonate, sendEth } = require("../../utils/helper_functions");
 let poolAddress;
 
-contract.only('Trader Joe Market Maker', async () => {
+contract('Trader Joe Market Maker', async () => {
   if (Number(network.id) !== 43114) return;
 
   before(async () => {
