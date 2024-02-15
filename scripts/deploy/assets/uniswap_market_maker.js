@@ -21,7 +21,7 @@ async function main() {
     console.log("SWEEP:", sweep);
     console.log("USDC:", usdc);
     console.log("USDC/USD Chainlink Oracle:", oracleUsdc);
-    console.log("USDC/USD Chainlink Oracle:", positionManager);
+    console.log("Position Manager:", positionManager);
     console.log("Borrower:", borrower);
     console.log("===========================================");
     const answer = (await ask("continue? y/n: "));

@@ -55,14 +55,14 @@ module.exports = {
 
         liquidity_helper: '0xaD490d3899A47482E31AF50DdCc5Db31C0eE9eB0',
         uniswap_pool: '0xB15b5AEa14D01b97532F9E7920583E11638be626',
-        uniswap_amm: '0x7560d15774499386B04A64177E090B33e803493F',
+        uniswap_amm: '0x07077F592BF19083b7D7312a6BDFa09FE8064672',
 
         curve_pool: '0xcfde19f1a09206bb024f5c4bf61c40670fdff449',
         curve_amm: '0xe55D44783D8DB0684fe992e87d4703632f66cBB3',
 
         assets: {
             balancer_market_maker: '0x7685fc882c91936BF94974916cC410028F73C957',
-            uniswap_market_maker: '0xFB66e1922675c8Cc53F7Da7143DA7d4172E0A9f6',
+            uniswap_market_maker: '0x70AfC4eEAAEBF698Dda31298388D1E4417b16178',
             curve_market_maker: '0x8843b5Dd4A0757eE4ab639b34BA972686f9aCCD6',
         }
     },
