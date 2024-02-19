@@ -280,7 +280,7 @@ contract SweepCoin is BaseSweep {
         uint256 newCurrentTargetPrice, 
         uint256 newNextTargetPrice
     ) external onlyBalancer validTargetPrice(newCurrentTargetPrice) validTargetPrice(newNextTargetPrice) {
-        _checkLimit(1, newCurrentTargetPrice);
+        _checkLimit(10000, newCurrentTargetPrice);
 
         currentTargetPrice = newCurrentTargetPrice;
         nextTargetPrice = newNextTargetPrice;
@@ -339,9 +339,10 @@ contract SweepCoin is BaseSweep {
      */
     function writeOff(uint256 newPrice, address insolventDebtor) external onlyGov whenPaused validTargetPrice(newPrice) {
         if (targetPrice() < ammPrice()) revert WriteOffNotAllowed();
+        _checkLimit(250000, newPrice);
+
         uint256 multiplier = SPREAD_PRECISION.mulDiv(targetPrice(), newPrice);
         uint256 len = minterAddresses.length;
-        _checkLimit(25, newPrice);
 
         for (uint256 i = 0; i < len; ) {
             address minterAddress = minterAddresses[i];
@@ -392,8 +393,8 @@ contract SweepCoin is BaseSweep {
     }
 
     function _checkLimit(uint256 limit, uint256 _targetPrice) internal view {
-        uint256 lower = currentTargetPrice * (100 - limit) / 100;
-        uint256 upper = currentTargetPrice * (100 + limit) / 100;
+        uint256 lower = currentTargetPrice * (SPREAD_PRECISION - limit) / SPREAD_PRECISION;
+        uint256 upper = currentTargetPrice * (SPREAD_PRECISION + limit) / SPREAD_PRECISION;
 
         if(_targetPrice < lower || _targetPrice > upper) revert BadLimits();
     }
