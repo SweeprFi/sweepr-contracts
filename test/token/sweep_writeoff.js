@@ -152,6 +152,17 @@ contract("Sweep - WriteOff", async function () {
 			.to.be.revertedWithCustomError(sweep, "WriteOffNotAllowed")
 
 		await amm.setPrice(price);
+		await expect(sweep.writeOff(0, offChainAsset.address))
+			.to.be.revertedWithCustomError(sweep, "ZeroAmountDetected")
+
+		lowerTargetPrice = 0.74e6;
+		await expect(sweep.writeOff(lowerTargetPrice, offChainAsset.address))
+			.to.be.revertedWithCustomError(sweep, "BadLimits")
+
+		higherTargetPrice = 1.26e6;
+		await expect(sweep.writeOff(higherTargetPrice, offChainAsset.address))
+				.to.be.revertedWithCustomError(sweep, "BadLimits")
+
 		await sweep.writeOff(newTargetPrice, offChainAsset.address);
 
 		expect(await offChainAsset.sweepBorrowed()).to.equal(borrowAmount);

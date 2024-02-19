@@ -59,11 +59,17 @@ contract SweepCoin is BaseSweep {
     error LessTargetPrice();
     error OutOfTargetPriceChange();
     error InvalidPeriodStart();
+    error BadLimits();
 
     /* ======= MODIFIERS ====== */
 
     modifier onlyBalancer() {
         if (msg.sender != balancer) revert NotBalancer();
+        _;
+    }
+
+    modifier validTargetPrice(uint256 _target) {
+        _validTargetPrice(_target);
         _;
     }
 
@@ -273,7 +279,9 @@ contract SweepCoin is BaseSweep {
     function setTargetPrice(
         uint256 newCurrentTargetPrice, 
         uint256 newNextTargetPrice
-    ) external onlyBalancer {
+    ) external onlyBalancer validTargetPrice(newCurrentTargetPrice) validTargetPrice(newNextTargetPrice) {
+        _checkLimit(1, newCurrentTargetPrice);
+
         currentTargetPrice = newCurrentTargetPrice;
         nextTargetPrice = newNextTargetPrice;
 
@@ -329,10 +337,11 @@ contract SweepCoin is BaseSweep {
      * @notice Write Off
      * @param newPrice.
      */
-    function writeOff(uint256 newPrice, address insolventDebtor) external onlyGov whenPaused {
+    function writeOff(uint256 newPrice, address insolventDebtor) external onlyGov whenPaused validTargetPrice(newPrice) {
         if (targetPrice() < ammPrice()) revert WriteOffNotAllowed();
         uint256 multiplier = SPREAD_PRECISION.mulDiv(targetPrice(), newPrice);
         uint256 len = minterAddresses.length;
+        _checkLimit(25, newPrice);
 
         for (uint256 i = 0; i < len; ) {
             address minterAddress = minterAddresses[i];
@@ -376,5 +385,16 @@ contract SweepCoin is BaseSweep {
         uint256 usdAmount
     ) external view returns (uint256 sweepAmount) {
         sweepAmount = usdAmount.mulDiv(10 ** decimals(), targetPrice());
+    }
+
+    function _validTargetPrice(uint256 _target) internal pure {
+        if(_target == 0) revert ZeroAmountDetected();
+    }
+
+    function _checkLimit(uint256 limit, uint256 _targetPrice) internal view {
+        uint256 lower = currentTargetPrice * (100 - limit) / 100;
+        uint256 upper = currentTargetPrice * (100 + limit) / 100;
+
+        if(_targetPrice < lower || _targetPrice > upper) revert BadLimits();
     }
 }
