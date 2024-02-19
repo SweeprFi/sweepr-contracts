@@ -77,6 +77,20 @@ contract("Sweep - settings", async function () {
 	it('sets a new current target price correctly', async () => {
 		newCurrentTargetPrice = 1010000;
 		newNextTargetPrice = 1020000;
+		lowerTarget = 980000;
+
+		await expect(sweep.connect(newAddress).setTargetPrice(newCurrentTargetPrice, 0))
+			.to.be.revertedWithCustomError(sweep, "ZeroAmountDetected");
+
+		await expect(sweep.connect(newAddress).setTargetPrice(0, newCurrentTargetPrice))
+			.to.be.revertedWithCustomError(sweep, "ZeroAmountDetected");
+
+		await expect(sweep.connect(newAddress).setTargetPrice(newNextTargetPrice, newNextTargetPrice))
+			.to.be.revertedWithCustomError(sweep, "BadLimits");
+
+		await expect(sweep.connect(newAddress).setTargetPrice(lowerTarget, newNextTargetPrice))
+			.to.be.revertedWithCustomError(sweep, "BadLimits");
+
 		expect(await sweep.currentTargetPrice()).to.equal(await sweep.nextTargetPrice());
 		await sweep.connect(newAddress).setTargetPrice(newCurrentTargetPrice, newNextTargetPrice);
 		expect(await sweep.currentTargetPrice()).to.equal(newCurrentTargetPrice);
