@@ -1,73 +1,72 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { tokens, wallets, chainlink, curve, deployments } = require('../../utils/constants');
-const { Const, impersonate, toBN, sendEth } = require("../../utils/helper_functions");
+const { chainlink, curve } = require('../../utils/constants');
+const { Const, toBN } = require("../../utils/helper_functions");
 let poolAddress;
 
 contract('Curve Market Maker', async () => {
   before(async () => {
-    [borrower] = await ethers.getSigners();
-
-    USDC_ADDRESS = tokens.usdc;
-    SWEEP_ADDRESS = tokens.sweep;
-    HOLDER = wallets.usdc_holder;
+    [borrower, lzEndpoint, multisig, treasury] = await ethers.getSigners();
     BORROWER = borrower.address;
-    USDC_ORACLE = chainlink.usdc_usd;
 
     sweepAmount = toBN("100000000000000", 18);
     usdcAmount = toBN("10000", 6);
     buyAmount = toBN("3000", 18);
 
-    sweep = await ethers.getContractAt("SweepCoin", SWEEP_ADDRESS);
-    usdc = await ethers.getContractAt("ERC20", USDC_ADDRESS);
+    Sweep = await ethers.getContractFactory("SweepCoin");
+    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, multisig.address, 2500]);
+    sweep = await Proxy.deployed();
+
+    await sweep.setTreasury(treasury.address);
+    ERC20 = await ethers.getContractFactory("USDCMock");
+    usdc = await ERC20.deploy(6);
     factory = await ethers.getContractAt("ICurvePoolFactory", curve.factory);
 
     Oracle = await ethers.getContractFactory("AggregatorMock");
     usdcOracle = await Oracle.deploy();
 
     AMM = await ethers.getContractFactory("CurveAMM");
-    amm = await AMM.deploy(SWEEP_ADDRESS, USDC_ADDRESS, chainlink.sequencer, usdcOracle.address, 86400);
+    amm = await AMM.deploy(sweep.address, usdc.address, chainlink.sequencer, usdcOracle.address, 86400);
 
     RatesOracle = await ethers.getContractFactory("RatesOracle");
-    ratesOracle = await RatesOracle.deploy(SWEEP_ADDRESS);
+    ratesOracle = await RatesOracle.deploy(sweep.address);
 
-    await sendEth(HOLDER);
-    usdcHolder = await impersonate(HOLDER);
-    await usdc.connect(usdcHolder).transfer(borrower.address, usdcAmount.mul(2));
+    await sweep.setAMM(amm.address);
 
-    SWEEP_OWNER = await sweep.owner();
-    await sendEth(SWEEP_OWNER);
-    sweepOwner = await impersonate(SWEEP_OWNER);
-    await sweep.connect(sweepOwner).setAMM(amm.address);
+    await( await factory.deploy_plain_pool(
+      "SWEEP-USDC StablePool",
+      "SWEEP-USDC",
+      [usdc.address, sweep.address],
+      100,
+      1e6,
+      10000000000,
+      865,
+      0,
+      [0,1],
+      ["0x00000000", "0x2e3d20a1"],
+      ['0x0000000000000000000000000000000000000000', ratesOracle.address],
+    )).wait();
 
-    poolAddress = deployments.curve_pool;
+    poolAddress = await factory.find_pool_for_coins(usdc.address, sweep.address)
     curvePool = await ethers.getContractAt("ICurvePool", poolAddress);
   });
 
   it('deploy and configure the Curve MM', async () => {
     MarketMaker = await ethers.getContractFactory("CurveMarketMaker");
-    marketmaker = await MarketMaker.deploy('Curve Market Maker', sweep.address, USDC_ADDRESS, USDC_ORACLE, poolAddress, BORROWER);
+    marketmaker = await MarketMaker.deploy('Curve Market Maker', sweep.address, usdc.address, usdcOracle.address, poolAddress, BORROWER);
 
     await marketmaker.configure(0, 0, sweepAmount, 0, 0, 0, 0, 0, false, false, Const.URL)
-    await sweep.connect(sweepOwner).addMinter(marketmaker.address, sweepAmount);
-    await amm.connect(sweepOwner).setMarketMaker(marketmaker.address);
+    await sweep.addMinter(marketmaker.address, sweepAmount);
+    await amm.setMarketMaker(marketmaker.address);
 
-    SWEEP_HOLDER = "0xc7b145ad8f3ad68587efca54024f342de825ad9d";
-    await sendEth(SWEEP_HOLDER);
-    user = await impersonate(SWEEP_HOLDER);
-    await sweep.connect(user).transfer(marketmaker.address, toBN("5", 18));
-    await usdc.connect(usdcHolder).transfer(marketmaker.address, toBN("5", 6));
+    await usdc.transfer(marketmaker.address, toBN("15", 6));
+    await marketmaker.borrow(toBN("5", 18));
     await marketmaker.addLiquidity(toBN("5", 6), toBN("5", 18));
   });
 
   it('Adds Liquidity correctly', async () => {
-    await usdc.connect(sweepOwner).transfer(marketmaker.address, 2e6);
-    await amm.connect(sweepOwner).setPool(poolAddress);
-    // ----- Set isMintingAllowed: true
-    BALANCER = await sweep.balancer();
-    await sendEth(BALANCER);
-    balancerImpersonation = await impersonate(BALANCER);
-    await sweep.connect(balancerImpersonation).setTargetPrice(9e5, 9e5);
+    await usdc.transfer(marketmaker.address, 2e6);
+    await amm.setPool(poolAddress);
 
     usdcToAdd = toBN("2000", 6);
     sweepToAdd = toBN("1000", 18);
@@ -94,9 +93,6 @@ contract('Curve Market Maker', async () => {
   });
 
   it('Increases liquidity by buying Sweep', async () => {
-    balancerImpersonation = await impersonate(BALANCER);
-    await sweep.connect(balancerImpersonation).setTargetPrice(1e6, 1e6);
-
     usdxAmount = toBN("500", 6);
     sweepToGet = toBN("498", 18);
     sweepBefore = await sweep.balanceOf(borrower.address);
@@ -115,9 +111,6 @@ contract('Curve Market Maker', async () => {
   });
 
   it('buys Sweep from the MM', async () => {
-    balancerImpersonation = await impersonate(BALANCER);
-    await sweep.connect(balancerImpersonation).setTargetPrice(9e5, 9e5);
-
     price = await amm.getPrice();
     expect(await marketmaker.getBuyPrice()).to.be.lessThan(price);
 
@@ -134,14 +127,43 @@ contract('Curve Market Maker', async () => {
     expect(await usdc.balanceOf(poolAddress)).to.greaterThan(usdcBalance)
   });
 
+  it('Removes single sided liquidity correctly USDC', async () => {
+    burnAmont = toBN("50", 18);
+    index = 0;
+    minAmountOut = toBN("40", 6);
+
+    lpBefore = await curvePool.balanceOf(marketmaker.address);
+    usdcBefore = await usdc.balanceOf(marketmaker.address);
+    await marketmaker.removeSingleSidedLiquidity(lpToBurn, index, minAmountOut);
+    lpAfter = await curvePool.balanceOf(marketmaker.address);
+    usdcAfter = await usdc.balanceOf(marketmaker.address);
+
+    expect(lpBefore).to.be.greaterThan(lpAfter);
+    expect(usdcBefore).to.be.lessThan(usdcAfter);
+  });
+
+  it('Removes single sided liquidity correctly SWEEP', async () => {
+    burnAmont = toBN("50", 18);
+    index = 1;
+    minAmountOut = toBN("40", 18);
+
+    lpBefore = await curvePool.balanceOf(marketmaker.address);
+    usdcBefore = await sweep.balanceOf(marketmaker.address);
+    await marketmaker.removeSingleSidedLiquidity(lpToBurn, index, minAmountOut);
+    lpAfter = await curvePool.balanceOf(marketmaker.address);
+    usdcAfter = await sweep.balanceOf(marketmaker.address);
+
+    expect(lpBefore).to.be.greaterThan(lpAfter);
+    expect(usdcBefore).to.be.lessThan(usdcAfter);
+  });
+
   describe("Curve AMM", async function () {
     before(async () => {
       OWNER = borrower.address;
       USDC_AMOUNT = 100e6;
       SWEEP_AMOUNT = toBN("98", 18);
 
-      await usdc.connect(usdcHolder).transfer(OWNER, USDC_AMOUNT);
-      await amm.connect(sweepOwner).setMarketMaker(ethers.constants.AddressZero);
+      await amm.setMarketMaker(ethers.constants.AddressZero);
     });
 
     describe("Buy Sweep", async function () {
@@ -195,35 +217,5 @@ contract('Curve Market Maker', async () => {
         expect(usdcAfter).to.be.above(usdcBefore);
       });
     });
-  });
-
-  it('Removes single sided liquidity correctly USDC', async () => {
-    burnAmont = toBN("50", 18);
-    index = 0;
-    minAmountOut = toBN("40", 6);
-
-    lpBefore = await curvePool.balanceOf(marketmaker.address);
-    usdcBefore = await usdc.balanceOf(marketmaker.address);
-    await marketmaker.removeSingleSidedLiquidity(lpToBurn, index, minAmountOut);
-    lpAfter = await curvePool.balanceOf(marketmaker.address);
-    usdcAfter = await usdc.balanceOf(marketmaker.address);
-
-    expect(lpBefore).to.be.greaterThan(lpAfter);
-    expect(usdcBefore).to.be.lessThan(usdcAfter);
-  });
-
-  it('Removes single sided liquidity correctly SWEEP', async () => {
-    burnAmont = toBN("50", 18);
-    index = 1;
-    minAmountOut = toBN("40", 18);
-
-    lpBefore = await curvePool.balanceOf(marketmaker.address);
-    usdcBefore = await sweep.balanceOf(marketmaker.address);
-    await marketmaker.removeSingleSidedLiquidity(lpToBurn, index, minAmountOut);
-    lpAfter = await curvePool.balanceOf(marketmaker.address);
-    usdcAfter = await sweep.balanceOf(marketmaker.address);
-
-    expect(lpBefore).to.be.greaterThan(lpAfter);
-    expect(usdcBefore).to.be.lessThan(usdcAfter);
   });
 });

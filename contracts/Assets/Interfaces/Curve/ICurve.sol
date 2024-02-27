@@ -15,6 +15,8 @@ interface ICurvePoolFactory {
         bytes4[] memory _method_ids,
         address[] memory _oracles
     ) external returns (address);
+
+    function find_pool_for_coins(address from, address to) external view returns (address);
 }
 
 interface ICurvePool {

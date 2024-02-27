@@ -1,26 +1,28 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { tokens, wallets, chainlink, balancer } = require('../../utils/constants');
-const { Const, impersonate, toBN, sendEth, getAddressAndProviders } = require("../../utils/helper_functions");
+const { wallets, chainlink, balancer } = require('../../utils/constants');
+const { Const, toBN, getAddressAndProviders } = require("../../utils/helper_functions");
 let poolAddress;
 
 contract('Balancer Market Maker', async () => {
   before(async () => {
-    [borrower] = await ethers.getSigners();
+    [borrower, lzEndpoint, multisig, treasury] = await ethers.getSigners();
 
-    USDC_ADDRESS = tokens.usdc;
-    SWEEP_ADDRESS = tokens.sweep;
-    HOLDER = wallets.usdc_holder;
     BORROWER = borrower.address;
-    USDC_ORACLE = chainlink.usdc_usd;
     SLIPPAGE = 1e4;
 
     sweepAmount = toBN("100000000000000", 18);
     usdcAmount = toBN("10000", 6);
     buyAmount = toBN("3000", 18);
 
-    sweep = await ethers.getContractAt("SweepCoin", SWEEP_ADDRESS);
-    usdc = await ethers.getContractAt("ERC20", USDC_ADDRESS);
+    Sweep = await ethers.getContractFactory("SweepCoin");
+    const Proxy = await upgrades.deployProxy(Sweep, [lzEndpoint.address, multisig.address, 2500]);
+    sweep = await Proxy.deployed();
+
+    await sweep.setTreasury(treasury.address);
+    ERC20 = await ethers.getContractFactory("USDCMock");
+    usdc = await ERC20.deploy(6);
+
     factory = await ethers.getContractAt("IComposableStablePoolFactory", balancer.factory);
 
     Oracle = await ethers.getContractFactory("AggregatorMock");
@@ -28,25 +30,18 @@ contract('Balancer Market Maker', async () => {
 
     AMM = await ethers.getContractFactory("BalancerAMM");
     amm = await AMM.deploy(
-      SWEEP_ADDRESS,
-      USDC_ADDRESS,
+      sweep.address,
+      usdc.address,
       chainlink.sequencer,
       usdcOracle.address,
       86400
     )
 
-    await sendEth(HOLDER);
-    user = await impersonate(HOLDER);
-    await usdc.connect(user).transfer(borrower.address, usdcAmount);
-
-    SWEEP_OWNER = await sweep.owner();
-    await sendEth(SWEEP_OWNER);
-    user = await impersonate(SWEEP_OWNER);
-    await sweep.connect(user).setAMM(amm.address);
+    await sweep.setAMM(amm.address);
   });
 
   it('create the pool', async () => {
-    data = getAddressAndProviders(sweep.address, USDC_ADDRESS);
+    data = getAddressAndProviders(sweep.address, usdc.address);
 
     const pool = await (await factory.create(
       "Balancer SWEEP-USDC StablePool",
@@ -73,15 +68,15 @@ contract('Balancer Market Maker', async () => {
     marketmaker = await MarketMaker.deploy(
       'Balancer Market Maker',
       sweep.address,
-      USDC_ADDRESS,
-      USDC_ORACLE,
+      usdc.address,
+      usdcOracle.address,
       poolAddress,
       BORROWER
     );
 
     await marketmaker.configure(0, 0, sweepAmount, 0, 0, 0, 0, 0, false, false, Const.URL)
-    await sweep.connect(user).addMinter(marketmaker.address, sweepAmount);
-    await amm.connect(user).setMarketMaker(marketmaker.address);
+    await sweep.addMinter(marketmaker.address, sweepAmount);
+    await amm.setMarketMaker(marketmaker.address);
   });
 
   it('Inits the pool correctly', async () => {
@@ -89,7 +84,7 @@ contract('Balancer Market Maker', async () => {
     await marketmaker.borrow(toBN("1", 18));
 
     await marketmaker.initPool(2e6, toBN("1", 18));
-    await amm.connect(user).setPool(poolAddress);
+    await amm.setPool(poolAddress);
 
     expect(await amm.getPrice()).to.greaterThan(0);
     expect(await marketmaker.assetValue()).to.greaterThan(0);
@@ -98,12 +93,6 @@ contract('Balancer Market Maker', async () => {
   });
 
   it('Adds Liquidity correctly', async () => {
-    // ----- Set isMintingAllowed: true
-    BALANCER = await sweep.balancer();
-    await sendEth(BALANCER);
-    user = await impersonate(BALANCER);
-    await sweep.connect(user).setTargetPrice(1e6, 1e6);
-
     usdcToAdd = toBN("2000", 6);
     sweepToAdd = toBN("1000", 18);
 
@@ -132,9 +121,6 @@ contract('Balancer Market Maker', async () => {
   });
 
   it('Increases liquidity by buying Sweep', async () => {
-    user = await impersonate(BALANCER);
-    await sweep.connect(user).setTargetPrice(1e6, 1e6);
-
     usdxAmount = toBN("500", 6);
     sweepToGet = toBN("495", 18);
     sweepBefore = await sweep.balanceOf(borrower.address);

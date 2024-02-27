@@ -9,7 +9,7 @@ contract("Balancer AMM", async function () {
 
     OWNER = owner.address;
     USDC_AMOUNT = 100e6;
-    SWEEP_AMOUNT = toBN("98", 18);
+    SWEEP_AMOUNT = toBN("80", 18);
 
     // ------------- Deployment of contracts -------------
     sweep = await ethers.getContractAt("SweepCoin", tokens.sweep);
@@ -75,7 +75,7 @@ contract("Balancer AMM", async function () {
       usdcBefore = await usdc.balanceOf(OWNER);
 
       await sweep.approve(amm.address, SWEEP_AMOUNT);
-      await amm.sellSweep(usdc.address, SWEEP_AMOUNT, 85e6);
+      await amm.sellSweep(usdc.address, SWEEP_AMOUNT, 60e6);
 
       sweepAfter = await sweep.balanceOf(OWNER);
       usdcAfter = await usdc.balanceOf(OWNER);

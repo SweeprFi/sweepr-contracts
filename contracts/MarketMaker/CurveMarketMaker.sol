@@ -55,6 +55,7 @@ contract CurveMarketMaker is Stabilizer {
      */
     function assetValue() public view override returns (uint256) {    
         uint256 lpTokens = pool.balanceOf(address(this));
+        if(lpTokens == 0) return 0;
         uint256 rate = pool.get_virtual_price();
         uint256 usdxFactor = 10 ** usdx.decimals();
         uint256 poolFactor = 10 ** pool.decimals();
