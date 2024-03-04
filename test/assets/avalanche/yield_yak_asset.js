@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { network, wallets, tokens, yield_yak } = require("../../../utils/constants");
 const { impersonate, sendEth, increaseTime } = require("../../../utils/helper_functions");
 
-contract.only("Yield Yak Asset", async function () {
+contract("Yield Yak Asset", async function () {
   if (Number(network.id) !== 43114) return;
 
   before(async () => {
