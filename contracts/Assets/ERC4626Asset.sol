@@ -169,8 +169,8 @@ contract ERC4626Asset is Stabilizer {
         uint256 sharesBalance = asset.balanceOf(address(this));
         if (sharesBalance == 0) revert NotEnoughBalance();
         uint256 sharesAmount = asset.convertToShares(usdxAmount);
-        if (sharesBalance > sharesAmount) sharesAmount = sharesBalance;
-        
+        if (sharesBalance < sharesAmount) sharesAmount = sharesBalance;
+
         uint256 divestedAmount = asset.convertToAssets(sharesAmount);
         asset.withdraw(divestedAmount, address(this), address(this));
 
@@ -180,7 +180,7 @@ contract ERC4626Asset is Stabilizer {
     function _divestRedeem(uint256 sharesAmount) internal virtual {
         uint256 sharesBalance = asset.balanceOf(address(this));
         if (sharesBalance == 0) revert NotEnoughBalance();
-        if (sharesBalance > sharesAmount) sharesAmount = sharesBalance;
+        if (sharesBalance < sharesAmount) sharesAmount = sharesBalance;
 
         uint256 divestedAmount = asset.convertToAssets(sharesAmount);
         asset.redeem(divestedAmount, address(this), address(this));

@@ -105,7 +105,7 @@ contract YearnV3Asset is Stabilizer {
         TransferHelper.safeApprove(address(usdc_e), address(asset), usdceAmount);
         uint256 shares = asset.deposit(usdceAmount, address(this));
 
-        if(shares < asset.convertToAssets(usdceAmount)) revert UnexpectedAmount();
+        if(shares < asset.convertToShares(usdceAmount)) revert UnexpectedAmount();
         emit Invested(usdceAmount);
     }
 
@@ -113,13 +113,14 @@ contract YearnV3Asset is Stabilizer {
         uint256 sharesBalance = asset.balanceOf(address(this));
         if (sharesBalance == 0) revert NotEnoughBalance();
         uint256 sharesAmount = asset.convertToShares(usdxAmount);
-        if (sharesBalance > sharesAmount) sharesAmount = sharesBalance;
-        
-        uint256 usdceAmount = asset.convertToAssets(sharesAmount);
-        uint256 usdceWithdrawn = asset.withdraw(usdceAmount, address(this), address(this));
+        if (sharesBalance < sharesAmount) sharesAmount = sharesBalance;
 
-        uint256 amountOutMin = OvnMath.subBasisPoints(usdceWithdrawn, slippage);
-        uint256 usdcAmount = swap(address(usdc_e), address(usdx), usdceWithdrawn, amountOutMin);
+        uint256 usdceAmount = asset.convertToAssets(sharesAmount);
+        asset.withdraw(usdceAmount, address(this), address(this));
+        usdceAmount = usdc_e.balanceOf(address(this));
+
+        uint256 amountOutMin = OvnMath.subBasisPoints(usdceAmount, slippage);
+        uint256 usdcAmount = swap(address(usdc_e), address(usdx), usdceAmount, amountOutMin);
 
         emit Divested(usdcAmount);
     }
@@ -134,8 +135,6 @@ contract YearnV3Asset is Stabilizer {
     function swap(address tokenA, address tokenB, uint256 amountIn, uint256 amountOutMin) 
         private returns (uint256 amountOut)
     {
-        // Approval
-        TransferHelper.safeTransferFrom(tokenA, msg.sender, address(this), amountIn);
         TransferHelper.safeApprove(tokenA, address(router), amountIn);
 
         ISwapRouter.ExactInputSingleParams memory swapParams = ISwapRouter
@@ -143,7 +142,7 @@ contract YearnV3Asset is Stabilizer {
                 tokenIn: tokenA,
                 tokenOut: tokenB,
                 fee: 100,
-                recipient: msg.sender,
+                recipient: address(this),
                 deadline: block.timestamp + DEADLINE_GAP,
                 amountIn: amountIn,
                 amountOutMinimum: amountOutMin,

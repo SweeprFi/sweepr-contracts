@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { tokens, chainlink, protocols, wallets, network } = require("../../../utils/constants");
+const { tokens, chainlink, protocols, wallets, network, uniswap } = require("../../../utils/constants");
 const { ask } = require("../../../utils/helper_functions");
 
 async function main() {
@@ -12,6 +12,7 @@ async function main() {
 	const oracleUsdc = chainlink.usdc_usd;
 	const vault = protocols.yearn.vault;
 	const borrower = wallets.multisig;
+	const router = uniswap.router;
 
 	console.log("===========================================");
     console.log("YEARN V3 ASSET DEPLOY");
@@ -26,6 +27,7 @@ async function main() {
     console.log("USDC/USD Chainlink Oracle:", oracleUsdc);
     console.log("Yearn Vault:", vault);
     console.log("Borrower:", borrower);
+	console.log("Router:", router);
     console.log("===========================================");
 	const answer = (await ask("continue? y/n: "));
     if(answer !== 'y'){ process.exit(); }
@@ -40,11 +42,12 @@ async function main() {
 		usdc_e, // USDC.e
 		vault, // YEARN VAULT
 		oracleUsdc, // ORACLE USDC/USD
-		borrower
+		borrower,
+		router,
 	);
 
 	console.log("YearnV3 asset deployed to: ", asset.address);
-	console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${assetName}" ${sweep} ${usdc} ${usdc_e} ${vault} ${oracleUsdc} ${borrower}`);
+	console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${assetName}" ${sweep} ${usdc} ${usdc_e} ${vault} ${oracleUsdc} ${borrower} ${router}`);
 }
 
 main();

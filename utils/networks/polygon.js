@@ -17,6 +17,7 @@ module.exports = {
         multisig: '0x47671b43B6E05FC6f423595F625716A06d76D9Ec',
         owner: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
         borrower: '0xF2D3Ba4Ad843Ac0842Baf487660FCb3B208c988c',
+        usdc_holder: '0x4b6f17856215eab57c29ebfa18b0a0f74a3627bb',
     },
 
     tokens: {
