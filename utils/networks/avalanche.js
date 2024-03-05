@@ -17,6 +17,7 @@ module.exports = {
         multisig: '0x04997790D83C9f8021c63f6f613458507B73056c',
         owner: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
         borrower: '0xF2D3Ba4Ad843Ac0842Baf487660FCb3B208c988c',
+        usdc_holder: '0x7E4aA755550152a522d9578621EA22eDAb204308',
     },
 
     tokens: {
@@ -39,6 +40,10 @@ module.exports = {
     trader_joe: {
         router: '0xb4315e873dBcf96Ffd0acd8EA43f689D8c20fB30',
         factory: '0x8e42f2F4101563bF679975178e880FD87d3eFd4e',
+    },
+
+    yield_yak: {
+        usdc_startegy: '0x68D8108f6FB797e7eb0C8d9524ba08D98BF27Bcb',
     },
 
     deployments: {
