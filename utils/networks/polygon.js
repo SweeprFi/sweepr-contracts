@@ -17,16 +17,26 @@ module.exports = {
         multisig: '0x47671b43B6E05FC6f423595F625716A06d76D9Ec',
         owner: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
         borrower: '0xF2D3Ba4Ad843Ac0842Baf487660FCb3B208c988c',
+        usdc_holder: '0x4b6f17856215eab57c29ebfa18b0a0f74a3627bb',
     },
 
     tokens: {
         sweep: '0xB88a5Ac00917a02d82c7cd6CEBd73E2852d43574',
         sweepr: '0x89B1e7068bF8E3232dD8f16c35cAc45bDA584f4E',
         usdc: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-        usdc_e: '',
+        usdc_e: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
     },
 
-    protocols: {},
+    protocols: {
+        yearn: {
+            vault: "0xA013Fbd4b711f9ded6fB09C1c0d358E2FbC2EAA0",
+        },
+        curve: {
+            crvUSD: '0xc4ce1d6f5d98d65ee25cf85e9f2e9dcfee6cb5d6',
+            crvUSD_USDCe_pool: '0x864490cf55dc2dee3f0ca4d06f5f80b2bb154a03',
+            crvUSD_USDC_pool: '0x5225010a0ae133b357861782b0b865a48471b2c5',
+        },
+    },
 
     chainlink: {
         usdc_usd: '0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7',
