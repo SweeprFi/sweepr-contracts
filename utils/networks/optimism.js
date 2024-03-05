@@ -17,6 +17,7 @@ module.exports = {
         multisig: '0xE0585bDaee364deAd2683c5Aa1520B87F1d2FBAD',
         owner: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
         borrower: '0xF2D3Ba4Ad843Ac0842Baf487660FCb3B208c988c',
+        usdc_holder: '0xa1549a810b88313585e140e13081e1b7c2fe74a1',
     },
 
     tokens: {
@@ -24,6 +25,8 @@ module.exports = {
         sweepr: '0x89B1e7068bF8E3232dD8f16c35cAc45bDA584f4E',
         usdc: '0x0b2c639c533813f4aa9d7837caf62653d097ff85',
         usdc_e: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
+        dai: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+        yvMAI: '0x6759574667896a453304897993d61f00fdc7214d',
     },
 
     protocols: {
@@ -33,6 +36,10 @@ module.exports = {
         overnight: {
             usd_plus: '0x73cb180bf0521828d8849bc8CF2B920918e23032',
             exchange: '0xe80772Eaf6e2E18B651F160Bc9158b2A5caFCA65',
+        },
+        yearn: {
+            vault: '0x65343F414FFD6c97b0f6add33d16F6845Ac22BAc',
+            stake: '0xf8126EF025651E1B313a6893Fcf4034F4F4bD2aA'
         }
     },
 
