@@ -10,12 +10,9 @@ pragma solidity 0.8.19;
  * @dev Representation of an on-chain investment on Aura finance.
  */
 
-import { Stabilizer, IERC20Metadata, IAMM, TransferHelper, OvnMath } from "../Stabilizer/Stabilizer.sol";
 import { IDepositWrapper, IBaseRewardPool } from "./Interfaces/Aura/IAura.sol";
-import { IBalancerPool, IBalancerVault, JoinKind, ExitKind, IAsset, IBalancerQuoter } from "./Interfaces/Balancer/IBalancer.sol";
-
-import "hardhat/console.sol";
-import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { Stabilizer, IERC20Metadata, IAMM, TransferHelper, OvnMath } from "../Stabilizer/Stabilizer.sol";
+import { IBalancerPool, IBalancerVault, JoinKind, ExitKind, IAsset, IWeightedPoolLib } from "./Interfaces/Balancer/IBalancer.sol";
 
 contract AuraAsset is Stabilizer {
 
@@ -25,7 +22,7 @@ contract AuraAsset is Stabilizer {
     IBaseRewardPool private immutable asset;
     IDepositWrapper private immutable depositor;
     IBalancerPool private immutable balancerPool;
-    IBalancerQuoter private immutable quoter;
+    IWeightedPoolLib private immutable quoterLirary;
 
     uint256 private constant usdxIndex = 1;
 
@@ -42,14 +39,14 @@ contract AuraAsset is Stabilizer {
         address _depositor,
         address _asset,
         address _balancerPool,
-        address _quoter,
+        address _quoterLirary,
         address _oracleUsdx,
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         depositor = IDepositWrapper(_depositor);
         asset = IBaseRewardPool(_asset);
         balancerPool = IBalancerPool(_balancerPool);
-        quoter = IBalancerQuoter(_quoter);
+        quoterLirary = IWeightedPoolLib(_quoterLirary);
     }
 
     /* ========== Views ========== */
@@ -58,23 +55,27 @@ contract AuraAsset is Stabilizer {
      * @notice Asset Value of investment.
      * @return the Returns the value of the investment in the USD coin
      */
-    function assetValue() public override returns (uint256) {
+    function assetValue() public view override returns (uint256) {
         uint256 bptBalance = asset.convertToAssets(asset.balanceOf(address(this)));
-        
+        if(bptBalance == 0) return 0;
+
         IBalancerVault vault = IBalancerVault(balancerPool.getVault());
-        (IAsset[] memory poolAssets, , ) = vault.getPoolTokens(balancerPool.getPoolId());
-        uint256[] memory amounts = new uint256[](3);
+        (, uint256[] memory balances, ) = vault.getPoolTokens(balancerPool.getPoolId());
+        uint256[] memory normalizedWeights = balancerPool.getNormalizedWeights();
+        uint256 totalSupply = balancerPool.totalSupply();
+        uint256 swapFeePercentage = balancerPool.getSwapFeePercentage();
+
         bytes memory userData = abi.encode(ExitKind.EXACT_BPT_IN_FOR_ONE_TOKEN_OUT, bptBalance, 1);
-        IBalancerVault.ExitPoolRequest memory request = IBalancerVault.ExitPoolRequest(poolAssets, amounts, userData, false);
 
-        (, uint256[] memory amountsOut) = quoter.queryExit(
-            balancerPool.getPoolId(),
-            address(this),
-            address(this),
-            request
-        );
+        (, uint256[] memory tokensOut) = quoterLirary.exitExactBPTInForTokenOut(
+                balances,
+                normalizedWeights,
+                totalSupply,
+                swapFeePercentage,
+                userData
+            );
 
-        return _oracleUsdxToUsd(amountsOut[1]);
+        return _oracleUsdxToUsd(tokensOut[1]);
     }
 
     /* ========== Actions ========== */

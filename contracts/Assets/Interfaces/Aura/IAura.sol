@@ -11,7 +11,6 @@ interface IDepositWrapper {
     function withdraw(address _asset, uint256 _amount, bool _collateralOnly) external returns (uint256 withdrawnAmount, uint256 withdrawnShare);
 }
 
-
 interface IBaseRewardPool is IERC4626 {
     function getReward() external returns(bool);
     function withdrawAndUnwrap(uint256 amount, bool claim) external;

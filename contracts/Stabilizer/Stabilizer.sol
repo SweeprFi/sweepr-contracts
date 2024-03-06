@@ -159,7 +159,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @notice Defaulted
      * @return bool that tells if stabilizer is in default.
      */
-    function isDefaulted() public returns (bool) {
+    function isDefaulted() public view returns (bool) {
         return
             (callDelay > 0 && callAmount > 0 && block.timestamp > callTime) ||
             (sweepBorrowed > 0 && getEquityRatio() < minEquityRatio);
@@ -170,7 +170,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @return the current equity ratio based in the internal storage.
      * @dev this value have a precision of 6 decimals.
      */
-    function getEquityRatio() public returns (int256) {
+    function getEquityRatio() public view returns (int256) {
         uint256 totalValue = currentValue();
 
         if (totalValue == 0) {
@@ -216,7 +216,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * value = sweep balance + usdx balance
      * @return uint256.
      */
-    function currentValue() public returns (uint256) {
+    function currentValue() public view returns (uint256) {
         (uint256 usdxBalance, uint256 sweepBalance) = _balances();
         uint256 sweepInUsd = sweep.convertToUSD(sweepBalance);
         uint256 usdxInUsd = _oracleUsdxToUsd(usdxBalance);
@@ -237,7 +237,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
      * @notice Get Junior Tranche Value
      * @return int256 calculated junior tranche amount.
      */
-    function getJuniorTrancheValue() external returns (int256) {
+    function getJuniorTrancheValue() external view returns (int256) {
         uint256 seniorTrancheInUSD = sweep.convertToUSD(sweepBorrowed);
         uint256 totalValue = currentValue();
 
@@ -639,7 +639,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
 
     /* ========== Internals ========== */
 
-    function assetValue() public virtual returns (uint256) { return 0; }
+    function assetValue() public view virtual returns (uint256) { return 0; }
 
     /**
      * @notice Invest To Asset.
@@ -847,7 +847,7 @@ contract Stabilizer is Owned, Pausable, ReentrancyGuard {
             );
     }
 
-    function _checkRatio() internal {
+    function _checkRatio() internal view {
         if (getEquityRatio() < minEquityRatio) revert EquityRatioExcessed();
     }
 }
