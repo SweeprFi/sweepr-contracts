@@ -82,3 +82,10 @@ interface IRateProvider {
 enum JoinKind { INIT, EXACT_TOKENS_IN_FOR_BPT_OUT, TOKEN_IN_FOR_EXACT_BPT_OUT, ALL_TOKENS_IN_FOR_EXACT_BPT_OUT }
 enum ExitKind { EXACT_BPT_IN_FOR_ONE_TOKEN_OUT, BPT_IN_FOR_EXACT_TOKENS_OUT, EXACT_BPT_IN_FOR_ALL_TOKENS_OUT }
 enum SwapKind { GIVEN_IN, GIVEN_OUT }
+
+
+interface IBalancerQuoter {
+    function querySwap(SingleSwap memory singleSwap, FundManagement memory funds) external returns(uint256);
+    function queryExit(bytes32 poolId, address sender, address recipient, IBalancerVault.ExitPoolRequest memory request) external returns (uint256 bptIn, uint256[] memory amountsOut);
+}
+
