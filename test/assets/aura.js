@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { wallets, tokens, chainlink, protocols, network, uniswap } = require("../../utils/constants");
+const { wallets, tokens, chainlink, protocols, network } = require("../../utils/constants");
 const { impersonate, sendEth } = require("../../utils/helper_functions");
 
 contract("Aura Asset", async function () {

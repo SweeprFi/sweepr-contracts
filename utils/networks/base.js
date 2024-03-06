@@ -43,7 +43,7 @@ module.exports = {
             rewardPoolDepositWapper: '0xa9952c914d86f896c53bf17125c4104cc058008e',
             baseRewardPool4626: '0xee374580bff150be6b955954ac3b9899d890cb57',
             balancerPool: '0x433f09ca08623e48bac7128b7105de678e37d988',
-            quoter: '0x300Ab2038EAc391f26D9F895dc61F8F66a548833',
+            weighted_pool_library: '',
         }
     },
 
