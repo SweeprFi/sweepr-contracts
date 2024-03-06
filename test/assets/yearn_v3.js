@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { wallets, tokens, chainlink, protocols, network, uniswap } = require("../../utils/constants");
 const { impersonate, sendEth } = require("../../utils/helper_functions");
 
-contract.only("Yearn V3 Asset", async function () {
+contract("Yearn V3 Asset", async function () {
     if (Number(network.id) !== 137) return;
 
     before(async () => {
