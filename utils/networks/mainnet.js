@@ -38,6 +38,8 @@ module.exports = {
         dai: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
         frax: '0x853d955acef822db058eb8505911ed77f175b99e',
         sfrax: '0x03CB4438d015B9646d666316b617a694410C216d',
+        usde: '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3',
+        susde: '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497',
     },
 
     protocols: {
@@ -83,6 +85,7 @@ module.exports = {
     curve: {
         factory: '0x6A8cbed756804B16E05E741eDaBd5cB544AE21bf',
         router: '0xF0d4c12A5768D806021F80a262B4d39d26C58b8D',
+        pool_usde: '0x02950460E2b9529D0E00284A5fA2d7bDF3fA4d72',
     },
 
     deployments: {
