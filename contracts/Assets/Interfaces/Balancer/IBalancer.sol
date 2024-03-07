@@ -42,6 +42,8 @@ interface IBalancerPool is IERC20Metadata {
     function getTokenRate(address) external view returns (uint256);
     function getScalingFactors() external view returns (uint256[] memory);
     function getAmplificationParameter() external view returns (uint256, bool, uint256);
+    function getNormalizedWeights() external view returns (uint256[] memory);
+    function getSwapFeePercentage() external view returns (uint256);
 }
 
 struct SingleSwap {
@@ -82,3 +84,13 @@ interface IRateProvider {
 enum JoinKind { INIT, EXACT_TOKENS_IN_FOR_BPT_OUT, TOKEN_IN_FOR_EXACT_BPT_OUT, ALL_TOKENS_IN_FOR_EXACT_BPT_OUT }
 enum ExitKind { EXACT_BPT_IN_FOR_ONE_TOKEN_OUT, BPT_IN_FOR_EXACT_TOKENS_OUT, EXACT_BPT_IN_FOR_ALL_TOKENS_OUT }
 enum SwapKind { GIVEN_IN, GIVEN_OUT }
+
+interface IWeightedPoolLib {
+    function exitExactBPTInForTokenOut(
+        uint256[] memory balances,
+        uint256[] memory normalizedWeights,
+        uint256 totalSupply,
+        uint256 swapFeePercentage,
+        bytes memory userData
+    ) external view returns (uint256, uint256[] memory);
+}

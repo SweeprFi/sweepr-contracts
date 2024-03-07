@@ -17,6 +17,7 @@ module.exports = {
         multisig: '0xA8ec2d0b62b85E55f410C0C94C7dc45919ba7c0A',
         owner: '0x7Adc86401f246B87177CEbBEC189dE075b75Af3A',
         borrower: '0xF2D3Ba4Ad843Ac0842Baf487660FCb3B208c988c',
+        usdc_holder: '0xaac391f166f33cdaefaa4afa6616a3bea66b694d',
     },
 
     tokens: {
@@ -37,6 +38,12 @@ module.exports = {
         maple: {
             usdcPool: '0xdd5bb9acf5e02089735a33344c6e3a8bb0d4075d',
             withdrawalManager: '0x5B8387aDa310352198EBFF14a297FAb44428C8CD',
+        },
+        aura: {
+            rewardPoolDepositWapper: '0xa9952c914d86f896c53bf17125c4104cc058008e',
+            baseRewardPool4626: '0xee374580bff150be6b955954ac3b9899d890cb57',
+            balancerPool: '0x433f09ca08623e48bac7128b7105de678e37d988',
+            weighted_pool_library: '',
         }
     },
 
