@@ -12,7 +12,7 @@ async function main() {
     const susde = tokens.susde;
     const oracleUsdc = chainlink.usdc_usd;
     const poolAddress = curve.pool_usde;
-    const borrower = wallets.borrower;
+    const borrower = wallets.multisig;
 
     console.log("===========================================");
     console.log("ETHENA ASSET DEPLOY");

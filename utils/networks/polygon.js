@@ -74,6 +74,7 @@ module.exports = {
             balancer_market_maker: '0x7685fc882c91936BF94974916cC410028F73C957',
             uniswap_market_maker: '0x70AfC4eEAAEBF698Dda31298388D1E4417b16178',
             curve_market_maker: '0x8843b5Dd4A0757eE4ab639b34BA972686f9aCCD6',
+            yearn_v3: '0xCFcE64f865f84144F9e6FA7C574F580B3eB878e6',
         }
     },
 };

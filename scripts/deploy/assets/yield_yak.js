@@ -10,7 +10,7 @@ async function main() {
     const usdc = tokens.usdc;
     const oracleUsdc = chainlink.usdc_usd;
     const strategy = yield_yak.usdc_startegy;
-    const borrower = wallets.borrower;
+    const borrower = wallets.multisig;
     
     console.log("===========================================");
 	console.log("YIELD YAK ASSET DEPLOY");

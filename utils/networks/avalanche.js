@@ -60,6 +60,7 @@ module.exports = {
         assets: {
             balancer_market_maker: '0x676524646377A6e66Ca797edF7CCB1B5162a8cE0',
             trader_joe_market_maker: '0x06d94665f02322781303224120326167483F5BD2',
+            yield_yak: '0xe55D44783D8DB0684fe992e87d4703632f66cBB3',
         }
     },
 

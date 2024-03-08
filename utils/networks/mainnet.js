@@ -107,6 +107,7 @@ module.exports = {
             maple: '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8',
             sfrax: '0x82f23E915985de7Db7C9463E4d898ccf2ab2fCeF',
             uniswap_market_maker: '',
+            ethena: '0x3bB6861c0Be6673809D55b9D346b6774B634a9D7',
         }
     },
 

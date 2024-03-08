@@ -67,10 +67,8 @@ module.exports = {
         proposal_executor: '0xE7b247DBbb1bFdC8E223e78F9585ACF93Df297f5',
         liquidity_helper: '0xe3E123ED9fec48a6f40A8aC7bE9afEDDAD80F146',
         
-        // ACA
         uniswap_pool: '0x0215a3012611f9D9fe1590fb16C58E4920D9276D',
         uniswap_amm: '0x16F1B45f175D0d8625Fc57Eab12904C620D8D557',
-
 
         balancer_pool: '0xc4EE406970047A70aED14621d97b3B460a7DEA0B',
         balancer_amm: '0x33A48e4aA79A66fc4f7061f5D9E274528C213029', // '0x6B8DcAD70Ff24FbB8Bc5807EF06A7930cD6702c8',
@@ -79,6 +77,7 @@ module.exports = {
             balancer_market_maker: '0x82f23E915985de7Db7C9463E4d898ccf2ab2fCeF',
             uniswap_market_maker: '0xb86d3eea67A8bcaF232Ee9643d5ae5C44525c57e',
             usd_plus: '0xcfce64f865f84144f9e6fa7c574f580b3eb878e6',
+            yearn_v2: '0x28d5a9a0B763F219093Eb01056678e8e702Bf58A',
         }
     },
 
