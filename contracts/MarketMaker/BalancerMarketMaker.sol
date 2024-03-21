@@ -48,13 +48,7 @@ contract BalancerMarketMaker is Stabilizer {
         address _borrower
     ) Stabilizer(_name, _sweep, _usdx, _oracleUsdx, _borrower) {
         slippage = 5000; // 0.5%
-        pool = IBalancerPool(_poolAddress);
-        vault = IBalancerVault(pool.getVault()); 
-        poolId = pool.getPoolId();
-        (poolAssets, , ) = vault.getPoolTokens(poolId);
-        sweepIndex = findAssetIndex(address(sweep), poolAssets);
-        usdxIndex = findAssetIndex(address(usdx), poolAssets);
-        bptIndex = findAssetIndex(address(pool), poolAssets);
+        _updatePool(_poolAddress);
     }
 
     /* ========== Views ========== */
@@ -176,6 +170,11 @@ contract BalancerMarketMaker is Stabilizer {
         slippage = newSlippage;
     }
 
+    function setPool(address newPool) external nonReentrant onlyBorrower {
+        if(newPool == address(0)) revert ZeroAddressDetected();
+        _updatePool(newPool);
+    }
+
     function findAssetIndex(address asset, IAsset[] memory assets) internal pure returns (uint8) {
         for (uint8 i = 0; i < assets.length; i++) {
             if ( address(assets[i]) == asset ) return i;
@@ -183,4 +182,13 @@ contract BalancerMarketMaker is Stabilizer {
         revert BadAddress();
     }
 
+    function _updatePool(address newPool) internal {
+        pool = IBalancerPool(newPool);
+        vault = IBalancerVault(pool.getVault()); 
+        poolId = pool.getPoolId();
+        (poolAssets, , ) = vault.getPoolTokens(poolId);
+        sweepIndex = findAssetIndex(address(sweep), poolAssets);
+        usdxIndex = findAssetIndex(address(usdx), poolAssets);
+        bptIndex = findAssetIndex(address(pool), poolAssets);
+    }
 }

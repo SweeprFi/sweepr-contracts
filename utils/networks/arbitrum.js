@@ -115,7 +115,7 @@ module.exports = {
         proposal_sender: '0xC6c730E0424A01BF6e1A2ff4Ffac8540E29Dd185',
 
         rates_oracle: '0x0a843cC59346EB6e925D6e42263e6148197c96F8',
-        balancer_pool: '0xef093ccfdd4d5a590b028463e0528049939889c9',
+        balancer_pool: '0x94f9aD04B4Bd9e70957a429bFEC20140C1649836',
         balancer_gauge: '0x38E434d74eabaf27169aC1c934886F344e332ba8',
         balancer_amm: '0x72E5b0E088c895ab0d6A86d14943C63aD735B7Cc', // '0x3bB6861c0Be6673809D55b9D346b6774B634a9D7',
 
@@ -127,7 +127,7 @@ module.exports = {
         curve_amm: '0x06128C0948b36eEBB863C34398e6E3043C879A9f',
 
         assets: {
-            balancer_market_maker: '0xC564860ae2042Db0E57CFa3249829AD83EE198d5',
+            balancer_market_maker: '0xC246bC4785f26fcA455542D04FE072F5b1ECC436',
             curve_market_maker: '0xA29584042275ADd34821B0f7A747c53301051D4B',
             uniswap_market_maker: '0x68cE70CbC62fa54f96a83d0Ce2a2Cf1A514609F1',
             silo: '0x4d7e78Be344ab35ceD92213c348C11a1214Db78E',
@@ -136,3 +136,8 @@ module.exports = {
     },
 
 };
+
+/*
+OLD BALANCER POOL: 0xef093ccfdd4d5a590b028463e0528049939889c9
+OLD BALANCER MM: 0xC564860ae2042Db0E57CFa3249829AD83EE198d5
+*/
