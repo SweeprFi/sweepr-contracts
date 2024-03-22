@@ -80,6 +80,14 @@ module.exports = {
 				  browserURL: "https://avalanche.routescan.io"
 				}
 			},
+			{
+				network: "gnosis",
+				chainId: 100,
+				urls: {
+					apiURL: "https://api.gnosisscan.io/api",
+					browserURL: "https://gnosisscan.io"
+				}
+			},
 		]
 	},
 
