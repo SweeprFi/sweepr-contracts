@@ -20,6 +20,7 @@ const networks = {
 			url: alchemyLink,
 			// blockNumber: 20005467
 		},
+		chainId: network.id,
 	},
 	localhost: {
 		allowUnlimitedContractSize: true,

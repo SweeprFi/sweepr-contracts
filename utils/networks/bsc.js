@@ -49,6 +49,14 @@ module.exports = {
         observationCardinality: 480,
     },
 
+    protocols: {
+        apollo: {
+            apollo: "0x1b6F2d3844C6ae7D56ceb3C3643b9060ba28FEb0",
+            apx: "0x78f5d389f5cdccfc41594abab4b0ed02f31398b3",
+            alp: "0x4E47057f45adF24ba41375a175dA0357cB3480E5",
+        }
+    },
+
     deployments: {
         balancer: '0xa884970F06Dda7BedD86829E14BeCa2c8fEd5220',
         treasury: '0x7c9131d7E2bEdb29dA39503DD8Cf809739f047B3',
