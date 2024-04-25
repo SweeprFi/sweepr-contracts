@@ -68,6 +68,7 @@ module.exports = {
 
         assets: {
             pancake_market_maker: '0xe3E123ED9fec48a6f40A8aC7bE9afEDDAD80F146',
+            apollox: '0x8aCc32A107e121aAF22Aa91b3F713376A08A02AB',
             usd_plus: '',
             maple: '',
         }

@@ -7,8 +7,8 @@ async function main() {
 
     const name = 'ApolloX Asset';
     const sweep = tokens.sweep;
-    const usdc = tokens.usdc;
-    const oracleUsdc = chainlink.usdc_usd;
+    const usdt = tokens.usdt;
+    const oracleUsdt = chainlink.usdt_usd;
     const borrower = wallets.borrower;
 
     console.log("===========================================");
@@ -19,8 +19,8 @@ async function main() {
 	console.log("===========================================");
 	console.log("Asset Name:", name);
 	console.log("SWEEP:", sweep);
-	console.log("USDC:", usdc);
-	console.log("USDC/USD Chainlink Oracle:", oracleUsdc);
+	console.log("USDT:", usdt);
+	console.log("USDT/USD Chainlink Oracle:", oracleUsdt);
 	console.log("Borrower:", borrower);
 	console.log("===========================================");
 	const answer = (await ask("continue? y/n: "));
@@ -31,13 +31,13 @@ async function main() {
     const asset = await Asset.deploy(
         name,
         sweep,
-        usdc,
-        oracleUsdc,
+        usdt,
+        oracleUsdt,
         borrower,
     );
 
     console.log("Apollo Asset deployed to:", asset.address);
-    console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${name}" ${sweep} ${usdc} ${oracleUsdc} ${borrower}`)
+    console.log(`\nnpx hardhat verify --network ${network.name} ${asset.address} "${name}" ${sweep} ${usdt} ${oracleUsdt} ${borrower}`)
 
 }
 
