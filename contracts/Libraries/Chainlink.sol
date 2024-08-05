@@ -85,6 +85,7 @@ library ChainlinkLibrary {
         (, int256 answer, uint256 startedAt, , ) = sequencerOracle
             .latestRoundData();
         require(answer <= 0, "Sequencer Down"); // 0: Sequencer is up, 1: Sequencer is down
+        require(startedAt > 0, "Round not complete");
         require(block.timestamp - startedAt > 1 hours, "Grace Period Not Over");
     }
 
